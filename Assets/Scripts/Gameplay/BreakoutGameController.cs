@@ -1,4 +1,6 @@
+using System;
 using System.Collections.Generic;
+using GetBricked.Gameplay.Data;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -42,12 +44,9 @@ namespace GetBricked.Gameplay
         [Header("Brick Wall")]
         [SerializeField] private Vector2 brickSize = new Vector2(1.15f, 0.45f);
         [SerializeField] private Vector2 brickSpacing = new Vector2(0.15f, 0.15f);
-        [SerializeField] private Vector2Int brickGrid = new Vector2Int(8, 5);
-        [SerializeField] private float brickTopInset = 1.5f;
-        [SerializeField] private Color topBrickColor = new Color(0.98f, 0.42f, 0.31f, 1f);
-        [SerializeField] private Color bottomBrickColor = new Color(0.98f, 0.86f, 0.35f, 1f);
 
         private readonly List<Brick> bricks = new List<Brick>();
+        private readonly List<LevelDefinition> loadedLevels = new List<LevelDefinition>();
 
         private Camera activeCamera;
         private Transform runtimeRoot;
@@ -68,9 +67,13 @@ namespace GetBricked.Gameplay
         private float arenaBottom;
         private GUIStyle hudStyle;
         private GUIStyle messageStyle;
+        private LevelDefinition currentLevel;
+        private int currentLevelIndex;
+        private int levelScore;
 
         private void Awake()
         {
+            LoadLevelDefinitions();
             ConfigureCamera();
             CreateRuntimeAssets();
             CreateRuntimeRoots();
@@ -127,6 +130,12 @@ namespace GetBricked.Gameplay
 
             if (roundState == RoundState.LevelComplete || roundState == RoundState.GameOver)
             {
+                if (roundState == RoundState.LevelComplete && HasNextLevel())
+                {
+                    LoadLevel(currentLevelIndex + 1, RoundState.ReadyToServe);
+                    return;
+                }
+
                 StartNewRun();
             }
         }
@@ -139,6 +148,7 @@ namespace GetBricked.Gameplay
             }
 
             score += brick.ScoreValue;
+            levelScore += brick.ScoreValue;
 
             if (brick.CountsTowardLevelCompletion)
             {
@@ -148,11 +158,7 @@ namespace GetBricked.Gameplay
             brick.gameObject.SetActive(false);
             Destroy(brick.gameObject);
 
-            if (requiredBricksRemaining == 0)
-            {
-                roundState = RoundState.LevelComplete;
-                ball.Stop();
-            }
+            EvaluateLevelCompletion();
         }
 
         public void HandleBallLost(BallController lostBall)
@@ -177,9 +183,8 @@ namespace GetBricked.Gameplay
         {
             livesRemaining = Mathf.Max(1, startingLives);
             score = 0;
-            ClearBricks();
-            BuildBrickWall();
-            PrepareServe(RoundState.ReadyToServe);
+            currentLevelIndex = 0;
+            LoadLevel(currentLevelIndex, RoundState.ReadyToServe);
         }
 
         private void PrepareServe(RoundState nextState)
@@ -189,9 +194,59 @@ namespace GetBricked.Gameplay
             ball.ResetToPaddle();
         }
 
+        private void LoadLevelDefinitions()
+        {
+            loadedLevels.Clear();
+            loadedLevels.AddRange(Resources.LoadAll<LevelDefinition>("Levels"));
+            loadedLevels.Sort(CompareLevels);
+
+            if (loadedLevels.Count == 0)
+            {
+                Debug.LogError("No level definitions were found in Resources/Levels. Chunk 03 content cannot load.");
+            }
+        }
+
+        private void LoadLevel(int levelIndex, RoundState serveState)
+        {
+            ClearBricks();
+
+            if (loadedLevels.Count == 0 || levelIndex < 0 || levelIndex >= loadedLevels.Count)
+            {
+                currentLevel = null;
+                currentLevelIndex = 0;
+                levelScore = 0;
+                requiredBricksRemaining = 0;
+                roundState = RoundState.GameOver;
+                ball.Stop();
+                return;
+            }
+
+            currentLevelIndex = levelIndex;
+            currentLevel = loadedLevels[currentLevelIndex];
+            levelScore = 0;
+
+            ApplyLevelTuning(currentLevel);
+            BuildBrickWall(currentLevel);
+            PrepareServe(serveState);
+            EvaluateLevelCompletion();
+        }
+
+        private void ApplyLevelTuning(LevelDefinition level)
+        {
+            if (level == null)
+            {
+                paddle.SetMoveSpeed(paddleSpeed);
+                ball.SetLaunchSpeed(ballSpeed);
+                return;
+            }
+
+            paddle.SetMoveSpeed(paddleSpeed * level.PaddleSpeedMultiplier);
+            ball.SetLaunchSpeed(ballSpeed * level.BallSpeedMultiplier);
+        }
+
         private void ConfigureCamera()
         {
-            activeCamera = Camera.main != null ? Camera.main : Object.FindFirstObjectByType<Camera>();
+            activeCamera = Camera.main != null ? Camera.main : UnityEngine.Object.FindFirstObjectByType<Camera>();
 
             if (activeCamera == null)
             {
@@ -333,47 +388,90 @@ namespace GetBricked.Gameplay
                 ballRadius + (paddleSize.y * 0.5f) + 0.05f);
         }
 
-        private void BuildBrickWall()
+        private void BuildBrickWall(LevelDefinition level)
         {
             requiredBricksRemaining = 0;
-            var totalWidth = (brickGrid.x * brickSize.x) + ((brickGrid.x - 1) * brickSpacing.x);
-            var startX = (-totalWidth * 0.5f) + (brickSize.x * 0.5f);
-            var startY = arenaTop - brickTopInset;
-
-            for (var row = 0; row < brickGrid.y; row++)
+            if (level == null)
             {
-                var rowT = brickGrid.y <= 1 ? 0f : row / (float)(brickGrid.y - 1);
-                var brickColor = Color.Lerp(topBrickColor, bottomBrickColor, rowT);
+                return;
+            }
 
-                for (var column = 0; column < brickGrid.x; column++)
+            var legend = BuildLegendLookup(level);
+            var layoutRows = level.LayoutRows;
+            var startY = arenaTop - level.TopInset;
+
+            for (var row = 0; row < layoutRows.Length; row++)
+            {
+                var rowLayout = layoutRows[row] ?? string.Empty;
+                var totalWidth = (rowLayout.Length * brickSize.x) + (Mathf.Max(0, rowLayout.Length - 1) * brickSpacing.x);
+                var startX = (-totalWidth * 0.5f) + (brickSize.x * 0.5f);
+
+                for (var column = 0; column < rowLayout.Length; column++)
                 {
+                    var symbol = rowLayout[column];
+
+                    if (symbol == '.' || char.IsWhiteSpace(symbol))
+                    {
+                        continue;
+                    }
+
+                    if (!legend.TryGetValue(symbol, out var definition) || definition == null)
+                    {
+                        Debug.LogWarning($"Level '{level.DisplayName}' is missing a brick definition for symbol '{symbol}'.");
+                        continue;
+                    }
+
                     var position = new Vector2(
                         startX + (column * (brickSize.x + brickSpacing.x)),
                         startY - (row * (brickSize.y + brickSpacing.y)));
 
-                    CreateBrick(position, brickColor, row, column);
+                    CreateBrick(position, definition, row, column);
                 }
             }
         }
 
-        private void CreateBrick(Vector2 position, Color color, int row, int column)
+        private Dictionary<char, BrickDefinition> BuildLegendLookup(LevelDefinition level)
         {
-            var brickObject = new GameObject($"Brick {row + 1}-{column + 1}");
+            var legendLookup = new Dictionary<char, BrickDefinition>();
+            var legendEntries = level.Legend;
+
+            for (var index = 0; index < legendEntries.Length; index++)
+            {
+                var entry = legendEntries[index];
+                var symbol = entry.Symbol;
+
+                if (symbol == '\0' || char.IsWhiteSpace(symbol) || symbol == '.')
+                {
+                    continue;
+                }
+
+                legendLookup[symbol] = entry.BrickDefinition;
+            }
+
+            return legendLookup;
+        }
+
+        private void CreateBrick(Vector2 position, BrickDefinition definition, int row, int column)
+        {
+            var brickObject = new GameObject($"{definition.DisplayName} {row + 1}-{column + 1}");
             brickObject.transform.SetParent(bricksRoot, false);
             brickObject.transform.position = position;
             brickObject.transform.localScale = new Vector3(brickSize.x, brickSize.y, 1f);
 
             var spriteRenderer = brickObject.AddComponent<SpriteRenderer>();
             spriteRenderer.sprite = squareSprite;
-            spriteRenderer.color = color;
             spriteRenderer.sortingOrder = 5;
 
             brickObject.AddComponent<BoxCollider2D>();
 
             var brick = brickObject.AddComponent<Brick>();
-            brick.Initialize(this, 100, true, true);
+            brick.Initialize(this, definition);
             bricks.Add(brick);
-            requiredBricksRemaining++;
+
+            if (brick.CountsTowardLevelCompletion)
+            {
+                requiredBricksRemaining++;
+            }
         }
 
         private void ClearBricks()
@@ -390,6 +488,61 @@ namespace GetBricked.Gameplay
             }
 
             bricks.Clear();
+        }
+
+        private void EvaluateLevelCompletion()
+        {
+            if (currentLevel == null)
+            {
+                return;
+            }
+
+            var levelCleared = currentLevel.CompletionRule switch
+            {
+                LevelCompletionRule.ClearRequiredBricks => requiredBricksRemaining <= 0,
+                LevelCompletionRule.ReachTargetScore => levelScore >= currentLevel.TargetScore,
+                _ => false,
+            };
+
+            if (!levelCleared)
+            {
+                return;
+            }
+
+            roundState = RoundState.LevelComplete;
+            ball.Stop();
+        }
+
+        private bool HasNextLevel()
+        {
+            return currentLevel != null && currentLevelIndex < loadedLevels.Count - 1;
+        }
+
+        private static int CompareLevels(LevelDefinition left, LevelDefinition right)
+        {
+            if (ReferenceEquals(left, right))
+            {
+                return 0;
+            }
+
+            if (left == null)
+            {
+                return 1;
+            }
+
+            if (right == null)
+            {
+                return -1;
+            }
+
+            var sequenceComparison = left.SequenceIndex.CompareTo(right.SequenceIndex);
+
+            if (sequenceComparison != 0)
+            {
+                return sequenceComparison;
+            }
+
+            return string.Compare(left.DisplayName, right.DisplayName, StringComparison.Ordinal);
         }
 
         private Sprite CreateSquareSprite()
@@ -440,8 +593,19 @@ namespace GetBricked.Gameplay
         {
             EnsureGuiStyles();
 
-            GUI.Label(new Rect(16f, 16f, 520f, 30f), $"Score: {score:0000}   Lives: {livesRemaining:00}   Required Bricks: {requiredBricksRemaining:00}", hudStyle);
-            GUI.Label(new Rect(16f, 48f, 900f, 28f), "Move with A/D or Left/Right. Launch or continue with Space. Press R to restart the run.", hudStyle);
+            var levelLabel = currentLevel == null
+                ? "No levels loaded"
+                : $"Level: {currentLevelIndex + 1:00}/{loadedLevels.Count:00} - {currentLevel.DisplayName}";
+
+            var objectiveLabel = currentLevel == null
+                ? "Objective unavailable."
+                : currentLevel.CompletionRule == LevelCompletionRule.ClearRequiredBricks
+                    ? $"Objective: Clear remaining breakable bricks ({requiredBricksRemaining:00} left)."
+                    : $"Objective: Score {currentLevel.TargetScore:0000} points this level ({levelScore:0000}/{currentLevel.TargetScore:0000}).";
+
+            GUI.Label(new Rect(16f, 16f, 900f, 30f), $"Score: {score:0000}   Lives: {livesRemaining:00}   {levelLabel}", hudStyle);
+            GUI.Label(new Rect(16f, 48f, 1100f, 28f), objectiveLabel, hudStyle);
+            GUI.Label(new Rect(16f, 80f, 1100f, 28f), "Move with A/D or Left/Right. Launch or continue with Space. Press R to restart the run.", hudStyle);
 
             if (roundState == RoundState.Playing)
             {
@@ -452,7 +616,9 @@ namespace GetBricked.Gameplay
             {
                 RoundState.ReadyToServe => "Press Space to launch the ball.",
                 RoundState.LifeLost => $"Life lost. {livesRemaining} remaining. Press Space to serve again.",
-                RoundState.LevelComplete => "Wall cleared. Press Space to start a new run.",
+                RoundState.LevelComplete => HasNextLevel()
+                    ? "Level cleared. Press Space to load the next layout."
+                    : "Final level cleared. Press Space to start a new run.",
                 RoundState.GameOver => "Game over. Press Space to restart.",
                 _ => string.Empty,
             };

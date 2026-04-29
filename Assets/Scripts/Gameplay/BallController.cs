@@ -68,6 +68,11 @@ namespace GetBricked.Gameplay
             ballBody.linearVelocity = launchDirection * launchSpeed;
         }
 
+        public void SetLaunchSpeed(float speed)
+        {
+            launchSpeed = Mathf.Max(0.1f, speed);
+        }
+
         public void Stop()
         {
             hasLaunched = false;

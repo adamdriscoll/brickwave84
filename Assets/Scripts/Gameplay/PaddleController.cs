@@ -28,6 +28,11 @@ namespace GetBricked.Gameplay
             ResetToStart();
         }
 
+        public void SetMoveSpeed(float speed)
+        {
+            moveSpeed = Mathf.Max(0f, speed);
+        }
+
         public void ResetToStart()
         {
             var resetPosition = startingPosition;

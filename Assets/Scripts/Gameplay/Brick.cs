@@ -1,36 +1,68 @@
+using GetBricked.Gameplay.Data;
 using UnityEngine;
 
 namespace GetBricked.Gameplay
 {
+    [RequireComponent(typeof(BoxCollider2D))]
+    [RequireComponent(typeof(SpriteRenderer))]
     public sealed class Brick : MonoBehaviour
     {
         private BreakoutGameController gameController;
-        private bool breaksOnBallHit;
+        private BrickDefinition definition;
+        private SpriteRenderer spriteRenderer;
+        private int hitPointsRemaining;
 
-        public int ScoreValue { get; private set; }
+        public int ScoreValue => definition == null ? 0 : definition.ScoreValue;
 
-        public bool CountsTowardLevelCompletion { get; private set; }
+        public bool CountsTowardLevelCompletion => definition != null && definition.CountsTowardLevelCompletion;
 
-        public void Initialize(
-            BreakoutGameController controller,
-            int scoreValue,
-            bool countsTowardLevelCompletion,
-            bool destroyOnBallHit)
+        public void Initialize(BreakoutGameController controller, BrickDefinition brickDefinition)
         {
             gameController = controller;
-            ScoreValue = Mathf.Max(0, scoreValue);
-            CountsTowardLevelCompletion = countsTowardLevelCompletion;
-            breaksOnBallHit = destroyOnBallHit;
+            definition = brickDefinition;
+            spriteRenderer = GetComponent<SpriteRenderer>();
+            hitPointsRemaining = definition != null && definition.IsBreakable ? definition.HitPoints : 0;
+            RefreshVisual();
         }
 
         private void OnCollisionEnter2D(Collision2D collision)
         {
-            if (!breaksOnBallHit || !collision.collider.TryGetComponent<BallController>(out _))
+            if (definition == null || !collision.collider.TryGetComponent<BallController>(out _))
             {
                 return;
             }
 
-            gameController.HandleBrickDestroyed(this);
+            if (!definition.IsBreakable)
+            {
+                return;
+            }
+
+            hitPointsRemaining = Mathf.Max(0, hitPointsRemaining - 1);
+
+            if (hitPointsRemaining <= 0)
+            {
+                gameController.HandleBrickDestroyed(this);
+                return;
+            }
+
+            RefreshVisual();
+        }
+
+        private void RefreshVisual()
+        {
+            if (definition == null || spriteRenderer == null)
+            {
+                return;
+            }
+
+            if (!definition.IsBreakable || definition.HitPoints <= 1)
+            {
+                spriteRenderer.color = definition.BaseColor;
+                return;
+            }
+
+            var integrity = Mathf.InverseLerp(1f, definition.HitPoints, hitPointsRemaining);
+            spriteRenderer.color = Color.Lerp(definition.DamagedColor, definition.BaseColor, integrity);
         }
     }
 }

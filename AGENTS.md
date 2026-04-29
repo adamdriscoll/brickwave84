@@ -10,7 +10,8 @@
   - One enabled build scene: `Assets/Scenes/SampleScene.unity`
   - The serialized scene asset is still close to the template and only contains the default `Main Camera` and `Global Light 2D`
   - A runtime bootstrap now injects the playable prototype into the scene on load
-  - The prototype currently supports one paddle, one ball, a brick wall, score HUD, lives, serve/reset flow between ball losses, and temporary level-complete / game-over states
+  - The prototype currently supports one paddle, one ball, a score HUD, lives, serve/reset flow between ball losses, authored multi-level progression, and temporary level-complete / game-over states
+  - Brick content is now data-driven through ScriptableObject assets, including multi-strength breakable bricks and unbreakable obstacle bricks
   - There are custom C# scripts now, but still no `.asmdef` files, no prefabs, and no automated tests yet
 - Input System is enabled and has a starter action asset at `Assets/InputSystem_Actions.inputactions`.
 
@@ -19,10 +20,14 @@
 - `Assets/Scenes/SampleScene.unity`: current playable scene and only scene in build settings
 - `Assets/InputSystem_Actions.inputactions`: starter input maps for `Player` and `UI`
 - `Assets/Scripts/Core/BreakoutBootstrap.cs`: runtime entry point that ensures the prototype controller exists after scene load
-- `Assets/Scripts/Gameplay/BreakoutGameController.cs`: builds the prototype playfield, score/lives HUD, brick wall, and run-state flow at runtime
+- `Assets/Scripts/Gameplay/BreakoutGameController.cs`: builds the prototype playfield, score/lives HUD, runtime brick layout, and multi-level run-state flow
 - `Assets/Scripts/Gameplay/PaddleController.cs`: keyboard-driven paddle movement with clamped horizontal bounds
-- `Assets/Scripts/Gameplay/BallController.cs`: launch, bounce shaping, speed clamping, and loss detection for the prototype ball
-- `Assets/Scripts/Gameplay/Brick.cs`: simple breakable brick behavior
+- `Assets/Scripts/Gameplay/BallController.cs`: launch, bounce shaping, per-level speed tuning, speed clamping, and loss detection for the prototype ball
+- `Assets/Scripts/Gameplay/Brick.cs`: definition-driven brick behavior with variable durability and unbreakable support
+- `Assets/Scripts/Gameplay/Data/BrickDefinition.cs`: ScriptableObject data for brick durability, scoring, completion contribution, and colors
+- `Assets/Scripts/Gameplay/Data/LevelDefinition.cs`: ScriptableObject data for layout rows, legend mapping, completion rules, and per-level tuning
+- `Assets/Resources/Bricks/*`: authored brick definition assets loaded at runtime
+- `Assets/Resources/Levels/*`: authored level definition assets loaded at runtime
 - `Assets/Settings/*`: URP / 2D renderer assets and template scene assets
 - `.codex/skills/repo-maintenance/*`: repo-local maintenance skill and snapshot helper for refreshing `AGENTS.md` and local skills after agent work
 - `Packages/manifest.json`: Unity package dependencies
@@ -35,9 +40,11 @@
 - The package list shows a 2D-focused setup plus the new Input System, UGUI, Timeline, and Visual Scripting.
 - The input action asset already includes common starter actions like `Move`, `Look`, `Attack`, `Interact`, `Jump`, `Sprint`, `Previous`, and `Next`.
 - The current prototype is scene-light and code-heavy: the gameplay board, bounds, ball, paddle, bricks, and temporary HUD are created at runtime instead of being serialized into `SampleScene`.
+- Bricks and levels are now authored as ScriptableObjects under `Assets/Resources/` and loaded by `BreakoutGameController` at runtime.
+- Level layouts are currently encoded as row strings plus a symbol-to-brick legend, so adding a new level is a data-editing task rather than a code change.
 - Prototype input is currently read directly from `UnityEngine.InputSystem.Keyboard` rather than being wired through `PlayerInput` or the existing action asset.
 - Ball and paddle behavior use Unity 6-era 2D physics APIs such as `Rigidbody2D.linearVelocity`.
-- Run flow is still runtime-authored inside `BreakoutGameController`, including lives, serve states, level completion, and game over.
+- Run flow is still runtime-authored inside `BreakoutGameController`, including lives, serve states, level transitions, level completion, and game over.
 - After adding or renaming scripts, let Unity regenerate project files instead of hand-maintaining the `.sln`.
 
 ## Working Rules For Future Agents
@@ -67,6 +74,7 @@
 - Keep first-pass gameplay tuning values serialized on the controlling MonoBehaviour so feel can be adjusted quickly in the Inspector during playtesting.
 - Add prefabs under `Assets/Prefabs/`, art under `Assets/Art/`, and audio under `Assets/Audio/` if those areas are created later.
 - If tests are added, prefer Unity Test Framework with clear separation between Edit Mode and Play Mode tests.
+- If you add more authored gameplay content, keep using `.asset` plus `.meta` pairings under `Assets/Resources/Bricks/` and `Assets/Resources/Levels/` unless the project deliberately migrates to a different content-loading path.
 
 ## Validation Checklist
 
@@ -81,8 +89,8 @@ When making changes, validate with the Unity editor when possible:
   - `A/D` or left/right arrows move the paddle
   - `Space` launches the ball
   - Losing the ball removes one life and re-serves from the paddle until lives reach zero
-  - Bricks are destroyed on hit
-  - Clearing all required bricks reaches the temporary level-complete state
+  - Breakable bricks respect their configured hit strength and unbreakable bricks stay in play
+  - Clearing the current objective reaches the temporary level-complete state and `Space` advances to the next authored level
   - `R` restarts the full run
 - If build configuration changes are made, re-check `ProjectSettings/EditorBuildSettings.asset`.
 
@@ -97,12 +105,14 @@ If you are a future agent starting work here, read these first:
 5. `Assets/InputSystem_Actions.inputactions`
 6. `Assets/Scripts/Core/BreakoutBootstrap.cs`
 7. `Assets/Scripts/Gameplay/BreakoutGameController.cs`
-8. `Assets/Scenes/SampleScene.unity`
-9. `.codex/skills/repo-maintenance/SKILL.md`
+8. `Assets/Scripts/Gameplay/Data/LevelDefinition.cs`
+9. `Assets/Resources/Levels/Level01.asset`
+10. `Assets/Scenes/SampleScene.unity`
+11. `.codex/skills/repo-maintenance/SKILL.md`
 
 ## Current Reality Check
 
-- There is now a minimal implemented game loop for a single-screen brick-breaker prototype.
+- There is now a minimal implemented game loop for a single-screen brick-breaker prototype with authored level data.
 - The current custom systems are small, but they are real and worth extending deliberately instead of replacing by default.
 - Most near-term work will still be greenfield, but it should now build on the existing runtime prototype and folder structure.
-- If a user asks for game features, you will likely be extending the current scripts first, then deciding when to promote runtime-generated objects into authored scene or prefab assets.
+- If a user asks for game features, you will likely be extending the current scripts and authored content assets first, then deciding when to promote runtime-generated objects into authored scene or prefab assets.
