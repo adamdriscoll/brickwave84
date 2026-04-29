@@ -1888,7 +1888,7 @@ namespace GetBricked.Gameplay
                 return;
             }
 
-            var levelCleared = currentLevel.CompletionRule switch
+            var levelCleared = !HasBreakableBricksRemaining() || currentLevel.CompletionRule switch
             {
                 LevelCompletionRule.ClearRequiredBricks => requiredBricksRemaining <= 0,
                 LevelCompletionRule.ReachTargetScore => levelScore >= currentLevel.TargetScore,
@@ -1905,6 +1905,26 @@ namespace GetBricked.Gameplay
             SetSimulationPaused(false);
             ClearPickups();
             StopAllBalls();
+        }
+
+        private bool HasBreakableBricksRemaining()
+        {
+            for (var index = 0; index < bricks.Count; index++)
+            {
+                var brick = bricks[index];
+
+                if (brick == null || brick.Definition == null)
+                {
+                    continue;
+                }
+
+                if (brick.Definition.IsBreakable)
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         private bool HasNextLevel()
