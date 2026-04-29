@@ -9,6 +9,30 @@ namespace GetBricked.Gameplay.Data
         ReachTargetScore = 1,
     }
 
+    public enum BrickMovementDirection
+    {
+        Left = 0,
+        Right = 1,
+        Up = 2,
+        Down = 3,
+        UpLeft = 4,
+        UpRight = 5,
+        DownLeft = 6,
+        DownRight = 7,
+    }
+
+    public enum BrickMovementModifier
+    {
+        None = 0,
+        AlternateByRow = 1,
+        AlternateByColumn = 2,
+        Checkerboard = 3,
+        OutwardFromCenter = 4,
+        InwardToCenter = 5,
+        ClockwiseAroundCenter = 6,
+        CounterClockwiseAroundCenter = 7,
+    }
+
     [Serializable]
     public struct LevelBrickLegendEntry
     {
@@ -18,6 +42,25 @@ namespace GetBricked.Gameplay.Data
         public char Symbol => string.IsNullOrEmpty(symbol) ? '\0' : symbol[0];
 
         public BrickDefinition BrickDefinition => brickDefinition;
+    }
+
+    [Serializable]
+    public struct LevelBrickMovementEntry
+    {
+        [SerializeField] private string symbol;
+        [SerializeField] private BrickMovementDirection direction;
+        [SerializeField] private BrickMovementModifier modifier;
+        [SerializeField, Min(0f)] private float speed;
+
+        public char Symbol => string.IsNullOrEmpty(symbol) ? '\0' : symbol[0];
+
+        public BrickMovementDirection Direction => direction;
+
+        public BrickMovementModifier Modifier => modifier;
+
+        public float Speed => Mathf.Max(0f, speed);
+
+        public bool HasMotion => Symbol != '\0' && Symbol != '.' && !char.IsWhiteSpace(Symbol) && Speed > 0.01f;
     }
 
     [CreateAssetMenu(menuName = "Get Bricked/Level Definition", fileName = "LevelDefinition")]
@@ -32,6 +75,7 @@ namespace GetBricked.Gameplay.Data
         [SerializeField, Min(0)] private int targetScore;
         [SerializeField] private string[] layoutRows = Array.Empty<string>();
         [SerializeField] private LevelBrickLegendEntry[] legend = Array.Empty<LevelBrickLegendEntry>();
+        [SerializeField] private LevelBrickMovementEntry[] brickMovement = Array.Empty<LevelBrickMovementEntry>();
 
         public int SequenceIndex => Mathf.Max(0, sequenceIndex);
 
@@ -50,5 +94,7 @@ namespace GetBricked.Gameplay.Data
         public string[] LayoutRows => layoutRows ?? Array.Empty<string>();
 
         public LevelBrickLegendEntry[] Legend => legend ?? Array.Empty<LevelBrickLegendEntry>();
+
+        public LevelBrickMovementEntry[] BrickMovement => brickMovement ?? Array.Empty<LevelBrickMovementEntry>();
     }
 }

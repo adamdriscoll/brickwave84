@@ -42,6 +42,23 @@ namespace GetBricked.Gameplay
             public int[] RowShifts = Array.Empty<int>();
         }
 
+        private readonly struct BrickMotionConfig
+        {
+            public BrickMotionConfig(float speed, Vector2 initialDirection)
+            {
+                Speed = Mathf.Max(0f, speed);
+                InitialDirection = initialDirection.sqrMagnitude > 0.001f
+                    ? initialDirection.normalized
+                    : Vector2.zero;
+            }
+
+            public float Speed { get; }
+
+            public Vector2 InitialDirection { get; }
+
+            public bool IsEnabled => Speed > 0.01f && InitialDirection.sqrMagnitude > 0.001f;
+        }
+
         [Serializable]
         private sealed class PersistedRunSetup
         {
@@ -1441,6 +1458,7 @@ namespace GetBricked.Gameplay
             }
 
             var legend = BuildLegendLookup(level);
+            var brickMovementLookup = BuildBrickMovementLookup(level);
             var layoutRows = layoutPlan?.LayoutRows ?? level.LayoutRows;
             var startY = arenaTop - level.TopInset;
 
@@ -1469,7 +1487,15 @@ namespace GetBricked.Gameplay
                         startX + (column * (brickSize.x + brickSpacing.x)),
                         startY - (row * (brickSize.y + brickSpacing.y)));
 
-                    CreateBrick(position, definition, row, column, GetEffectiveBrickHitPoints(definition));
+                    var motionConfig = ResolveBrickMotionConfig(
+                        brickMovementLookup,
+                        symbol,
+                        row,
+                        column,
+                        rowLayout.Length,
+                        layoutRows.Length);
+
+                    CreateBrick(position, definition, row, column, GetEffectiveBrickHitPoints(definition), motionConfig);
                 }
             }
         }
@@ -1493,6 +1519,161 @@ namespace GetBricked.Gameplay
             }
 
             return legendLookup;
+        }
+
+        private Dictionary<char, LevelBrickMovementEntry> BuildBrickMovementLookup(LevelDefinition level)
+        {
+            var movementLookup = new Dictionary<char, LevelBrickMovementEntry>();
+            var movementEntries = level.BrickMovement;
+
+            for (var index = 0; index < movementEntries.Length; index++)
+            {
+                var entry = movementEntries[index];
+
+                if (!entry.HasMotion)
+                {
+                    continue;
+                }
+
+                movementLookup[entry.Symbol] = entry;
+            }
+
+            return movementLookup;
+        }
+
+        private BrickMotionConfig ResolveBrickMotionConfig(
+            Dictionary<char, LevelBrickMovementEntry> brickMovementLookup,
+            char symbol,
+            int row,
+            int column,
+            int rowLength,
+            int totalRows)
+        {
+            if (brickMovementLookup == null
+                || !brickMovementLookup.TryGetValue(symbol, out var movementEntry)
+                || !movementEntry.HasMotion)
+            {
+                return default;
+            }
+
+            var direction = ResolveBrickMovementDirection(movementEntry, row, column, rowLength, totalRows);
+            return new BrickMotionConfig(movementEntry.Speed, direction);
+        }
+
+        private static Vector2 ResolveBrickMovementDirection(
+            LevelBrickMovementEntry movementEntry,
+            int row,
+            int column,
+            int rowLength,
+            int totalRows)
+        {
+            return movementEntry.Modifier switch
+            {
+                BrickMovementModifier.OutwardFromCenter => ResolveCenterRelativeMovementDirection(
+                    row,
+                    column,
+                    rowLength,
+                    totalRows,
+                    clockwise: false,
+                    inward: false),
+                BrickMovementModifier.InwardToCenter => ResolveCenterRelativeMovementDirection(
+                    row,
+                    column,
+                    rowLength,
+                    totalRows,
+                    clockwise: false,
+                    inward: true),
+                BrickMovementModifier.ClockwiseAroundCenter => ResolveCenterRelativeMovementDirection(
+                    row,
+                    column,
+                    rowLength,
+                    totalRows,
+                    clockwise: true,
+                    inward: false,
+                    tangential: true),
+                BrickMovementModifier.CounterClockwiseAroundCenter => ResolveCenterRelativeMovementDirection(
+                    row,
+                    column,
+                    rowLength,
+                    totalRows,
+                    clockwise: false,
+                    inward: false,
+                    tangential: true),
+                _ => ResolvePatternMovementDirection(movementEntry.Direction, movementEntry.Modifier, row, column),
+            };
+        }
+
+        private static Vector2 ResolvePatternMovementDirection(
+            BrickMovementDirection direction,
+            BrickMovementModifier modifier,
+            int row,
+            int column)
+        {
+            var resolvedDirection = ResolveBaseBrickMovementDirection(direction);
+
+            if (ShouldInvertBrickMovementDirection(modifier, row, column))
+            {
+                resolvedDirection *= -1f;
+            }
+
+            return resolvedDirection;
+        }
+
+        private static bool ShouldInvertBrickMovementDirection(BrickMovementModifier modifier, int row, int column)
+        {
+            return modifier switch
+            {
+                BrickMovementModifier.AlternateByRow => (row & 1) == 1,
+                BrickMovementModifier.AlternateByColumn => (column & 1) == 1,
+                BrickMovementModifier.Checkerboard => ((row + column) & 1) == 1,
+                _ => false,
+            };
+        }
+
+        private static Vector2 ResolveCenterRelativeMovementDirection(
+            int row,
+            int column,
+            int rowLength,
+            int totalRows,
+            bool clockwise,
+            bool inward,
+            bool tangential = false)
+        {
+            var center = new Vector2((Mathf.Max(1, rowLength) - 1f) * 0.5f, (Mathf.Max(1, totalRows) - 1f) * 0.5f);
+            var offset = new Vector2(column - center.x, center.y - row);
+
+            if (offset.sqrMagnitude <= 0.0001f)
+            {
+                return clockwise ? Vector2.right : Vector2.up;
+            }
+
+            if (tangential)
+            {
+                return new Vector2(-offset.y, offset.x).normalized;
+            }
+
+            if (clockwise)
+            {
+                return new Vector2(offset.y, -offset.x).normalized;
+            }
+
+            return inward ? -offset.normalized : offset.normalized;
+        }
+
+        private static Vector2 ResolveBaseBrickMovementDirection(BrickMovementDirection direction)
+        {
+            return direction switch
+            {
+                BrickMovementDirection.Left => Vector2.left,
+                BrickMovementDirection.Right => Vector2.right,
+                BrickMovementDirection.Up => Vector2.up,
+                BrickMovementDirection.Down => Vector2.down,
+                BrickMovementDirection.UpLeft => new Vector2(-1f, 1f).normalized,
+                BrickMovementDirection.UpRight => new Vector2(1f, 1f).normalized,
+                BrickMovementDirection.DownLeft => new Vector2(-1f, -1f).normalized,
+                BrickMovementDirection.DownRight => new Vector2(1f, -1f).normalized,
+                _ => Vector2.right,
+            };
         }
 
         private static int CountOccupiedTiles(string rowLayout)
@@ -1569,7 +1750,13 @@ namespace GetBricked.Gameplay
                     : "Variation: authored orientation";
         }
 
-        private void CreateBrick(Vector2 position, BrickDefinition definition, int row, int column, int effectiveHitPoints)
+        private void CreateBrick(
+            Vector2 position,
+            BrickDefinition definition,
+            int row,
+            int column,
+            int effectiveHitPoints,
+            BrickMotionConfig motionConfig)
         {
             var brickObject = new GameObject($"{definition.DisplayName} {row + 1}-{column + 1}");
             brickObject.transform.SetParent(bricksRoot, false);
@@ -1580,10 +1767,17 @@ namespace GetBricked.Gameplay
             spriteRenderer.sprite = squareSprite;
             spriteRenderer.sortingOrder = 5;
 
-            brickObject.AddComponent<BoxCollider2D>();
+            var collider = brickObject.AddComponent<BoxCollider2D>();
+            collider.sharedMaterial = bounceMaterial;
 
             var brick = brickObject.AddComponent<Brick>();
-            brick.Initialize(this, definition, effectiveHitPoints, ResolveBrickStyle(definition));
+            brick.Initialize(
+                this,
+                definition,
+                effectiveHitPoints,
+                ResolveBrickStyle(definition),
+                motionConfig.Speed,
+                motionConfig.InitialDirection);
             bricks.Add(brick);
 
             if (brick.CountsTowardLevelCompletion)

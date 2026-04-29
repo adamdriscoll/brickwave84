@@ -34,3 +34,8 @@ MonoBehaviour:
     brickDefinition: {fileID: 11400000, guid: 748bde0e62084c6ab73f5a987b0a00c5, type: 2}
   - symbol: S
     brickDefinition: {fileID: 11400000, guid: 3ac37109f4a0488d9d967653c9139a08, type: 2}
+  brickMovement:
+  - symbol: C
+    direction: 0
+    modifier: 0
+    speed: 1.75
