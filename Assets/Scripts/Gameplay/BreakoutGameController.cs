@@ -88,6 +88,7 @@ namespace GetBricked.Gameplay
             NextLevel,
             ReturnToRunSetup,
             ReturnToMainMenu,
+            QuitGame,
         }
 
         private const string PersistedRunSetupKey = "GetBricked.RunSetup";
@@ -165,6 +166,8 @@ namespace GetBricked.Gameplay
         private GUIStyle overlayBodyStyle;
         private GUIStyle overlayActionStyle;
         private GUIStyle overlaySelectedActionStyle;
+        private GUIStyle hudButtonStyle;
+        private GUIStyle hudActiveButtonStyle;
         private LevelDefinition currentLevel;
         private int currentLevelIndex;
         private int levelScore;
@@ -184,6 +187,7 @@ namespace GetBricked.Gameplay
         private string currentLevelVariationLabel = "Variation: not started";
         private string pendingValidationMessage = string.Empty;
         private float manualBallSpeedMultiplier = 1f;
+        private bool isDiagnosticsOverlayVisible;
 
         private void Awake()
         {
@@ -380,6 +384,7 @@ namespace GetBricked.Gameplay
                 activeRunSettings = BuildRunSettingsFromPending(out pendingValidationMessage, commitSeedText: true);
             }
 
+            isDiagnosticsOverlayVisible = false;
             manualBallSpeedMultiplier = 1f;
             SetSimulationPaused(false);
             selectedOverlayActionIndex = 0;
@@ -405,6 +410,7 @@ namespace GetBricked.Gameplay
             selectedOverlayActionIndex = 0;
             pendingValidationMessage = string.Empty;
             currentLevelVariationLabel = "Variation: pending";
+            isDiagnosticsOverlayVisible = false;
             ResetRuntimeForMetaFlow();
         }
 
@@ -431,6 +437,7 @@ namespace GetBricked.Gameplay
             selectedRunSetupField = RunSetupField.Seed;
             pendingValidationMessage = string.Empty;
             currentLevelVariationLabel = "Variation: pending";
+            isDiagnosticsOverlayVisible = false;
             ResetRuntimeForMetaFlow();
         }
 
@@ -669,6 +676,7 @@ namespace GetBricked.Gameplay
                     OverlayAction.RestartRun,
                     OverlayAction.ReturnToRunSetup,
                     OverlayAction.ReturnToMainMenu,
+                    OverlayAction.QuitGame,
                 },
                 RoundState.LevelComplete => HasNextLevel()
                     ? new[]
@@ -730,6 +738,9 @@ namespace GetBricked.Gameplay
                     break;
                 case OverlayAction.ReturnToMainMenu:
                     EnterMainMenu();
+                    break;
+                case OverlayAction.QuitGame:
+                    QuitGame();
                     break;
             }
         }
@@ -1637,6 +1648,11 @@ namespace GetBricked.Gameplay
 
             DrawGameplayHud();
 
+            if (isDiagnosticsOverlayVisible)
+            {
+                DrawDiagnosticsOverlay();
+            }
+
             if (roundState == RoundState.Playing)
             {
                 DrawPickupBanner();
@@ -1681,7 +1697,9 @@ namespace GetBricked.Gameplay
                 && overlayTitleStyle != null
                 && overlayBodyStyle != null
                 && overlayActionStyle != null
-                && overlaySelectedActionStyle != null)
+                && overlaySelectedActionStyle != null
+                && hudButtonStyle != null
+                && hudActiveButtonStyle != null)
             {
                 return;
             }
@@ -1748,6 +1766,17 @@ namespace GetBricked.Gameplay
                 fontStyle = FontStyle.Bold,
             };
             overlaySelectedActionStyle.normal.textColor = new Color(1f, 0.92f, 0.58f, 1f);
+
+            hudButtonStyle = new GUIStyle(GUI.skin.button)
+            {
+                alignment = TextAnchor.MiddleCenter,
+                fontSize = 15,
+                fontStyle = FontStyle.Bold,
+                padding = new RectOffset(10, 10, 6, 6),
+            };
+
+            hudActiveButtonStyle = new GUIStyle(hudButtonStyle);
+            hudActiveButtonStyle.normal.textColor = new Color(1f, 0.95f, 0.72f, 1f);
         }
 
         private void DrawMainMenuUi()
@@ -1815,61 +1844,55 @@ namespace GetBricked.Gameplay
 
         private void DrawGameplayHud()
         {
-            var statsBoxRect = new Rect(16f, 16f, Screen.width - 32f, 98f);
-            var detailBoxRect = new Rect(16f, 122f, Screen.width - 32f, string.IsNullOrWhiteSpace(pendingValidationMessage) ? 96f : 122f);
+            var topBarRect = new Rect(0f, 0f, Screen.width, 76f);
+            var contentWidth = Mathf.Max(320f, topBarRect.width - 256f);
+            var buttonsX = topBarRect.xMax - 232f;
+            var buttonsY = topBarRect.y + 18f;
+            var showMenuButton = CanPauseRoundState(roundState) || roundState == RoundState.Paused;
+            var diagnosticsLabel = isDiagnosticsOverlayVisible ? "Hide Diagnostics" : "Diagnostics";
+            var menuLabel = roundState == RoundState.Paused ? "Resume" : "Menu";
 
-            GUI.Box(statsBoxRect, GUIContent.none);
-            GUI.Box(detailBoxRect, GUIContent.none);
-
+            DrawSolidRect(topBarRect, new Color(0.05f, 0.07f, 0.11f, 0.96f));
             GUI.Label(
-                new Rect(statsBoxRect.x + 16f, statsBoxRect.y + 12f, statsBoxRect.width - 32f, 24f),
-                $"Score {score:0000}   Lives {livesRemaining:00}   Balls {Mathf.Max(0, activeBalls.Count):00}   {BuildLevelLabel()}",
+                new Rect(20f, topBarRect.y + 12f, contentWidth, 24f),
+                $"Score {score:0000}   Lives {livesRemaining:00}   {BuildLevelLabel()}",
                 hudStyle);
             GUI.Label(
-                new Rect(statsBoxRect.x + 16f, statsBoxRect.y + 40f, statsBoxRect.width - 32f, 24f),
-                BuildObjectiveLabel(),
-                hudStyle);
-            GUI.Label(
-                new Rect(statsBoxRect.x + 16f, statsBoxRect.y + 68f, statsBoxRect.width - 32f, 24f),
-                BuildRunSummaryLabel(),
-                hudStyle);
-
-            GUI.Label(
-                new Rect(detailBoxRect.x + 16f, detailBoxRect.y + 10f, detailBoxRect.width - 32f, 24f),
-                $"{currentLevelVariationLabel}   |   State: {BuildRoundStateLabel()}",
-                hudStyle);
-            GUI.Label(
-                new Rect(detailBoxRect.x + 16f, detailBoxRect.y + 36f, detailBoxRect.width - 32f, 24f),
-                BuildBallSpeedControlLabel(),
-                hudStyle);
-            GUI.Label(
-                new Rect(detailBoxRect.x + 16f, detailBoxRect.y + 62f, detailBoxRect.width - 32f, 24f),
-                BuildActiveEffectsLabel(),
+                new Rect(20f, topBarRect.y + 40f, contentWidth, 24f),
+                BuildRemainingBricksLabel(),
                 hudStyle);
 
-            if (!string.IsNullOrWhiteSpace(pendingValidationMessage))
+            if (GUI.Button(
+                    new Rect(buttonsX, buttonsY, 108f, 38f),
+                    diagnosticsLabel,
+                    isDiagnosticsOverlayVisible ? hudActiveButtonStyle : hudButtonStyle))
             {
-                GUI.Label(
-                    new Rect(detailBoxRect.x + 16f, detailBoxRect.y + 88f, detailBoxRect.width - 32f, 24f),
-                    pendingValidationMessage,
-                    hudStyle);
+                isDiagnosticsOverlayVisible = !isDiagnosticsOverlayVisible;
             }
 
-            GUI.Label(
-                new Rect(24f, detailBoxRect.yMax + 8f, Screen.width - 48f, 24f),
-                "Move with A/D or Left/Right. Up/Down tunes ball speed. Space launches or advances. Esc/P pauses. R reopens run setup.",
-                hudStyle);
+            if (showMenuButton
+                && GUI.Button(
+                    new Rect(buttonsX + 116f, buttonsY, 96f, 38f),
+                    menuLabel,
+                    roundState == RoundState.Paused ? hudActiveButtonStyle : hudButtonStyle))
+            {
+                ToggleHudMenuOverlay();
+            }
         }
 
         private void DrawPauseUi()
         {
-            var boxRect = new Rect((Screen.width * 0.5f) - 280f, (Screen.height * 0.5f) - 150f, 560f, 300f);
+            var boxRect = new Rect((Screen.width * 0.5f) - 320f, (Screen.height * 0.5f) - 180f, 640f, 360f);
             GUI.Box(boxRect, GUIContent.none);
-            GUI.Label(new Rect(boxRect.x + 24f, boxRect.y + 20f, boxRect.width - 48f, 34f), "Paused", overlayTitleStyle);
+            GUI.Label(new Rect(boxRect.x + 24f, boxRect.y + 20f, boxRect.width - 48f, 34f), "Menu", overlayTitleStyle);
             GUI.Label(new Rect(boxRect.x + 32f, boxRect.y + 64f, boxRect.width - 64f, 24f), BuildPauseSummaryLabel(), overlayBodyStyle);
             GUI.Label(new Rect(boxRect.x + 32f, boxRect.y + 92f, boxRect.width - 64f, 24f), currentLevelVariationLabel, overlayBodyStyle);
-            DrawOverlayActionList(GetOverlayActionsForState(RoundState.Paused), boxRect.x + 90f, boxRect.y + 136f, boxRect.width - 180f, 34f);
-            GUI.Label(new Rect(boxRect.x + 28f, boxRect.y + 258f, boxRect.width - 56f, 24f), "Up/Down selects. Space confirms. Esc or P resumes immediately.", setupHintStyle);
+            DrawOverlayActionList(GetOverlayActionsForState(RoundState.Paused), boxRect.x + 90f, boxRect.y + 132f, boxRect.width - 180f, 34f);
+            GUI.Label(
+                new Rect(boxRect.x + 42f, boxRect.y + 262f, boxRect.width - 84f, 44f),
+                "Controls: A/D or Left/Right moves, Space launches/advances, Up/Down adjusts manual ball speed, Esc/P opens or closes this menu, R returns to run setup.",
+                setupHintStyle);
+            GUI.Label(new Rect(boxRect.x + 28f, boxRect.y + 314f, boxRect.width - 56f, 24f), "Up/Down selects. Space confirms. Esc or P resumes immediately.", setupHintStyle);
         }
 
         private void DrawEndStateUi()
@@ -1904,8 +1927,14 @@ namespace GetBricked.Gameplay
             for (var index = 0; index < actions.Length; index++)
             {
                 var isSelected = index == Mathf.Clamp(selectedOverlayActionIndex, 0, actions.Length - 1);
-                var label = $"{(isSelected ? "> " : "  ")}{GetOverlayActionLabel(actions[index])}";
-                GUI.Label(new Rect(x, y + (lineHeight * index), width, lineHeight), label, isSelected ? overlaySelectedActionStyle : overlayActionStyle);
+                var actionRect = new Rect(x, y + (lineHeight * index), width, lineHeight);
+                var label = isSelected ? $"> {GetOverlayActionLabel(actions[index])}" : GetOverlayActionLabel(actions[index]);
+
+                if (GUI.Button(actionRect, label, isSelected ? overlaySelectedActionStyle : overlayActionStyle))
+                {
+                    selectedOverlayActionIndex = index;
+                    PerformOverlayAction(actions[index]);
+                }
             }
         }
 
@@ -1921,6 +1950,7 @@ namespace GetBricked.Gameplay
                 OverlayAction.NextLevel => "Next Level",
                 OverlayAction.ReturnToRunSetup => "Return To Setup",
                 OverlayAction.ReturnToMainMenu => "Return To Main Menu",
+                OverlayAction.QuitGame => "Quit Game",
                 _ => action.ToString(),
             };
         }
@@ -1932,16 +1962,14 @@ namespace GetBricked.Gameplay
                 : $"Level {currentLevelIndex + 1:00}/{loadedLevels.Count:00} - {currentLevel.DisplayName}";
         }
 
-        private string BuildObjectiveLabel()
+        private string BuildRemainingBricksLabel()
         {
             if (currentLevel == null)
             {
-                return "Objective unavailable.";
+                return "Remaining Bricks --";
             }
 
-            return currentLevel.CompletionRule == LevelCompletionRule.ClearRequiredBricks
-                ? $"Objective: Clear remaining breakable bricks ({requiredBricksRemaining:00} left)."
-                : $"Objective: Score {currentLevel.TargetScore:0000} points this level ({levelScore:0000}/{currentLevel.TargetScore:0000}).";
+            return $"Remaining Bricks {requiredBricksRemaining:00}";
         }
 
         private string BuildPauseSummaryLabel()
@@ -1982,6 +2010,67 @@ namespace GetBricked.Gameplay
             return
                 $"Run Seed: {activeRunSettings.Seed} | {activeRunSettings.DifficultyLabel} | Balls/Serve {activeRunSettings.BallsPerServe} | " +
                 $"Drops: {activeRunSettings.DropPoolLabel} | Paddle x{activeRunSettings.PaddleWidthMultiplier:0.00} | Ball x{activeRunSettings.BallSpeedMultiplier:0.00}";
+        }
+
+        private void DrawDiagnosticsOverlay()
+        {
+            var overlayHeight = string.IsNullOrWhiteSpace(pendingValidationMessage) ? 116f : 144f;
+            var overlayRect = new Rect(0f, Screen.height - overlayHeight, Screen.width, overlayHeight);
+            DrawSolidRect(overlayRect, new Color(0.03f, 0.04f, 0.08f, 0.94f));
+
+            GUI.Label(
+                new Rect(20f, overlayRect.y + 14f, overlayRect.width - 40f, 24f),
+                $"{currentLevelVariationLabel}   |   State: {BuildRoundStateLabel()}",
+                hudStyle);
+            GUI.Label(
+                new Rect(20f, overlayRect.y + 42f, overlayRect.width - 40f, 24f),
+                BuildBallSpeedControlLabel(),
+                hudStyle);
+            GUI.Label(
+                new Rect(20f, overlayRect.y + 70f, overlayRect.width - 40f, 24f),
+                $"{BuildActiveEffectsLabel()}   |   {BuildRunSummaryLabel()}",
+                hudStyle);
+
+            if (!string.IsNullOrWhiteSpace(pendingValidationMessage))
+            {
+                GUI.Label(
+                    new Rect(20f, overlayRect.y + 98f, overlayRect.width - 40f, 24f),
+                    pendingValidationMessage,
+                    hudStyle);
+            }
+        }
+
+        private void ToggleHudMenuOverlay()
+        {
+            if (roundState == RoundState.Paused)
+            {
+                ResumeGameplay();
+                return;
+            }
+
+            if (CanPauseRoundState(roundState))
+            {
+                PauseGameplay();
+            }
+        }
+
+        private void QuitGame()
+        {
+            Debug.Log("Quit requested from the in-game menu.");
+
+#if UNITY_EDITOR
+            UnityEditor.EditorApplication.isPlaying = false;
+#else
+            Application.Quit();
+#endif
+        }
+
+        private static void DrawSolidRect(Rect rect, Color color)
+        {
+            var previousGuiColor = GUI.color;
+            GUI.color = color;
+            GUI.DrawTexture(rect, Texture2D.whiteTexture, ScaleMode.StretchToFill);
+            GUI.color = previousGuiColor;
         }
 
         private string GetPendingSeedDisplay()
