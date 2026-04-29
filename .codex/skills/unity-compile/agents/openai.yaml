@@ -1,0 +1,4 @@
+interface:
+  display_name: "Unity Compile"
+  short_description: "Run Unity compile checks fast"
+  default_prompt: "Use $unity-compile to run a Unity batchmode compile check for this repository, surface any compiler errors from the log, and summarize what needs fixing."

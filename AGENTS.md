@@ -10,10 +10,10 @@
   - One enabled build scene: `Assets/Scenes/SampleScene.unity`
   - The serialized scene asset is still close to the template and only contains the default `Main Camera` and `Global Light 2D`
   - A runtime bootstrap now injects the playable prototype into the scene on load
-  - The prototype currently supports one paddle, one or more balls, a score HUD, lives, serve/reset flow between ball losses, authored multi-level progression, temporary level-complete / game-over states, and brick-driven power-up / power-down drops
+  - The prototype currently supports a runtime main menu, run setup flow, in-game HUD, pause / restart / return-to-menu actions, one paddle, one or more balls, lives, serve/reset flow between ball losses, authored multi-level progression, temporary level-complete / game-over states, and brick-driven power-up / power-down drops
   - Brick content is now data-driven through ScriptableObject assets, including multi-strength breakable bricks and unbreakable obstacle bricks
   - Power-up content is now data-driven through ScriptableObject assets, with timed paddle-size and ball-speed modifiers plus an instant multi-ball burst effect
-  - Chunk 06 groundwork is now in place through a runtime run-setup overlay with seed entry, difficulty presets, modifier validation, deterministic gameplay rolls, and seeded authored-level transforms
+  - Chunk 06 and chunk 07 groundwork are now in place through runtime OnGUI overlays for main menu, run setup, HUD, pause, end-state flow, persisted run-setup choices, seed entry, difficulty presets, modifier validation, deterministic gameplay rolls, and seeded authored-level transforms
   - There are custom C# scripts now, but still no `.asmdef` files, no prefabs, and no automated tests yet
 - Input System is enabled and has a starter action asset at `Assets/InputSystem_Actions.inputactions`.
 
@@ -22,7 +22,7 @@
 - `Assets/Scenes/SampleScene.unity`: current playable scene and only scene in build settings
 - `Assets/InputSystem_Actions.inputactions`: starter input maps for `Player` and `UI`
 - `Assets/Scripts/Core/BreakoutBootstrap.cs`: runtime entry point that ensures the prototype controller exists after scene load
-- `Assets/Scripts/Gameplay/BreakoutGameController.cs`: builds the prototype playfield, score/lives HUD, runtime brick layout, and multi-level run-state flow
+- `Assets/Scripts/Gameplay/BreakoutGameController.cs`: builds the prototype playfield, runtime main menu/setup/HUD overlays, run-setup persistence, pause flow, runtime brick layout, and multi-level run-state flow
 - `Assets/Scripts/Gameplay/PaddleController.cs`: keyboard-driven paddle movement with clamped horizontal bounds and runtime width modifiers
 - `Assets/Scripts/Gameplay/BallController.cs`: launch, bounce shaping, per-level speed tuning, speed clamping, and single/multi-ball loss detection support
 - `Assets/Scripts/Gameplay/Brick.cs`: definition-driven brick behavior with variable durability and unbreakable support
@@ -37,6 +37,7 @@
 - `Assets/Resources/PowerUps/*`: authored power-up definition assets referenced by brick drop tables
 - `Assets/Settings/*`: URP / 2D renderer assets and template scene assets
 - `.codex/skills/repo-maintenance/*`: repo-local maintenance skill and snapshot helper for refreshing `AGENTS.md` and local skills after agent work
+- `.codex/skills/unity-compile/*`: repo-local Unity batchmode compile-check skill and helper script for reproducing script compilation failures from the terminal
 - `Packages/manifest.json`: Unity package dependencies
 - `ProjectSettings/ProjectVersion.txt`: authoritative Unity version
 - `Get Bricked.sln`: may stay sparse until Unity regenerates project files after script import
@@ -51,16 +52,18 @@
 - Brick definitions now own drop chance plus weighted pickup references, so most drop-table tuning is an asset edit rather than a controller edit.
 - Level layouts are currently encoded as row strings plus a symbol-to-brick legend, so adding a new level is a data-editing task rather than a code change.
 - The seeded variation layer currently transforms authored levels instead of replacing them: per-level plans can mirror layouts and rotate row strings deterministically from the selected run seed.
-- Run setup currently lives inside `BreakoutGameController` as a temporary OnGUI overlay instead of a separate menu scene or prefab-based UI.
+- The game now boots into a runtime main menu instead of straight into gameplay or setup, and the last run-setup selections are persisted through `PlayerPrefs`.
+- Main menu, run setup, HUD, pause, and end-of-run flow currently live inside `BreakoutGameController` as temporary OnGUI overlays instead of a separate menu scene or prefab-based UI.
 - Difficulty presets and player-selected modifiers are normalized into `RunSettings`, so future tuning should usually flow through that model instead of adding one-off conditionals.
 - Deterministic gameplay randomness currently covers serve launch direction, drop chance / weighted pickup selection, and seeded level-layout transforms.
-- `R` now returns to the run-setup overlay; `Space` still launches serves and advances/restarts runs once a configuration has been started.
+- `R` returns to the run-setup overlay, `Esc` / `P` pauses active gameplay, and `Space` launches serves or confirms overlay actions once a configuration has been started.
 - Timed pickup effects currently refresh by extending the same effect's duration, while opposing effects coexist and combine multiplicatively.
 - Life loss now depends on all active balls leaving play, so multi-ball changes should be reviewed against `BreakoutGameController.HandleBallLost`.
 - The chunk-06 `Balls Per Serve` modifier spawns extra balls at every serve, so future ball-loss or serve-flow changes should be checked against `BreakoutGameController.SpawnConfiguredServeBalls`.
 - Prototype input is currently read directly from `UnityEngine.InputSystem.Keyboard` rather than being wired through `PlayerInput` or the existing action asset.
 - Ball and paddle behavior use Unity 6-era 2D physics APIs such as `Rigidbody2D.linearVelocity`.
 - Run flow is still runtime-authored inside `BreakoutGameController`, including lives, serve states, level transitions, level completion, game over, pickup spawning, effect timers, and multi-ball cleanup.
+- Terminal-side compile validation can now be done with `python .codex/skills/unity-compile/scripts/run_unity_compile.py`, which reads `ProjectVersion.txt`, locates the matching Unity Hub editor, runs batchmode, and summarizes build-blocking script errors from the generated log.
 - After adding or renaming scripts, let Unity regenerate project files instead of hand-maintaining the `.sln`.
 
 ## Working Rules For Future Agents
@@ -100,12 +103,16 @@ When making changes, validate with the Unity editor when possible:
 - Confirm the scene loads without missing scripts or broken references.
 - Check the Console for compile errors after adding scripts.
 - If gameplay changes are made, enter Play Mode in `Assets/Scenes/SampleScene.unity`.
+- Before or after gameplay script edits, prefer running `python .codex/skills/unity-compile/scripts/run_unity_compile.py` from the repo root for a fast terminal compile check when Unity UI validation is not yet practical.
 - For the current prototype, verify:
-  - On boot or after pressing `R`, the run-setup overlay appears with seed, preset, and modifier controls
+  - On boot, the runtime main menu appears and can start a run or open run setup without editor interaction
+  - From run setup, seed, preset, and modifier controls still respond correctly and `Esc` returns to the main menu
   - Typing digits changes the run seed, `T` randomizes it, and `Space` starts a run with the shown configuration
+  - Returning to the main menu and reopening run setup preserves the last chosen setup values across that session, and restarting the app restores them
   - `Breakout Prototype` appears in the runtime hierarchy automatically
   - `A/D` or left/right arrows move the paddle
   - `Space` launches the ball
+  - `Esc` or `P` pauses active gameplay and exposes resume, restart, setup, and main-menu actions
   - Replaying the same seed reproduces the same layout mirror/row-shift pattern and deterministic drop/launch rolls
   - Losing the ball removes one life and re-serves from the paddle until lives reach zero
   - Breakable bricks respect their configured hit strength and unbreakable bricks stay in play
@@ -113,7 +120,8 @@ When making changes, validate with the Unity editor when possible:
   - Destroyed breakable bricks can spawn falling pickups, and the paddle can catch or miss them naturally
   - Timed paddle-width and ball-speed effects appear in the HUD and clean themselves up when their timers expire
   - Multi-ball does not consume a life until the last active ball is lost
-  - Clearing the current objective reaches the temporary level-complete state and `Space` advances to the next authored level
+  - Clearing the current objective reaches the temporary level-complete state and the overlay menu can advance, restart, or return to the main menu
+  - Game over exposes restart, setup, and main-menu actions
   - `R` returns to run setup without leaving orphaned runtime balls or pickups behind
 - If build configuration changes are made, re-check `ProjectSettings/EditorBuildSettings.asset`.
 
@@ -139,8 +147,8 @@ If you are a future agent starting work here, read these first:
 
 ## Current Reality Check
 
-- There is now a minimal implemented game loop for a single-screen brick-breaker prototype with authored level data, pickup-driven rule changes, and first-pass chunk-06 seeded-run support.
+- There is now a minimal implemented game loop for a single-screen brick-breaker prototype with authored level data, pickup-driven rule changes, seeded-run support, and a first-pass chunk-07 player-facing menu / HUD / pause flow.
 - The current custom systems are small, but they are real and worth extending deliberately instead of replacing by default.
 - Most near-term work will still be greenfield, but it should now build on the existing runtime prototype and folder structure.
 - If a user asks for game features, you will likely be extending the current scripts and authored content assets first, then deciding when to promote runtime-generated objects into authored scene or prefab assets.
-- If a user asks for more chunk-06 work, the most likely follow-ups are refining fairness validation, promoting the setup overlay into a dedicated UI flow, and expanding the set of deterministic authored-content transforms.
+- If a user asks for more chunk-07 work, the most likely follow-ups are promoting the runtime OnGUI overlays into authored UI/prefabs, separating meta-flow concerns out of `BreakoutGameController`, and broadening persisted settings beyond run setup.
