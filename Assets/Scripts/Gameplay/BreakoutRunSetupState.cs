@@ -1,0 +1,338 @@
+using System;
+using System.Collections.Generic;
+using System.Globalization;
+using GetBricked.Gameplay.Data;
+using UnityEngine;
+using UnityEngine.InputSystem;
+
+namespace GetBricked.Gameplay
+{
+    internal enum BreakoutRunSetupField
+    {
+        Seed = 0,
+        Difficulty = 1,
+        BallsPerServe = 2,
+        PaddleWidth = 3,
+        BallSpeed = 4,
+        BrickDurability = 5,
+        DropPool = 6,
+        Theme = 7,
+    }
+
+    internal sealed class BreakoutRunSetupState
+    {
+        public BreakoutRunSetupState(string defaultThemeId, Func<int> seedGenerator)
+        {
+            Reset(defaultThemeId, seedGenerator, generateNewSeed: true);
+        }
+
+        public int Seed { get; private set; }
+
+        public RunDifficultyPreset DifficultyPreset { get; private set; } = RunDifficultyPreset.Standard;
+
+        public int BallsPerServe { get; private set; } = 1;
+
+        public int PaddleWidthStep { get; private set; }
+
+        public int BallSpeedStep { get; private set; }
+
+        public int BrickDurabilityStep { get; private set; }
+
+        public DropPoolMode DropPoolMode { get; private set; } = DropPoolMode.Mixed;
+
+        public string ThemeId { get; private set; } = string.Empty;
+
+        public string PendingSeedText { get; private set; } = string.Empty;
+
+        public void Reset(string defaultThemeId, Func<int> seedGenerator, bool generateNewSeed)
+        {
+            DifficultyPreset = RunDifficultyPreset.Standard;
+            BallsPerServe = 1;
+            PaddleWidthStep = 0;
+            BallSpeedStep = 0;
+            BrickDurabilityStep = 0;
+            DropPoolMode = DropPoolMode.Mixed;
+            ThemeId = defaultThemeId ?? string.Empty;
+            Seed = generateNewSeed ? GenerateSeed(seedGenerator) : Seed;
+            PendingSeedText = Seed.ToString(CultureInfo.InvariantCulture);
+        }
+
+        public void Restore(
+            int seed,
+            string pendingSeedText,
+            RunDifficultyPreset difficultyPreset,
+            int ballsPerServe,
+            int paddleWidthStep,
+            int ballSpeedStep,
+            int brickDurabilityStep,
+            DropPoolMode dropPoolMode,
+            string themeId)
+        {
+            Seed = Mathf.Max(0, seed);
+            PendingSeedText = pendingSeedText ?? string.Empty;
+            DifficultyPreset = difficultyPreset;
+            BallsPerServe = Mathf.Clamp(ballsPerServe, 1, 4);
+            PaddleWidthStep = Mathf.Clamp(paddleWidthStep, -2, 2);
+            BallSpeedStep = Mathf.Clamp(ballSpeedStep, -2, 2);
+            BrickDurabilityStep = Mathf.Clamp(brickDurabilityStep, -2, 2);
+            DropPoolMode = dropPoolMode;
+            ThemeId = themeId ?? string.Empty;
+        }
+
+        public void AdjustField(
+            BreakoutRunSetupField field,
+            int direction,
+            Func<int> seedGenerator,
+            Func<string, int, string> shiftThemeId)
+        {
+            switch (field)
+            {
+                case BreakoutRunSetupField.Seed:
+                    Seed = ParsePendingSeed(commitSeedText: false, seedGenerator);
+                    Seed = Mathf.Max(0, Seed + direction);
+                    PendingSeedText = Seed.ToString(CultureInfo.InvariantCulture);
+                    break;
+                case BreakoutRunSetupField.Difficulty:
+                    DifficultyPreset = (RunDifficultyPreset)Mathf.Clamp(
+                        (int)DifficultyPreset + direction,
+                        (int)RunDifficultyPreset.Casual,
+                        (int)RunDifficultyPreset.Brutal);
+                    break;
+                case BreakoutRunSetupField.BallsPerServe:
+                    BallsPerServe = Mathf.Clamp(BallsPerServe + direction, 1, 4);
+                    break;
+                case BreakoutRunSetupField.PaddleWidth:
+                    PaddleWidthStep = Mathf.Clamp(PaddleWidthStep + direction, -2, 2);
+                    break;
+                case BreakoutRunSetupField.BallSpeed:
+                    BallSpeedStep = Mathf.Clamp(BallSpeedStep + direction, -2, 2);
+                    break;
+                case BreakoutRunSetupField.BrickDurability:
+                    BrickDurabilityStep = Mathf.Clamp(BrickDurabilityStep + direction, -2, 2);
+                    break;
+                case BreakoutRunSetupField.DropPool:
+                    DropPoolMode = (DropPoolMode)Mathf.Clamp(
+                        (int)DropPoolMode + direction,
+                        (int)Gameplay.Data.DropPoolMode.Mixed,
+                        (int)Gameplay.Data.DropPoolMode.Disabled);
+                    break;
+                case BreakoutRunSetupField.Theme:
+                    ThemeId = shiftThemeId != null ? shiftThemeId(ThemeId, direction) : ThemeId;
+                    break;
+            }
+        }
+
+        public void RandomizeSeed(Func<int> seedGenerator)
+        {
+            Seed = GenerateSeed(seedGenerator);
+            PendingSeedText = Seed.ToString(CultureInfo.InvariantCulture);
+        }
+
+        public void BackspaceSeed()
+        {
+            if (PendingSeedText.Length > 0)
+            {
+                PendingSeedText = PendingSeedText.Substring(0, PendingSeedText.Length - 1);
+            }
+        }
+
+        public void ClearSeedText()
+        {
+            PendingSeedText = string.Empty;
+        }
+
+        public bool AppendPressedSeedDigit(Keyboard keyboard)
+        {
+            if (PendingSeedText.Length >= 9)
+            {
+                return false;
+            }
+
+            if (!TryGetPressedDigit(keyboard, out var digit))
+            {
+                return false;
+            }
+
+            PendingSeedText += digit;
+            return true;
+        }
+
+        public RunSettings BuildRunSettings(
+            int startingLives,
+            ThemeDefinition selectedTheme,
+            Func<int> seedGenerator,
+            out string validationMessage,
+            bool commitSeedText = false)
+        {
+            var seed = ParsePendingSeed(commitSeedText, seedGenerator);
+            Seed = seed;
+            ThemeId = selectedTheme != null ? selectedTheme.ThemeId : string.Empty;
+
+            var lives = Mathf.Max(1, startingLives);
+            var paddleWidthMultiplier = 1f;
+            var ballSpeedMultiplier = 1f;
+            var brickDurabilityMultiplier = 1f;
+            var dropChanceMultiplier = 1f;
+
+            switch (DifficultyPreset)
+            {
+                case RunDifficultyPreset.Casual:
+                    lives += 1;
+                    paddleWidthMultiplier *= 1.15f;
+                    ballSpeedMultiplier *= 0.92f;
+                    brickDurabilityMultiplier *= 0.9f;
+                    dropChanceMultiplier *= 1.15f;
+                    break;
+                case RunDifficultyPreset.Brutal:
+                    lives = Mathf.Max(1, lives - 1);
+                    paddleWidthMultiplier *= 0.9f;
+                    ballSpeedMultiplier *= 1.12f;
+                    brickDurabilityMultiplier *= 1.2f;
+                    dropChanceMultiplier *= 0.9f;
+                    break;
+            }
+
+            paddleWidthMultiplier *= 1f + (PaddleWidthStep * 0.12f);
+            ballSpeedMultiplier *= 1f + (BallSpeedStep * 0.08f);
+            brickDurabilityMultiplier *= 1f + (BrickDurabilityStep * 0.16f);
+
+            paddleWidthMultiplier = Mathf.Clamp(paddleWidthMultiplier, 0.7f, 1.55f);
+            ballSpeedMultiplier = Mathf.Clamp(ballSpeedMultiplier, 0.78f, 1.45f);
+            brickDurabilityMultiplier = Mathf.Clamp(brickDurabilityMultiplier, 0.8f, 1.9f);
+
+            var challengeIndex = (ballSpeedMultiplier * brickDurabilityMultiplier) / paddleWidthMultiplier;
+            var warnings = new List<string>();
+
+            if (challengeIndex > 1.75f)
+            {
+                var adjustedBallSpeed = Mathf.Clamp((1.75f * paddleWidthMultiplier) / brickDurabilityMultiplier, 0.78f, ballSpeedMultiplier);
+
+                if (adjustedBallSpeed < ballSpeedMultiplier)
+                {
+                    ballSpeedMultiplier = adjustedBallSpeed;
+                    warnings.Add("Ball speed was capped to keep the preset fair.");
+                }
+            }
+
+            if (DropPoolMode == Gameplay.Data.DropPoolMode.Disabled)
+            {
+                warnings.Add("Drops disabled for this run.");
+            }
+
+            validationMessage = warnings.Count > 0
+                ? string.Join(" ", warnings)
+                : "Run validated. Same seed will replay the same level transforms, launch rolls, and drop rolls.";
+
+            return new RunSettings(
+                seed,
+                DifficultyPreset,
+                lives,
+                BallsPerServe,
+                paddleWidthMultiplier,
+                ballSpeedMultiplier,
+                brickDurabilityMultiplier,
+                dropChanceMultiplier,
+                DropPoolMode,
+                selectedTheme);
+        }
+
+        public int ParsePendingSeed(bool commitSeedText, Func<int> seedGenerator)
+        {
+            int parsedSeed;
+
+            if (string.IsNullOrWhiteSpace(PendingSeedText))
+            {
+                parsedSeed = commitSeedText
+                    ? GenerateSeed(seedGenerator)
+                    : Seed > 0
+                        ? Seed
+                        : GenerateSeed(seedGenerator);
+            }
+            else if (!int.TryParse(PendingSeedText, NumberStyles.None, CultureInfo.InvariantCulture, out parsedSeed))
+            {
+                parsedSeed = Seed > 0 ? Seed : GenerateSeed(seedGenerator);
+            }
+
+            if (commitSeedText)
+            {
+                PendingSeedText = parsedSeed.ToString(CultureInfo.InvariantCulture);
+            }
+
+            return parsedSeed;
+        }
+
+        private static int GenerateSeed(Func<int> seedGenerator)
+        {
+            return seedGenerator != null ? seedGenerator() : 0;
+        }
+
+        private static bool TryGetPressedDigit(Keyboard keyboard, out char digit)
+        {
+            if (keyboard != null)
+            {
+                if (keyboard.digit0Key.wasPressedThisFrame || keyboard.numpad0Key.wasPressedThisFrame)
+                {
+                    digit = '0';
+                    return true;
+                }
+
+                if (keyboard.digit1Key.wasPressedThisFrame || keyboard.numpad1Key.wasPressedThisFrame)
+                {
+                    digit = '1';
+                    return true;
+                }
+
+                if (keyboard.digit2Key.wasPressedThisFrame || keyboard.numpad2Key.wasPressedThisFrame)
+                {
+                    digit = '2';
+                    return true;
+                }
+
+                if (keyboard.digit3Key.wasPressedThisFrame || keyboard.numpad3Key.wasPressedThisFrame)
+                {
+                    digit = '3';
+                    return true;
+                }
+
+                if (keyboard.digit4Key.wasPressedThisFrame || keyboard.numpad4Key.wasPressedThisFrame)
+                {
+                    digit = '4';
+                    return true;
+                }
+
+                if (keyboard.digit5Key.wasPressedThisFrame || keyboard.numpad5Key.wasPressedThisFrame)
+                {
+                    digit = '5';
+                    return true;
+                }
+
+                if (keyboard.digit6Key.wasPressedThisFrame || keyboard.numpad6Key.wasPressedThisFrame)
+                {
+                    digit = '6';
+                    return true;
+                }
+
+                if (keyboard.digit7Key.wasPressedThisFrame || keyboard.numpad7Key.wasPressedThisFrame)
+                {
+                    digit = '7';
+                    return true;
+                }
+
+                if (keyboard.digit8Key.wasPressedThisFrame || keyboard.numpad8Key.wasPressedThisFrame)
+                {
+                    digit = '8';
+                    return true;
+                }
+
+                if (keyboard.digit9Key.wasPressedThisFrame || keyboard.numpad9Key.wasPressedThisFrame)
+                {
+                    digit = '9';
+                    return true;
+                }
+            }
+
+            digit = default;
+            return false;
+        }
+    }
+}

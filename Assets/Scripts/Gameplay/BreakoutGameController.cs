@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
-using System.Text;
 using GetBricked.Gameplay.Data;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -10,116 +9,6 @@ namespace GetBricked.Gameplay
 {
     public sealed class BreakoutGameController : MonoBehaviour
     {
-        private sealed class ActiveTimedEffect
-        {
-            public ActiveTimedEffect(PowerUpDefinition definition, float remainingDuration)
-            {
-                Definition = definition;
-                RemainingDuration = remainingDuration;
-            }
-
-            public PowerUpDefinition Definition { get; }
-
-            public float RemainingDuration { get; set; }
-        }
-
-        private sealed class PendingRunSetup
-        {
-            public int Seed;
-            public RunDifficultyPreset DifficultyPreset = RunDifficultyPreset.Standard;
-            public int BallsPerServe = 1;
-            public int PaddleWidthStep;
-            public int BallSpeedStep;
-            public int BrickDurabilityStep;
-            public DropPoolMode DropPoolMode = DropPoolMode.Mixed;
-            public string ThemeId = string.Empty;
-        }
-
-        private sealed class LevelLayoutPlan
-        {
-            public string DisplayName = string.Empty;
-            public string[] LayoutRows = Array.Empty<string>();
-            public ProceduralBrickCell[][] BrickRows = Array.Empty<ProceduralBrickCell[]>();
-            public LevelCompletionRule CompletionRule = LevelCompletionRule.ClearRequiredBricks;
-            public int TargetScore;
-            public float BallSpeedMultiplier = 1f;
-            public float PaddleSpeedMultiplier = 1f;
-            public float TopInset = 1.5f;
-            public bool MirrorLayout;
-            public int[] RowShifts = Array.Empty<int>();
-            public string PatternLabel = "Procedural";
-            public int UniqueBrickTypeCount;
-            public int AvailableDropTypeCount;
-            public int MovingBrickCount;
-        }
-
-        private sealed class ProceduralBrickCell
-        {
-            public ProceduralBrickCell(BrickDefinition definition, BrickMotionConfig motionConfig)
-            {
-                Definition = definition;
-                MotionConfig = motionConfig;
-            }
-
-            public BrickDefinition Definition { get; }
-
-            public BrickMotionConfig MotionConfig { get; }
-        }
-
-        private readonly struct BrickMotionConfig
-        {
-            public BrickMotionConfig(float speed, Vector2 initialDirection)
-            {
-                Speed = Mathf.Max(0f, speed);
-                InitialDirection = initialDirection.sqrMagnitude > 0.001f
-                    ? initialDirection.normalized
-                    : Vector2.zero;
-            }
-
-            public float Speed { get; }
-
-            public Vector2 InitialDirection { get; }
-
-            public bool IsEnabled => Speed > 0.01f && InitialDirection.sqrMagnitude > 0.001f;
-        }
-
-        private enum ProceduralPatternType
-        {
-            Bands = 0,
-            Diamond = 1,
-            Steps = 2,
-            Lattice = 3,
-            Core = 4,
-            Columns = 5,
-        }
-
-        [Serializable]
-        private sealed class PersistedRunSetup
-        {
-            public int Version = PersistedRunSetupVersion;
-            public int Seed;
-            public string PendingSeedText = string.Empty;
-            public int DifficultyPreset = (int)RunDifficultyPreset.Standard;
-            public int BallsPerServe = 1;
-            public int PaddleWidthStep;
-            public int BallSpeedStep;
-            public int BrickDurabilityStep;
-            public int DropPoolModeValue = (int)Gameplay.Data.DropPoolMode.Mixed;
-            public string ThemeId = string.Empty;
-        }
-
-        private enum RunSetupField
-        {
-            Seed = 0,
-            Difficulty = 1,
-            BallsPerServe = 2,
-            PaddleWidth = 3,
-            BallSpeed = 4,
-            BrickDurability = 5,
-            DropPool = 6,
-            Theme = 7,
-        }
-
         private enum RoundState
         {
             MainMenu,
@@ -144,9 +33,6 @@ namespace GetBricked.Gameplay
             ReturnToMainMenu,
             QuitGame,
         }
-
-        private const string PersistedRunSetupKey = "GetBricked.RunSetup";
-        private const int PersistedRunSetupVersion = 1;
 
         [Header("Camera")]
         [SerializeField] private float cameraHalfHeight = 5.2f;
@@ -192,8 +78,6 @@ namespace GetBricked.Gameplay
         private readonly List<BrickDefinition> loadedBrickDefinitions = new List<BrickDefinition>();
         private readonly List<ThemeDefinition> loadedThemes = new List<ThemeDefinition>();
         private readonly List<BallController> activeBalls = new List<BallController>();
-        private readonly List<PowerUpPickup> activePickups = new List<PowerUpPickup>();
-        private readonly List<ActiveTimedEffect> activeTimedEffects = new List<ActiveTimedEffect>();
         private readonly List<SpriteRenderer> wallRenderers = new List<SpriteRenderer>();
 
         private Camera activeCamera;
@@ -208,7 +92,9 @@ namespace GetBricked.Gameplay
         private Sprite squareSprite;
         private Sprite circleSprite;
         private PhysicsMaterial2D bounceMaterial;
-        private ThemeDefinition appliedTheme;
+        private BreakoutThemeService themeService;
+        private BreakoutPowerUpService powerUpService;
+        private BreakoutUiRenderer uiRenderer;
         private RoundState roundState;
         private int livesRemaining;
         private int score;
@@ -217,24 +103,6 @@ namespace GetBricked.Gameplay
         private float arenaRight;
         private float arenaTop;
         private float arenaBottom;
-        private GUIStyle hudStyle;
-        private GUIStyle messageStyle;
-        private GUIStyle pickupStyle;
-        private GUIStyle setupTitleStyle;
-        private GUIStyle setupSelectedStyle;
-        private GUIStyle setupHintStyle;
-        private GUIStyle overlayTitleStyle;
-        private GUIStyle overlayBodyStyle;
-        private GUIStyle overlayActionStyle;
-        private GUIStyle overlaySelectedActionStyle;
-        private GUIStyle hudButtonStyle;
-        private GUIStyle hudActiveButtonStyle;
-        private GUIStyle speedMeterCaptionStyle;
-        private GUIStyle speedMeterValueStyle;
-        private GUIStyle modifierPanelTitleStyle;
-        private GUIStyle modifierPanelLabelStyle;
-        private GUIStyle modifierPanelTimerStyle;
-        private GUIStyle modifierPanelEmptyStyle;
         private LevelDefinition currentLevel;
         private int currentLevelIndex;
         private string currentLevelDisplayName = "No level loaded";
@@ -244,16 +112,13 @@ namespace GetBricked.Gameplay
         private float currentLevelBallSpeed;
         private float currentLevelPaddleSpeed;
         private int ballInstanceCounter;
-        private string pickupBannerText;
-        private float pickupBannerTimer;
-        private Color pickupBannerColor = Color.white;
-        private PendingRunSetup pendingRunSetup;
+        private BreakoutLevelPlanner levelPlanner;
+        private BreakoutRunSetupState pendingRunSetup;
         private RunSettings activeRunSettings;
         private DeterministicRandomService gameplayRandom;
-        private RunSetupField selectedRunSetupField;
+        private BreakoutRunSetupField selectedRunSetupField;
         private RoundState pausedFromState;
         private int selectedOverlayActionIndex;
-        private string pendingSeedText = string.Empty;
         private string currentLevelVariationLabel = "Variation: not started";
         private string pendingValidationMessage = string.Empty;
         private float manualBallSpeedMultiplier = 1f;
@@ -266,8 +131,12 @@ namespace GetBricked.Gameplay
             LoadBrickDefinitions();
             LoadLevelDefinitions();
             LoadThemeDefinitions();
+            levelPlanner = new BreakoutLevelPlanner(loadedLevels, loadedBrickDefinitions, GenerateSeed);
             ConfigureCamera();
             CreateRuntimeAssets();
+            themeService = new BreakoutThemeService(backgroundColor, wallColor, paddleColor, ballColor, squareSprite, circleSprite);
+            powerUpService = new BreakoutPowerUpService(pickupSize, pickupFallSpeed, multiBallSpreadAngle);
+            uiRenderer = new BreakoutUiRenderer();
             CreateRuntimeRoots();
             CreateBounds();
             CreatePaddle();
@@ -444,11 +313,12 @@ namespace GetBricked.Gameplay
 
         public void HandlePickupCaught(PowerUpPickup pickup)
         {
-            if (roundState != RoundState.Playing || pickup == null || !activePickups.Remove(pickup))
+            if (roundState != RoundState.Playing || pickup == null)
             {
                 return;
             }
 
+            powerUpService.RemovePickup(pickup);
             ApplyPowerUp(pickup.Definition);
             pickup.gameObject.SetActive(false);
             Destroy(pickup.gameObject);
@@ -456,11 +326,12 @@ namespace GetBricked.Gameplay
 
         public void HandlePickupMissed(PowerUpPickup pickup)
         {
-            if (pickup == null || !activePickups.Remove(pickup))
+            if (pickup == null)
             {
                 return;
             }
 
+            powerUpService.RemovePickup(pickup);
             pickup.gameObject.SetActive(false);
             Destroy(pickup.gameObject);
         }
@@ -524,7 +395,7 @@ namespace GetBricked.Gameplay
             }
 
             roundState = RoundState.RunSetup;
-            selectedRunSetupField = RunSetupField.Seed;
+            selectedRunSetupField = BreakoutRunSetupField.Seed;
             pendingValidationMessage = string.Empty;
             currentLevelVariationLabel = "Variation: pending";
             isDiagnosticsOverlayVisible = false;
@@ -554,86 +425,19 @@ namespace GetBricked.Gameplay
 
         private void ResetPendingRunSetup(bool generateNewSeed)
         {
-            pendingRunSetup ??= new PendingRunSetup();
-            pendingRunSetup.DifficultyPreset = RunDifficultyPreset.Standard;
-            pendingRunSetup.BallsPerServe = 1;
-            pendingRunSetup.PaddleWidthStep = 0;
-            pendingRunSetup.BallSpeedStep = 0;
-            pendingRunSetup.BrickDurabilityStep = 0;
-            pendingRunSetup.DropPoolMode = DropPoolMode.Mixed;
-            pendingRunSetup.ThemeId = GetDefaultThemeId();
-            pendingRunSetup.Seed = generateNewSeed ? GenerateSeed() : pendingRunSetup.Seed;
-            pendingSeedText = pendingRunSetup.Seed.ToString(CultureInfo.InvariantCulture);
+            pendingRunSetup ??= new BreakoutRunSetupState(GetDefaultThemeId(), GenerateSeed);
+            pendingRunSetup.Reset(GetDefaultThemeId(), GenerateSeed, generateNewSeed);
         }
 
         private void LoadPersistedRunSetup()
         {
-            if (!PlayerPrefs.HasKey(PersistedRunSetupKey))
-            {
-                return;
-            }
-
-            var json = PlayerPrefs.GetString(PersistedRunSetupKey, string.Empty);
-
-            if (string.IsNullOrWhiteSpace(json))
-            {
-                return;
-            }
-
-            try
-            {
-                var persistedRunSetup = JsonUtility.FromJson<PersistedRunSetup>(json);
-
-                if (persistedRunSetup == null || persistedRunSetup.Version != PersistedRunSetupVersion)
-                {
-                    return;
-                }
-
-                pendingRunSetup ??= new PendingRunSetup();
-                pendingRunSetup.Seed = persistedRunSetup.Seed > 0 ? persistedRunSetup.Seed : GenerateSeed();
-                pendingRunSetup.DifficultyPreset = (RunDifficultyPreset)Mathf.Clamp(
-                    persistedRunSetup.DifficultyPreset,
-                    (int)RunDifficultyPreset.Casual,
-                    (int)RunDifficultyPreset.Brutal);
-                pendingRunSetup.BallsPerServe = Mathf.Clamp(persistedRunSetup.BallsPerServe, 1, 4);
-                pendingRunSetup.PaddleWidthStep = Mathf.Clamp(persistedRunSetup.PaddleWidthStep, -2, 2);
-                pendingRunSetup.BallSpeedStep = Mathf.Clamp(persistedRunSetup.BallSpeedStep, -2, 2);
-                pendingRunSetup.BrickDurabilityStep = Mathf.Clamp(persistedRunSetup.BrickDurabilityStep, -2, 2);
-                pendingRunSetup.DropPoolMode = (DropPoolMode)Mathf.Clamp(
-                    persistedRunSetup.DropPoolModeValue,
-                    (int)DropPoolMode.Mixed,
-                    (int)DropPoolMode.Disabled);
-                pendingRunSetup.ThemeId = ResolveThemeIdOrDefault(persistedRunSetup.ThemeId);
-                pendingSeedText = persistedRunSetup.PendingSeedText ?? string.Empty;
-            }
-            catch (Exception exception)
-            {
-                Debug.LogWarning($"Unable to load persisted run setup. Using defaults instead. {exception.Message}");
-            }
+            pendingRunSetup ??= new BreakoutRunSetupState(GetDefaultThemeId(), GenerateSeed);
+            BreakoutRunSetupPersistence.Load(pendingRunSetup, GenerateSeed, ResolveThemeIdOrDefault);
         }
 
         private void SavePersistedRunSetup()
         {
-            if (pendingRunSetup == null)
-            {
-                return;
-            }
-
-            var persistedRunSetup = new PersistedRunSetup
-            {
-                Seed = pendingRunSetup.Seed > 0 ? pendingRunSetup.Seed : GenerateSeed(),
-                PendingSeedText = pendingSeedText ?? string.Empty,
-                DifficultyPreset = (int)pendingRunSetup.DifficultyPreset,
-                BallsPerServe = pendingRunSetup.BallsPerServe,
-                PaddleWidthStep = pendingRunSetup.PaddleWidthStep,
-                BallSpeedStep = pendingRunSetup.BallSpeedStep,
-                BrickDurabilityStep = pendingRunSetup.BrickDurabilityStep,
-                DropPoolModeValue = (int)pendingRunSetup.DropPoolMode,
-                ThemeId = ResolveThemeIdOrDefault(pendingRunSetup.ThemeId),
-            };
-
-            PlayerPrefs.SetString(PersistedRunSetupKey, JsonUtility.ToJson(persistedRunSetup));
-            PlayerPrefs.Save();
+            BreakoutRunSetupPersistence.Save(pendingRunSetup, GenerateSeed, ResolveThemeIdOrDefault);
         }
 
         private void HandleRunSetupInput(Keyboard keyboard)
@@ -647,12 +451,12 @@ namespace GetBricked.Gameplay
 
             if (keyboard.upArrowKey.wasPressedThisFrame || keyboard.wKey.wasPressedThisFrame)
             {
-                selectedRunSetupField = (RunSetupField)Mathf.Max(0, (int)selectedRunSetupField - 1);
+                selectedRunSetupField = (BreakoutRunSetupField)Mathf.Max(0, (int)selectedRunSetupField - 1);
             }
 
             if (keyboard.downArrowKey.wasPressedThisFrame || keyboard.sKey.wasPressedThisFrame)
             {
-                selectedRunSetupField = (RunSetupField)Mathf.Min((int)RunSetupField.Theme, (int)selectedRunSetupField + 1);
+                selectedRunSetupField = (BreakoutRunSetupField)Mathf.Min((int)BreakoutRunSetupField.Theme, (int)selectedRunSetupField + 1);
             }
 
             if (keyboard.leftArrowKey.wasPressedThisFrame || keyboard.aKey.wasPressedThisFrame)
@@ -669,20 +473,21 @@ namespace GetBricked.Gameplay
 
             if (keyboard.tKey.wasPressedThisFrame)
             {
-                pendingRunSetup.Seed = GenerateSeed();
-                pendingSeedText = pendingRunSetup.Seed.ToString(CultureInfo.InvariantCulture);
+                pendingRunSetup.RandomizeSeed(GenerateSeed);
                 setupChanged = true;
             }
 
-            if (keyboard.backspaceKey.wasPressedThisFrame && selectedRunSetupField == RunSetupField.Seed && pendingSeedText.Length > 0)
+            if (keyboard.backspaceKey.wasPressedThisFrame
+                && selectedRunSetupField == BreakoutRunSetupField.Seed
+                && pendingRunSetup.PendingSeedText.Length > 0)
             {
-                pendingSeedText = pendingSeedText.Substring(0, pendingSeedText.Length - 1);
+                pendingRunSetup.BackspaceSeed();
                 setupChanged = true;
             }
 
-            if (keyboard.deleteKey.wasPressedThisFrame && selectedRunSetupField == RunSetupField.Seed)
+            if (keyboard.deleteKey.wasPressedThisFrame && selectedRunSetupField == BreakoutRunSetupField.Seed)
             {
-                pendingSeedText = string.Empty;
+                pendingRunSetup.ClearSeedText();
                 setupChanged = true;
             }
 
@@ -692,7 +497,7 @@ namespace GetBricked.Gameplay
                 setupChanged = true;
             }
 
-            if (selectedRunSetupField == RunSetupField.Seed)
+            if (selectedRunSetupField == BreakoutRunSetupField.Seed)
             {
                 setupChanged |= AppendPressedSeedDigit(keyboard);
             }
@@ -878,41 +683,7 @@ namespace GetBricked.Gameplay
                 return;
             }
 
-            switch (selectedRunSetupField)
-            {
-                case RunSetupField.Seed:
-                    pendingRunSetup.Seed = ParsePendingSeed(commitSeedText: false);
-                    pendingRunSetup.Seed = Mathf.Max(0, pendingRunSetup.Seed + direction);
-                    pendingSeedText = pendingRunSetup.Seed.ToString(CultureInfo.InvariantCulture);
-                    break;
-                case RunSetupField.Difficulty:
-                    pendingRunSetup.DifficultyPreset = (RunDifficultyPreset)Mathf.Clamp(
-                        (int)pendingRunSetup.DifficultyPreset + direction,
-                        (int)RunDifficultyPreset.Casual,
-                        (int)RunDifficultyPreset.Brutal);
-                    break;
-                case RunSetupField.BallsPerServe:
-                    pendingRunSetup.BallsPerServe = Mathf.Clamp(pendingRunSetup.BallsPerServe + direction, 1, 4);
-                    break;
-                case RunSetupField.PaddleWidth:
-                    pendingRunSetup.PaddleWidthStep = Mathf.Clamp(pendingRunSetup.PaddleWidthStep + direction, -2, 2);
-                    break;
-                case RunSetupField.BallSpeed:
-                    pendingRunSetup.BallSpeedStep = Mathf.Clamp(pendingRunSetup.BallSpeedStep + direction, -2, 2);
-                    break;
-                case RunSetupField.BrickDurability:
-                    pendingRunSetup.BrickDurabilityStep = Mathf.Clamp(pendingRunSetup.BrickDurabilityStep + direction, -2, 2);
-                    break;
-                case RunSetupField.DropPool:
-                    pendingRunSetup.DropPoolMode = (DropPoolMode)Mathf.Clamp(
-                        (int)pendingRunSetup.DropPoolMode + direction,
-                        (int)DropPoolMode.Mixed,
-                        (int)DropPoolMode.Disabled);
-                    break;
-                case RunSetupField.Theme:
-                    pendingRunSetup.ThemeId = ShiftThemeId(pendingRunSetup.ThemeId, direction);
-                    break;
-            }
+            pendingRunSetup.AdjustField(selectedRunSetupField, direction, GenerateSeed, ShiftThemeId);
         }
 
         private void AdjustManualBallSpeed(int direction)
@@ -987,188 +758,20 @@ namespace GetBricked.Gameplay
 
         private bool AppendPressedSeedDigit(Keyboard keyboard)
         {
-            if (pendingSeedText.Length >= 9)
-            {
-                return false;
-            }
-
-            if (TryGetPressedDigit(keyboard, out var digit))
-            {
-                pendingSeedText += digit;
-                return true;
-            }
-
-            return false;
-        }
-
-        private static bool TryGetPressedDigit(Keyboard keyboard, out char digit)
-        {
-            if (keyboard.digit0Key.wasPressedThisFrame || keyboard.numpad0Key.wasPressedThisFrame)
-            {
-                digit = '0';
-                return true;
-            }
-
-            if (keyboard.digit1Key.wasPressedThisFrame || keyboard.numpad1Key.wasPressedThisFrame)
-            {
-                digit = '1';
-                return true;
-            }
-
-            if (keyboard.digit2Key.wasPressedThisFrame || keyboard.numpad2Key.wasPressedThisFrame)
-            {
-                digit = '2';
-                return true;
-            }
-
-            if (keyboard.digit3Key.wasPressedThisFrame || keyboard.numpad3Key.wasPressedThisFrame)
-            {
-                digit = '3';
-                return true;
-            }
-
-            if (keyboard.digit4Key.wasPressedThisFrame || keyboard.numpad4Key.wasPressedThisFrame)
-            {
-                digit = '4';
-                return true;
-            }
-
-            if (keyboard.digit5Key.wasPressedThisFrame || keyboard.numpad5Key.wasPressedThisFrame)
-            {
-                digit = '5';
-                return true;
-            }
-
-            if (keyboard.digit6Key.wasPressedThisFrame || keyboard.numpad6Key.wasPressedThisFrame)
-            {
-                digit = '6';
-                return true;
-            }
-
-            if (keyboard.digit7Key.wasPressedThisFrame || keyboard.numpad7Key.wasPressedThisFrame)
-            {
-                digit = '7';
-                return true;
-            }
-
-            if (keyboard.digit8Key.wasPressedThisFrame || keyboard.numpad8Key.wasPressedThisFrame)
-            {
-                digit = '8';
-                return true;
-            }
-
-            if (keyboard.digit9Key.wasPressedThisFrame || keyboard.numpad9Key.wasPressedThisFrame)
-            {
-                digit = '9';
-                return true;
-            }
-
-            digit = default;
-            return false;
+            return pendingRunSetup != null && pendingRunSetup.AppendPressedSeedDigit(keyboard);
         }
 
         private RunSettings BuildRunSettingsFromPending(out string validationMessage, bool commitSeedText = false)
         {
-            pendingRunSetup ??= new PendingRunSetup();
-
-            var seed = ParsePendingSeed(commitSeedText);
+            pendingRunSetup ??= new BreakoutRunSetupState(GetDefaultThemeId(), GenerateSeed);
             var selectedTheme = ResolvePendingThemeDefinition();
-            pendingRunSetup.Seed = seed;
-            pendingRunSetup.ThemeId = selectedTheme != null ? selectedTheme.ThemeId : string.Empty;
-
-            var lives = startingLives;
-            var paddleWidthMultiplier = 1f;
-            var ballSpeedMultiplier = 1f;
-            var brickDurabilityMultiplier = 1f;
-            var dropChanceMultiplier = 1f;
-
-            switch (pendingRunSetup.DifficultyPreset)
-            {
-                case RunDifficultyPreset.Casual:
-                    lives += 1;
-                    paddleWidthMultiplier *= 1.15f;
-                    ballSpeedMultiplier *= 0.92f;
-                    brickDurabilityMultiplier *= 0.9f;
-                    dropChanceMultiplier *= 1.15f;
-                    break;
-                case RunDifficultyPreset.Brutal:
-                    lives = Mathf.Max(1, lives - 1);
-                    paddleWidthMultiplier *= 0.9f;
-                    ballSpeedMultiplier *= 1.12f;
-                    brickDurabilityMultiplier *= 1.2f;
-                    dropChanceMultiplier *= 0.9f;
-                    break;
-            }
-
-            paddleWidthMultiplier *= 1f + (pendingRunSetup.PaddleWidthStep * 0.12f);
-            ballSpeedMultiplier *= 1f + (pendingRunSetup.BallSpeedStep * 0.08f);
-            brickDurabilityMultiplier *= 1f + (pendingRunSetup.BrickDurabilityStep * 0.16f);
-
-            paddleWidthMultiplier = Mathf.Clamp(paddleWidthMultiplier, 0.7f, 1.55f);
-            ballSpeedMultiplier = Mathf.Clamp(ballSpeedMultiplier, 0.78f, 1.45f);
-            brickDurabilityMultiplier = Mathf.Clamp(brickDurabilityMultiplier, 0.8f, 1.9f);
-
-            var challengeIndex = (ballSpeedMultiplier * brickDurabilityMultiplier) / paddleWidthMultiplier;
-            var warnings = new List<string>();
-
-            if (challengeIndex > 1.75f)
-            {
-                var adjustedBallSpeed = Mathf.Clamp((1.75f * paddleWidthMultiplier) / brickDurabilityMultiplier, 0.78f, ballSpeedMultiplier);
-
-                if (adjustedBallSpeed < ballSpeedMultiplier)
-                {
-                    ballSpeedMultiplier = adjustedBallSpeed;
-                    warnings.Add("Ball speed was capped to keep the preset fair.");
-                }
-            }
-
-            if (pendingRunSetup.DropPoolMode == DropPoolMode.Disabled)
-            {
-                warnings.Add("Drops disabled for this run.");
-            }
-
-            validationMessage = warnings.Count > 0
-                ? string.Join(" ", warnings)
-                : "Run validated. Same seed will replay the same level transforms, launch rolls, and drop rolls.";
-
-            return new RunSettings(
-                seed,
-                pendingRunSetup.DifficultyPreset,
-                lives,
-                pendingRunSetup.BallsPerServe,
-                paddleWidthMultiplier,
-                ballSpeedMultiplier,
-                brickDurabilityMultiplier,
-                dropChanceMultiplier,
-                pendingRunSetup.DropPoolMode,
-                selectedTheme);
+            return pendingRunSetup.BuildRunSettings(startingLives, selectedTheme, GenerateSeed, out validationMessage, commitSeedText);
         }
 
         private int ParsePendingSeed(bool commitSeedText)
         {
-            int parsedSeed;
-
-            if (string.IsNullOrWhiteSpace(pendingSeedText))
-            {
-                parsedSeed = commitSeedText
-                    ? GenerateSeed()
-                    : pendingRunSetup != null && pendingRunSetup.Seed > 0
-                        ? pendingRunSetup.Seed
-                        : GenerateSeed();
-            }
-            else if (!int.TryParse(pendingSeedText, NumberStyles.None, CultureInfo.InvariantCulture, out parsedSeed))
-            {
-                parsedSeed = pendingRunSetup != null && pendingRunSetup.Seed > 0
-                    ? pendingRunSetup.Seed
-                    : GenerateSeed();
-            }
-
-            if (commitSeedText)
-            {
-                pendingSeedText = parsedSeed.ToString(CultureInfo.InvariantCulture);
-            }
-
-            return parsedSeed;
+            pendingRunSetup ??= new BreakoutRunSetupState(GetDefaultThemeId(), GenerateSeed);
+            return pendingRunSetup.ParsePendingSeed(commitSeedText, GenerateSeed);
         }
 
         private static int GenerateSeed()
@@ -1323,7 +926,7 @@ namespace GetBricked.Gameplay
             EvaluateLevelCompletion();
         }
 
-        private void ApplyLevelTuning(LevelLayoutPlan levelPlan)
+        private void ApplyLevelTuning(BreakoutLevelLayoutPlan levelPlan)
         {
             if (levelPlan == null)
             {
@@ -1353,7 +956,7 @@ namespace GetBricked.Gameplay
             activeCamera.transform.position = new Vector3(0f, 0f, -10f);
             activeCamera.orthographic = true;
             activeCamera.orthographicSize = cameraHalfHeight;
-            activeCamera.backgroundColor = ResolveThemeStyle(ThemeVisualSlot.Background, backgroundColor, backgroundColor, null).PrimaryColor;
+            activeCamera.backgroundColor = backgroundColor;
 
             var visibleHalfWidth = cameraHalfHeight * activeCamera.aspect;
             arenaLeft = -visibleHalfWidth + playfieldPadding;
@@ -1467,7 +1070,9 @@ namespace GetBricked.Gameplay
             ballObject.transform.SetParent(ballsRoot, false);
             ballObject.transform.localScale = Vector3.one * (ballRadius * 2f);
 
-            var ballStyle = ResolveThemeStyle(ThemeVisualSlot.Ball, ballColor, ballColor, circleSprite);
+            var ballStyle = themeService != null
+                ? themeService.ResolveBallStyle()
+                : new ThemeVisualStyle(ballColor, ballColor, circleSprite);
             var spriteRenderer = ballObject.AddComponent<SpriteRenderer>();
             spriteRenderer.sprite = ballStyle.Sprite;
             spriteRenderer.color = ballStyle.PrimaryColor;
@@ -1496,141 +1101,15 @@ namespace GetBricked.Gameplay
             return ball;
         }
 
-        private LevelLayoutPlan BuildLevelLayoutPlan(LevelDefinition level)
+        private BreakoutLevelLayoutPlan BuildLevelLayoutPlan(LevelDefinition level)
         {
-            var plan = new LevelLayoutPlan();
-
-            if (level == null)
-            {
-                currentLevelVariationLabel = "Variation: unavailable";
-                return plan;
-            }
-
-            var templateCount = Mathf.Max(1, loadedLevels.Count);
-            var profileIndex = Mathf.Abs(currentLevelIndex % templateCount);
-            var cycleIndex = currentLevelIndex / templateCount;
-            var planner = gameplayRandom != null
-                ? gameplayRandom.Fork((currentLevelIndex + 1) * 7919)
-                : new DeterministicRandomService(GenerateSeed());
-            var pattern = (ProceduralPatternType)planner.Range(0, Enum.GetValues(typeof(ProceduralPatternType)).Length);
-            var rowCount = Mathf.Clamp(Mathf.Max(3, level.LayoutRows.Length) + Mathf.Min(2, cycleIndex) + (profileIndex >= 2 ? 1 : 0), 3, 7);
-            var columnCount = Mathf.Clamp(GetTemplateColumnCount(level) + Mathf.Min(2, cycleIndex) + (profileIndex >= templateCount - 1 ? 1 : 0), 8, 11);
-            var totalBreakableScore = 0;
-            var usedDefinitions = new HashSet<BrickDefinition>();
-            var usedDrops = new HashSet<PowerUpDefinition>();
-
-            plan.DisplayName = BuildProceduralLevelDisplayName(level, pattern, cycleIndex);
-            plan.LayoutRows = new string[rowCount];
-            plan.BrickRows = new ProceduralBrickCell[rowCount][];
-            plan.RowShifts = new int[rowCount];
-            plan.PatternLabel = GetProceduralPatternLabel(pattern);
-            plan.MirrorLayout = planner.NextFloat() < 0.82f;
-            plan.TopInset = Mathf.Max(1f, level.TopInset - (cycleIndex * 0.08f));
-            plan.PaddleSpeedMultiplier = level.PaddleSpeedMultiplier * (1f + (cycleIndex * 0.035f));
-            plan.BallSpeedMultiplier = level.BallSpeedMultiplier * (1f + (cycleIndex * 0.06f));
-
-            for (var rowIndex = 0; rowIndex < rowCount; rowIndex++)
-            {
-                var cells = new ProceduralBrickCell[columnCount];
-                var symbols = new char[columnCount];
-
-                for (var fillIndex = 0; fillIndex < symbols.Length; fillIndex++)
-                {
-                    symbols[fillIndex] = '.';
-                }
-
-                var leftSideLength = (columnCount + 1) / 2;
-                var generatedColumns = plan.MirrorLayout ? leftSideLength : columnCount;
-
-                for (var columnIndex = 0; columnIndex < generatedColumns; columnIndex++)
-                {
-                    if (!ShouldPlaceProceduralBrick(planner, pattern, rowIndex, columnIndex, rowCount, columnCount, currentLevelIndex))
-                    {
-                        continue;
-                    }
-
-                    var definition = SelectProceduralBrickDefinition(planner, rowIndex, columnIndex, rowCount, columnCount, currentLevelIndex);
-
-                    if (definition == null)
-                    {
-                        continue;
-                    }
-
-                    var motionConfig = ResolveProceduralBrickMotion(
-                        planner,
-                        definition,
-                        profileIndex,
-                        cycleIndex,
-                        rowIndex,
-                        columnIndex,
-                        rowCount,
-                        columnCount);
-                    FillProceduralCell(cells, symbols, columnIndex, definition, motionConfig);
-
-                    if (plan.MirrorLayout)
-                    {
-                        var mirroredColumn = (columnCount - 1) - columnIndex;
-                        FillProceduralCell(cells, symbols, mirroredColumn, definition, motionConfig);
-                    }
-                }
-
-                EnsureProceduralRowHasBricks(cells, symbols, planner, rowIndex, rowCount, columnCount, currentLevelIndex, profileIndex, cycleIndex);
-                var rowShift = BuildLevelPlanRowShift(planner, rowIndex, currentLevelIndex, columnCount, CountOccupiedCells(symbols));
-                plan.RowShifts[rowIndex] = rowShift;
-                cells = RotateCells(cells, rowShift);
-                symbols = RotateCharacters(symbols, rowShift);
-                plan.BrickRows[rowIndex] = cells;
-                plan.LayoutRows[rowIndex] = new string(symbols);
-
-                for (var columnIndex = 0; columnIndex < cells.Length; columnIndex++)
-                {
-                    var cell = cells[columnIndex];
-
-                    if (cell == null || cell.Definition == null)
-                    {
-                        continue;
-                    }
-
-                    usedDefinitions.Add(cell.Definition);
-
-                    if (cell.MotionConfig.IsEnabled)
-                    {
-                        plan.MovingBrickCount++;
-                    }
-
-                    if (!cell.Definition.IsBreakable)
-                    {
-                        continue;
-                    }
-
-                    totalBreakableScore += Mathf.Max(0, cell.Definition.ScoreValue);
-                    var dropTable = cell.Definition.DropTable;
-
-                    for (var dropIndex = 0; dropIndex < dropTable.Length; dropIndex++)
-                    {
-                        if (dropTable[dropIndex].PowerUpDefinition != null)
-                        {
-                            usedDrops.Add(dropTable[dropIndex].PowerUpDefinition);
-                        }
-                    }
-                }
-            }
-
-            plan.UniqueBrickTypeCount = usedDefinitions.Count;
-            plan.AvailableDropTypeCount = usedDrops.Count;
-            plan.CompletionRule = ResolveProceduralCompletionRule(level, cycleIndex);
-            plan.TargetScore = plan.CompletionRule == LevelCompletionRule.ReachTargetScore
-                ? Mathf.Clamp(Mathf.RoundToInt(totalBreakableScore * Mathf.Lerp(0.58f, 0.72f, Mathf.Clamp01(cycleIndex * 0.18f))), 350, Mathf.Max(350, totalBreakableScore))
-                : 0;
-
-            currentLevelVariationLabel = BuildVariationSummary(plan);
-            Debug.Log(
-                $"Level variation | seed {activeRunSettings?.Seed ?? 0} | level {currentLevelIndex + 1} | " +
-                $"{plan.DisplayName} | {currentLevelVariationLabel}");
+            levelPlanner ??= new BreakoutLevelPlanner(loadedLevels, loadedBrickDefinitions, GenerateSeed);
+            var plan = levelPlanner.BuildPlan(level, currentLevelIndex, gameplayRandom, activeRunSettings);
+            currentLevelVariationLabel = plan.VariationSummary;
             return plan;
         }
 
-        private void BuildBrickWall(LevelLayoutPlan layoutPlan)
+        private void BuildBrickWall(BreakoutLevelLayoutPlan layoutPlan)
         {
             requiredBricksRemaining = 0;
 
@@ -1644,7 +1123,7 @@ namespace GetBricked.Gameplay
 
             for (var row = 0; row < layoutRows.Length; row++)
             {
-                var rowCells = layoutRows[row] ?? Array.Empty<ProceduralBrickCell>();
+                var rowCells = layoutRows[row] ?? Array.Empty<BreakoutProceduralBrickCell>();
                 var totalWidth = (rowCells.Length * brickSize.x) + (Mathf.Max(0, rowCells.Length - 1) * brickSpacing.x);
                 var startX = (-totalWidth * 0.5f) + (brickSize.x * 0.5f);
 
@@ -1676,648 +1155,13 @@ namespace GetBricked.Gameplay
             return loadedLevels[levelIndex % loadedLevels.Count];
         }
 
-        private int GetTemplateColumnCount(LevelDefinition level)
-        {
-            if (level == null)
-            {
-                return 8;
-            }
-
-            var layoutRows = level.LayoutRows;
-            var maxColumns = 8;
-
-            for (var index = 0; index < layoutRows.Length; index++)
-            {
-                maxColumns = Mathf.Max(maxColumns, string.IsNullOrEmpty(layoutRows[index]) ? 0 : layoutRows[index].Length);
-            }
-
-            return Mathf.Clamp(maxColumns, 8, 10);
-        }
-
-        private string BuildProceduralLevelDisplayName(LevelDefinition level, ProceduralPatternType pattern, int cycleIndex)
-        {
-            var baseName = level == null ? "Procedural Layout" : level.DisplayName;
-            var patternLabel = GetProceduralPatternLabel(pattern);
-            return cycleIndex <= 0
-                ? $"{baseName} [{patternLabel}]"
-                : $"{baseName} [{patternLabel}] Loop {cycleIndex + 1}";
-        }
-
-        private static string GetProceduralPatternLabel(ProceduralPatternType pattern)
-        {
-            return pattern switch
-            {
-                ProceduralPatternType.Bands => "Bands",
-                ProceduralPatternType.Diamond => "Diamond",
-                ProceduralPatternType.Steps => "Steps",
-                ProceduralPatternType.Lattice => "Lattice",
-                ProceduralPatternType.Core => "Core",
-                ProceduralPatternType.Columns => "Columns",
-                _ => "Procedural",
-            };
-        }
-
-        private bool ShouldPlaceProceduralBrick(
-            DeterministicRandomService planner,
-            ProceduralPatternType pattern,
-            int row,
-            int column,
-            int totalRows,
-            int totalColumns,
-            int levelIndex)
-        {
-            var topBias = totalRows <= 1 ? 1f : 1f - ((float)row / (totalRows - 1f));
-            var normalizedColumn = totalColumns <= 1 ? 0.5f : (float)column / (totalColumns - 1f);
-            var centerBias = 1f - Mathf.Abs((normalizedColumn * 2f) - 1f);
-            var noise = planner.Range(-0.18f, 0.18f);
-            var threshold = 0.48f - Mathf.Min(0.1f, levelIndex * 0.015f);
-            var score = BuildProceduralPatternScore(pattern, row, column, totalRows, totalColumns, topBias, centerBias, levelIndex);
-            return score + noise >= threshold;
-        }
-
-        private static float BuildProceduralPatternScore(
-            ProceduralPatternType pattern,
-            int row,
-            int column,
-            int totalRows,
-            int totalColumns,
-            float topBias,
-            float centerBias,
-            int levelIndex)
-        {
-            var centeredRow = totalRows <= 1 ? 0f : Mathf.Abs((((float)row / (totalRows - 1f)) * 2f) - 1f);
-            var stepBias = column <= Mathf.Max(1, totalColumns - 2 - row) ? 0.2f : -0.12f;
-
-            return pattern switch
-            {
-                ProceduralPatternType.Bands => 0.32f + (topBias * 0.48f) + (centerBias * 0.14f) + (((row + levelIndex) & 1) == 0 ? 0.08f : -0.05f),
-                ProceduralPatternType.Diamond => 0.22f + (centerBias * 0.42f) + (topBias * 0.33f) - (centeredRow * 0.22f),
-                ProceduralPatternType.Steps => 0.26f + (topBias * 0.4f) + stepBias + (centerBias * 0.08f),
-                ProceduralPatternType.Lattice => 0.28f + (topBias * 0.3f) + ((((row + column) & 1) == 0) ? 0.2f : -0.18f) + (centerBias * 0.1f),
-                ProceduralPatternType.Core => 0.2f + (centerBias * 0.38f) + (topBias * 0.24f) + (row == 0 || row == totalRows - 1 ? 0.12f : 0f),
-                ProceduralPatternType.Columns => 0.24f + (topBias * 0.36f) + (((column + levelIndex) % 3) == 0 ? 0.24f : -0.05f) + (centerBias * 0.1f),
-                _ => 0.4f,
-            };
-        }
-
-        private BrickDefinition SelectProceduralBrickDefinition(
-            DeterministicRandomService planner,
-            int row,
-            int column,
-            int totalRows,
-            int totalColumns,
-            int levelIndex)
-        {
-            if (loadedBrickDefinitions.Count == 0)
-            {
-                return null;
-            }
-
-            var totalWeight = 0f;
-
-            for (var index = 0; index < loadedBrickDefinitions.Count; index++)
-            {
-                totalWeight += GetProceduralBrickWeight(loadedBrickDefinitions[index], row, column, totalRows, totalColumns, levelIndex);
-            }
-
-            if (totalWeight <= 0f)
-            {
-                return FindFallbackBasicBrick();
-            }
-
-            var roll = planner.Range(0f, totalWeight);
-
-            for (var index = 0; index < loadedBrickDefinitions.Count; index++)
-            {
-                var definition = loadedBrickDefinitions[index];
-                roll -= GetProceduralBrickWeight(definition, row, column, totalRows, totalColumns, levelIndex);
-
-                if (roll <= 0f)
-                {
-                    return definition;
-                }
-            }
-
-            return FindFallbackBasicBrick();
-        }
-
-        private float GetProceduralBrickWeight(
-            BrickDefinition definition,
-            int row,
-            int column,
-            int totalRows,
-            int totalColumns,
-            int levelIndex)
-        {
-            if (definition == null)
-            {
-                return 0f;
-            }
-
-            var topBias = totalRows <= 1 ? 1f : 1f - ((float)row / (totalRows - 1f));
-            var normalizedColumn = totalColumns <= 1 ? 0.5f : (float)column / (totalColumns - 1f);
-            var centerBias = 1f - Mathf.Abs((normalizedColumn * 2f) - 1f);
-            var hotspot = topBias > 0.45f && centerBias > 0.4f;
-
-            if (!definition.IsBreakable)
-            {
-                if (levelIndex < 2)
-                {
-                    return 0f;
-                }
-
-                return hotspot ? 0.2f + (Mathf.Min(4, levelIndex) * 0.03f) : 0.08f + (Mathf.Min(4, levelIndex) * 0.02f);
-            }
-
-            if (definition.IsExplosive)
-            {
-                if (levelIndex < 4)
-                {
-                    return 0f;
-                }
-
-                return 0.22f + (topBias * 0.18f) + (hotspot ? 0.16f : 0f) + ((levelIndex - 4) * 0.05f);
-            }
-
-            if (definition.HitPoints >= 3)
-            {
-                if (levelIndex < 3)
-                {
-                    return 0f;
-                }
-
-                return 0.55f + (topBias * 0.45f) + (hotspot ? 0.2f : 0f) + ((levelIndex - 3) * 0.04f);
-            }
-
-            if (definition.HitPoints == 2)
-            {
-                if (levelIndex < 1)
-                {
-                    return 0f;
-                }
-
-                return 1.2f + (topBias * 0.55f) + (centerBias * 0.15f) + ((levelIndex - 1) * 0.06f);
-            }
-
-            return 4f + ((1f - topBias) * 0.75f);
-        }
-
-        private BrickDefinition FindFallbackBasicBrick()
-        {
-            for (var index = 0; index < loadedBrickDefinitions.Count; index++)
-            {
-                var definition = loadedBrickDefinitions[index];
-
-                if (definition != null && definition.IsBreakable && !definition.IsExplosive && definition.HitPoints <= 1)
-                {
-                    return definition;
-                }
-            }
-
-            for (var index = 0; index < loadedBrickDefinitions.Count; index++)
-            {
-                var definition = loadedBrickDefinitions[index];
-
-                if (definition != null && definition.IsBreakable)
-                {
-                    return definition;
-                }
-            }
-
-            return loadedBrickDefinitions.Count > 0 ? loadedBrickDefinitions[0] : null;
-        }
-
-        private BrickMotionConfig ResolveProceduralBrickMotion(
-            DeterministicRandomService planner,
-            BrickDefinition definition,
-            int profileIndex,
-            int cycleIndex,
-            int row,
-            int column,
-            int totalRows,
-            int totalColumns)
-        {
-            if (definition == null || !definition.IsBreakable || profileIndex <= 0)
-            {
-                return default;
-            }
-
-            var motionChance = profileIndex switch
-            {
-                1 => definition.HitPoints >= 2 ? 0.14f : 0.05f,
-                2 => definition.HitPoints >= 2 || definition.IsExplosive ? 0.24f : 0.1f,
-                _ => definition.HitPoints >= 2 || definition.IsExplosive ? 0.3f : 0.16f,
-            };
-
-            motionChance += cycleIndex * 0.035f;
-
-            if (planner.NextFloat() > motionChance)
-            {
-                return default;
-            }
-
-            var speed = 1.55f + (profileIndex * 0.22f) + (cycleIndex * 0.14f);
-            Vector2 direction;
-
-            switch (profileIndex)
-            {
-                case 1:
-                    direction = (row & 1) == 0 ? Vector2.right : Vector2.left;
-                    break;
-                case 2:
-                    direction = ((row + column) & 1) == 0
-                        ? ResolveBaseBrickMovementDirection(BrickMovementDirection.Down)
-                        : ResolveBaseBrickMovementDirection(BrickMovementDirection.Right);
-                    break;
-                default:
-                    direction = ResolveCenterRelativeMovementDirection(
-                        row,
-                        column,
-                        totalColumns,
-                        totalRows,
-                        clockwise: ((row + column + cycleIndex) & 1) == 0,
-                        inward: false,
-                        tangential: true);
-                    break;
-            }
-
-            return new BrickMotionConfig(speed, direction);
-        }
-
-        private void EnsureProceduralRowHasBricks(
-            ProceduralBrickCell[] cells,
-            char[] symbols,
-            DeterministicRandomService planner,
-            int row,
-            int totalRows,
-            int totalColumns,
-            int levelIndex,
-            int profileIndex,
-            int cycleIndex)
-        {
-            var occupiedCells = CountOccupiedCells(symbols);
-            var minimumBricks = row == totalRows - 1 ? 2 : Mathf.Clamp(totalColumns / 3, 3, 4);
-
-            if (occupiedCells >= minimumBricks)
-            {
-                return;
-            }
-
-            var centerLeft = Mathf.Max(0, (totalColumns / 2) - 1);
-            var centerRight = Mathf.Min(totalColumns - 1, totalColumns / 2);
-            var preferredColumns = new[]
-            {
-                centerLeft,
-                centerRight,
-                Mathf.Max(0, centerLeft - 1),
-                Mathf.Min(totalColumns - 1, centerRight + 1),
-                0,
-                totalColumns - 1,
-            };
-
-            for (var index = 0; index < preferredColumns.Length && occupiedCells < minimumBricks; index++)
-            {
-                var column = preferredColumns[index];
-
-                if (column < 0 || column >= totalColumns || cells[column] != null)
-                {
-                    continue;
-                }
-
-                var definition = SelectProceduralBrickDefinition(planner, row, column, totalRows, totalColumns, levelIndex) ?? FindFallbackBasicBrick();
-                var motionConfig = ResolveProceduralBrickMotion(planner, definition, profileIndex, cycleIndex, row, column, totalRows, totalColumns);
-                FillProceduralCell(cells, symbols, column, definition, motionConfig);
-                occupiedCells++;
-            }
-        }
-
-        private static void FillProceduralCell(
-            ProceduralBrickCell[] cells,
-            char[] symbols,
-            int column,
-            BrickDefinition definition,
-            BrickMotionConfig motionConfig)
-        {
-            if (cells == null || symbols == null || definition == null || column < 0 || column >= cells.Length || column >= symbols.Length)
-            {
-                return;
-            }
-
-            cells[column] = new ProceduralBrickCell(definition, motionConfig);
-            var symbol = BuildProceduralBrickSymbol(definition);
-            symbols[column] = motionConfig.IsEnabled ? char.ToLowerInvariant(symbol) : symbol;
-        }
-
-        private static ProceduralBrickCell[] RotateCells(ProceduralBrickCell[] rowCells, int shift)
-        {
-            if (rowCells == null || rowCells.Length == 0 || shift == 0)
-            {
-                return rowCells ?? Array.Empty<ProceduralBrickCell>();
-            }
-
-            var length = rowCells.Length;
-            var wrappedShift = ((shift % length) + length) % length;
-
-            if (wrappedShift == 0)
-            {
-                return rowCells;
-            }
-
-            var rotated = new ProceduralBrickCell[length];
-
-            for (var index = 0; index < length; index++)
-            {
-                rotated[(index + wrappedShift) % length] = rowCells[index];
-            }
-
-            return rotated;
-        }
-
-        private static char[] RotateCharacters(char[] rowCharacters, int shift)
-        {
-            if (rowCharacters == null || rowCharacters.Length == 0 || shift == 0)
-            {
-                return rowCharacters ?? Array.Empty<char>();
-            }
-
-            return RotateRow(new string(rowCharacters), shift).ToCharArray();
-        }
-
-        private static int BuildLevelPlanRowShift(DeterministicRandomService planner, int rowIndex, int levelIndex, int totalColumns, int occupiedCells)
-        {
-            var maxShift = occupiedCells >= 3 ? Mathf.Min(2, Mathf.Max(1, totalColumns / 5)) : 0;
-
-            if (maxShift <= 0)
-            {
-                return 0;
-            }
-
-            var baseShift = planner.Range(-maxShift, maxShift + 1);
-
-            if (levelIndex <= 0)
-            {
-                return Mathf.Clamp(baseShift, -1, 1);
-            }
-
-            return rowIndex == 0 ? 0 : baseShift;
-        }
-
-        private static int CountOccupiedCells(char[] rowCharacters)
-        {
-            if (rowCharacters == null || rowCharacters.Length == 0)
-            {
-                return 0;
-            }
-
-            var occupiedCells = 0;
-
-            for (var index = 0; index < rowCharacters.Length; index++)
-            {
-                if (rowCharacters[index] != '.' && !char.IsWhiteSpace(rowCharacters[index]))
-                {
-                    occupiedCells++;
-                }
-            }
-
-            return occupiedCells;
-        }
-
-        private static char BuildProceduralBrickSymbol(BrickDefinition definition)
-        {
-            if (definition == null)
-            {
-                return '.';
-            }
-
-            if (!definition.IsBreakable)
-            {
-                return 'S';
-            }
-
-            if (definition.IsExplosive)
-            {
-                return 'E';
-            }
-
-            return definition.HitPoints switch
-            {
-                <= 1 => 'A',
-                2 => 'B',
-                _ => 'C',
-            };
-        }
-
-        private static LevelCompletionRule ResolveProceduralCompletionRule(LevelDefinition level, int cycleIndex)
-        {
-            if (level == null)
-            {
-                return LevelCompletionRule.ClearRequiredBricks;
-            }
-
-            if (level.CompletionRule == LevelCompletionRule.ReachTargetScore || cycleIndex > 0 && (cycleIndex % 2) == 1)
-            {
-                return LevelCompletionRule.ReachTargetScore;
-            }
-
-            return LevelCompletionRule.ClearRequiredBricks;
-        }
-
-        private static Vector2 ResolveBrickMovementDirection(
-            LevelBrickMovementEntry movementEntry,
-            int row,
-            int column,
-            int rowLength,
-            int totalRows)
-        {
-            return movementEntry.Modifier switch
-            {
-                BrickMovementModifier.OutwardFromCenter => ResolveCenterRelativeMovementDirection(
-                    row,
-                    column,
-                    rowLength,
-                    totalRows,
-                    clockwise: false,
-                    inward: false),
-                BrickMovementModifier.InwardToCenter => ResolveCenterRelativeMovementDirection(
-                    row,
-                    column,
-                    rowLength,
-                    totalRows,
-                    clockwise: false,
-                    inward: true),
-                BrickMovementModifier.ClockwiseAroundCenter => ResolveCenterRelativeMovementDirection(
-                    row,
-                    column,
-                    rowLength,
-                    totalRows,
-                    clockwise: true,
-                    inward: false,
-                    tangential: true),
-                BrickMovementModifier.CounterClockwiseAroundCenter => ResolveCenterRelativeMovementDirection(
-                    row,
-                    column,
-                    rowLength,
-                    totalRows,
-                    clockwise: false,
-                    inward: false,
-                    tangential: true),
-                _ => ResolvePatternMovementDirection(movementEntry.Direction, movementEntry.Modifier, row, column),
-            };
-        }
-
-        private static Vector2 ResolvePatternMovementDirection(
-            BrickMovementDirection direction,
-            BrickMovementModifier modifier,
-            int row,
-            int column)
-        {
-            var resolvedDirection = ResolveBaseBrickMovementDirection(direction);
-
-            if (ShouldInvertBrickMovementDirection(modifier, row, column))
-            {
-                resolvedDirection *= -1f;
-            }
-
-            return resolvedDirection;
-        }
-
-        private static bool ShouldInvertBrickMovementDirection(BrickMovementModifier modifier, int row, int column)
-        {
-            return modifier switch
-            {
-                BrickMovementModifier.AlternateByRow => (row & 1) == 1,
-                BrickMovementModifier.AlternateByColumn => (column & 1) == 1,
-                BrickMovementModifier.Checkerboard => ((row + column) & 1) == 1,
-                _ => false,
-            };
-        }
-
-        private static Vector2 ResolveCenterRelativeMovementDirection(
-            int row,
-            int column,
-            int rowLength,
-            int totalRows,
-            bool clockwise,
-            bool inward,
-            bool tangential = false)
-        {
-            var center = new Vector2((Mathf.Max(1, rowLength) - 1f) * 0.5f, (Mathf.Max(1, totalRows) - 1f) * 0.5f);
-            var offset = new Vector2(column - center.x, center.y - row);
-
-            if (offset.sqrMagnitude <= 0.0001f)
-            {
-                return clockwise ? Vector2.right : Vector2.up;
-            }
-
-            if (tangential)
-            {
-                return new Vector2(-offset.y, offset.x).normalized;
-            }
-
-            if (clockwise)
-            {
-                return new Vector2(offset.y, -offset.x).normalized;
-            }
-
-            return inward ? -offset.normalized : offset.normalized;
-        }
-
-        private static Vector2 ResolveBaseBrickMovementDirection(BrickMovementDirection direction)
-        {
-            return direction switch
-            {
-                BrickMovementDirection.Left => Vector2.left,
-                BrickMovementDirection.Right => Vector2.right,
-                BrickMovementDirection.Up => Vector2.up,
-                BrickMovementDirection.Down => Vector2.down,
-                BrickMovementDirection.UpLeft => new Vector2(-1f, 1f).normalized,
-                BrickMovementDirection.UpRight => new Vector2(1f, 1f).normalized,
-                BrickMovementDirection.DownLeft => new Vector2(-1f, -1f).normalized,
-                BrickMovementDirection.DownRight => new Vector2(1f, -1f).normalized,
-                _ => Vector2.right,
-            };
-        }
-
-        private static int CountOccupiedTiles(string rowLayout)
-        {
-            if (string.IsNullOrEmpty(rowLayout))
-            {
-                return 0;
-            }
-
-            var occupiedTiles = 0;
-
-            for (var index = 0; index < rowLayout.Length; index++)
-            {
-                if (rowLayout[index] != '.' && !char.IsWhiteSpace(rowLayout[index]))
-                {
-                    occupiedTiles++;
-                }
-            }
-
-            return occupiedTiles;
-        }
-
-        private static string ReverseRow(string rowLayout)
-        {
-            if (string.IsNullOrEmpty(rowLayout))
-            {
-                return string.Empty;
-            }
-
-            var characters = rowLayout.ToCharArray();
-            Array.Reverse(characters);
-            return new string(characters);
-        }
-
-        private static string RotateRow(string rowLayout, int shift)
-        {
-            if (string.IsNullOrEmpty(rowLayout) || shift == 0)
-            {
-                return rowLayout ?? string.Empty;
-            }
-
-            var length = rowLayout.Length;
-            var wrappedShift = ((shift % length) + length) % length;
-
-            if (wrappedShift == 0)
-            {
-                return rowLayout;
-            }
-
-            return rowLayout.Substring(length - wrappedShift, wrappedShift) + rowLayout.Substring(0, length - wrappedShift);
-        }
-
-        private static string BuildVariationSummary(LevelLayoutPlan plan)
-        {
-            if (plan == null || plan.LayoutRows.Length == 0)
-            {
-                return "Variation: unavailable";
-            }
-
-            var shiftedRows = 0;
-
-            for (var index = 0; index < plan.RowShifts.Length; index++)
-            {
-                if (plan.RowShifts[index] != 0)
-                {
-                    shiftedRows++;
-                }
-            }
-
-            var orientationLabel = plan.MirrorLayout ? "mirrored" : "asymmetric";
-            return
-                $"Variation: {plan.PatternLabel}, {orientationLabel}, {shiftedRows} shifted rows, " +
-                $"{plan.UniqueBrickTypeCount} brick types, {plan.AvailableDropTypeCount} drops, {plan.MovingBrickCount} movers";
-        }
-
         private void CreateBrick(
             Vector2 position,
             BrickDefinition definition,
             int row,
             int column,
             int effectiveHitPoints,
-            BrickMotionConfig motionConfig)
+            BreakoutBrickMotionConfig motionConfig)
         {
             var brickObject = new GameObject($"{definition.DisplayName} {row + 1}-{column + 1}");
             brickObject.transform.SetParent(bricksRoot, false);
@@ -2336,7 +1180,7 @@ namespace GetBricked.Gameplay
                 this,
                 definition,
                 effectiveHitPoints,
-                ResolveBrickStyle(definition),
+                themeService != null ? themeService.ResolveBrickStyle(definition) : new ThemeVisualStyle(definition.BaseColor, definition.DamagedColor, squareSprite),
                 motionConfig.Speed,
                 motionConfig.InitialDirection);
             bricks.Add(brick);
@@ -2641,144 +1485,15 @@ namespace GetBricked.Gameplay
 
         private void ApplyTheme(ThemeDefinition theme)
         {
-            appliedTheme = theme;
-            ApplyThemeToCamera();
-            ApplyThemeToWalls();
-            ApplyThemeToPaddle();
-            ApplyThemeToBalls();
-            ApplyThemeToBricks();
-            ApplyThemeToPickups();
-        }
-
-        private ThemeVisualStyle ResolveThemeStyle(ThemeVisualSlot slot, Color fallbackPrimary, Color fallbackSecondary, Sprite fallbackSprite)
-        {
-            var fallbackStyle = new ThemeVisualStyle(fallbackPrimary, fallbackSecondary, fallbackSprite);
-            return appliedTheme != null
-                ? appliedTheme.ResolveStyle(slot, fallbackStyle)
-                : fallbackStyle;
-        }
-
-        private ThemeVisualStyle ResolveBrickStyle(BrickDefinition definition)
-        {
-            if (definition == null)
-            {
-                return new ThemeVisualStyle(Color.white, Color.gray, squareSprite);
-            }
-
-            return ResolveThemeStyle(definition.ResolveThemeSlot(), definition.BaseColor, definition.DamagedColor, squareSprite);
-        }
-
-        private ThemeVisualStyle ResolvePowerUpStyle(PowerUpDefinition definition)
-        {
-            if (definition == null)
-            {
-                return new ThemeVisualStyle(Color.white, Color.white, squareSprite);
-            }
-
-            return ResolveThemeStyle(definition.ResolveThemeSlot(), definition.PickupColor, definition.PickupColor, squareSprite);
-        }
-
-        private void ApplyThemeToCamera()
-        {
-            if (activeCamera == null)
-            {
-                return;
-            }
-
-            activeCamera.backgroundColor = ResolveThemeStyle(ThemeVisualSlot.Background, backgroundColor, backgroundColor, null).PrimaryColor;
-        }
-
-        private void ApplyThemeToWalls()
-        {
-            var wallStyle = ResolveThemeStyle(ThemeVisualSlot.Wall, wallColor, wallColor, squareSprite);
-
-            for (var index = wallRenderers.Count - 1; index >= 0; index--)
-            {
-                var wallRenderer = wallRenderers[index];
-
-                if (wallRenderer == null)
-                {
-                    wallRenderers.RemoveAt(index);
-                    continue;
-                }
-
-                wallRenderer.sprite = wallStyle.Sprite;
-                wallRenderer.color = wallStyle.PrimaryColor;
-            }
-        }
-
-        private void ApplyThemeToPaddle()
-        {
-            if (paddleSpriteRenderer == null)
-            {
-                return;
-            }
-
-            var paddleStyle = ResolveThemeStyle(ThemeVisualSlot.Paddle, paddleColor, paddleColor, squareSprite);
-            paddleSpriteRenderer.sprite = paddleStyle.Sprite;
-            paddleSpriteRenderer.color = paddleStyle.PrimaryColor;
-        }
-
-        private void ApplyThemeToBalls()
-        {
-            ApplyThemeToBall(serveBall);
-
-            for (var index = activeBalls.Count - 1; index >= 0; index--)
-            {
-                var ball = activeBalls[index];
-
-                if (ball == null)
-                {
-                    activeBalls.RemoveAt(index);
-                    continue;
-                }
-
-                ApplyThemeToBall(ball);
-            }
-        }
-
-        private void ApplyThemeToBall(BallController ball)
-        {
-            if (ball == null || !ball.TryGetComponent<SpriteRenderer>(out var spriteRenderer))
-            {
-                return;
-            }
-
-            var ballStyle = ResolveThemeStyle(ThemeVisualSlot.Ball, ballColor, ballColor, circleSprite);
-            spriteRenderer.sprite = ballStyle.Sprite;
-            spriteRenderer.color = ballStyle.PrimaryColor;
-        }
-
-        private void ApplyThemeToBricks()
-        {
-            for (var index = bricks.Count - 1; index >= 0; index--)
-            {
-                var brick = bricks[index];
-
-                if (brick == null)
-                {
-                    bricks.RemoveAt(index);
-                    continue;
-                }
-
-                brick.ApplyTheme(ResolveBrickStyle(brick.Definition));
-            }
-        }
-
-        private void ApplyThemeToPickups()
-        {
-            for (var index = activePickups.Count - 1; index >= 0; index--)
-            {
-                var pickup = activePickups[index];
-
-                if (pickup == null)
-                {
-                    activePickups.RemoveAt(index);
-                    continue;
-                }
-
-                pickup.ApplyTheme(ResolvePowerUpStyle(pickup.Definition));
-            }
+            themeService?.ApplyTheme(
+                theme,
+                activeCamera,
+                wallRenderers,
+                paddleSpriteRenderer,
+                serveBall,
+                activeBalls,
+                bricks,
+                powerUpService?.ActivePickups);
         }
 
         private Sprite CreateSquareSprite()
@@ -2827,45 +1542,48 @@ namespace GetBricked.Gameplay
 
         private void OnGUI()
         {
-            EnsureGuiStyles();
+            if (uiRenderer == null)
+            {
+                return;
+            }
 
             if (roundState == RoundState.MainMenu)
             {
-                DrawMainMenuUi();
+                uiRenderer.DrawMainMenu(BuildMainMenuView(), HandleOverlayActionClick);
                 return;
             }
 
             if (roundState == RoundState.RunSetup)
             {
-                DrawRunSetupUi();
+                uiRenderer.DrawRunSetup(BuildRunSetupView());
                 return;
             }
 
-            DrawGameplayHud();
-            DrawActiveModifierIndicator();
+            uiRenderer.DrawGameplayHud(BuildHudView(), ToggleDiagnosticsOverlay, ToggleHudMenuOverlay);
+            uiRenderer.DrawModifierIndicator(BuildModifierViews(), isDiagnosticsOverlayVisible);
 
             if (isDiagnosticsOverlayVisible)
             {
-                DrawDiagnosticsOverlay();
+                uiRenderer.DrawDiagnosticsOverlay(BuildDiagnosticsView());
             }
 
             if (roundState == RoundState.Playing)
             {
-                DrawPickupBanner();
+                uiRenderer.DrawPickupBanner(BuildPickupBannerView());
                 return;
             }
 
             if (roundState == RoundState.Paused)
             {
-                DrawPauseUi();
-                DrawPickupBanner();
+                uiRenderer.DrawOverlay(BuildPauseOverlayView(), HandleOverlayActionClick);
+                uiRenderer.DrawPickupBanner(BuildPickupBannerView());
                 return;
             }
 
             if (roundState == RoundState.LevelComplete || roundState == RoundState.GameOver)
             {
-                DrawEndStateUi();
-                DrawPickupBanner();
+                uiRenderer.DrawOverlay(BuildEndStateOverlayView(), HandleOverlayActionClick);
+                uiRenderer.DrawPickupBanner(BuildPickupBannerView());
                 return;
             }
 
@@ -2875,312 +1593,8 @@ namespace GetBricked.Gameplay
                 RoundState.LifeLost => $"Life lost. {livesRemaining} remaining. Press Space to serve again. Up/Down tunes speed.",
                 _ => string.Empty,
             };
-
-            var boxRect = new Rect((Screen.width * 0.5f) - 230f, (Screen.height * 0.5f) - 32f, 460f, 64f);
-            GUI.Box(boxRect, GUIContent.none);
-            GUI.Label(boxRect, message, messageStyle);
-            DrawPickupBanner();
-        }
-
-        private void EnsureGuiStyles()
-        {
-            if (hudStyle != null
-                && messageStyle != null
-                && pickupStyle != null
-                && setupTitleStyle != null
-                && setupSelectedStyle != null
-                && setupHintStyle != null
-                && overlayTitleStyle != null
-                && overlayBodyStyle != null
-                && overlayActionStyle != null
-                && overlaySelectedActionStyle != null
-                && hudButtonStyle != null
-                && hudActiveButtonStyle != null
-                && speedMeterCaptionStyle != null
-                && speedMeterValueStyle != null
-                && modifierPanelTitleStyle != null
-                && modifierPanelLabelStyle != null
-                && modifierPanelTimerStyle != null
-                && modifierPanelEmptyStyle != null)
-            {
-                return;
-            }
-
-            hudStyle = new GUIStyle(GUI.skin.label)
-            {
-                fontSize = 18,
-                normal = { textColor = Color.white },
-            };
-
-            messageStyle = new GUIStyle(GUI.skin.label)
-            {
-                alignment = TextAnchor.MiddleCenter,
-                fontSize = 22,
-                normal = { textColor = Color.white },
-            };
-
-            pickupStyle = new GUIStyle(GUI.skin.label)
-            {
-                alignment = TextAnchor.MiddleCenter,
-                fontSize = 24,
-                fontStyle = FontStyle.Bold,
-                normal = { textColor = Color.white },
-            };
-
-            setupTitleStyle = new GUIStyle(messageStyle)
-            {
-                fontSize = 28,
-            };
-
-            setupSelectedStyle = new GUIStyle(hudStyle)
-            {
-                fontStyle = FontStyle.Bold,
-            };
-            setupSelectedStyle.normal.textColor = new Color(1f, 0.92f, 0.58f, 1f);
-
-            setupHintStyle = new GUIStyle(GUI.skin.label)
-            {
-                alignment = TextAnchor.MiddleCenter,
-                fontSize = 16,
-                wordWrap = true,
-                normal = { textColor = new Color(0.88f, 0.9f, 0.96f, 1f) },
-            };
-
-            overlayTitleStyle = new GUIStyle(messageStyle)
-            {
-                fontSize = 30,
-            };
-
-            overlayBodyStyle = new GUIStyle(hudStyle)
-            {
-                alignment = TextAnchor.MiddleCenter,
-                wordWrap = true,
-            };
-
-            overlayActionStyle = new GUIStyle(hudStyle)
-            {
-                alignment = TextAnchor.MiddleCenter,
-                fontSize = 20,
-            };
-
-            overlaySelectedActionStyle = new GUIStyle(overlayActionStyle)
-            {
-                fontStyle = FontStyle.Bold,
-            };
-            overlaySelectedActionStyle.normal.textColor = new Color(1f, 0.92f, 0.58f, 1f);
-
-            hudButtonStyle = new GUIStyle(GUI.skin.button)
-            {
-                alignment = TextAnchor.MiddleCenter,
-                fontSize = 15,
-                fontStyle = FontStyle.Bold,
-                padding = new RectOffset(10, 10, 6, 6),
-            };
-
-            hudActiveButtonStyle = new GUIStyle(hudButtonStyle);
-            hudActiveButtonStyle.normal.textColor = new Color(1f, 0.95f, 0.72f, 1f);
-
-            speedMeterCaptionStyle = new GUIStyle(hudStyle)
-            {
-                alignment = TextAnchor.MiddleCenter,
-                fontSize = 14,
-                fontStyle = FontStyle.Bold,
-            };
-
-            speedMeterValueStyle = new GUIStyle(hudStyle)
-            {
-                alignment = TextAnchor.MiddleCenter,
-                fontSize = 12,
-                fontStyle = FontStyle.Bold,
-            };
-
-            modifierPanelTitleStyle = new GUIStyle(hudStyle)
-            {
-                alignment = TextAnchor.MiddleCenter,
-                fontSize = 11,
-                fontStyle = FontStyle.Bold,
-            };
-
-            modifierPanelLabelStyle = new GUIStyle(hudStyle)
-            {
-                alignment = TextAnchor.MiddleCenter,
-                fontSize = 10,
-                fontStyle = FontStyle.Bold,
-            };
-
-            modifierPanelTimerStyle = new GUIStyle(hudStyle)
-            {
-                alignment = TextAnchor.MiddleCenter,
-                fontSize = 10,
-            };
-
-            modifierPanelEmptyStyle = new GUIStyle(modifierPanelTimerStyle)
-            {
-                fontStyle = FontStyle.Bold,
-            };
-            modifierPanelEmptyStyle.normal.textColor = new Color(0.78f, 0.83f, 0.92f, 1f);
-        }
-
-        private void DrawMainMenuUi()
-        {
-            var previewSettings = BuildRunSettingsFromPending(out var previewValidation);
-            var boxRect = new Rect((Screen.width * 0.5f) - 410f, (Screen.height * 0.5f) - 220f, 820f, 440f);
-            var actions = GetOverlayActionsForState(RoundState.MainMenu);
-            GUI.Box(boxRect, GUIContent.none);
-            GUI.Label(new Rect(boxRect.x + 24f, boxRect.y + 18f, boxRect.width - 48f, 36f), "Get Bricked", overlayTitleStyle);
-            GUI.Label(new Rect(boxRect.x + 32f, boxRect.y + 58f, boxRect.width - 64f, 24f), "Chunk 07 meta flow: start a run, tune the setup, and move cleanly between play states.", setupHintStyle);
-
-            GUI.Label(new Rect(boxRect.x + 42f, boxRect.y + 112f, 280f, 28f), "Main Menu", setupSelectedStyle);
-            DrawOverlayActionList(actions, boxRect.x + 42f, boxRect.y + 150f, 270f, 36f);
-
-            GUI.Label(new Rect(boxRect.x + 360f, boxRect.y + 112f, 410f, 28f), "Saved Setup Preview", setupSelectedStyle);
-            GUI.Label(new Rect(boxRect.x + 360f, boxRect.y + 150f, 410f, 26f), $"Seed: {GetPendingSeedDisplay()}", hudStyle);
-            GUI.Label(new Rect(boxRect.x + 360f, boxRect.y + 180f, 410f, 26f), $"Difficulty: {pendingRunSetup.DifficultyPreset} | Balls/Serve: {pendingRunSetup.BallsPerServe}", hudStyle);
-            GUI.Label(new Rect(boxRect.x + 360f, boxRect.y + 210f, 410f, 26f), $"Theme: {previewSettings.ThemeLabel} | Paddle x{previewSettings.PaddleWidthMultiplier:0.00}", hudStyle);
-            GUI.Label(new Rect(boxRect.x + 360f, boxRect.y + 240f, 410f, 26f), $"Ball x{previewSettings.BallSpeedMultiplier:0.00} | Brick durability x{previewSettings.BrickDurabilityMultiplier:0.00}", hudStyle);
-            GUI.Label(new Rect(boxRect.x + 360f, boxRect.y + 270f, 410f, 26f), $"Drops: {previewSettings.DropPoolLabel}", hudStyle);
-            GUI.Label(new Rect(boxRect.x + 360f, boxRect.y + 304f, 410f, 52f), previewValidation, setupHintStyle);
-            GUI.Label(new Rect(boxRect.x + 360f, boxRect.y + 356f, 410f, 38f), "Run setup selections persist automatically, so the quick-start option will reuse the last tuned configuration.", setupHintStyle);
-            GUI.Label(new Rect(boxRect.x + 28f, boxRect.y + 395f, boxRect.width - 56f, 24f), "Up/Down selects. Space confirms. Open Run Setup for detailed seed and modifier edits.", setupHintStyle);
-        }
-
-        private void DrawRunSetupUi()
-        {
-            var previewSettings = BuildRunSettingsFromPending(out var previewValidation);
-            var boxRect = new Rect((Screen.width * 0.5f) - 360f, (Screen.height * 0.5f) - 231f, 720f, 462f);
-            GUI.Box(boxRect, GUIContent.none);
-            GUI.Label(new Rect(boxRect.x + 24f, boxRect.y + 18f, boxRect.width - 48f, 34f), "Run Setup", setupTitleStyle);
-            GUI.Label(new Rect(boxRect.x + 28f, boxRect.y + 56f, boxRect.width - 56f, 22f), "Author levels stay intact, then the seed mirrors and shifts them deterministically per run.", setupHintStyle);
-
-            var fieldX = boxRect.x + 36f;
-            var fieldWidth = boxRect.width - 72f;
-            var lineHeight = 30f;
-            var startY = boxRect.y + 96f;
-
-            DrawRunSetupField(fieldX, startY + (lineHeight * 0f), fieldWidth, RunSetupField.Seed, $"Seed: {GetPendingSeedDisplay()}");
-            DrawRunSetupField(fieldX, startY + (lineHeight * 1f), fieldWidth, RunSetupField.Difficulty, $"Difficulty: {pendingRunSetup.DifficultyPreset}");
-            DrawRunSetupField(fieldX, startY + (lineHeight * 2f), fieldWidth, RunSetupField.BallsPerServe, $"Balls Per Serve: {pendingRunSetup.BallsPerServe}");
-            DrawRunSetupField(fieldX, startY + (lineHeight * 3f), fieldWidth, RunSetupField.PaddleWidth, $"Paddle Width Bias: {FormatSignedStep(pendingRunSetup.PaddleWidthStep)}");
-            DrawRunSetupField(fieldX, startY + (lineHeight * 4f), fieldWidth, RunSetupField.BallSpeed, $"Ball Speed Bias: {FormatSignedStep(pendingRunSetup.BallSpeedStep)}");
-            DrawRunSetupField(fieldX, startY + (lineHeight * 5f), fieldWidth, RunSetupField.BrickDurability, $"Brick Durability Bias: {FormatSignedStep(pendingRunSetup.BrickDurabilityStep)}");
-            DrawRunSetupField(fieldX, startY + (lineHeight * 6f), fieldWidth, RunSetupField.DropPool, $"Drop Pool: {previewSettings.DropPoolLabel}");
-            DrawRunSetupField(fieldX, startY + (lineHeight * 7f), fieldWidth, RunSetupField.Theme, $"Theme: {previewSettings.ThemeLabel}");
-
-            GUI.Label(
-                new Rect(boxRect.x + 28f, boxRect.y + 338f, boxRect.width - 56f, 24f),
-                $"Preview: Lives {previewSettings.StartingLives} | Paddle x{previewSettings.PaddleWidthMultiplier:0.00} | Ball speed x{previewSettings.BallSpeedMultiplier:0.00} | Brick durability x{previewSettings.BrickDurabilityMultiplier:0.00}",
-                hudStyle);
-            GUI.Label(
-                new Rect(boxRect.x + 28f, boxRect.y + 368f, boxRect.width - 56f, 40f),
-                previewValidation,
-                setupHintStyle);
-            GUI.Label(
-                new Rect(boxRect.x + 28f, boxRect.y + 408f, boxRect.width - 56f, 36f),
-                "Up/Down selects. Left/Right adjusts. Type digits for the seed. Backspace edits. T randomizes. N resets defaults. Esc returns to menu. Space starts.",
-                setupHintStyle);
-        }
-
-        private void DrawRunSetupField(float x, float y, float width, RunSetupField field, string value)
-        {
-            var isSelected = selectedRunSetupField == field;
-            GUI.Label(new Rect(x, y, width, 26f), $"{(isSelected ? "> " : "  ")}{value}", isSelected ? setupSelectedStyle : hudStyle);
-        }
-
-        private void DrawGameplayHud()
-        {
-            var topBarRect = new Rect(0f, 0f, Screen.width, 76f);
-            var contentWidth = Mathf.Max(320f, topBarRect.width - 256f);
-            var buttonsX = topBarRect.xMax - 232f;
-            var buttonsY = topBarRect.y + 18f;
-            var showMenuButton = CanPauseRoundState(roundState) || roundState == RoundState.Paused;
-            var diagnosticsLabel = isDiagnosticsOverlayVisible ? "Hide Diagnostics" : "Diagnostics";
-            var menuLabel = roundState == RoundState.Paused ? "Resume" : "Menu";
-
-            DrawSolidRect(topBarRect, new Color(0.05f, 0.07f, 0.11f, 0.96f));
-            GUI.Label(
-                new Rect(20f, topBarRect.y + 12f, contentWidth, 24f),
-                $"Score {score:0000}   Lives {livesRemaining:00}   {BuildLevelLabel()}",
-                hudStyle);
-            GUI.Label(
-                new Rect(20f, topBarRect.y + 40f, contentWidth, 24f),
-                BuildRemainingBricksLabel(),
-                hudStyle);
-            DrawBallSpeedMeter();
-
-            if (GUI.Button(
-                    new Rect(buttonsX, buttonsY, 108f, 38f),
-                    diagnosticsLabel,
-                    isDiagnosticsOverlayVisible ? hudActiveButtonStyle : hudButtonStyle))
-            {
-                isDiagnosticsOverlayVisible = !isDiagnosticsOverlayVisible;
-            }
-
-            if (showMenuButton
-                && GUI.Button(
-                    new Rect(buttonsX + 116f, buttonsY, 96f, 38f),
-                    menuLabel,
-                    roundState == RoundState.Paused ? hudActiveButtonStyle : hudButtonStyle))
-            {
-                ToggleHudMenuOverlay();
-            }
-        }
-
-        private void DrawPauseUi()
-        {
-            var boxRect = new Rect((Screen.width * 0.5f) - 320f, (Screen.height * 0.5f) - 180f, 640f, 360f);
-            GUI.Box(boxRect, GUIContent.none);
-            GUI.Label(new Rect(boxRect.x + 24f, boxRect.y + 20f, boxRect.width - 48f, 34f), "Menu", overlayTitleStyle);
-            GUI.Label(new Rect(boxRect.x + 32f, boxRect.y + 64f, boxRect.width - 64f, 24f), BuildPauseSummaryLabel(), overlayBodyStyle);
-            GUI.Label(new Rect(boxRect.x + 32f, boxRect.y + 92f, boxRect.width - 64f, 24f), currentLevelVariationLabel, overlayBodyStyle);
-            DrawOverlayActionList(GetOverlayActionsForState(RoundState.Paused), boxRect.x + 90f, boxRect.y + 132f, boxRect.width - 180f, 34f);
-            GUI.Label(
-                new Rect(boxRect.x + 42f, boxRect.y + 262f, boxRect.width - 84f, 44f),
-                "Controls: A/D or Left/Right moves, Space launches/advances, Up/Down adjusts manual ball speed, Esc/P opens or closes this menu, R returns to run setup.",
-                setupHintStyle);
-            GUI.Label(new Rect(boxRect.x + 28f, boxRect.y + 314f, boxRect.width - 56f, 24f), "Up/Down selects. Space confirms. Esc or P resumes immediately.", setupHintStyle);
-        }
-
-        private void DrawEndStateUi()
-        {
-            var isGameOver = roundState == RoundState.GameOver;
-            var title = isGameOver
-                ? "Run Over"
-                : HasNextLevel()
-                    ? "Level Cleared"
-                    : "Final Layout Cleared";
-            var summary = isGameOver
-                ? $"Score {score:0000} | Reached {BuildLevelLabel()} | Seed {activeRunSettings?.Seed.ToString(CultureInfo.InvariantCulture) ?? GetPendingSeedDisplay()}"
-                : HasNextLevel()
-                    ? $"Score {score:0000} | Lives {livesRemaining:00} | Next up: level {currentLevelIndex + 2:00}"
-                    : $"Score {score:0000} | Lives {livesRemaining:00} | Seed {activeRunSettings?.Seed.ToString(CultureInfo.InvariantCulture) ?? GetPendingSeedDisplay()}";
-            var footer = isGameOver
-                ? "Restart the run, jump back to setup, or return to the main menu."
-                : HasNextLevel()
-                    ? "Advance to the next authored layout, restart the run, or return to the menu."
-                    : "The authored run is complete. Restart, tune a new setup, or head back to the menu.";
-            var boxRect = new Rect((Screen.width * 0.5f) - 320f, (Screen.height * 0.5f) - 162f, 640f, 324f);
-            GUI.Box(boxRect, GUIContent.none);
-            GUI.Label(new Rect(boxRect.x + 24f, boxRect.y + 20f, boxRect.width - 48f, 36f), title, overlayTitleStyle);
-            GUI.Label(new Rect(boxRect.x + 36f, boxRect.y + 68f, boxRect.width - 72f, 24f), summary, overlayBodyStyle);
-            GUI.Label(new Rect(boxRect.x + 36f, boxRect.y + 96f, boxRect.width - 72f, 24f), BuildRunSummaryLabel(), overlayBodyStyle);
-            DrawOverlayActionList(GetOverlayActionsForState(roundState), boxRect.x + 94f, boxRect.y + 146f, boxRect.width - 188f, 36f);
-            GUI.Label(new Rect(boxRect.x + 28f, boxRect.y + 274f, boxRect.width - 56f, 32f), footer, setupHintStyle);
-        }
-
-        private void DrawOverlayActionList(OverlayAction[] actions, float x, float y, float width, float lineHeight)
-        {
-            for (var index = 0; index < actions.Length; index++)
-            {
-                var isSelected = index == Mathf.Clamp(selectedOverlayActionIndex, 0, actions.Length - 1);
-                var actionRect = new Rect(x, y + (lineHeight * index), width, lineHeight);
-                var label = isSelected ? $"> {GetOverlayActionLabel(actions[index])}" : GetOverlayActionLabel(actions[index]);
-
-                if (GUI.Button(actionRect, label, isSelected ? overlaySelectedActionStyle : overlayActionStyle))
-                {
-                    selectedOverlayActionIndex = index;
-                    PerformOverlayAction(actions[index]);
-                }
-            }
+            uiRenderer.DrawMessageOverlay(message);
+            uiRenderer.DrawPickupBanner(BuildPickupBannerView());
         }
 
         private static string GetOverlayActionLabel(OverlayAction action)
@@ -3198,6 +1612,234 @@ namespace GetBricked.Gameplay
                 OverlayAction.QuitGame => "Quit Game",
                 _ => action.ToString(),
             };
+        }
+
+        private BreakoutUiMenuView BuildMainMenuView()
+        {
+            var previewSettings = BuildRunSettingsFromPending(out var previewValidation);
+            return new BreakoutUiMenuView
+            {
+                Title = "Get Bricked",
+                Subtitle = "Chunk 07 meta flow: start a run, tune the setup, and move cleanly between play states.",
+                SectionTitle = "Main Menu",
+                ActionLabels = BuildOverlayActionLabels(GetOverlayActionsForState(RoundState.MainMenu)),
+                SelectedActionIndex = selectedOverlayActionIndex,
+                PreviewTitle = "Saved Setup Preview",
+                PreviewLines = new[]
+                {
+                    $"Seed: {GetPendingSeedDisplay()}",
+                    $"Difficulty: {pendingRunSetup.DifficultyPreset} | Balls/Serve: {pendingRunSetup.BallsPerServe}",
+                    $"Theme: {previewSettings.ThemeLabel} | Paddle x{previewSettings.PaddleWidthMultiplier:0.00}",
+                    $"Ball x{previewSettings.BallSpeedMultiplier:0.00} | Brick durability x{previewSettings.BrickDurabilityMultiplier:0.00}",
+                    $"Drops: {previewSettings.DropPoolLabel}",
+                },
+                ValidationText = previewValidation,
+                FooterText = "Run setup selections persist automatically, so the quick-start option will reuse the last tuned configuration.",
+                HintText = "Up/Down selects. Space confirms. Open Run Setup for detailed seed and modifier edits.",
+            };
+        }
+
+        private BreakoutUiRunSetupView BuildRunSetupView()
+        {
+            var previewSettings = BuildRunSettingsFromPending(out var previewValidation);
+            return new BreakoutUiRunSetupView
+            {
+                Title = "Run Setup",
+                Subtitle = "Author levels stay intact, then the seed mirrors and shifts them deterministically per run.",
+                FieldLines = new[]
+                {
+                    $"Seed: {GetPendingSeedDisplay()}",
+                    $"Difficulty: {pendingRunSetup.DifficultyPreset}",
+                    $"Balls Per Serve: {pendingRunSetup.BallsPerServe}",
+                    $"Paddle Width Bias: {FormatSignedStep(pendingRunSetup.PaddleWidthStep)}",
+                    $"Ball Speed Bias: {FormatSignedStep(pendingRunSetup.BallSpeedStep)}",
+                    $"Brick Durability Bias: {FormatSignedStep(pendingRunSetup.BrickDurabilityStep)}",
+                    $"Drop Pool: {previewSettings.DropPoolLabel}",
+                    $"Theme: {previewSettings.ThemeLabel}",
+                },
+                SelectedFieldIndex = (int)selectedRunSetupField,
+                PreviewLine = $"Preview: Lives {previewSettings.StartingLives} | Paddle x{previewSettings.PaddleWidthMultiplier:0.00} | Ball speed x{previewSettings.BallSpeedMultiplier:0.00} | Brick durability x{previewSettings.BrickDurabilityMultiplier:0.00}",
+                ValidationText = previewValidation,
+                HintText = "Up/Down selects. Left/Right adjusts. Type digits for the seed. Backspace edits. T randomizes. N resets defaults. Esc returns to menu. Space starts.",
+            };
+        }
+
+        private BreakoutUiHudView BuildHudView()
+        {
+            var bounceZoneLeftScreen = activeCamera != null
+                ? activeCamera.WorldToScreenPoint(new Vector3(arenaLeft, 0f, 0f)).x
+                : 0f;
+            var speed = GetDisplayedBallSpeed();
+            return new BreakoutUiHudView
+            {
+                TopLine = $"Score {score:0000}   Lives {livesRemaining:00}   {BuildLevelLabel()}",
+                BottomLine = BuildRemainingBricksLabel(),
+                ShowMenuButton = CanPauseRoundState(roundState) || roundState == RoundState.Paused,
+                IsPaused = roundState == RoundState.Paused,
+                IsDiagnosticsVisible = isDiagnosticsOverlayVisible,
+                SpeedMeter = new BreakoutUiSpeedMeterView
+                {
+                    BounceZoneLeftScreen = bounceZoneLeftScreen,
+                    IsDiagnosticsVisible = isDiagnosticsOverlayVisible,
+                    Speed = speed,
+                    SpeedRatio = Mathf.Clamp01(speed / Mathf.Max(0.1f, GetMaximumBallSpeed())),
+                },
+            };
+        }
+
+        private BreakoutUiOverlayView BuildPauseOverlayView()
+        {
+            return new BreakoutUiOverlayView
+            {
+                Title = "Menu",
+                SummaryLines = new[]
+                {
+                    BuildPauseSummaryLabel(),
+                    currentLevelVariationLabel,
+                },
+                ActionLabels = BuildOverlayActionLabels(GetOverlayActionsForState(RoundState.Paused)),
+                SelectedActionIndex = selectedOverlayActionIndex,
+                FooterLines = new[]
+                {
+                    "Controls: A/D or Left/Right moves, Space launches/advances, Up/Down adjusts manual ball speed, Esc/P opens or closes this menu, R returns to run setup.",
+                    "Up/Down selects. Space confirms. Esc or P resumes immediately.",
+                },
+                IsCompact = true,
+            };
+        }
+
+        private BreakoutUiOverlayView BuildEndStateOverlayView()
+        {
+            var isGameOver = roundState == RoundState.GameOver;
+            var title = isGameOver
+                ? "Run Over"
+                : HasNextLevel()
+                    ? "Level Cleared"
+                    : "Final Layout Cleared";
+            var summary = isGameOver
+                ? $"Score {score:0000} | Reached {BuildLevelLabel()} | Seed {activeRunSettings?.Seed.ToString(CultureInfo.InvariantCulture) ?? GetPendingSeedDisplay()}"
+                : HasNextLevel()
+                    ? $"Score {score:0000} | Lives {livesRemaining:00} | Next up: level {currentLevelIndex + 2:00}"
+                    : $"Score {score:0000} | Lives {livesRemaining:00} | Seed {activeRunSettings?.Seed.ToString(CultureInfo.InvariantCulture) ?? GetPendingSeedDisplay()}";
+            var footer = isGameOver
+                ? "Restart the run, jump back to setup, or return to the main menu."
+                : HasNextLevel()
+                    ? "Advance to the next authored layout, restart the run, or return to the menu."
+                    : "The authored run is complete. Restart, tune a new setup, or head back to the menu.";
+            return new BreakoutUiOverlayView
+            {
+                Title = title,
+                SummaryLines = new[]
+                {
+                    summary,
+                    BuildRunSummaryLabel(),
+                },
+                ActionLabels = BuildOverlayActionLabels(GetOverlayActionsForState(roundState)),
+                SelectedActionIndex = selectedOverlayActionIndex,
+                FooterLines = new[] { footer },
+                IsCompact = false,
+            };
+        }
+
+        private BreakoutUiModifierView[] BuildModifierViews()
+        {
+            if (powerUpService == null || powerUpService.ActiveTimedEffects.Count == 0)
+            {
+                return Array.Empty<BreakoutUiModifierView>();
+            }
+
+            var views = new List<BreakoutUiModifierView>();
+
+            for (var index = 0; index < powerUpService.ActiveTimedEffects.Count; index++)
+            {
+                var activeEffect = powerUpService.ActiveTimedEffects[index];
+
+                if (activeEffect.Definition == null)
+                {
+                    continue;
+                }
+
+                var effectStyle = themeService != null
+                    ? themeService.ResolvePowerUpStyle(activeEffect.Definition)
+                    : new ThemeVisualStyle(Color.white, Color.white, squareSprite);
+                var timeRatio = activeEffect.Definition.DurationSeconds > 0f
+                    ? Mathf.Clamp01(activeEffect.RemainingDuration / activeEffect.Definition.DurationSeconds)
+                    : 1f;
+                views.Add(new BreakoutUiModifierView
+                {
+                    Label = activeEffect.Definition.HudLabel,
+                    RemainingDuration = activeEffect.RemainingDuration,
+                    DurationRatio = timeRatio,
+                    Color = effectStyle.PrimaryColor,
+                });
+            }
+
+            return views.ToArray();
+        }
+
+        private BreakoutUiDiagnosticsView BuildDiagnosticsView()
+        {
+            var lines = new List<string>
+            {
+                $"{currentLevelVariationLabel}   |   State: {BuildRoundStateLabel()}",
+                BuildBallSpeedControlLabel(),
+                $"{BuildActiveEffectsLabel()}   |   {BuildRunSummaryLabel()}",
+            };
+
+            if (!string.IsNullOrWhiteSpace(pendingValidationMessage))
+            {
+                lines.Add(pendingValidationMessage);
+            }
+
+            return new BreakoutUiDiagnosticsView
+            {
+                Lines = lines.ToArray(),
+            };
+        }
+
+        private BreakoutUiBannerView BuildPickupBannerView()
+        {
+            return new BreakoutUiBannerView
+            {
+                Text = powerUpService?.PickupBannerText ?? string.Empty,
+                Timer = powerUpService?.PickupBannerTimer ?? 0f,
+                Color = powerUpService?.PickupBannerColor ?? Color.white,
+            };
+        }
+
+        private string[] BuildOverlayActionLabels(OverlayAction[] actions)
+        {
+            var labels = new string[actions.Length];
+
+            for (var index = 0; index < actions.Length; index++)
+            {
+                labels[index] = GetOverlayActionLabel(actions[index]);
+            }
+
+            return labels;
+        }
+
+        private void HandleOverlayActionClick(int actionIndex)
+        {
+            var actions = GetOverlayActionsForState(roundState);
+
+            if (roundState == RoundState.MainMenu)
+            {
+                actions = GetOverlayActionsForState(RoundState.MainMenu);
+            }
+
+            if (actionIndex < 0 || actionIndex >= actions.Length)
+            {
+                return;
+            }
+
+            selectedOverlayActionIndex = actionIndex;
+            PerformOverlayAction(actions[actionIndex]);
+        }
+
+        private void ToggleDiagnosticsOverlay()
+        {
+            isDiagnosticsOverlayVisible = !isDiagnosticsOverlayVisible;
         }
 
         private string BuildLevelLabel()
@@ -3236,116 +1878,6 @@ namespace GetBricked.Gameplay
                 $"Ball Speed {currentSpeed:0.00} | Score x{GetScoreMultiplierForSpeed(currentSpeed):0.00} | Base {baseSpeed:0.00} | Manual x{manualBallSpeedMultiplier:0.00} | Cap {maxSpeed:0.00}";
         }
 
-        private void DrawBallSpeedMeter()
-        {
-            if (activeCamera == null)
-            {
-                return;
-            }
-
-            var bounceZoneLeftScreen = activeCamera.WorldToScreenPoint(new Vector3(arenaLeft, 0f, 0f)).x;
-            var panelWidth = 44f;
-            var panelHeight = Mathf.Clamp(Screen.height - (isDiagnosticsOverlayVisible ? 260f : 204f), 170f, 320f);
-            var panelX = Mathf.Clamp(bounceZoneLeftScreen - panelWidth - 10f, 8f, Mathf.Max(8f, Screen.width - panelWidth - 8f));
-            var panelY = 90f;
-            var panelRect = new Rect(panelX, panelY, panelWidth, panelHeight);
-            var trackRect = new Rect(panelRect.x + 14f, panelRect.y + 34f, 16f, panelRect.height - 78f);
-            var speed = GetDisplayedBallSpeed();
-            var speedRatio = Mathf.Clamp01(speed / Mathf.Max(0.1f, GetMaximumBallSpeed()));
-            var fillHeight = Mathf.Lerp(0f, trackRect.height, speedRatio);
-            var fillRect = new Rect(trackRect.x, trackRect.yMax - fillHeight, trackRect.width, fillHeight);
-            var meterColor = Color.Lerp(
-                new Color(0.18f, 0.72f, 1f, 1f),
-                new Color(1f, 0.28f, 0.16f, 1f),
-                speedRatio);
-
-            DrawSolidRect(panelRect, new Color(0.03f, 0.05f, 0.08f, 0.82f));
-            DrawSolidRect(trackRect, new Color(0.1f, 0.14f, 0.2f, 0.95f));
-
-            if (fillHeight > 0.5f)
-            {
-                DrawSolidRect(fillRect, meterColor);
-                DrawSolidRect(
-                    new Rect(fillRect.x + 2f, fillRect.y + 2f, Mathf.Max(2f, fillRect.width - 4f), Mathf.Max(2f, fillRect.height - 4f)),
-                    new Color(1f, 1f, 1f, 0.12f));
-            }
-
-            GUI.Label(new Rect(panelRect.x, panelRect.y + 8f, panelRect.width, 18f), "SPD", speedMeterCaptionStyle);
-            GUI.Label(new Rect(panelRect.x - 8f, panelRect.yMax - 36f, panelRect.width + 16f, 18f), $"{speed:0.00}", speedMeterValueStyle);
-            GUI.Label(new Rect(panelRect.x - 8f, panelRect.yMax - 20f, panelRect.width + 16f, 16f), "u/s", speedMeterValueStyle);
-        }
-
-        private void DrawActiveModifierIndicator()
-        {
-            var validEffectCount = 0;
-
-            for (var index = 0; index < activeTimedEffects.Count; index++)
-            {
-                if (activeTimedEffects[index].Definition != null)
-                {
-                    validEffectCount++;
-                }
-            }
-
-            if (validEffectCount == 0)
-            {
-                return;
-            }
-
-            var slotCount = validEffectCount;
-            var slotWidth = 116f;
-            var slotSpacing = 8f;
-            var panelWidth = Mathf.Min(Screen.width - 32f, 84f + (slotCount * (slotWidth + slotSpacing)));
-            var panelHeight = 60f;
-            var panelX = Mathf.Clamp((Screen.width - panelWidth) * 0.5f, 8f, Mathf.Max(8f, Screen.width - panelWidth - 8f));
-            var bottomMargin = isDiagnosticsOverlayVisible ? 156f : 14f;
-            var panelY = Mathf.Max(84f, Screen.height - panelHeight - bottomMargin);
-            var panelRect = new Rect(panelX, panelY, panelWidth, panelHeight);
-
-            DrawSolidRect(panelRect, new Color(0.03f, 0.05f, 0.08f, 0.86f));
-            DrawSolidRect(new Rect(panelRect.x + 3f, panelRect.y + 3f, panelRect.width - 6f, panelRect.height - 6f), new Color(1f, 1f, 1f, 0.04f));
-            GUI.Label(new Rect(panelRect.x + 12f, panelRect.y + 7f, 72f, 14f), "MODS", modifierPanelTitleStyle);
-
-            var effectX = panelRect.x + 84f;
-
-            for (var index = 0; index < activeTimedEffects.Count; index++)
-            {
-                var activeEffect = activeTimedEffects[index];
-
-                if (activeEffect.Definition == null)
-                {
-                    continue;
-                }
-
-                var effectRect = new Rect(effectX, panelRect.y + 9f, slotWidth, 42f);
-                var effectStyle = ResolvePowerUpStyle(activeEffect.Definition);
-                var timeRatio = activeEffect.Definition.DurationSeconds > 0f
-                    ? Mathf.Clamp01(activeEffect.RemainingDuration / activeEffect.Definition.DurationSeconds)
-                    : 1f;
-                var fillRect = new Rect(effectRect.x, effectRect.yMax - 5f, effectRect.width * timeRatio, 5f);
-
-                DrawSolidRect(effectRect, new Color(effectStyle.PrimaryColor.r, effectStyle.PrimaryColor.g, effectStyle.PrimaryColor.b, 0.16f));
-                DrawSolidRect(new Rect(effectRect.x, effectRect.y, effectRect.width, 3f), effectStyle.PrimaryColor);
-                DrawSolidRect(new Rect(effectRect.x, effectRect.yMax - 5f, effectRect.width, 5f), new Color(1f, 1f, 1f, 0.08f));
-
-                if (fillRect.width > 0.5f)
-                {
-                    DrawSolidRect(fillRect, effectStyle.PrimaryColor);
-                }
-
-                GUI.Label(
-                    new Rect(effectRect.x + 2f, effectRect.y + 7f, effectRect.width - 4f, 12f),
-                    activeEffect.Definition.HudLabel,
-                    modifierPanelLabelStyle);
-                GUI.Label(
-                    new Rect(effectRect.x + 2f, effectRect.y + 20f, effectRect.width - 4f, 12f),
-                    $"{activeEffect.RemainingDuration:0.0}s",
-                    modifierPanelTimerStyle);
-
-                effectX += slotWidth + slotSpacing;
-            }
-        }
-
         private string BuildRoundStateLabel()
         {
             return roundState switch
@@ -3370,34 +1902,6 @@ namespace GetBricked.Gameplay
             return
                 $"Run Seed: {activeRunSettings.Seed} | {activeRunSettings.DifficultyLabel} | Balls/Serve {activeRunSettings.BallsPerServe} | " +
                 $"Theme: {activeRunSettings.ThemeLabel} | Drops: {activeRunSettings.DropPoolLabel} | Paddle x{activeRunSettings.PaddleWidthMultiplier:0.00} | Ball x{activeRunSettings.BallSpeedMultiplier:0.00}";
-        }
-
-        private void DrawDiagnosticsOverlay()
-        {
-            var overlayHeight = string.IsNullOrWhiteSpace(pendingValidationMessage) ? 116f : 144f;
-            var overlayRect = new Rect(0f, Screen.height - overlayHeight, Screen.width, overlayHeight);
-            DrawSolidRect(overlayRect, new Color(0.03f, 0.04f, 0.08f, 0.94f));
-
-            GUI.Label(
-                new Rect(20f, overlayRect.y + 14f, overlayRect.width - 40f, 24f),
-                $"{currentLevelVariationLabel}   |   State: {BuildRoundStateLabel()}",
-                hudStyle);
-            GUI.Label(
-                new Rect(20f, overlayRect.y + 42f, overlayRect.width - 40f, 24f),
-                BuildBallSpeedControlLabel(),
-                hudStyle);
-            GUI.Label(
-                new Rect(20f, overlayRect.y + 70f, overlayRect.width - 40f, 24f),
-                $"{BuildActiveEffectsLabel()}   |   {BuildRunSummaryLabel()}",
-                hudStyle);
-
-            if (!string.IsNullOrWhiteSpace(pendingValidationMessage))
-            {
-                GUI.Label(
-                    new Rect(20f, overlayRect.y + 98f, overlayRect.width - 40f, 24f),
-                    pendingValidationMessage,
-                    hudStyle);
-            }
         }
 
         private void ToggleHudMenuOverlay()
@@ -3425,17 +1929,10 @@ namespace GetBricked.Gameplay
 #endif
         }
 
-        private static void DrawSolidRect(Rect rect, Color color)
-        {
-            var previousGuiColor = GUI.color;
-            GUI.color = color;
-            GUI.DrawTexture(rect, Texture2D.whiteTexture, ScaleMode.StretchToFill);
-            GUI.color = previousGuiColor;
-        }
-
         private string GetPendingSeedDisplay()
         {
-            return string.IsNullOrWhiteSpace(pendingSeedText) ? "<random on start>" : pendingSeedText;
+            var pendingSeed = pendingRunSetup?.PendingSeedText;
+            return string.IsNullOrWhiteSpace(pendingSeed) ? "<random on start>" : pendingSeed;
         }
 
         private static string FormatSignedStep(int value)
@@ -3445,226 +1942,35 @@ namespace GetBricked.Gameplay
 
         private void UpdateTimedEffects()
         {
-            if (roundState != RoundState.Playing || activeTimedEffects.Count == 0)
-            {
-                return;
-            }
-
-            var modifiersChanged = false;
-
-            for (var index = activeTimedEffects.Count - 1; index >= 0; index--)
-            {
-                var activeEffect = activeTimedEffects[index];
-
-                if (activeEffect.Definition == null)
-                {
-                    activeTimedEffects.RemoveAt(index);
-                    modifiersChanged = true;
-                    continue;
-                }
-
-                activeEffect.RemainingDuration = Mathf.Max(0f, activeEffect.RemainingDuration - Time.deltaTime);
-
-                if (activeEffect.RemainingDuration > 0f)
-                {
-                    continue;
-                }
-
-                activeTimedEffects.RemoveAt(index);
-                modifiersChanged = true;
-            }
-
-            if (modifiersChanged)
-            {
-                ApplyActiveEffects();
-            }
+            powerUpService?.UpdateTimedEffects(roundState == RoundState.Playing, Time.deltaTime, ApplyActiveEffects);
         }
 
         private void UpdatePickupBanner()
         {
-            if (pickupBannerTimer <= 0f)
-            {
-                return;
-            }
-
-            pickupBannerTimer = Mathf.Max(0f, pickupBannerTimer - Time.deltaTime);
+            powerUpService?.UpdatePickupBanner(Time.deltaTime);
         }
 
         private void TrySpawnPickup(Brick brick)
         {
-            if (brick == null || brick.Definition == null)
-            {
-                return;
-            }
-
-            var brickDefinition = brick.Definition;
-            var dropTable = brickDefinition.DropTable;
-            var effectiveDropChance = Mathf.Clamp01(brickDefinition.DropChance * (activeRunSettings?.DropChanceMultiplier ?? 1f));
-
-            if (dropTable.Length == 0
-                || effectiveDropChance <= 0f
-                || activeRunSettings?.DropPoolMode == DropPoolMode.Disabled
-                || NextGameplayRandomFloat(0f, 1f) > effectiveDropChance)
-            {
-                return;
-            }
-
-            var totalWeight = 0f;
-
-            for (var index = 0; index < dropTable.Length; index++)
-            {
-                if (!IsDropAllowed(dropTable[index].PowerUpDefinition))
-                {
-                    continue;
-                }
-
-                totalWeight += dropTable[index].Weight;
-            }
-
-            if (totalWeight <= 0f)
-            {
-                return;
-            }
-
-            var roll = NextGameplayRandomFloat(0f, totalWeight);
-            PowerUpDefinition selectedPowerUp = null;
-
-            for (var index = 0; index < dropTable.Length; index++)
-            {
-                var entry = dropTable[index];
-
-                if (!IsDropAllowed(entry.PowerUpDefinition))
-                {
-                    continue;
-                }
-
-                roll -= entry.Weight;
-
-                if (roll > 0f)
-                {
-                    continue;
-                }
-
-                selectedPowerUp = entry.PowerUpDefinition;
-                break;
-            }
-
-            if (selectedPowerUp == null)
-            {
-                return;
-            }
-
-            CreatePickup((Vector2)brick.transform.position, selectedPowerUp);
-        }
-
-        private bool IsDropAllowed(PowerUpDefinition powerUpDefinition)
-        {
-            if (powerUpDefinition == null)
-            {
-                return false;
-            }
-
-            var dropPoolMode = activeRunSettings?.DropPoolMode ?? DropPoolMode.Mixed;
-
-            return dropPoolMode switch
-            {
-                DropPoolMode.HelpfulOnly => powerUpDefinition.IsBeneficial,
-                DropPoolMode.HarmfulOnly => !powerUpDefinition.IsBeneficial,
-                DropPoolMode.Disabled => false,
-                _ => true,
-            };
-        }
-
-        private void CreatePickup(Vector2 position, PowerUpDefinition powerUpDefinition)
-        {
-            var pickupObject = new GameObject(powerUpDefinition.DisplayName);
-            pickupObject.transform.SetParent(pickupsRoot, false);
-            pickupObject.transform.position = position;
-            pickupObject.transform.localScale = new Vector3(pickupSize.x, pickupSize.y, 1f);
-            pickupObject.transform.rotation = Quaternion.Euler(0f, 0f, 45f);
-
-            var spriteRenderer = pickupObject.AddComponent<SpriteRenderer>();
-            spriteRenderer.sprite = squareSprite;
-            spriteRenderer.sortingOrder = 14;
-
-            pickupObject.AddComponent<BoxCollider2D>();
-
-            var pickup = pickupObject.AddComponent<PowerUpPickup>();
-            pickup.Configure(this, powerUpDefinition, pickupFallSpeed, arenaBottom - 0.9f, ResolvePowerUpStyle(powerUpDefinition));
-            activePickups.Add(pickup);
+            powerUpService?.TrySpawnPickup(brick, activeRunSettings, NextGameplayRandomFloat, pickupsRoot, arenaBottom, themeService, this);
         }
 
         private void ApplyPowerUp(PowerUpDefinition powerUpDefinition)
         {
-            if (powerUpDefinition == null)
-            {
-                return;
-            }
-
-            ShowPickupBanner(powerUpDefinition);
-
-            if (powerUpDefinition.IsTimed)
-            {
-                AddOrExtendTimedEffect(powerUpDefinition);
-                return;
-            }
-
-            if (powerUpDefinition.EffectType == PowerUpEffectType.MultiBallBurst)
+            if (powerUpService != null && powerUpService.ApplyPowerUp(powerUpDefinition, themeService))
             {
                 SpawnMultiBall(powerUpDefinition);
             }
         }
 
-        private void AddOrExtendTimedEffect(PowerUpDefinition powerUpDefinition)
-        {
-            for (var index = 0; index < activeTimedEffects.Count; index++)
-            {
-                var activeEffect = activeTimedEffects[index];
-
-                if (activeEffect.Definition != powerUpDefinition)
-                {
-                    continue;
-                }
-
-                activeEffect.RemainingDuration += powerUpDefinition.DurationSeconds;
-                ApplyActiveEffects();
-                return;
-            }
-
-            activeTimedEffects.Add(new ActiveTimedEffect(powerUpDefinition, powerUpDefinition.DurationSeconds));
-            ApplyActiveEffects();
-        }
-
         private void ApplyActiveEffects()
         {
-            var paddleWidthMultiplier = activeRunSettings?.PaddleWidthMultiplier ?? 1f;
-            var wavyPaddleStrength = 0f;
-
-            // Matching effects extend duration; opposing effects multiply together and naturally cancel each other out.
-            for (var index = 0; index < activeTimedEffects.Count; index++)
-            {
-                var powerUpDefinition = activeTimedEffects[index].Definition;
-
-                if (powerUpDefinition == null)
-                {
-                    continue;
-                }
-
-                if (powerUpDefinition.EffectType == PowerUpEffectType.PaddleWidthMultiplier)
-                {
-                    paddleWidthMultiplier *= powerUpDefinition.Scalar;
-                    continue;
-                }
-
-                if (powerUpDefinition.EffectType == PowerUpEffectType.WavyPaddle)
-                {
-                    wavyPaddleStrength = Mathf.Max(wavyPaddleStrength, powerUpDefinition.Scalar);
-                }
-            }
-
+            var modifiers = powerUpService != null
+                ? powerUpService.CalculateEffectModifiers(activeRunSettings)
+                : new BreakoutEffectModifiers(activeRunSettings?.PaddleWidthMultiplier ?? 1f, 0f, 1f);
             paddle.SetMoveSpeed(currentLevelPaddleSpeed);
-            paddle.SetWidthMultiplier(Mathf.Clamp(paddleWidthMultiplier, 0.6f, 1.8f));
-            paddle.SetWavyStrength(wavyPaddleStrength);
+            paddle.SetWidthMultiplier(Mathf.Clamp(modifiers.PaddleWidthMultiplier, 0.6f, 1.8f));
+            paddle.SetWavyStrength(modifiers.WavyPaddleStrength);
 
             var currentBallSpeed = GetCurrentBallSpeed();
 
@@ -3705,41 +2011,27 @@ namespace GetBricked.Gameplay
             var sourceDirection = sourceVelocity.sqrMagnitude > 0.01f
                 ? sourceVelocity.normalized
                 : Vector2.up;
-            var extraBallCount = Mathf.Max(1, powerUpDefinition.ExtraBallCount);
+            var launchDirections = powerUpService != null
+                ? powerUpService.BuildMultiBallDirections(sourceDirection, Mathf.Max(1, powerUpDefinition.ExtraBallCount))
+                : new[] { sourceDirection };
 
-            for (var index = 0; index < extraBallCount; index++)
+            for (var index = 0; index < launchDirections.Length; index++)
             {
-                var angle = extraBallCount == 1
-                    ? 0f
-                    : Mathf.Lerp(-multiBallSpreadAngle, multiBallSpreadAngle, index / (extraBallCount - 1f));
-                var direction = (Vector2)(Quaternion.Euler(0f, 0f, angle) * sourceDirection);
-
                 var extraBall = CreateBall(false);
                 extraBall.SetWorldPosition(sourceBall.transform.position);
-                extraBall.Launch(direction);
+                extraBall.Launch(launchDirections[index]);
                 activeBalls.Add(extraBall);
             }
         }
 
         private void ClearPickups()
         {
-            for (var index = activePickups.Count - 1; index >= 0; index--)
-            {
-                if (activePickups[index] == null)
-                {
-                    continue;
-                }
-
-                activePickups[index].gameObject.SetActive(false);
-                Destroy(activePickups[index].gameObject);
-            }
-
-            activePickups.Clear();
+            powerUpService?.ClearPickups();
         }
 
         private void ClearTimedEffects()
         {
-            activeTimedEffects.Clear();
+            powerUpService?.ClearTimedEffects();
             ApplyActiveEffects();
         }
 
@@ -3845,78 +2137,14 @@ namespace GetBricked.Gameplay
 
         private float GetTimedBallSpeedMultiplier()
         {
-            var timedBallSpeedMultiplier = 1f;
-
-            for (var index = 0; index < activeTimedEffects.Count; index++)
-            {
-                var powerUpDefinition = activeTimedEffects[index].Definition;
-
-                if (powerUpDefinition == null || powerUpDefinition.EffectType != PowerUpEffectType.BallSpeedMultiplier)
-                {
-                    continue;
-                }
-
-                timedBallSpeedMultiplier *= powerUpDefinition.Scalar;
-            }
-
-            return timedBallSpeedMultiplier;
+            return powerUpService != null
+                ? powerUpService.CalculateEffectModifiers(activeRunSettings).TimedBallSpeedMultiplier
+                : 1f;
         }
 
         private string BuildActiveEffectsLabel()
         {
-            if (activeTimedEffects.Count == 0)
-            {
-                return "Active Effects: none";
-            }
-
-            var builder = new StringBuilder("Active Effects: ");
-
-            for (var index = 0; index < activeTimedEffects.Count; index++)
-            {
-                var activeEffect = activeTimedEffects[index];
-
-                if (activeEffect.Definition == null)
-                {
-                    continue;
-                }
-
-                if (builder.Length > 16)
-                {
-                    builder.Append(" | ");
-                }
-
-                builder.Append(activeEffect.Definition.HudLabel);
-                builder.Append(' ');
-                builder.Append(activeEffect.RemainingDuration.ToString("0.0"));
-                builder.Append('s');
-            }
-
-            return builder.ToString();
-        }
-
-        private void ShowPickupBanner(PowerUpDefinition powerUpDefinition)
-        {
-            pickupBannerText = powerUpDefinition.IsBeneficial
-                ? $"+ {powerUpDefinition.DisplayName}"
-                : $"- {powerUpDefinition.DisplayName}";
-            pickupBannerColor = ResolvePowerUpStyle(powerUpDefinition).PrimaryColor;
-            pickupBannerTimer = 1.6f;
-        }
-
-        private void DrawPickupBanner()
-        {
-            if (pickupBannerTimer <= 0f || string.IsNullOrWhiteSpace(pickupBannerText))
-            {
-                return;
-            }
-
-            var rect = new Rect((Screen.width * 0.5f) - 170f, 226f, 340f, 36f);
-            var previousGuiColor = GUI.color;
-            GUI.color = new Color(0f, 0f, 0f, 0.35f);
-            GUI.Box(rect, GUIContent.none);
-            GUI.color = pickupBannerColor;
-            GUI.Label(rect, pickupBannerText, pickupStyle);
-            GUI.color = previousGuiColor;
+            return powerUpService != null ? powerUpService.BuildActiveEffectsLabel() : "Active Effects: none";
         }
     }
 }

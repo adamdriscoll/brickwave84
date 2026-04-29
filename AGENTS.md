@@ -23,7 +23,13 @@
 - `Assets/Scenes/SampleScene.unity`: current playable scene and only scene in build settings
 - `Assets/InputSystem_Actions.inputactions`: starter input maps for `Player` and `UI`
 - `Assets/Scripts/Core/BreakoutBootstrap.cs`: runtime entry point that ensures the prototype controller exists after scene load
-- `Assets/Scripts/Gameplay/BreakoutGameController.cs`: builds the prototype playfield, runtime main menu/setup/HUD overlays, run-setup persistence, pause flow, seeded procedural brick layouts, and multi-level run-state flow
+- `Assets/Scripts/Gameplay/BreakoutGameController.cs`: top-level runtime coordinator for scene bootstrapping, run flow, serve/life transitions, and cross-system orchestration
+- `Assets/Scripts/Gameplay/BreakoutLevelPlanner.cs`: deterministic procedural level-planning service that builds seeded layout plans and moving-brick assignments from level templates and brick definitions
+- `Assets/Scripts/Gameplay/BreakoutRunSetupState.cs`: mutable run-setup state model for seed text, difficulty/modifier choices, and validated `RunSettings` construction
+- `Assets/Scripts/Gameplay/BreakoutRunSetupPersistence.cs`: `PlayerPrefs` persistence helper for saved run-setup choices and theme selection
+- `Assets/Scripts/Gameplay/BreakoutThemeService.cs`: runtime theme resolver/applicator for camera, walls, paddle, balls, bricks, and pickups
+- `Assets/Scripts/Gameplay/BreakoutPowerUpService.cs`: pickup spawning, timed-effect tracking, banner state, and effect-modifier calculations
+- `Assets/Scripts/Gameplay/BreakoutUiRenderer.cs`: OnGUI renderer for main menu, run setup, HUD, pause, end-state, diagnostics, modifier chips, and pickup banner
 - `Assets/Scripts/Gameplay/PaddleController.cs`: keyboard-driven paddle movement with clamped horizontal bounds and runtime width modifiers
 - `Assets/Scripts/Gameplay/BallController.cs`: launch, bounce shaping, per-level speed tuning, speed clamping, and single/multi-ball loss detection support
 - `Assets/Scripts/Gameplay/Brick.cs`: definition-driven brick behavior with variable durability, optional moving-body motion, and unbreakable support
@@ -51,7 +57,7 @@
 - The package list shows a 2D-focused setup plus the new Input System, UGUI, Timeline, and Visual Scripting.
 - The input action asset already includes common starter actions like `Move`, `Look`, `Attack`, `Interact`, `Jump`, `Sprint`, `Previous`, and `Next`.
 - The current prototype is scene-light and code-heavy: the gameplay board, bounds, ball, paddle, bricks, and temporary HUD are created at runtime instead of being serialized into `SampleScene`.
-- Bricks and levels are now authored as ScriptableObjects under `Assets/Resources/` and loaded by `BreakoutGameController` at runtime.
+- Bricks and levels are now authored as ScriptableObjects under `Assets/Resources/` and loaded at runtime by the controller plus its leaf services.
 - Brick definitions now own drop chance plus weighted pickup references, so most drop-table tuning is an asset edit rather than a controller edit.
 - Level definitions can now optionally assign motion rules per layout symbol, including a base direction, a speed, and modifiers such as row/column alternation, checkerboard reversal, and center-relative motion.
 - Theme definitions now own semantic visual-slot palettes under `Assets/Resources/Themes/`; the current implementation uses colors, but the theme pipeline already supports per-slot sprite overrides for future art passes.
@@ -60,7 +66,7 @@
 - Moving bricks still use dynamic `Rigidbody2D` bodies with bounce material and keep a constant authored speed after collisions, but motion pressure is now assigned procedurally per generated cell rather than only coming from authored symbol maps.
 - The game now boots into a runtime main menu instead of straight into gameplay or setup, and the last run-setup selections are persisted through `PlayerPrefs`.
 - The selected theme is part of the persisted run setup, so quick-starting from the main menu reuses the most recently chosen palette.
-- Main menu, run setup, HUD, pause, and end-of-run flow currently live inside `BreakoutGameController` as temporary OnGUI overlays instead of a separate menu scene or prefab-based UI.
+- Main menu, run setup, HUD, pause, diagnostics, and end-of-run flow still use temporary OnGUI UI, but the drawing logic now lives in `BreakoutUiRenderer` instead of being inlined inside `BreakoutGameController`.
 - Difficulty presets and player-selected modifiers are normalized into `RunSettings`, so future tuning should usually flow through that model instead of adding one-off conditionals.
 - Deterministic gameplay randomness currently covers serve launch direction, drop chance / weighted pickup selection, and seeded procedural level plans keyed off the run seed plus level index.
 - `R` returns to the run-setup overlay, `Esc` / `P` pauses active gameplay, and `Space` launches serves or confirms overlay actions once a configuration has been started.
@@ -69,7 +75,7 @@
 - The chunk-06 `Balls Per Serve` modifier spawns extra balls at every serve, so future ball-loss or serve-flow changes should be checked against `BreakoutGameController.SpawnConfiguredServeBalls`.
 - Prototype input is currently read directly from `UnityEngine.InputSystem.Keyboard` rather than being wired through `PlayerInput` or the existing action asset.
 - Ball and paddle behavior use Unity 6-era 2D physics APIs such as `Rigidbody2D.linearVelocity`.
-- Run flow is still runtime-authored inside `BreakoutGameController`, including lives, serve states, level transitions, level completion, game over, pickup spawning, effect timers, and multi-ball cleanup.
+- Run flow is still runtime-authored and coordinated by `BreakoutGameController`, but setup persistence, procedural planning, theme application, pickup/effect state, and OnGUI rendering now live in dedicated gameplay services.
 - Brick and power-up definition assets can optionally override their semantic theme slot, but default routing already maps brick durability tiers plus beneficial/harmful/burst pickups onto the shared theme palette automatically.
 - Terminal-side compile validation can now be done with `python .codex/skills/unity-compile/scripts/run_unity_compile.py`, which reads `ProjectVersion.txt`, locates the matching Unity Hub editor, runs batchmode, and summarizes build-blocking script errors from the generated log.
 - After adding or renaming scripts, let Unity regenerate project files instead of hand-maintaining the `.sln`.
@@ -147,16 +153,21 @@ If you are a future agent starting work here, read these first:
 5. `Assets/InputSystem_Actions.inputactions`
 6. `Assets/Scripts/Core/BreakoutBootstrap.cs`
 7. `Assets/Scripts/Gameplay/BreakoutGameController.cs`
-8. `Assets/Scripts/Gameplay/Data/RunSettings.cs`
-9. `Assets/Scripts/Gameplay/DeterministicRandomService.cs`
-10. `Assets/Scripts/Gameplay/Data/LevelDefinition.cs`
-11. `Assets/Scripts/Gameplay/Data/PowerUpDefinition.cs`
-12. `Assets/Scripts/Gameplay/Data/ThemeDefinition.cs`
-13. `Assets/Resources/Levels/Level01.asset`
-14. `Assets/Resources/Bricks/BasicBrick.asset`
-15. `Assets/Resources/Themes/ClassicTheme.asset`
-16. `Assets/Scenes/SampleScene.unity`
-17. `.codex/skills/repo-maintenance/SKILL.md`
+8. `Assets/Scripts/Gameplay/BreakoutLevelPlanner.cs`
+9. `Assets/Scripts/Gameplay/BreakoutRunSetupState.cs`
+10. `Assets/Scripts/Gameplay/BreakoutThemeService.cs`
+11. `Assets/Scripts/Gameplay/BreakoutPowerUpService.cs`
+12. `Assets/Scripts/Gameplay/BreakoutUiRenderer.cs`
+13. `Assets/Scripts/Gameplay/Data/RunSettings.cs`
+14. `Assets/Scripts/Gameplay/DeterministicRandomService.cs`
+15. `Assets/Scripts/Gameplay/Data/LevelDefinition.cs`
+16. `Assets/Scripts/Gameplay/Data/PowerUpDefinition.cs`
+17. `Assets/Scripts/Gameplay/Data/ThemeDefinition.cs`
+18. `Assets/Resources/Levels/Level01.asset`
+19. `Assets/Resources/Bricks/BasicBrick.asset`
+20. `Assets/Resources/Themes/ClassicTheme.asset`
+21. `Assets/Scenes/SampleScene.unity`
+22. `.codex/skills/repo-maintenance/SKILL.md`
 
 ## Current Reality Check
 
