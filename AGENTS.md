@@ -3,6 +3,7 @@
 ## Project Snapshot
 
 - This repository is a very early-stage Unity project named `Get Bricked`.
+- This folder is now tracked in git.
 - Unity editor version: `6000.3.6f1`.
 - Render pipeline: Universal Render Pipeline with 2D renderer assets already configured.
 - Current gameplay state is essentially template-only:
@@ -16,6 +17,7 @@
 - `Assets/Scenes/SampleScene.unity`: current playable scene and only scene in build settings
 - `Assets/InputSystem_Actions.inputactions`: starter input maps for `Player` and `UI`
 - `Assets/Settings/*`: URP / 2D renderer assets and template scene assets
+- `.codex/skills/repo-maintenance/*`: repo-local maintenance skill and snapshot helper for refreshing `AGENTS.md` and local skills after agent work
 - `Packages/manifest.json`: Unity package dependencies
 - `ProjectSettings/ProjectVersion.txt`: authoritative Unity version
 - `Get Bricked.sln`: currently a minimal Unity-generated solution shell with no populated project entries
@@ -30,6 +32,7 @@
 ## Working Rules For Future Agents
 
 - Prefer adding gameplay code under `Assets/Scripts/` unless the user asks for a different layout.
+- After substantial project work, use `.codex/skills/repo-maintenance/` to refresh `AGENTS.md` and repo-local skills with durable new repo knowledge.
 - Keep Unity `.meta` files intact. If you add an asset or script manually, ensure the matching `.meta` file exists and stays paired with it.
 - Do not edit or rely on generated folders for durable changes:
   - `Library/`
@@ -38,7 +41,7 @@
   - `UserSettings/`
 - Be cautious editing `.unity`, `.prefab`, or other YAML asset files by hand. Small targeted edits are fine, but large structural changes are safer in the Unity Editor because GUID/reference breakage is easy.
 - If you move or rename assets manually, remember that Unity references them by GUID from the `.meta` files.
-- There is currently no git repository in this folder, so you cannot rely on `git status`, history, or diffs unless the user initializes git later.
+- This folder now has a git repository, so prefer `git status`, `git diff`, and recent commit history to understand agent work. Do not rewrite history or revert unrelated user changes unless explicitly asked.
 
 ## Suggested Conventions
 
@@ -71,6 +74,7 @@ If you are a future agent starting work here, read these first:
 4. `ProjectSettings/EditorBuildSettings.asset`
 5. `Assets/InputSystem_Actions.inputactions`
 6. `Assets/Scenes/SampleScene.unity`
+7. `.codex/skills/repo-maintenance/SKILL.md`
 
 ## Current Reality Check
 

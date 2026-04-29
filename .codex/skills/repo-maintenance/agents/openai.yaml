@@ -1,0 +1,4 @@
+interface:
+  display_name: "Repo Maintenance"
+  short_description: "Refresh repo guidance after agent work"
+  default_prompt: "Use $repo-maintenance to review recent repo changes, refresh AGENTS.md, and update repo-local skills with durable new knowledge."
