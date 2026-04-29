@@ -1335,6 +1335,7 @@ namespace GetBricked.Gameplay
 
             paddle = paddleObject.AddComponent<PaddleController>();
             paddle.Configure(
+                this,
                 paddleSpeed,
                 arenaLeft,
                 arenaRight,
@@ -2650,22 +2651,33 @@ namespace GetBricked.Gameplay
         private void ApplyActiveEffects()
         {
             var paddleWidthMultiplier = activeRunSettings?.PaddleWidthMultiplier ?? 1f;
+            var wavyPaddleStrength = 0f;
 
             // Matching effects extend duration; opposing effects multiply together and naturally cancel each other out.
             for (var index = 0; index < activeTimedEffects.Count; index++)
             {
                 var powerUpDefinition = activeTimedEffects[index].Definition;
 
-                if (powerUpDefinition == null || powerUpDefinition.EffectType != PowerUpEffectType.PaddleWidthMultiplier)
+                if (powerUpDefinition == null)
                 {
                     continue;
                 }
 
-                paddleWidthMultiplier *= powerUpDefinition.Scalar;
+                if (powerUpDefinition.EffectType == PowerUpEffectType.PaddleWidthMultiplier)
+                {
+                    paddleWidthMultiplier *= powerUpDefinition.Scalar;
+                    continue;
+                }
+
+                if (powerUpDefinition.EffectType == PowerUpEffectType.WavyPaddle)
+                {
+                    wavyPaddleStrength = Mathf.Max(wavyPaddleStrength, powerUpDefinition.Scalar);
+                }
             }
 
             paddle.SetMoveSpeed(currentLevelPaddleSpeed);
             paddle.SetWidthMultiplier(Mathf.Clamp(paddleWidthMultiplier, 0.6f, 1.8f));
+            paddle.SetWavyStrength(wavyPaddleStrength);
 
             var currentBallSpeed = GetCurrentBallSpeed();
 

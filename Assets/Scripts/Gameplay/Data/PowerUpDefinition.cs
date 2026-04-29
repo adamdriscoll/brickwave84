@@ -8,6 +8,7 @@ namespace GetBricked.Gameplay.Data
         PaddleWidthMultiplier = 0,
         BallSpeedMultiplier = 1,
         MultiBallBurst = 2,
+        WavyPaddle = 3,
     }
 
     [CreateAssetMenu(menuName = "Get Bricked/Power-Up Definition", fileName = "PowerUpDefinition")]
