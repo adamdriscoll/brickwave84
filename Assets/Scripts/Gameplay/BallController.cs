@@ -15,6 +15,8 @@ namespace GetBricked.Gameplay
         private float minimumVerticalDirection;
         private float lossThresholdY;
         private float paddleFollowOffset;
+        private float speedBurstMultiplier = 1f;
+        private float speedBurstTimeRemaining;
         private bool followsPaddleWhenIdle;
         private bool hasLaunched;
 
@@ -42,6 +44,7 @@ namespace GetBricked.Gameplay
         public void ResetToPaddle()
         {
             hasLaunched = false;
+            ClearSpeedBurst();
 
             if (ballBody == null)
             {
@@ -86,7 +89,7 @@ namespace GetBricked.Gameplay
                     Mathf.Sign(Mathf.Approximately(launchDirection.y, 0f) ? 1f : launchDirection.y) * minimumVerticalDirection).normalized;
             }
 
-            ballBody.linearVelocity = launchDirection * launchSpeed;
+            ballBody.linearVelocity = launchDirection * GetTargetSpeed();
         }
 
         public void SetMovementSpeed(float speed)
@@ -95,8 +98,20 @@ namespace GetBricked.Gameplay
 
             if (ballBody != null && hasLaunched && ballBody.linearVelocity.sqrMagnitude > 0.01f)
             {
-                ballBody.linearVelocity = ballBody.linearVelocity.normalized * launchSpeed;
+                ballBody.linearVelocity = ballBody.linearVelocity.normalized * GetTargetSpeed();
             }
+        }
+
+        public void ApplySpeedBurst(float multiplier, float durationSeconds)
+        {
+            if (ballBody == null || !hasLaunched)
+            {
+                return;
+            }
+
+            speedBurstMultiplier = Mathf.Max(speedBurstMultiplier, Mathf.Max(1f, multiplier));
+            speedBurstTimeRemaining = Mathf.Max(speedBurstTimeRemaining, Mathf.Max(0.1f, durationSeconds));
+            ballBody.linearVelocity = ballBody.linearVelocity.normalized * GetTargetSpeed();
         }
 
         public void SetWorldPosition(Vector2 worldPosition)
@@ -112,6 +127,7 @@ namespace GetBricked.Gameplay
         public void Stop()
         {
             hasLaunched = false;
+            ClearSpeedBurst();
 
             if (ballBody != null)
             {
@@ -145,6 +161,7 @@ namespace GetBricked.Gameplay
                 return;
             }
 
+            UpdateSpeedBurstTimer();
             ClampBallVelocity();
         }
 
@@ -190,7 +207,7 @@ namespace GetBricked.Gameplay
                     Mathf.Sign(Mathf.Approximately(bounceDirection.y, 0f) ? 1f : bounceDirection.y) * minimumVerticalDirection).normalized;
             }
 
-            ballBody.linearVelocity = bounceDirection * launchSpeed;
+            ballBody.linearVelocity = bounceDirection * GetTargetSpeed();
         }
 
         private void ClampBallVelocity()
@@ -201,19 +218,20 @@ namespace GetBricked.Gameplay
             }
 
             var velocity = ballBody.linearVelocity;
+            var targetSpeed = GetTargetSpeed();
 
             if (velocity.sqrMagnitude < 0.01f)
             {
-                velocity = Vector2.up * launchSpeed;
+                velocity = Vector2.up * targetSpeed;
             }
 
-            velocity = velocity.normalized * launchSpeed;
+            velocity = velocity.normalized * targetSpeed;
 
-            if (Mathf.Abs(velocity.y) < launchSpeed * minimumVerticalDirection)
+            if (Mathf.Abs(velocity.y) < targetSpeed * minimumVerticalDirection)
             {
                 var ySign = Mathf.Sign(Mathf.Approximately(velocity.y, 0f) ? 1f : velocity.y);
-                var adjustedY = launchSpeed * minimumVerticalDirection * ySign;
-                var adjustedX = Mathf.Sqrt(Mathf.Max(0.01f, (launchSpeed * launchSpeed) - (adjustedY * adjustedY)));
+                var adjustedY = targetSpeed * minimumVerticalDirection * ySign;
+                var adjustedX = Mathf.Sqrt(Mathf.Max(0.01f, (targetSpeed * targetSpeed) - (adjustedY * adjustedY)));
                 adjustedX *= Mathf.Approximately(velocity.x, 0f)
                     ? ((gameController != null ? gameController.NextGameplayRandomBool() : Random.value < 0.5f) ? -1f : 1f)
                     : Mathf.Sign(velocity.x);
@@ -221,6 +239,34 @@ namespace GetBricked.Gameplay
             }
 
             ballBody.linearVelocity = velocity;
+        }
+
+        private void UpdateSpeedBurstTimer()
+        {
+            if (speedBurstTimeRemaining <= 0f)
+            {
+                return;
+            }
+
+            speedBurstTimeRemaining = Mathf.Max(0f, speedBurstTimeRemaining - Time.fixedDeltaTime);
+
+            if (speedBurstTimeRemaining > 0f)
+            {
+                return;
+            }
+
+            ClearSpeedBurst();
+        }
+
+        private float GetTargetSpeed()
+        {
+            return launchSpeed * Mathf.Max(1f, speedBurstMultiplier);
+        }
+
+        private void ClearSpeedBurst()
+        {
+            speedBurstMultiplier = 1f;
+            speedBurstTimeRemaining = 0f;
         }
     }
 }

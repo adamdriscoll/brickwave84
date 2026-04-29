@@ -3,6 +3,12 @@ using UnityEngine;
 
 namespace GetBricked.Gameplay
 {
+    public enum BrickDestructionCause
+    {
+        Impact = 0,
+        Explosion = 1,
+    }
+
     [RequireComponent(typeof(BoxCollider2D))]
     [RequireComponent(typeof(SpriteRenderer))]
     public sealed class Brick : MonoBehaviour
@@ -16,6 +22,7 @@ namespace GetBricked.Gameplay
         private float movementSpeed;
         private Vector2 lastMovementDirection;
         private bool hasMotion;
+        private bool isPendingRemoval;
         private Color themedBaseColor;
         private Color themedDamagedColor;
 
@@ -24,6 +31,8 @@ namespace GetBricked.Gameplay
         public int ScoreValue => definition == null ? 0 : definition.ScoreValue;
 
         public bool CountsTowardLevelCompletion => definition != null && definition.CountsTowardLevelCompletion;
+
+        public bool IsExplosive => definition != null && definition.IsExplosive;
 
         public void Initialize(
             BreakoutGameController controller,
@@ -82,6 +91,11 @@ namespace GetBricked.Gameplay
 
         private void OnCollisionEnter2D(Collision2D collision)
         {
+            if (isPendingRemoval)
+            {
+                return;
+            }
+
             UpdateMotionDirectionFromCollision(collision);
 
             if (definition == null || !collision.collider.TryGetComponent<BallController>(out var scoringBall))
@@ -98,11 +112,24 @@ namespace GetBricked.Gameplay
 
             if (hitPointsRemaining <= 0)
             {
-                gameController.HandleBrickDestroyed(this, scoringBall);
+                isPendingRemoval = true;
+                gameController.HandleBrickDestroyed(this, scoringBall, BrickDestructionCause.Impact);
                 return;
             }
 
             RefreshVisual();
+        }
+
+        public void DestroyByExplosion(BallController scoringBall)
+        {
+            if (isPendingRemoval || definition == null || !definition.IsBreakable)
+            {
+                return;
+            }
+
+            isPendingRemoval = true;
+            hitPointsRemaining = 0;
+            gameController.HandleBrickDestroyed(this, scoringBall, BrickDestructionCause.Explosion);
         }
 
         private void ConfigureMotion(float motionSpeed, Vector2 motionDirection)

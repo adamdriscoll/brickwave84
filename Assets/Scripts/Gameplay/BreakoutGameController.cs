@@ -313,11 +313,25 @@ namespace GetBricked.Gameplay
             }
         }
 
-        public void HandleBrickDestroyed(Brick brick, BallController scoringBall)
+        public void HandleBrickDestroyed(Brick brick, BallController scoringBall, BrickDestructionCause destructionCause)
         {
+            if (brick == null)
+            {
+                return;
+            }
+
+            var brickDefinition = brick.Definition;
+            var shouldExplode = brickDefinition != null && brickDefinition.IsExplosive;
+            var explosionCenter = (Vector2)brick.transform.position;
+
             if (!bricks.Remove(brick))
             {
                 return;
+            }
+
+            if (shouldExplode && destructionCause == BrickDestructionCause.Impact && scoringBall != null)
+            {
+                scoringBall.ApplySpeedBurst(brickDefinition.ExplosionSpeedMultiplier, brickDefinition.ExplosionSpeedDuration);
             }
 
             var awardedScore = CalculateBrickScore(brick, scoringBall);
@@ -332,6 +346,11 @@ namespace GetBricked.Gameplay
 
             brick.gameObject.SetActive(false);
             Destroy(brick.gameObject);
+
+            if (shouldExplode)
+            {
+                DestroyBricksInExplosionRadius(explosionCenter, brickDefinition.ExplosionRadius, brick, scoringBall);
+            }
 
             EvaluateLevelCompletion();
         }
@@ -1811,6 +1830,55 @@ namespace GetBricked.Gameplay
             }
 
             bricks.Clear();
+        }
+
+        private void DestroyBricksInExplosionRadius(
+            Vector2 explosionCenter,
+            float explosionRadius,
+            Brick sourceBrick,
+            BallController scoringBall)
+        {
+            if (explosionRadius <= 0.01f || bricks.Count == 0)
+            {
+                return;
+            }
+
+            var impactedBricks = new List<Brick>();
+            var explosionRadiusSquared = explosionRadius * explosionRadius;
+
+            for (var index = 0; index < bricks.Count; index++)
+            {
+                var candidate = bricks[index];
+
+                if (candidate == null
+                    || candidate == sourceBrick
+                    || candidate.Definition == null
+                    || !candidate.Definition.IsBreakable)
+                {
+                    continue;
+                }
+
+                var offset = (Vector2)candidate.transform.position - explosionCenter;
+
+                if (offset.sqrMagnitude > explosionRadiusSquared)
+                {
+                    continue;
+                }
+
+                impactedBricks.Add(candidate);
+            }
+
+            for (var index = 0; index < impactedBricks.Count; index++)
+            {
+                var impactedBrick = impactedBricks[index];
+
+                if (impactedBrick == null)
+                {
+                    continue;
+                }
+
+                impactedBrick.DestroyByExplosion(scoringBall);
+            }
         }
 
         private void EvaluateLevelCompletion()

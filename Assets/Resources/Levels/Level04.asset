@@ -22,7 +22,7 @@ MonoBehaviour:
   layoutRows:
   - CABCABCAC
   - SS.BBB.SS
-  - ABBCCCBBA
+  - ABBCECBBA
   - A.AAA.A.A
   legend:
   - symbol: A
@@ -31,6 +31,8 @@ MonoBehaviour:
     brickDefinition: {fileID: 11400000, guid: 08517293f8e2459a9ae0b31a7a7a7a11, type: 2}
   - symbol: C
     brickDefinition: {fileID: 11400000, guid: 748bde0e62084c6ab73f5a987b0a00c5, type: 2}
+  - symbol: E
+    brickDefinition: {fileID: 11400000, guid: 9e9262a7b6da412b80db683a95e381f9, type: 2}
   - symbol: S
     brickDefinition: {fileID: 11400000, guid: 3ac37109f4a0488d9d967653c9139a08, type: 2}
   brickMovement:

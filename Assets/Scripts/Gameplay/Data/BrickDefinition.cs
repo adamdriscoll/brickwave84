@@ -22,6 +22,10 @@ namespace GetBricked.Gameplay.Data
         [SerializeField, Min(0)] private int scoreValue = 100;
         [SerializeField] private bool indestructible;
         [SerializeField] private bool countsTowardLevelCompletion = true;
+        [SerializeField] private bool explosive;
+        [SerializeField, Min(0.5f)] private float explosionRadius = 1.5f;
+        [SerializeField, Min(1f)] private float explosionSpeedMultiplier = 2.2f;
+        [SerializeField, Min(0.1f)] private float explosionSpeedDuration = 2.75f;
         [SerializeField, Range(0f, 1f)] private float dropChance = 0.15f;
         [SerializeField] private BrickPowerUpDropEntry[] dropTable = Array.Empty<BrickPowerUpDropEntry>();
         [SerializeField] private Color baseColor = Color.white;
@@ -37,6 +41,14 @@ namespace GetBricked.Gameplay.Data
         public bool IsBreakable => !indestructible;
 
         public bool CountsTowardLevelCompletion => !indestructible && countsTowardLevelCompletion;
+
+        public bool IsExplosive => IsBreakable && explosive;
+
+        public float ExplosionRadius => IsExplosive ? Mathf.Max(0.5f, explosionRadius) : 0f;
+
+        public float ExplosionSpeedMultiplier => IsExplosive ? Mathf.Max(1f, explosionSpeedMultiplier) : 1f;
+
+        public float ExplosionSpeedDuration => IsExplosive ? Mathf.Max(0.1f, explosionSpeedDuration) : 0f;
 
         public float DropChance => Mathf.Clamp01(dropChance);
 
