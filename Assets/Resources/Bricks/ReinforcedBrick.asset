@@ -17,5 +17,17 @@ MonoBehaviour:
   scoreValue: 175
   indestructible: 0
   countsTowardLevelCompletion: 1
+  dropChance: 0.25
+  dropTable:
+  - powerUpDefinition: {fileID: 11400000, guid: 1d335df901634d569e07a6c16d8d0a39, type: 2}
+    weight: 2
+  - powerUpDefinition: {fileID: 11400000, guid: fd4d25758f024fb1af03cb9e4a3a2f95, type: 2}
+    weight: 2
+  - powerUpDefinition: {fileID: 11400000, guid: b7e8c7f7cd7a4c13909c319157f06420, type: 2}
+    weight: 2
+  - powerUpDefinition: {fileID: 11400000, guid: e2ee17d131c74b4ca9ed3f3c6c1aa71d, type: 2}
+    weight: 1
+  - powerUpDefinition: {fileID: 11400000, guid: 82893256589a4f2ab26f2af834844f51, type: 2}
+    weight: 1
   baseColor: {r: 0.98, g: 0.78, b: 0.28, a: 1}
   damagedColor: {r: 0.74, g: 0.48, b: 0.12, a: 1}

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Text;
 using GetBricked.Gameplay.Data;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -8,6 +9,19 @@ namespace GetBricked.Gameplay
 {
     public sealed class BreakoutGameController : MonoBehaviour
     {
+        private sealed class ActiveTimedEffect
+        {
+            public ActiveTimedEffect(PowerUpDefinition definition, float remainingDuration)
+            {
+                Definition = definition;
+                RemainingDuration = remainingDuration;
+            }
+
+            public PowerUpDefinition Definition { get; }
+
+            public float RemainingDuration { get; set; }
+        }
+
         private enum RoundState
         {
             ReadyToServe,
@@ -45,15 +59,25 @@ namespace GetBricked.Gameplay
         [SerializeField] private Vector2 brickSize = new Vector2(1.15f, 0.45f);
         [SerializeField] private Vector2 brickSpacing = new Vector2(0.15f, 0.15f);
 
+        [Header("Power-Ups")]
+        [SerializeField] private Vector2 pickupSize = new Vector2(0.55f, 0.55f);
+        [SerializeField] private float pickupFallSpeed = 3.2f;
+        [SerializeField, Range(5f, 35f)] private float multiBallSpreadAngle = 18f;
+
         private readonly List<Brick> bricks = new List<Brick>();
         private readonly List<LevelDefinition> loadedLevels = new List<LevelDefinition>();
+        private readonly List<BallController> activeBalls = new List<BallController>();
+        private readonly List<PowerUpPickup> activePickups = new List<PowerUpPickup>();
+        private readonly List<ActiveTimedEffect> activeTimedEffects = new List<ActiveTimedEffect>();
 
         private Camera activeCamera;
         private Transform runtimeRoot;
         private Transform wallsRoot;
+        private Transform ballsRoot;
         private Transform bricksRoot;
+        private Transform pickupsRoot;
         private PaddleController paddle;
-        private BallController ball;
+        private BallController serveBall;
         private Sprite squareSprite;
         private Sprite circleSprite;
         private PhysicsMaterial2D bounceMaterial;
@@ -67,9 +91,16 @@ namespace GetBricked.Gameplay
         private float arenaBottom;
         private GUIStyle hudStyle;
         private GUIStyle messageStyle;
+        private GUIStyle pickupStyle;
         private LevelDefinition currentLevel;
         private int currentLevelIndex;
         private int levelScore;
+        private float currentLevelBallSpeed;
+        private float currentLevelPaddleSpeed;
+        private int ballInstanceCounter;
+        private string pickupBannerText;
+        private float pickupBannerTimer;
+        private Color pickupBannerColor = Color.white;
 
         private void Awake()
         {
@@ -79,7 +110,8 @@ namespace GetBricked.Gameplay
             CreateRuntimeRoots();
             CreateBounds();
             CreatePaddle();
-            CreateBall();
+            currentLevelBallSpeed = ballSpeed;
+            currentLevelPaddleSpeed = paddleSpeed;
             StartNewRun();
         }
 
@@ -103,6 +135,9 @@ namespace GetBricked.Gameplay
 
         private void Update()
         {
+            UpdateTimedEffects();
+            UpdatePickupBanner();
+
             var keyboard = Keyboard.current;
 
             if (keyboard == null)
@@ -124,7 +159,7 @@ namespace GetBricked.Gameplay
             if (roundState == RoundState.ReadyToServe || roundState == RoundState.LifeLost)
             {
                 roundState = RoundState.Playing;
-                ball.Launch();
+                serveBall.Launch();
                 return;
             }
 
@@ -149,6 +184,7 @@ namespace GetBricked.Gameplay
 
             score += brick.ScoreValue;
             levelScore += brick.ScoreValue;
+            TrySpawnPickup(brick);
 
             if (brick.CountsTowardLevelCompletion)
             {
@@ -163,8 +199,25 @@ namespace GetBricked.Gameplay
 
         public void HandleBallLost(BallController lostBall)
         {
-            if (roundState != RoundState.Playing || lostBall == null || lostBall != ball)
+            if (roundState != RoundState.Playing || lostBall == null)
             {
+                return;
+            }
+
+            var isServeBall = lostBall == serveBall;
+            activeBalls.Remove(lostBall);
+
+            if (activeBalls.Count > 0)
+            {
+                if (isServeBall)
+                {
+                    lostBall.gameObject.SetActive(false);
+                }
+                else
+                {
+                    Destroy(lostBall.gameObject);
+                }
+
                 return;
             }
 
@@ -173,10 +226,44 @@ namespace GetBricked.Gameplay
             if (livesRemaining <= 0)
             {
                 roundState = RoundState.GameOver;
+                ClearPickups();
+                if (!isServeBall)
+                {
+                    Destroy(lostBall.gameObject);
+                }
+
                 return;
             }
 
+            if (!isServeBall)
+            {
+                Destroy(lostBall.gameObject);
+            }
+
             PrepareServe(RoundState.LifeLost);
+        }
+
+        public void HandlePickupCaught(PowerUpPickup pickup)
+        {
+            if (roundState != RoundState.Playing || pickup == null || !activePickups.Remove(pickup))
+            {
+                return;
+            }
+
+            ApplyPowerUp(pickup.Definition);
+            pickup.gameObject.SetActive(false);
+            Destroy(pickup.gameObject);
+        }
+
+        public void HandlePickupMissed(PowerUpPickup pickup)
+        {
+            if (pickup == null || !activePickups.Remove(pickup))
+            {
+                return;
+            }
+
+            pickup.gameObject.SetActive(false);
+            Destroy(pickup.gameObject);
         }
 
         private void StartNewRun()
@@ -184,14 +271,22 @@ namespace GetBricked.Gameplay
             livesRemaining = Mathf.Max(1, startingLives);
             score = 0;
             currentLevelIndex = 0;
+            ClearTimedEffects();
+            ClearPickups();
             LoadLevel(currentLevelIndex, RoundState.ReadyToServe);
         }
 
         private void PrepareServe(RoundState nextState)
         {
             roundState = nextState;
+            ClearPickups();
             paddle.ResetToStart();
-            ball.ResetToPaddle();
+            EnsureServeBallExists();
+            DestroyAdditionalBalls();
+            activeBalls.Clear();
+            serveBall.SetMovementSpeed(GetCurrentBallSpeed());
+            serveBall.ResetToPaddle();
+            activeBalls.Add(serveBall);
         }
 
         private void LoadLevelDefinitions()
@@ -209,6 +304,8 @@ namespace GetBricked.Gameplay
         private void LoadLevel(int levelIndex, RoundState serveState)
         {
             ClearBricks();
+            ClearPickups();
+            ClearTimedEffects();
 
             if (loadedLevels.Count == 0 || levelIndex < 0 || levelIndex >= loadedLevels.Count)
             {
@@ -217,7 +314,7 @@ namespace GetBricked.Gameplay
                 levelScore = 0;
                 requiredBricksRemaining = 0;
                 roundState = RoundState.GameOver;
-                ball.Stop();
+                StopAllBalls();
                 return;
             }
 
@@ -235,13 +332,15 @@ namespace GetBricked.Gameplay
         {
             if (level == null)
             {
-                paddle.SetMoveSpeed(paddleSpeed);
-                ball.SetLaunchSpeed(ballSpeed);
+                currentLevelPaddleSpeed = paddleSpeed;
+                currentLevelBallSpeed = ballSpeed;
+                ApplyActiveEffects();
                 return;
             }
 
-            paddle.SetMoveSpeed(paddleSpeed * level.PaddleSpeedMultiplier);
-            ball.SetLaunchSpeed(ballSpeed * level.BallSpeedMultiplier);
+            currentLevelPaddleSpeed = paddleSpeed * level.PaddleSpeedMultiplier;
+            currentLevelBallSpeed = ballSpeed * level.BallSpeedMultiplier;
+            ApplyActiveEffects();
         }
 
         private void ConfigureCamera()
@@ -287,8 +386,14 @@ namespace GetBricked.Gameplay
             wallsRoot = new GameObject("Bounds").transform;
             wallsRoot.SetParent(runtimeRoot, false);
 
+            ballsRoot = new GameObject("Balls").transform;
+            ballsRoot.SetParent(runtimeRoot, false);
+
             bricksRoot = new GameObject("Bricks").transform;
             bricksRoot.SetParent(runtimeRoot, false);
+
+            pickupsRoot = new GameObject("Pickups").transform;
+            pickupsRoot.SetParent(runtimeRoot, false);
         }
 
         private void CreateBounds()
@@ -351,16 +456,18 @@ namespace GetBricked.Gameplay
             paddle = paddleObject.AddComponent<PaddleController>();
             paddle.Configure(
                 paddleSpeed,
-                arenaLeft + (paddleSize.x * 0.5f),
-                arenaRight - (paddleSize.x * 0.5f),
-                arenaBottom + paddleFloorOffset,
-                paddleSize.x * 0.5f);
+                arenaLeft,
+                arenaRight,
+                arenaBottom + paddleFloorOffset);
         }
 
-        private void CreateBall()
+        private BallController CreateBall(bool followsPaddleWhenIdle)
         {
-            var ballObject = new GameObject("Ball");
-            ballObject.transform.SetParent(runtimeRoot, false);
+            ballInstanceCounter++;
+
+            var ballName = followsPaddleWhenIdle ? "Ball" : $"Ball {ballInstanceCounter}";
+            var ballObject = new GameObject(ballName);
+            ballObject.transform.SetParent(ballsRoot, false);
             ballObject.transform.localScale = Vector3.one * (ballRadius * 2f);
 
             var spriteRenderer = ballObject.AddComponent<SpriteRenderer>();
@@ -378,14 +485,17 @@ namespace GetBricked.Gameplay
             rigidbody.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
             rigidbody.linearDamping = 0f;
 
-            ball = ballObject.AddComponent<BallController>();
+            var ball = ballObject.AddComponent<BallController>();
             ball.Configure(
                 this,
                 paddle,
-                ballSpeed,
+                GetCurrentBallSpeed(),
                 minimumVerticalDirection,
                 arenaBottom - 1f,
-                ballRadius + (paddleSize.y * 0.5f) + 0.05f);
+                ballRadius + (paddleSize.y * 0.5f) + 0.05f,
+                followsPaddleWhenIdle);
+
+            return ball;
         }
 
         private void BuildBrickWall(LevelDefinition level)
@@ -510,7 +620,8 @@ namespace GetBricked.Gameplay
             }
 
             roundState = RoundState.LevelComplete;
-            ball.Stop();
+            ClearPickups();
+            StopAllBalls();
         }
 
         private bool HasNextLevel()
@@ -606,9 +717,11 @@ namespace GetBricked.Gameplay
             GUI.Label(new Rect(16f, 16f, 900f, 30f), $"Score: {score:0000}   Lives: {livesRemaining:00}   {levelLabel}", hudStyle);
             GUI.Label(new Rect(16f, 48f, 1100f, 28f), objectiveLabel, hudStyle);
             GUI.Label(new Rect(16f, 80f, 1100f, 28f), "Move with A/D or Left/Right. Launch or continue with Space. Press R to restart the run.", hudStyle);
+            GUI.Label(new Rect(16f, 112f, 1200f, 28f), BuildActiveEffectsLabel(), hudStyle);
 
             if (roundState == RoundState.Playing)
             {
+                DrawPickupBanner();
                 return;
             }
 
@@ -626,11 +739,12 @@ namespace GetBricked.Gameplay
             var boxRect = new Rect((Screen.width * 0.5f) - 230f, (Screen.height * 0.5f) - 32f, 460f, 64f);
             GUI.Box(boxRect, GUIContent.none);
             GUI.Label(boxRect, message, messageStyle);
+            DrawPickupBanner();
         }
 
         private void EnsureGuiStyles()
         {
-            if (hudStyle != null && messageStyle != null)
+            if (hudStyle != null && messageStyle != null && pickupStyle != null)
             {
                 return;
             }
@@ -647,6 +761,395 @@ namespace GetBricked.Gameplay
                 fontSize = 22,
                 normal = { textColor = Color.white },
             };
+
+            pickupStyle = new GUIStyle(GUI.skin.label)
+            {
+                alignment = TextAnchor.MiddleCenter,
+                fontSize = 24,
+                fontStyle = FontStyle.Bold,
+                normal = { textColor = Color.white },
+            };
+        }
+
+        private void UpdateTimedEffects()
+        {
+            if (roundState != RoundState.Playing || activeTimedEffects.Count == 0)
+            {
+                return;
+            }
+
+            var modifiersChanged = false;
+
+            for (var index = activeTimedEffects.Count - 1; index >= 0; index--)
+            {
+                var activeEffect = activeTimedEffects[index];
+
+                if (activeEffect.Definition == null)
+                {
+                    activeTimedEffects.RemoveAt(index);
+                    modifiersChanged = true;
+                    continue;
+                }
+
+                activeEffect.RemainingDuration = Mathf.Max(0f, activeEffect.RemainingDuration - Time.deltaTime);
+
+                if (activeEffect.RemainingDuration > 0f)
+                {
+                    continue;
+                }
+
+                activeTimedEffects.RemoveAt(index);
+                modifiersChanged = true;
+            }
+
+            if (modifiersChanged)
+            {
+                ApplyActiveEffects();
+            }
+        }
+
+        private void UpdatePickupBanner()
+        {
+            if (pickupBannerTimer <= 0f)
+            {
+                return;
+            }
+
+            pickupBannerTimer = Mathf.Max(0f, pickupBannerTimer - Time.deltaTime);
+        }
+
+        private void TrySpawnPickup(Brick brick)
+        {
+            if (brick == null || brick.Definition == null)
+            {
+                return;
+            }
+
+            var brickDefinition = brick.Definition;
+            var dropTable = brickDefinition.DropTable;
+
+            if (dropTable.Length == 0 || brickDefinition.DropChance <= 0f || UnityEngine.Random.value > brickDefinition.DropChance)
+            {
+                return;
+            }
+
+            var totalWeight = 0f;
+
+            for (var index = 0; index < dropTable.Length; index++)
+            {
+                totalWeight += dropTable[index].Weight;
+            }
+
+            if (totalWeight <= 0f)
+            {
+                return;
+            }
+
+            var roll = UnityEngine.Random.value * totalWeight;
+            PowerUpDefinition selectedPowerUp = null;
+
+            for (var index = 0; index < dropTable.Length; index++)
+            {
+                var entry = dropTable[index];
+                roll -= entry.Weight;
+
+                if (roll > 0f)
+                {
+                    continue;
+                }
+
+                selectedPowerUp = entry.PowerUpDefinition;
+                break;
+            }
+
+            if (selectedPowerUp == null)
+            {
+                return;
+            }
+
+            CreatePickup((Vector2)brick.transform.position, selectedPowerUp);
+        }
+
+        private void CreatePickup(Vector2 position, PowerUpDefinition powerUpDefinition)
+        {
+            var pickupObject = new GameObject(powerUpDefinition.DisplayName);
+            pickupObject.transform.SetParent(pickupsRoot, false);
+            pickupObject.transform.position = position;
+            pickupObject.transform.localScale = new Vector3(pickupSize.x, pickupSize.y, 1f);
+            pickupObject.transform.rotation = Quaternion.Euler(0f, 0f, 45f);
+
+            var spriteRenderer = pickupObject.AddComponent<SpriteRenderer>();
+            spriteRenderer.sprite = squareSprite;
+            spriteRenderer.sortingOrder = 14;
+
+            pickupObject.AddComponent<BoxCollider2D>();
+
+            var pickup = pickupObject.AddComponent<PowerUpPickup>();
+            pickup.Configure(this, powerUpDefinition, pickupFallSpeed, arenaBottom - 0.9f);
+            activePickups.Add(pickup);
+        }
+
+        private void ApplyPowerUp(PowerUpDefinition powerUpDefinition)
+        {
+            if (powerUpDefinition == null)
+            {
+                return;
+            }
+
+            ShowPickupBanner(powerUpDefinition);
+
+            if (powerUpDefinition.IsTimed)
+            {
+                AddOrExtendTimedEffect(powerUpDefinition);
+                return;
+            }
+
+            if (powerUpDefinition.EffectType == PowerUpEffectType.MultiBallBurst)
+            {
+                SpawnMultiBall(powerUpDefinition);
+            }
+        }
+
+        private void AddOrExtendTimedEffect(PowerUpDefinition powerUpDefinition)
+        {
+            for (var index = 0; index < activeTimedEffects.Count; index++)
+            {
+                var activeEffect = activeTimedEffects[index];
+
+                if (activeEffect.Definition != powerUpDefinition)
+                {
+                    continue;
+                }
+
+                activeEffect.RemainingDuration += powerUpDefinition.DurationSeconds;
+                ApplyActiveEffects();
+                return;
+            }
+
+            activeTimedEffects.Add(new ActiveTimedEffect(powerUpDefinition, powerUpDefinition.DurationSeconds));
+            ApplyActiveEffects();
+        }
+
+        private void ApplyActiveEffects()
+        {
+            var paddleWidthMultiplier = 1f;
+            var ballSpeedMultiplier = 1f;
+
+            // Matching effects extend duration; opposing effects multiply together and naturally cancel each other out.
+            for (var index = 0; index < activeTimedEffects.Count; index++)
+            {
+                var powerUpDefinition = activeTimedEffects[index].Definition;
+
+                if (powerUpDefinition == null)
+                {
+                    continue;
+                }
+
+                switch (powerUpDefinition.EffectType)
+                {
+                    case PowerUpEffectType.PaddleWidthMultiplier:
+                        paddleWidthMultiplier *= powerUpDefinition.Scalar;
+                        break;
+                    case PowerUpEffectType.BallSpeedMultiplier:
+                        ballSpeedMultiplier *= powerUpDefinition.Scalar;
+                        break;
+                }
+            }
+
+            paddle.SetMoveSpeed(currentLevelPaddleSpeed);
+            paddle.SetWidthMultiplier(Mathf.Clamp(paddleWidthMultiplier, 0.6f, 1.8f));
+
+            var currentBallSpeed = currentLevelBallSpeed * Mathf.Clamp(ballSpeedMultiplier, 0.6f, 1.75f);
+
+            if (serveBall != null)
+            {
+                serveBall.SetMovementSpeed(currentBallSpeed);
+            }
+
+            for (var index = activeBalls.Count - 1; index >= 0; index--)
+            {
+                var activeBall = activeBalls[index];
+
+                if (activeBall == null)
+                {
+                    activeBalls.RemoveAt(index);
+                    continue;
+                }
+
+                activeBall.SetMovementSpeed(currentBallSpeed);
+            }
+        }
+
+        private void SpawnMultiBall(PowerUpDefinition powerUpDefinition)
+        {
+            if (roundState != RoundState.Playing || activeBalls.Count == 0)
+            {
+                return;
+            }
+
+            var sourceBall = activeBalls[0];
+
+            if (sourceBall == null)
+            {
+                return;
+            }
+
+            var sourceVelocity = sourceBall.GetComponent<Rigidbody2D>().linearVelocity;
+            var sourceDirection = sourceVelocity.sqrMagnitude > 0.01f
+                ? sourceVelocity.normalized
+                : Vector2.up;
+            var extraBallCount = Mathf.Max(1, powerUpDefinition.ExtraBallCount);
+
+            for (var index = 0; index < extraBallCount; index++)
+            {
+                var angle = extraBallCount == 1
+                    ? 0f
+                    : Mathf.Lerp(-multiBallSpreadAngle, multiBallSpreadAngle, index / (extraBallCount - 1f));
+                var direction = (Vector2)(Quaternion.Euler(0f, 0f, angle) * sourceDirection);
+
+                var extraBall = CreateBall(false);
+                extraBall.SetWorldPosition(sourceBall.transform.position);
+                extraBall.Launch(direction);
+                activeBalls.Add(extraBall);
+            }
+        }
+
+        private void ClearPickups()
+        {
+            for (var index = activePickups.Count - 1; index >= 0; index--)
+            {
+                if (activePickups[index] == null)
+                {
+                    continue;
+                }
+
+                activePickups[index].gameObject.SetActive(false);
+                Destroy(activePickups[index].gameObject);
+            }
+
+            activePickups.Clear();
+        }
+
+        private void ClearTimedEffects()
+        {
+            activeTimedEffects.Clear();
+            ApplyActiveEffects();
+        }
+
+        private void EnsureServeBallExists()
+        {
+            if (serveBall == null)
+            {
+                serveBall = CreateBall(true);
+            }
+
+            serveBall.gameObject.SetActive(true);
+            serveBall.SetMovementSpeed(GetCurrentBallSpeed());
+        }
+
+        private void DestroyAdditionalBalls()
+        {
+            for (var index = activeBalls.Count - 1; index >= 0; index--)
+            {
+                var activeBall = activeBalls[index];
+
+                if (activeBall == null || activeBall == serveBall)
+                {
+                    continue;
+                }
+
+                Destroy(activeBall.gameObject);
+            }
+        }
+
+        private void StopAllBalls()
+        {
+            for (var index = activeBalls.Count - 1; index >= 0; index--)
+            {
+                if (activeBalls[index] == null)
+                {
+                    activeBalls.RemoveAt(index);
+                    continue;
+                }
+
+                activeBalls[index].Stop();
+            }
+        }
+
+        private float GetCurrentBallSpeed()
+        {
+            var ballSpeedMultiplier = 1f;
+
+            for (var index = 0; index < activeTimedEffects.Count; index++)
+            {
+                var powerUpDefinition = activeTimedEffects[index].Definition;
+
+                if (powerUpDefinition == null || powerUpDefinition.EffectType != PowerUpEffectType.BallSpeedMultiplier)
+                {
+                    continue;
+                }
+
+                ballSpeedMultiplier *= powerUpDefinition.Scalar;
+            }
+
+            return currentLevelBallSpeed * Mathf.Clamp(ballSpeedMultiplier, 0.6f, 1.75f);
+        }
+
+        private string BuildActiveEffectsLabel()
+        {
+            if (activeTimedEffects.Count == 0)
+            {
+                return "Active Effects: none";
+            }
+
+            var builder = new StringBuilder("Active Effects: ");
+
+            for (var index = 0; index < activeTimedEffects.Count; index++)
+            {
+                var activeEffect = activeTimedEffects[index];
+
+                if (activeEffect.Definition == null)
+                {
+                    continue;
+                }
+
+                if (builder.Length > 16)
+                {
+                    builder.Append(" | ");
+                }
+
+                builder.Append(activeEffect.Definition.HudLabel);
+                builder.Append(' ');
+                builder.Append(activeEffect.RemainingDuration.ToString("0.0"));
+                builder.Append('s');
+            }
+
+            return builder.ToString();
+        }
+
+        private void ShowPickupBanner(PowerUpDefinition powerUpDefinition)
+        {
+            pickupBannerText = powerUpDefinition.IsBeneficial
+                ? $"+ {powerUpDefinition.DisplayName}"
+                : $"- {powerUpDefinition.DisplayName}";
+            pickupBannerColor = powerUpDefinition.PickupColor;
+            pickupBannerTimer = 1.6f;
+        }
+
+        private void DrawPickupBanner()
+        {
+            if (pickupBannerTimer <= 0f || string.IsNullOrWhiteSpace(pickupBannerText))
+            {
+                return;
+            }
+
+            var rect = new Rect((Screen.width * 0.5f) - 170f, 18f, 340f, 36f);
+            var previousGuiColor = GUI.color;
+            GUI.color = new Color(0f, 0f, 0f, 0.35f);
+            GUI.Box(rect, GUIContent.none);
+            GUI.color = pickupBannerColor;
+            GUI.Label(rect, pickupBannerText, pickupStyle);
+            GUI.color = previousGuiColor;
         }
     }
 }

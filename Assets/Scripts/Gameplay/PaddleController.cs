@@ -7,30 +7,41 @@ namespace GetBricked.Gameplay
     public sealed class PaddleController : MonoBehaviour
     {
         private Rigidbody2D paddleBody;
+        private Vector3 baseScale;
         private float moveSpeed;
-        private float minX;
-        private float maxX;
+        private float leftBoundaryX;
+        private float rightBoundaryX;
         private float startingY;
         private Vector2 startingPosition;
         private float horizontalInput;
 
         public float HalfWidthWorld { get; private set; }
 
-        public void Configure(float speed, float minimumX, float maximumX, float startY, float halfWidthWorld)
+        public void Configure(float speed, float minimumBoundaryX, float maximumBoundaryX, float startY)
         {
             moveSpeed = speed;
-            minX = minimumX;
-            maxX = maximumX;
+            leftBoundaryX = minimumBoundaryX;
+            rightBoundaryX = maximumBoundaryX;
             startingY = startY;
             startingPosition = new Vector2(0f, startY);
-            HalfWidthWorld = halfWidthWorld;
+            baseScale = transform.localScale;
             paddleBody = GetComponent<Rigidbody2D>();
+            SetWidthMultiplier(1f);
             ResetToStart();
         }
 
         public void SetMoveSpeed(float speed)
         {
             moveSpeed = Mathf.Max(0f, speed);
+        }
+
+        public void SetWidthMultiplier(float multiplier)
+        {
+            var clampedMultiplier = Mathf.Clamp(multiplier, 0.55f, 1.85f);
+            var width = baseScale.x * clampedMultiplier;
+            transform.localScale = new Vector3(width, baseScale.y, baseScale.z);
+            HalfWidthWorld = width * 0.5f;
+            ClampToBounds();
         }
 
         public void ResetToStart()
@@ -61,10 +72,27 @@ namespace GetBricked.Gameplay
 
             var nextX = Mathf.Clamp(
                 paddleBody.position.x + (horizontalInput * moveSpeed * Time.fixedDeltaTime),
-                minX,
-                maxX);
+                leftBoundaryX + HalfWidthWorld,
+                rightBoundaryX - HalfWidthWorld);
 
             paddleBody.MovePosition(new Vector2(nextX, startingY));
+        }
+
+        private void ClampToBounds()
+        {
+            if (paddleBody == null)
+            {
+                return;
+            }
+
+            var clampedX = Mathf.Clamp(
+                paddleBody.position.x,
+                leftBoundaryX + HalfWidthWorld,
+                rightBoundaryX - HalfWidthWorld);
+
+            var clampedPosition = new Vector2(clampedX, startingY);
+            transform.position = clampedPosition;
+            paddleBody.position = clampedPosition;
         }
 
         private static float ReadHorizontalInput()

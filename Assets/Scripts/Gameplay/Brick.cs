@@ -12,6 +12,8 @@ namespace GetBricked.Gameplay
         private SpriteRenderer spriteRenderer;
         private int hitPointsRemaining;
 
+        public BrickDefinition Definition => definition;
+
         public int ScoreValue => definition == null ? 0 : definition.ScoreValue;
 
         public bool CountsTowardLevelCompletion => definition != null && definition.CountsTowardLevelCompletion;

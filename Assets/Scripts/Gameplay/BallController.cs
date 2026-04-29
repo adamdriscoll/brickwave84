@@ -15,6 +15,7 @@ namespace GetBricked.Gameplay
         private float minimumVerticalDirection;
         private float lossThresholdY;
         private float paddleFollowOffset;
+        private bool followsPaddleWhenIdle;
         private bool hasLaunched;
 
         public void Configure(
@@ -23,7 +24,8 @@ namespace GetBricked.Gameplay
             float speed,
             float minimumVertical,
             float lossY,
-            float followOffset)
+            float followOffset,
+            bool followPaddleWhenIdle)
         {
             gameController = controller;
             paddle = paddleController;
@@ -31,6 +33,7 @@ namespace GetBricked.Gameplay
             minimumVerticalDirection = Mathf.Clamp(minimumVertical, 0.15f, 0.95f);
             lossThresholdY = lossY;
             paddleFollowOffset = followOffset;
+            followsPaddleWhenIdle = followPaddleWhenIdle;
             ballBody = GetComponent<Rigidbody2D>();
         }
 
@@ -50,12 +53,15 @@ namespace GetBricked.Gameplay
                 return;
             }
 
-            var anchoredPosition = (Vector2)paddle.transform.position + (Vector2.up * paddleFollowOffset);
-            transform.position = anchoredPosition;
-            ballBody.position = anchoredPosition;
+            SetWorldPosition((Vector2)paddle.transform.position + (Vector2.up * paddleFollowOffset));
         }
 
         public void Launch()
+        {
+            Launch(new Vector2(Random.Range(-0.25f, 0.25f), 1f));
+        }
+
+        public void Launch(Vector2 direction)
         {
             if (hasLaunched || ballBody == null)
             {
@@ -64,13 +70,38 @@ namespace GetBricked.Gameplay
 
             hasLaunched = true;
 
-            var launchDirection = new Vector2(Random.Range(-0.25f, 0.25f), 1f).normalized;
+            var launchDirection = direction.sqrMagnitude > 0.001f
+                ? direction.normalized
+                : Vector2.up;
+
+            if (Mathf.Abs(launchDirection.y) < minimumVerticalDirection)
+            {
+                launchDirection = new Vector2(
+                    launchDirection.x,
+                    Mathf.Sign(Mathf.Approximately(launchDirection.y, 0f) ? 1f : launchDirection.y) * minimumVerticalDirection).normalized;
+            }
+
             ballBody.linearVelocity = launchDirection * launchSpeed;
         }
 
-        public void SetLaunchSpeed(float speed)
+        public void SetMovementSpeed(float speed)
         {
             launchSpeed = Mathf.Max(0.1f, speed);
+
+            if (ballBody != null && hasLaunched && ballBody.linearVelocity.sqrMagnitude > 0.01f)
+            {
+                ballBody.linearVelocity = ballBody.linearVelocity.normalized * launchSpeed;
+            }
+        }
+
+        public void SetWorldPosition(Vector2 worldPosition)
+        {
+            transform.position = worldPosition;
+
+            if (ballBody != null)
+            {
+                ballBody.position = worldPosition;
+            }
         }
 
         public void Stop()
@@ -92,7 +123,7 @@ namespace GetBricked.Gameplay
 
             if (!hasLaunched)
             {
-                if (paddle == null)
+                if (!followsPaddleWhenIdle || paddle == null)
                 {
                     return;
                 }

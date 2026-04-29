@@ -17,5 +17,7 @@ MonoBehaviour:
   scoreValue: 0
   indestructible: 1
   countsTowardLevelCompletion: 0
+  dropChance: 0
+  dropTable: []
   baseColor: {r: 0.56, g: 0.62, b: 0.71, a: 1}
   damagedColor: {r: 0.56, g: 0.62, b: 0.71, a: 1}
