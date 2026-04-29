@@ -15,7 +15,7 @@
   - Power-up content is now data-driven through ScriptableObject assets, with timed paddle-size and ball-speed modifiers plus an instant multi-ball burst effect
   - Runtime visuals now support data-driven theme selection, with palette-based themes for background, walls, paddle, bricks, power-up pickups, and ball plus sprite hooks reserved for future art passes
   - The desired presentation direction is now documented in `Plan/STYLE.md`: a readability-first synthwave arcade look with dark indigo backgrounds, magenta/cyan neon accents, controlled CRT glow, and giant-cabinet framing cues
-  - Chunk 06 and chunk 07 groundwork are now in place through runtime OnGUI overlays for main menu, run setup, HUD, pause, end-state flow, persisted run-setup choices, seed entry, difficulty presets, modifier validation, deterministic gameplay rolls, and seeded procedural level generation
+  - The current groundwork already includes runtime OnGUI-based main menu, run setup, HUD, pause, end-state flow, persisted run-setup choices, seed entry, difficulty presets, modifier validation, deterministic gameplay rolls, and seeded procedural level generation
   - There are custom C# scripts now, but still no `.asmdef` files, no prefabs, and no automated tests yet
 - Input System is enabled and has a starter action asset at `Assets/InputSystem_Actions.inputactions`.
 
@@ -30,7 +30,7 @@
 - `Assets/Scripts/Gameplay/BreakoutRunSetupPersistence.cs`: `PlayerPrefs` persistence helper for saved run-setup choices and theme selection
 - `Assets/Scripts/Gameplay/BreakoutThemeService.cs`: runtime theme resolver/applicator for camera, walls, paddle, balls, bricks, and pickups
 - `Assets/Scripts/Gameplay/BreakoutPowerUpService.cs`: pickup spawning, timed-effect tracking, banner state, and effect-modifier calculations
-- `Assets/Scripts/Gameplay/BreakoutUiRenderer.cs`: OnGUI renderer for main menu, run setup, HUD, pause, end-state, diagnostics, modifier chips, and pickup banner
+- `Assets/Scripts/Gameplay/BreakoutGlowRenderer.cs`: runtime helper that adds layered neon halo sprites to gameplay pieces without changing their colliders or control scripts
 - `Assets/Scripts/Gameplay/PaddleController.cs`: keyboard-driven paddle movement with clamped horizontal bounds and runtime width modifiers
 - `Assets/Scripts/Gameplay/BallController.cs`: launch, bounce shaping, per-level speed tuning, speed clamping, and single/multi-ball loss detection support
 - `Assets/Scripts/Gameplay/Brick.cs`: definition-driven brick behavior with variable durability, optional moving-body motion, and unbreakable support
@@ -45,6 +45,8 @@
 - `Assets/Resources/Levels/*`: authored level definition assets loaded at runtime
 - `Assets/Resources/PowerUps/*`: authored power-up definition assets referenced by brick drop tables
 - `Assets/Resources/Themes/*`: authored runtime theme assets loaded by run setup and applied across gameplay visuals
+- `Plan/OVERVIEW.md`: current high-level product reframe toward a run-based arcade roguelite structure
+- `Plan/PLAN.md`: current roadmap built on the run-based roguelite direction
 - `Assets/Settings/*`: URP / 2D renderer assets and template scene assets
 - `Plan/STYLE.md`: durable visual direction guide for the target synthwave arcade presentation and future theme / VFX / UI work
 - `.codex/skills/repo-maintenance/*`: repo-local maintenance skill and snapshot helper for refreshing `AGENTS.md` and local skills after agent work
@@ -62,24 +64,25 @@
 - Bricks and levels are now authored as ScriptableObjects under `Assets/Resources/` and loaded at runtime by the controller plus its leaf services.
 - Brick definitions now own drop chance plus weighted pickup references, so most drop-table tuning is an asset edit rather than a controller edit.
 - Level definitions can now optionally assign motion rules per layout symbol, including a base direction, a speed, and modifiers such as row/column alternation, checkerboard reversal, and center-relative motion.
-- Theme definitions now own semantic visual-slot palettes under `Assets/Resources/Themes/`; the current implementation uses colors, but the theme pipeline already supports per-slot sprite overrides for future art passes.
+- Theme definitions now own semantic visual-slot palettes under `Assets/Resources/Themes/`; the current implementation uses colors, drives both runtime object tinting and derived UI chrome accents, and still supports per-slot sprite overrides for future art passes.
 - Level definitions now act primarily as procedural progression profiles: the controller uses the selected run seed plus level index to build reproducible layouts, brick mixes, drop exposure, and motion patterns at runtime.
 - Procedural generation currently ramps difficulty by increasing row/column density, unlocking tougher brick definitions over time, escalating moving-brick frequency, and occasionally switching later levels to score-target completion.
 - Moving bricks still use dynamic `Rigidbody2D` bodies with bounce material and keep a constant authored speed after collisions, but motion pressure is now assigned procedurally per generated cell rather than only coming from authored symbol maps.
 - The game now boots into a runtime main menu instead of straight into gameplay or setup, and the last run-setup selections are persisted through `PlayerPrefs`.
 - The selected theme is part of the persisted run setup, so quick-starting from the main menu reuses the most recently chosen palette.
-- Main menu, run setup, HUD, pause, diagnostics, and end-of-run flow still use temporary OnGUI UI, but the drawing logic now lives in `BreakoutUiRenderer` instead of being inlined inside `BreakoutGameController`.
+- Main menu, run setup, HUD, pause, diagnostics, and end-of-run flow currently still use temporary runtime OnGUI UI, but that layer now includes theme-aware cabinet styling with marquee/bezel framing, smoked-glass panels, subtle perspective-grid treatment, and restrained scanlines; it is still a likely future candidate for authored UI/prefab migration.
+- Ball, paddle, brick, and pickup glow is now faked in-world through layered child `SpriteRenderer`s via `BreakoutGlowRenderer`, so future readability polish should tune those halo scales and opacities before reaching for heavier post-processing.
 - Difficulty presets and player-selected modifiers are normalized into `RunSettings`, so future tuning should usually flow through that model instead of adding one-off conditionals.
 - Deterministic gameplay randomness currently covers serve launch direction, drop chance / weighted pickup selection, and seeded procedural level plans keyed off the run seed plus level index.
 - `R` returns to the run-setup overlay, `Esc` / `P` pauses active gameplay, and `Space` launches serves or confirms overlay actions once a configuration has been started.
 - Timed pickup effects currently refresh by extending the same effect's duration, while opposing effects coexist and combine multiplicatively.
 - Life loss now depends on all active balls leaving play, so multi-ball changes should be reviewed against `BreakoutGameController.HandleBallLost`.
-- The chunk-06 `Balls Per Serve` modifier spawns extra balls at every serve, so future ball-loss or serve-flow changes should be checked against `BreakoutGameController.SpawnConfiguredServeBalls`.
+- The current `Balls Per Serve` run modifier spawns extra balls at every serve, so future ball-loss or serve-flow changes should be checked against `BreakoutGameController.SpawnConfiguredServeBalls`.
 - Prototype input is currently read directly from `UnityEngine.InputSystem.Keyboard` rather than being wired through `PlayerInput` or the existing action asset.
 - Ball and paddle behavior use Unity 6-era 2D physics APIs such as `Rigidbody2D.linearVelocity`.
 - Run flow is still runtime-authored and coordinated by `BreakoutGameController`, but setup persistence, procedural planning, theme application, pickup/effect state, and OnGUI rendering now live in dedicated gameplay services.
 - Brick and power-up definition assets can optionally override their semantic theme slot, but default routing already maps brick durability tiers plus beneficial/harmful/burst pickups onto the shared theme palette automatically.
-- The current default visuals are still placeholder-level, but future presentation work should follow `Plan/STYLE.md` and aim for a dark synthwave arcade-machine look rather than generic neon dressing.
+- The current default visuals now reach a first-pass synthwave cabinet presentation through theme palettes, theme-derived UI chrome, playfield framing, and a softer glowing ball silhouette, but there is still room for authored art, material, VFX, and post-processing polish.
 - Terminal-side compile validation can now be done with `python .codex/skills/unity-compile/scripts/run_unity_compile.py`, which reads `ProjectVersion.txt`, locates the matching Unity Hub editor, runs batchmode, and summarizes build-blocking script errors from the generated log.
 - After adding or renaming scripts, let Unity regenerate project files instead of hand-maintaining the `.sln`.
 
@@ -136,6 +139,7 @@ When making changes, validate with the Unity editor when possible:
   - Typing digits changes the run seed, `T` randomizes it, and `Space` starts a run with the shown configuration
   - Returning to the main menu and reopening run setup preserves the last chosen setup values across that session, and restarting the app restores them
   - Run setup theme selection responds to left/right input, persists across sessions, and the selected palette recolors the background, paddle, bricks, pickups, and ball on the next run
+  - The OnGUI presentation layer renders the expected cabinet shell for menus and gameplay, including marquee/bezel framing, smoked-glass panels, and subtle grid/scanline cues without obscuring the ball or paddle
   - `Breakout Prototype` appears in the runtime hierarchy automatically
   - `A/D` or left/right arrows move the paddle
   - `Space` launches the ball
@@ -169,23 +173,24 @@ If you are a future agent starting work here, read these first:
 9. `Assets/Scripts/Gameplay/BreakoutRunSetupState.cs`
 10. `Assets/Scripts/Gameplay/BreakoutThemeService.cs`
 11. `Assets/Scripts/Gameplay/BreakoutPowerUpService.cs`
-12. `Assets/Scripts/Gameplay/BreakoutUiRenderer.cs`
-13. `Assets/Scripts/Gameplay/Data/RunSettings.cs`
-14. `Assets/Scripts/Gameplay/DeterministicRandomService.cs`
-15. `Assets/Scripts/Gameplay/Data/LevelDefinition.cs`
-16. `Assets/Scripts/Gameplay/Data/PowerUpDefinition.cs`
-17. `Assets/Scripts/Gameplay/Data/ThemeDefinition.cs`
-18. `Assets/Resources/Levels/Level01.asset`
-19. `Assets/Resources/Bricks/BasicBrick.asset`
-20. `Assets/Resources/Themes/ClassicTheme.asset`
-21. `Plan/STYLE.md`
-22. `Assets/Scenes/SampleScene.unity`
-23. `.codex/skills/repo-maintenance/SKILL.md`
+12. `Assets/Scripts/Gameplay/Data/RunSettings.cs`
+13. `Assets/Scripts/Gameplay/DeterministicRandomService.cs`
+14. `Assets/Scripts/Gameplay/Data/LevelDefinition.cs`
+15. `Assets/Scripts/Gameplay/Data/PowerUpDefinition.cs`
+16. `Assets/Scripts/Gameplay/Data/ThemeDefinition.cs`
+17. `Assets/Resources/Levels/Level01.asset`
+18. `Assets/Resources/Bricks/BasicBrick.asset`
+19. `Assets/Resources/Themes/ClassicTheme.asset`
+20. `Plan/OVERVIEW.md`
+21. `Plan/PLAN.md`
+22. `Plan/STYLE.md`
+23. `Assets/Scenes/SampleScene.unity`
+24. `.codex/skills/repo-maintenance/SKILL.md`
 
 ## Current Reality Check
 
-- There is now a minimal implemented game loop for a single-screen brick-breaker prototype with procedural seeded level generation, pickup-driven rule changes, palette-based theme selection, and a first-pass chunk-07 player-facing menu / HUD / pause flow.
+- There is now a minimal implemented game loop for a single-screen brick-breaker prototype with procedural seeded level generation, pickup-driven rule changes, palette-based theme selection, and a first-pass player-facing menu / HUD / pause flow.
 - The current custom systems are small, but they are real and worth extending deliberately instead of replacing by default.
 - Most near-term work will still be greenfield, but it should now build on the existing runtime prototype and folder structure.
 - If a user asks for game features, you will likely be extending the current scripts and authored content assets first, then deciding when to promote runtime-generated objects into authored scene or prefab assets.
-- If a user asks for more chunk-07 work, the most likely follow-ups are promoting the runtime OnGUI overlays into authored UI/prefabs, separating meta-flow concerns out of `BreakoutGameController`, and broadening persisted settings beyond run setup.
+- If a user asks for more UI or meta-flow work, the most likely follow-ups are promoting the runtime OnGUI overlays into authored UI/prefabs, separating meta-flow concerns out of `BreakoutGameController`, and broadening persisted settings beyond run setup.

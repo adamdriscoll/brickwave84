@@ -36,24 +36,24 @@ namespace GetBricked.Gameplay
 
         [Header("Camera")]
         [SerializeField] private float cameraHalfHeight = 5.2f;
-        [SerializeField] private Color backgroundColor = new Color(0.06f, 0.08f, 0.12f, 1f);
+        [SerializeField] private Color backgroundColor = new Color(0.07f, 0.03f, 0.08f, 1f);
 
         [Header("Playfield")]
         [SerializeField] private float playfieldPadding = 0.6f;
         [SerializeField] private float wallThickness = 0.45f;
-        [SerializeField] private Color wallColor = new Color(0.15f, 0.2f, 0.28f, 1f);
+        [SerializeField] private Color wallColor = new Color(0.14f, 0.11f, 0.19f, 1f);
 
         [Header("Paddle")]
         [SerializeField] private Vector2 paddleSize = new Vector2(2.4f, 0.4f);
         [SerializeField] private float paddleSpeed = 12f;
         [SerializeField] private float paddleFloorOffset = 0.8f;
-        [SerializeField] private Color paddleColor = new Color(0.94f, 0.96f, 1f, 1f);
+        [SerializeField] private Color paddleColor = new Color(0.56f, 0.96f, 1f, 1f);
 
         [Header("Ball")]
         [SerializeField] private float ballRadius = 0.18f;
         [SerializeField] private float ballSpeed = 7.5f;
         [SerializeField, Range(0.15f, 0.95f)] private float minimumVerticalDirection = 0.35f;
-        [SerializeField] private Color ballColor = new Color(0.98f, 0.75f, 0.29f, 1f);
+        [SerializeField] private Color ballColor = new Color(1f, 0.87f, 0.36f, 1f);
 
         [Header("Ball Speed Control")]
         [SerializeField, Range(0.02f, 0.25f)] private float manualBallSpeedStep = 0.08f;
@@ -1043,6 +1043,14 @@ namespace GetBricked.Gameplay
             paddleSpriteRenderer.color = paddleColor;
             paddleSpriteRenderer.sortingOrder = 10;
 
+            var paddleGlow = paddleObject.AddComponent<BreakoutGlowRenderer>();
+            paddleGlow.Configure(1.24f, 0.34f, 1.55f, 0.14f);
+
+            if (themeService != null)
+            {
+                paddleGlow.ApplyStyle(themeService.ResolveThemeStyle(ThemeVisualSlot.Paddle, paddleColor, paddleColor, squareSprite));
+            }
+
             var collider = paddleObject.AddComponent<BoxCollider2D>();
             collider.sharedMaterial = bounceMaterial;
 
@@ -1077,6 +1085,10 @@ namespace GetBricked.Gameplay
             spriteRenderer.sprite = ballStyle.Sprite;
             spriteRenderer.color = ballStyle.PrimaryColor;
             spriteRenderer.sortingOrder = 20;
+
+            var ballGlow = ballObject.AddComponent<BreakoutGlowRenderer>();
+            ballGlow.Configure(1.34f, 0.52f, 1.82f, 0.18f);
+            ballGlow.ApplyStyle(ballStyle);
 
             var collider = ballObject.AddComponent<CircleCollider2D>();
             collider.sharedMaterial = bounceMaterial;
@@ -1171,6 +1183,9 @@ namespace GetBricked.Gameplay
             var spriteRenderer = brickObject.AddComponent<SpriteRenderer>();
             spriteRenderer.sprite = squareSprite;
             spriteRenderer.sortingOrder = 5;
+
+            var brickGlow = brickObject.AddComponent<BreakoutGlowRenderer>();
+            brickGlow.Configure(1.14f, 0.3f, 1.28f, 0.08f);
 
             var collider = brickObject.AddComponent<BoxCollider2D>();
             collider.sharedMaterial = bounceMaterial;
@@ -1496,6 +1511,91 @@ namespace GetBricked.Gameplay
                 powerUpService?.ActivePickups);
         }
 
+        private BreakoutUiThemePalette BuildUiThemePalette()
+        {
+            var backgroundStyle = themeService != null
+                ? themeService.ResolveThemeStyle(ThemeVisualSlot.Background, backgroundColor, backgroundColor, null)
+                : new ThemeVisualStyle(backgroundColor, backgroundColor, null);
+            var wallStyle = themeService != null
+                ? themeService.ResolveThemeStyle(ThemeVisualSlot.Wall, wallColor, wallColor, squareSprite)
+                : new ThemeVisualStyle(wallColor, wallColor, squareSprite);
+            var paddleStyle = themeService != null
+                ? themeService.ResolveThemeStyle(ThemeVisualSlot.Paddle, paddleColor, paddleColor, squareSprite)
+                : new ThemeVisualStyle(paddleColor, paddleColor, squareSprite);
+            var ballStyle = themeService != null
+                ? themeService.ResolveThemeStyle(ThemeVisualSlot.Ball, ballColor, ballColor, circleSprite)
+                : new ThemeVisualStyle(ballColor, ballColor, circleSprite);
+            var brickPrimaryStyle = themeService != null
+                ? themeService.ResolveThemeStyle(ThemeVisualSlot.BrickPrimary, new Color(1f, 0.49f, 0.86f, 1f), new Color(0.63f, 0.12f, 0.48f, 1f), squareSprite)
+                : new ThemeVisualStyle(new Color(1f, 0.49f, 0.86f, 1f), new Color(0.63f, 0.12f, 0.48f, 1f), squareSprite);
+            var brickTertiaryStyle = themeService != null
+                ? themeService.ResolveThemeStyle(ThemeVisualSlot.BrickTertiary, new Color(0.01f, 0.93f, 0.98f, 1f), new Color(0.03f, 0.36f, 0.55f, 1f), squareSprite)
+                : new ThemeVisualStyle(new Color(0.01f, 0.93f, 0.98f, 1f), new Color(0.03f, 0.36f, 0.55f, 1f), squareSprite);
+            var beneficialStyle = themeService != null
+                ? themeService.ResolveThemeStyle(ThemeVisualSlot.PickupBeneficial, new Color(0.45f, 0.95f, 0.72f, 1f), new Color(0.45f, 0.95f, 0.72f, 1f), squareSprite)
+                : new ThemeVisualStyle(new Color(0.45f, 0.95f, 0.72f, 1f), new Color(0.45f, 0.95f, 0.72f, 1f), squareSprite);
+            var harmfulStyle = themeService != null
+                ? themeService.ResolveThemeStyle(ThemeVisualSlot.PickupHarmful, new Color(0.99f, 0.27f, 0.31f, 1f), new Color(0.99f, 0.27f, 0.31f, 1f), squareSprite)
+                : new ThemeVisualStyle(new Color(0.99f, 0.27f, 0.31f, 1f), new Color(0.99f, 0.27f, 0.31f, 1f), squareSprite);
+            var burstStyle = themeService != null
+                ? themeService.ResolveThemeStyle(ThemeVisualSlot.PickupBurst, ballColor, ballColor, squareSprite)
+                : new ThemeVisualStyle(ballColor, ballColor, squareSprite);
+            var panelFill = Color.Lerp(backgroundStyle.PrimaryColor, Color.black, 0.35f);
+            var panelFillSecondary = Color.Lerp(wallStyle.PrimaryColor, backgroundStyle.PrimaryColor, 0.45f);
+
+            panelFill.a = 0.92f;
+            panelFillSecondary.a = 0.94f;
+
+            return new BreakoutUiThemePalette
+            {
+                BackgroundBase = backgroundStyle.PrimaryColor,
+                BackgroundGlow = Color.Lerp(backgroundStyle.SecondaryColor, wallStyle.PrimaryColor, 0.55f),
+                PanelFill = panelFill,
+                PanelFillSecondary = panelFillSecondary,
+                BezelDark = Color.Lerp(Color.black, backgroundStyle.PrimaryColor, 0.22f),
+                AccentPrimary = Color.Lerp(paddleStyle.PrimaryColor, brickTertiaryStyle.PrimaryColor, 0.35f),
+                AccentSecondary = Color.Lerp(brickPrimaryStyle.PrimaryColor, harmfulStyle.PrimaryColor, 0.24f),
+                AccentWarm = Color.Lerp(ballStyle.PrimaryColor, burstStyle.PrimaryColor, 0.45f),
+                Success = beneficialStyle.PrimaryColor,
+                Danger = harmfulStyle.PrimaryColor,
+                TextPrimary = new Color(0.99f, 0.99f, 1f, 1f),
+                TextMuted = Color.Lerp(new Color(0.76f, 0.82f, 0.92f, 1f), wallStyle.PrimaryColor, 0.18f),
+                ScreenTint = new Color(backgroundStyle.PrimaryColor.r, backgroundStyle.PrimaryColor.g, backgroundStyle.PrimaryColor.b, 0.18f),
+                Scanline = new Color(1f, 1f, 1f, 0.028f),
+            };
+        }
+
+        private BreakoutUiChromeView BuildChromeView(string marqueeTitle, string marqueeSubtitle, bool isMenuLike)
+        {
+            Rect playfieldRect;
+
+            if (activeCamera != null)
+            {
+                var left = activeCamera.WorldToScreenPoint(new Vector3(arenaLeft, 0f, 0f)).x;
+                var right = activeCamera.WorldToScreenPoint(new Vector3(arenaRight, 0f, 0f)).x;
+                var top = Screen.height - activeCamera.WorldToScreenPoint(new Vector3(0f, arenaTop, 0f)).y;
+                var bottom = Screen.height - activeCamera.WorldToScreenPoint(new Vector3(0f, arenaBottom, 0f)).y;
+                playfieldRect = Rect.MinMaxRect(
+                    Mathf.Min(left, right),
+                    Mathf.Min(top, bottom),
+                    Mathf.Max(left, right),
+                    Mathf.Max(top, bottom));
+            }
+            else
+            {
+                playfieldRect = new Rect(Screen.width * 0.2f, Screen.height * 0.18f, Screen.width * 0.6f, Screen.height * 0.62f);
+            }
+
+            return new BreakoutUiChromeView
+            {
+                PlayfieldRect = playfieldRect,
+                ShowPlayfieldFrame = true,
+                IsMenuLike = isMenuLike,
+                MarqueeTitle = marqueeTitle,
+                MarqueeSubtitle = marqueeSubtitle,
+            };
+        }
+
         private Sprite CreateSquareSprite()
         {
             var texture = Texture2D.whiteTexture;
@@ -1526,7 +1626,18 @@ namespace GetBricked.Gameplay
                 {
                     var index = x + (y * textureSize);
                     var distance = Vector2.Distance(new Vector2(x, y), center);
-                    pixels[index] = distance <= radius ? Color.white : Color.clear;
+                    var normalizedDistance = distance / radius;
+
+                    if (normalizedDistance >= 1f)
+                    {
+                        pixels[index] = Color.clear;
+                        continue;
+                    }
+
+                    var alpha = normalizedDistance <= 0.68f
+                        ? 1f
+                        : Mathf.SmoothStep(1f, 0f, Mathf.InverseLerp(0.68f, 1f, normalizedDistance));
+                    pixels[index] = new Color(1f, 1f, 1f, alpha);
                 }
             }
 
@@ -1547,18 +1658,23 @@ namespace GetBricked.Gameplay
                 return;
             }
 
+            uiRenderer.ConfigureTheme(BuildUiThemePalette());
+
             if (roundState == RoundState.MainMenu)
             {
+                uiRenderer.DrawCabinetBackdrop(BuildChromeView("Get Bricked", "Synthwave Cabinet Prototype", true));
                 uiRenderer.DrawMainMenu(BuildMainMenuView(), HandleOverlayActionClick);
                 return;
             }
 
             if (roundState == RoundState.RunSetup)
             {
+                uiRenderer.DrawCabinetBackdrop(BuildChromeView("Run Setup", ResolvePendingThemeDefinition()?.DisplayName ?? "Theme Preview", true));
                 uiRenderer.DrawRunSetup(BuildRunSetupView());
                 return;
             }
 
+            uiRenderer.DrawCabinetBackdrop(BuildChromeView(string.Empty, string.Empty, false));
             uiRenderer.DrawGameplayHud(BuildHudView(), ToggleDiagnosticsOverlay, ToggleHudMenuOverlay);
             uiRenderer.DrawModifierIndicator(BuildModifierViews(), isDiagnosticsOverlayVisible);
 
@@ -1620,11 +1736,11 @@ namespace GetBricked.Gameplay
             return new BreakoutUiMenuView
             {
                 Title = "Get Bricked",
-                Subtitle = "Chunk 07 meta flow: start a run, tune the setup, and move cleanly between play states.",
-                SectionTitle = "Main Menu",
+                Subtitle = "Neon cabinet online. Quick-start the last tuned run or open the control panel and retune the seed, modifiers, and palette.",
+                SectionTitle = "Control Panel",
                 ActionLabels = BuildOverlayActionLabels(GetOverlayActionsForState(RoundState.MainMenu)),
                 SelectedActionIndex = selectedOverlayActionIndex,
-                PreviewTitle = "Saved Setup Preview",
+                PreviewTitle = "Saved Run Loadout",
                 PreviewLines = new[]
                 {
                     $"Seed: {GetPendingSeedDisplay()}",
@@ -1634,8 +1750,8 @@ namespace GetBricked.Gameplay
                     $"Drops: {previewSettings.DropPoolLabel}",
                 },
                 ValidationText = previewValidation,
-                FooterText = "Run setup selections persist automatically, so the quick-start option will reuse the last tuned configuration.",
-                HintText = "Up/Down selects. Space confirms. Open Run Setup for detailed seed and modifier edits.",
+                FooterText = "Run setup selections persist automatically, so quick start reuses the last cabinet tuning across sessions.",
+                HintText = "Up/Down selects. Space confirms. Open Run Setup for seed editing, modifier tuning, and theme cycling.",
             };
         }
 
@@ -1645,7 +1761,7 @@ namespace GetBricked.Gameplay
             return new BreakoutUiRunSetupView
             {
                 Title = "Run Setup",
-                Subtitle = "Author levels stay intact, then the seed mirrors and shifts them deterministically per run.",
+                Subtitle = "Dial in the cabinet before launch. The same seed preserves the run while presets, modifiers, and palette reshape the pressure curve.",
                 FieldLines = new[]
                 {
                     $"Seed: {GetPendingSeedDisplay()}",
@@ -1660,7 +1776,7 @@ namespace GetBricked.Gameplay
                 SelectedFieldIndex = (int)selectedRunSetupField,
                 PreviewLine = $"Preview: Lives {previewSettings.StartingLives} | Paddle x{previewSettings.PaddleWidthMultiplier:0.00} | Ball speed x{previewSettings.BallSpeedMultiplier:0.00} | Brick durability x{previewSettings.BrickDurabilityMultiplier:0.00}",
                 ValidationText = previewValidation,
-                HintText = "Up/Down selects. Left/Right adjusts. Type digits for the seed. Backspace edits. T randomizes. N resets defaults. Esc returns to menu. Space starts.",
+                HintText = "Up/Down selects. Left/Right adjusts. Type digits for the seed. Backspace edits. T randomizes. N resets defaults. Esc returns to menu. Space launches.",
             };
         }
 
@@ -1672,8 +1788,8 @@ namespace GetBricked.Gameplay
             var speed = GetDisplayedBallSpeed();
             return new BreakoutUiHudView
             {
-                TopLine = $"Score {score:0000}   Lives {livesRemaining:00}   {BuildLevelLabel()}",
-                BottomLine = BuildRemainingBricksLabel(),
+                TopLine = $"SCORE {score:0000}   LIVES {livesRemaining:00}   {BuildLevelLabel().ToUpperInvariant()}",
+                BottomLine = BuildRemainingBricksLabel().ToUpperInvariant(),
                 ShowMenuButton = CanPauseRoundState(roundState) || roundState == RoundState.Paused,
                 IsPaused = roundState == RoundState.Paused,
                 IsDiagnosticsVisible = isDiagnosticsOverlayVisible,

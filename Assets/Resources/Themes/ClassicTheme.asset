@@ -16,56 +16,56 @@ MonoBehaviour:
   visualEntries:
   - slot: 1
     style:
-      primaryColor: {r: 0.06, g: 0.08, b: 0.12, a: 1}
-      secondaryColor: {r: 0.06, g: 0.08, b: 0.12, a: 1}
+      primaryColor: {r: 0.07058824, g: 0.03529412, b: 0.078431375, a: 1}
+      secondaryColor: {r: 0.14117648, g: 0.105882354, b: 0.18431373, a: 1}
       sprite: {fileID: 0}
   - slot: 2
     style:
-      primaryColor: {r: 0.15, g: 0.2, b: 0.28, a: 1}
-      secondaryColor: {r: 0.15, g: 0.2, b: 0.28, a: 1}
+      primaryColor: {r: 0.16470589, g: 0.12941177, b: 0.22352941, a: 1}
+      secondaryColor: {r: 0.14117648, g: 0.105882354, b: 0.18431373, a: 1}
       sprite: {fileID: 0}
   - slot: 3
     style:
-      primaryColor: {r: 0.94, g: 0.96, b: 1, a: 1}
-      secondaryColor: {r: 0.94, g: 0.96, b: 1, a: 1}
+      primaryColor: {r: 0.56078434, g: 0.9607843, b: 1, a: 1}
+      secondaryColor: {r: 0.99215686, g: 0.99215686, b: 0.99215686, a: 1}
       sprite: {fileID: 0}
   - slot: 4
     style:
-      primaryColor: {r: 0.98, g: 0.75, b: 0.29, a: 1}
-      secondaryColor: {r: 0.98, g: 0.75, b: 0.29, a: 1}
+      primaryColor: {r: 0.99607843, g: 0.87058824, b: 0.3647059, a: 1}
+      secondaryColor: {r: 0.99215686, g: 0.99215686, b: 0.99215686, a: 1}
       sprite: {fileID: 0}
   - slot: 5
     style:
-      primaryColor: {r: 0.98, g: 0.42, b: 0.31, a: 1}
-      secondaryColor: {r: 0.7, g: 0.2, b: 0.16, a: 1}
+      primaryColor: {r: 1, g: 0.49411765, b: 0.85882354, a: 1}
+      secondaryColor: {r: 0.75686276, g: 0.105882354, b: 0.5137255, a: 1}
       sprite: {fileID: 0}
   - slot: 6
     style:
-      primaryColor: {r: 1, g: 0.71, b: 0.29, a: 1}
-      secondaryColor: {r: 0.74, g: 0.43, b: 0.12, a: 1}
+      primaryColor: {r: 0.9764706, g: 0.49411765, b: 0.44705883, a: 1}
+      secondaryColor: {r: 0.78039217, g: 0.29411766, b: 0.27450982, a: 1}
       sprite: {fileID: 0}
   - slot: 7
     style:
-      primaryColor: {r: 0.32, g: 0.77, b: 0.95, a: 1}
-      secondaryColor: {r: 0.12, g: 0.44, b: 0.63, a: 1}
+      primaryColor: {r: 0.011764706, g: 0.92941177, b: 0.9764706, a: 1}
+      secondaryColor: {r: 0.039215688, g: 0.3647059, b: 0.5529412, a: 1}
       sprite: {fileID: 0}
   - slot: 8
     style:
-      primaryColor: {r: 0.48, g: 0.56, b: 0.67, a: 1}
-      secondaryColor: {r: 0.28, g: 0.34, b: 0.42, a: 1}
+      primaryColor: {r: 0.29411766, g: 0.26666668, b: 0.3764706, a: 1}
+      secondaryColor: {r: 0.16470589, g: 0.12941177, b: 0.22352941, a: 1}
       sprite: {fileID: 0}
   - slot: 9
     style:
-      primaryColor: {r: 0.43, g: 0.94, b: 0.62, a: 1}
-      secondaryColor: {r: 0.43, g: 0.94, b: 0.62, a: 1}
+      primaryColor: {r: 0.44705883, g: 0.94509804, b: 0.72156864, a: 1}
+      secondaryColor: {r: 0.44705883, g: 0.94509804, b: 0.72156864, a: 1}
       sprite: {fileID: 0}
   - slot: 10
     style:
-      primaryColor: {r: 0.94, g: 0.42, b: 0.53, a: 1}
-      secondaryColor: {r: 0.94, g: 0.42, b: 0.53, a: 1}
+      primaryColor: {r: 0.99607843, g: 0.26666668, b: 0.3137255, a: 1}
+      secondaryColor: {r: 0.99607843, g: 0.26666668, b: 0.3137255, a: 1}
       sprite: {fileID: 0}
   - slot: 11
     style:
-      primaryColor: {r: 1, g: 0.9, b: 0.38, a: 1}
-      secondaryColor: {r: 1, g: 0.9, b: 0.38, a: 1}
+      primaryColor: {r: 0.99607843, g: 0.87058824, b: 0.3647059, a: 1}
+      secondaryColor: {r: 0.99607843, g: 0.87058824, b: 0.3647059, a: 1}
       sprite: {fileID: 0}

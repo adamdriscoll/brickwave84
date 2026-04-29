@@ -10,6 +10,7 @@ namespace GetBricked.Gameplay
         private BreakoutGameController gameController;
         private PowerUpDefinition definition;
         private SpriteRenderer spriteRenderer;
+        private BreakoutGlowRenderer glowRenderer;
         private float fallSpeed;
         private float missThresholdY;
 
@@ -22,6 +23,7 @@ namespace GetBricked.Gameplay
             fallSpeed = Mathf.Max(0.1f, speed);
             missThresholdY = missY;
             spriteRenderer = GetComponent<SpriteRenderer>();
+            glowRenderer = GetComponent<BreakoutGlowRenderer>();
 
             if (TryGetComponent<Collider2D>(out var pickupCollider))
             {
@@ -42,6 +44,7 @@ namespace GetBricked.Gameplay
 
             spriteRenderer.sprite = visualStyle.Sprite;
             spriteRenderer.color = visualStyle.PrimaryColor;
+            glowRenderer?.ApplyStyle(visualStyle);
         }
 
         private void Update()

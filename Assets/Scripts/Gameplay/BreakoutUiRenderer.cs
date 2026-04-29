@@ -3,6 +3,33 @@ using UnityEngine;
 
 namespace GetBricked.Gameplay
 {
+    internal sealed class BreakoutUiThemePalette
+    {
+        public Color BackgroundBase = new Color(0.07f, 0.03f, 0.08f, 1f);
+        public Color BackgroundGlow = new Color(0.16f, 0.11f, 0.21f, 1f);
+        public Color PanelFill = new Color(0.08f, 0.05f, 0.12f, 0.9f);
+        public Color PanelFillSecondary = new Color(0.14f, 0.1f, 0.19f, 0.92f);
+        public Color BezelDark = new Color(0.02f, 0.02f, 0.03f, 0.92f);
+        public Color AccentPrimary = new Color(0.01f, 0.93f, 0.98f, 1f);
+        public Color AccentSecondary = new Color(1f, 0.49f, 0.86f, 1f);
+        public Color AccentWarm = new Color(1f, 0.87f, 0.36f, 1f);
+        public Color Success = new Color(0.45f, 0.95f, 0.72f, 1f);
+        public Color Danger = new Color(0.99f, 0.27f, 0.31f, 1f);
+        public Color TextPrimary = new Color(0.99f, 0.99f, 1f, 1f);
+        public Color TextMuted = new Color(0.78f, 0.83f, 0.92f, 1f);
+        public Color ScreenTint = new Color(0.17f, 0.12f, 0.24f, 0.18f);
+        public Color Scanline = new Color(1f, 1f, 1f, 0.03f);
+    }
+
+    internal sealed class BreakoutUiChromeView
+    {
+        public Rect PlayfieldRect;
+        public bool ShowPlayfieldFrame = true;
+        public bool IsMenuLike;
+        public string MarqueeTitle = string.Empty;
+        public string MarqueeSubtitle = string.Empty;
+    }
+
     internal sealed class BreakoutUiMenuView
     {
         public string Title = string.Empty;
@@ -95,89 +122,151 @@ namespace GetBricked.Gameplay
         private GUIStyle modifierPanelTitleStyle;
         private GUIStyle modifierPanelLabelStyle;
         private GUIStyle modifierPanelTimerStyle;
-        private GUIStyle modifierPanelEmptyStyle;
+        private BreakoutUiThemePalette palette = new BreakoutUiThemePalette();
+
+        public void ConfigureTheme(BreakoutUiThemePalette themePalette)
+        {
+            palette = themePalette ?? new BreakoutUiThemePalette();
+        }
+
+        public void DrawCabinetBackdrop(BreakoutUiChromeView view)
+        {
+            EnsureStyles();
+
+            if (view == null)
+            {
+                return;
+            }
+
+            var fullRect = new Rect(0f, 0f, Screen.width, Screen.height);
+
+            if (view.IsMenuLike)
+            {
+                DrawSolidRect(fullRect, WithAlpha(palette.ScreenTint, 0.24f));
+            }
+
+            var topGlowRect = new Rect(0f, 0f, Screen.width, Screen.height * 0.46f);
+            var bottomGlowRect = new Rect(0f, Screen.height * 0.42f, Screen.width, Screen.height * 0.58f);
+            DrawVerticalGradient(topGlowRect, Color.clear, WithAlpha(palette.AccentSecondary, view.IsMenuLike ? 0.1f : 0.035f), 20);
+            DrawVerticalGradient(bottomGlowRect, WithAlpha(palette.AccentWarm, view.IsMenuLike ? 0.14f : 0.055f), Color.clear, 24);
+
+            DrawSolidRect(new Rect(0f, 0f, Screen.width, 14f), WithAlpha(palette.BezelDark, 0.96f));
+            DrawSolidRect(new Rect(0f, Screen.height - 16f, Screen.width, 16f), WithAlpha(palette.BezelDark, 0.98f));
+
+            if (view.ShowPlayfieldFrame && view.PlayfieldRect.width > 1f && view.PlayfieldRect.height > 1f)
+            {
+                DrawOutsidePlayfieldShade(view.PlayfieldRect, view.IsMenuLike);
+                DrawPerspectiveGrid(view.PlayfieldRect);
+                DrawPlayfieldFrame(view.PlayfieldRect);
+            }
+
+            if (!string.IsNullOrWhiteSpace(view.MarqueeTitle))
+            {
+                DrawMarquee(view.MarqueeTitle, view.MarqueeSubtitle);
+            }
+
+            DrawScanlines(fullRect, 4f, view.IsMenuLike ? palette.Scanline : WithAlpha(palette.Scanline, 0.01f));
+        }
 
         public void DrawMainMenu(BreakoutUiMenuView view, Action<int> onActionClicked)
         {
             EnsureStyles();
 
-            var boxRect = new Rect((Screen.width * 0.5f) - 410f, (Screen.height * 0.5f) - 220f, 820f, 440f);
-            GUI.Box(boxRect, GUIContent.none);
-            GUI.Label(new Rect(boxRect.x + 24f, boxRect.y + 18f, boxRect.width - 48f, 36f), view.Title, overlayTitleStyle);
-            GUI.Label(new Rect(boxRect.x + 32f, boxRect.y + 58f, boxRect.width - 64f, 24f), view.Subtitle, setupHintStyle);
+            var boxRect = new Rect((Screen.width * 0.5f) - 460f, (Screen.height * 0.5f) - 232f, 920f, 464f);
+            var leftRect = new Rect(boxRect.x + 34f, boxRect.y + 104f, 292f, 236f);
+            var rightRect = new Rect(boxRect.x + 350f, boxRect.y + 104f, 536f, 236f);
+            DrawPanel(boxRect, palette.AccentSecondary, palette.AccentPrimary, true);
+            DrawPanel(leftRect, palette.AccentSecondary, palette.AccentWarm, false);
+            DrawPanel(rightRect, palette.AccentPrimary, palette.AccentWarm, false);
 
-            GUI.Label(new Rect(boxRect.x + 42f, boxRect.y + 112f, 280f, 28f), view.SectionTitle, setupSelectedStyle);
-            DrawActionList(view.ActionLabels, view.SelectedActionIndex, boxRect.x + 42f, boxRect.y + 150f, 270f, 36f, onActionClicked);
+            DrawTextWithShadow(new Rect(boxRect.x + 34f, boxRect.y + 28f, boxRect.width - 68f, 40f), view.Title, overlayTitleStyle, palette.TextPrimary);
+            DrawTextWithShadow(new Rect(boxRect.x + 34f, boxRect.y + 66f, boxRect.width - 68f, 24f), view.Subtitle, setupHintStyle, palette.TextMuted, 0.45f);
+            DrawSectionLabel(new Rect(leftRect.x + 18f, leftRect.y + 14f, leftRect.width - 36f, 22f), view.SectionTitle, palette.AccentWarm);
+            DrawSectionLabel(new Rect(rightRect.x + 18f, rightRect.y + 14f, rightRect.width - 36f, 22f), view.PreviewTitle, palette.AccentPrimary);
 
-            GUI.Label(new Rect(boxRect.x + 360f, boxRect.y + 112f, 410f, 28f), view.PreviewTitle, setupSelectedStyle);
+            DrawActionList(view.ActionLabels, view.SelectedActionIndex, leftRect.x + 18f, leftRect.y + 52f, leftRect.width - 36f, 42f, onActionClicked);
 
             for (var index = 0; index < view.PreviewLines.Length; index++)
             {
-                GUI.Label(new Rect(boxRect.x + 360f, boxRect.y + 150f + (index * 30f), 410f, 26f), view.PreviewLines[index], hudStyle);
+                DrawTextWithShadow(
+                    new Rect(rightRect.x + 20f, rightRect.y + 52f + (index * 34f), rightRect.width - 40f, 28f),
+                    view.PreviewLines[index],
+                    hudStyle,
+                    palette.TextPrimary,
+                    0.35f);
             }
 
-            GUI.Label(new Rect(boxRect.x + 360f, boxRect.y + 304f, 410f, 52f), view.ValidationText, setupHintStyle);
-            GUI.Label(new Rect(boxRect.x + 360f, boxRect.y + 356f, 410f, 38f), view.FooterText, setupHintStyle);
-            GUI.Label(new Rect(boxRect.x + 28f, boxRect.y + 395f, boxRect.width - 56f, 24f), view.HintText, setupHintStyle);
+            DrawTextWithShadow(new Rect(rightRect.x + 18f, rightRect.y + 188f, rightRect.width - 36f, 42f), view.ValidationText, setupHintStyle, palette.TextMuted, 0.35f);
+            DrawTextWithShadow(new Rect(boxRect.x + 34f, boxRect.y + 362f, boxRect.width - 68f, 42f), view.FooterText, setupHintStyle, palette.TextMuted, 0.35f);
+            DrawHintBand(new Rect(boxRect.x + 28f, boxRect.y + 412f, boxRect.width - 56f, 28f), view.HintText);
         }
 
         public void DrawRunSetup(BreakoutUiRunSetupView view)
         {
             EnsureStyles();
 
-            var boxRect = new Rect((Screen.width * 0.5f) - 360f, (Screen.height * 0.5f) - 231f, 720f, 462f);
-            GUI.Box(boxRect, GUIContent.none);
-            GUI.Label(new Rect(boxRect.x + 24f, boxRect.y + 18f, boxRect.width - 48f, 34f), view.Title, setupTitleStyle);
-            GUI.Label(new Rect(boxRect.x + 28f, boxRect.y + 56f, boxRect.width - 56f, 22f), view.Subtitle, setupHintStyle);
+            var boxRect = new Rect((Screen.width * 0.5f) - 428f, (Screen.height * 0.5f) - 246f, 856f, 492f);
+            DrawPanel(boxRect, palette.AccentPrimary, palette.AccentSecondary, true);
 
-            var fieldX = boxRect.x + 36f;
-            var fieldWidth = boxRect.width - 72f;
-            var lineHeight = 30f;
-            var startY = boxRect.y + 96f;
+            DrawTextWithShadow(new Rect(boxRect.x + 30f, boxRect.y + 26f, boxRect.width - 60f, 40f), view.Title, setupTitleStyle, palette.TextPrimary);
+            DrawTextWithShadow(new Rect(boxRect.x + 30f, boxRect.y + 66f, boxRect.width - 60f, 24f), view.Subtitle, setupHintStyle, palette.TextMuted, 0.4f);
+
+            var listRect = new Rect(boxRect.x + 34f, boxRect.y + 106f, 458f, 242f);
+            var previewRect = new Rect(boxRect.x + 520f, boxRect.y + 106f, 302f, 242f);
+            DrawPanel(listRect, palette.AccentSecondary, palette.AccentPrimary, false);
+            DrawPanel(previewRect, palette.AccentWarm, palette.AccentPrimary, false);
+            DrawSectionLabel(new Rect(listRect.x + 16f, listRect.y + 12f, listRect.width - 32f, 20f), "CONFIG", palette.AccentWarm);
+            DrawSectionLabel(new Rect(previewRect.x + 16f, previewRect.y + 12f, previewRect.width - 32f, 20f), "SYSTEM READOUT", palette.AccentPrimary);
+
+            var fieldX = listRect.x + 16f;
+            var fieldWidth = listRect.width - 32f;
+            var lineHeight = 34f;
+            var startY = listRect.y + 44f;
 
             for (var index = 0; index < view.FieldLines.Length; index++)
             {
                 var isSelected = index == Mathf.Clamp(view.SelectedFieldIndex, 0, Math.Max(0, view.FieldLines.Length - 1));
-                GUI.Label(
-                    new Rect(fieldX, startY + (lineHeight * index), fieldWidth, 26f),
-                    $"{(isSelected ? "> " : "  ")}{view.FieldLines[index]}",
-                    isSelected ? setupSelectedStyle : hudStyle);
+                var lineRect = new Rect(fieldX, startY + (lineHeight * index), fieldWidth, 28f);
+
+                if (isSelected)
+                {
+                    DrawSelectionBar(new Rect(lineRect.x - 4f, lineRect.y - 2f, lineRect.width + 8f, lineRect.height + 4f));
+                }
+
+                DrawTextWithShadow(
+                    lineRect,
+                    $"{(isSelected ? ">" : " ")} {view.FieldLines[index]}",
+                    isSelected ? setupSelectedStyle : hudStyle,
+                    isSelected ? palette.TextPrimary : palette.TextMuted,
+                    0.3f);
             }
 
-            GUI.Label(new Rect(boxRect.x + 28f, boxRect.y + 338f, boxRect.width - 56f, 24f), view.PreviewLine, hudStyle);
-            GUI.Label(new Rect(boxRect.x + 28f, boxRect.y + 368f, boxRect.width - 56f, 40f), view.ValidationText, setupHintStyle);
-            GUI.Label(new Rect(boxRect.x + 28f, boxRect.y + 408f, boxRect.width - 56f, 36f), view.HintText, setupHintStyle);
+            DrawTextWithShadow(new Rect(previewRect.x + 16f, previewRect.y + 50f, previewRect.width - 32f, 110f), view.PreviewLine, overlayBodyStyle, palette.TextPrimary, 0.3f);
+            DrawTextWithShadow(new Rect(previewRect.x + 16f, previewRect.y + 162f, previewRect.width - 32f, 54f), view.ValidationText, setupHintStyle, palette.TextMuted, 0.3f);
+            DrawHintBand(new Rect(boxRect.x + 30f, boxRect.y + 392f, boxRect.width - 60f, 54f), view.HintText);
         }
 
         public void DrawGameplayHud(BreakoutUiHudView view, Action onToggleDiagnostics, Action onToggleMenu)
         {
             EnsureStyles();
 
-            var topBarRect = new Rect(0f, 0f, Screen.width, 76f);
-            var contentWidth = Mathf.Max(320f, topBarRect.width - 256f);
-            var buttonsX = topBarRect.xMax - 232f;
-            var buttonsY = topBarRect.y + 18f;
-            var diagnosticsLabel = view.IsDiagnosticsVisible ? "Hide Diagnostics" : "Diagnostics";
-            var menuLabel = view.IsPaused ? "Resume" : "Menu";
+            var statusRect = new Rect(18f, 18f, Mathf.Max(320f, Screen.width - 320f), 72f);
+            var buttonsX = Screen.width - 258f;
+            var buttonsY = 20f;
+            var diagnosticsLabel = view.IsDiagnosticsVisible ? "HIDE DIAGNOSTICS" : "DIAGNOSTICS";
+            var menuLabel = view.IsPaused ? "RESUME" : "MENU";
 
-            DrawSolidRect(topBarRect, new Color(0.05f, 0.07f, 0.11f, 0.96f));
-            GUI.Label(new Rect(20f, topBarRect.y + 12f, contentWidth, 24f), view.TopLine, hudStyle);
-            GUI.Label(new Rect(20f, topBarRect.y + 40f, contentWidth, 24f), view.BottomLine, hudStyle);
+            DrawPanel(statusRect, palette.AccentPrimary, palette.AccentSecondary, false);
+            DrawTextWithShadow(new Rect(statusRect.x + 20f, statusRect.y + 14f, statusRect.width - 40f, 24f), view.TopLine, hudStyle, palette.TextPrimary, 0.35f);
+            DrawTextWithShadow(new Rect(statusRect.x + 20f, statusRect.y + 40f, statusRect.width - 40f, 22f), view.BottomLine, overlayBodyStyle, palette.TextMuted, 0.3f);
             DrawBallSpeedMeter(view.SpeedMeter);
 
-            if (GUI.Button(
-                    new Rect(buttonsX, buttonsY, 108f, 38f),
-                    diagnosticsLabel,
-                    view.IsDiagnosticsVisible ? hudActiveButtonStyle : hudButtonStyle))
+            if (DrawArcadeButton(new Rect(buttonsX, buttonsY, 122f, 42f), diagnosticsLabel, view.IsDiagnosticsVisible))
             {
                 onToggleDiagnostics?.Invoke();
             }
 
-            if (view.ShowMenuButton
-                && GUI.Button(
-                    new Rect(buttonsX + 116f, buttonsY, 96f, 38f),
-                    menuLabel,
-                    view.IsPaused ? hudActiveButtonStyle : hudButtonStyle))
+            if (view.ShowMenuButton && DrawArcadeButton(new Rect(buttonsX + 130f, buttonsY, 110f, 42f), menuLabel, view.IsPaused))
             {
                 onToggleMenu?.Invoke();
             }
@@ -188,38 +277,38 @@ namespace GetBricked.Gameplay
             EnsureStyles();
 
             var boxRect = view.IsCompact
-                ? new Rect((Screen.width * 0.5f) - 320f, (Screen.height * 0.5f) - 180f, 640f, 360f)
-                : new Rect((Screen.width * 0.5f) - 320f, (Screen.height * 0.5f) - 162f, 640f, 324f);
-            GUI.Box(boxRect, GUIContent.none);
-            GUI.Label(new Rect(boxRect.x + 24f, boxRect.y + 20f, boxRect.width - 48f, 36f), view.Title, overlayTitleStyle);
+                ? new Rect((Screen.width * 0.5f) - 350f, (Screen.height * 0.5f) - 196f, 700f, 392f)
+                : new Rect((Screen.width * 0.5f) - 360f, (Screen.height * 0.5f) - 188f, 720f, 376f);
+            DrawPanel(boxRect, palette.AccentSecondary, palette.AccentPrimary, true);
+            DrawTextWithShadow(new Rect(boxRect.x + 30f, boxRect.y + 24f, boxRect.width - 60f, 40f), view.Title, overlayTitleStyle, palette.TextPrimary);
 
             for (var index = 0; index < view.SummaryLines.Length; index++)
             {
-                GUI.Label(
-                    new Rect(boxRect.x + 32f, boxRect.y + 64f + (index * 28f), boxRect.width - 64f, 24f),
+                DrawTextWithShadow(
+                    new Rect(boxRect.x + 36f, boxRect.y + 72f + (index * 28f), boxRect.width - 72f, 24f),
                     view.SummaryLines[index],
-                    overlayBodyStyle);
+                    overlayBodyStyle,
+                    index == 0 ? palette.TextPrimary : palette.TextMuted,
+                    0.35f);
             }
 
             DrawActionList(
                 view.ActionLabels,
                 view.SelectedActionIndex,
-                view.IsCompact ? boxRect.x + 90f : boxRect.x + 94f,
-                view.IsCompact ? boxRect.y + 132f : boxRect.y + 146f,
-                view.IsCompact ? boxRect.width - 180f : boxRect.width - 188f,
-                view.IsCompact ? 34f : 36f,
+                boxRect.x + 88f,
+                view.IsCompact ? boxRect.y + 134f : boxRect.y + 146f,
+                boxRect.width - 176f,
+                40f,
                 onActionClicked);
 
             for (var index = 0; index < view.FooterLines.Length; index++)
             {
-                GUI.Label(
-                    new Rect(
-                        view.IsCompact ? boxRect.x + 42f : boxRect.x + 28f,
-                        view.IsCompact ? boxRect.y + 262f + (index * 52f) : boxRect.y + 274f + (index * 32f),
-                        view.IsCompact ? boxRect.width - 84f : boxRect.width - 56f,
-                        view.IsCompact ? 44f : 32f),
+                DrawTextWithShadow(
+                    new Rect(boxRect.x + 34f, boxRect.y + 286f + (index * 34f), boxRect.width - 68f, 30f),
                     view.FooterLines[index],
-                    setupHintStyle);
+                    setupHintStyle,
+                    palette.TextMuted,
+                    0.3f);
             }
         }
 
@@ -227,25 +316,38 @@ namespace GetBricked.Gameplay
         {
             EnsureStyles();
 
-            var boxRect = new Rect((Screen.width * 0.5f) - 230f, (Screen.height * 0.5f) - 32f, 460f, 64f);
-            GUI.Box(boxRect, GUIContent.none);
-            GUI.Label(boxRect, message, messageStyle);
+            if (string.IsNullOrWhiteSpace(message))
+            {
+                return;
+            }
+
+            var boxRect = new Rect((Screen.width * 0.5f) - 274f, (Screen.height * 0.5f) - 42f, 548f, 84f);
+            DrawPanel(boxRect, palette.AccentWarm, palette.AccentSecondary, false);
+            DrawTextWithShadow(boxRect, message, messageStyle, palette.TextPrimary);
         }
 
         public void DrawDiagnosticsOverlay(BreakoutUiDiagnosticsView view)
         {
             EnsureStyles();
 
-            var overlayHeight = view.Lines.Length <= 3 ? 116f : 144f;
-            var overlayRect = new Rect(0f, Screen.height - overlayHeight, Screen.width, overlayHeight);
-            DrawSolidRect(overlayRect, new Color(0.03f, 0.04f, 0.08f, 0.94f));
+            if (view == null || view.Lines.Length == 0)
+            {
+                return;
+            }
+
+            var overlayHeight = Mathf.Max(124f, 52f + (view.Lines.Length * 30f));
+            var overlayRect = new Rect(18f, Screen.height - overlayHeight - 18f, Screen.width - 36f, overlayHeight);
+            DrawPanel(overlayRect, palette.AccentPrimary, palette.AccentWarm, false);
+            DrawSectionLabel(new Rect(overlayRect.x + 16f, overlayRect.y + 10f, 180f, 18f), "DIAGNOSTICS", palette.AccentPrimary);
 
             for (var index = 0; index < view.Lines.Length; index++)
             {
-                GUI.Label(
-                    new Rect(20f, overlayRect.y + 14f + (index * 28f), overlayRect.width - 40f, 24f),
+                DrawTextWithShadow(
+                    new Rect(overlayRect.x + 20f, overlayRect.y + 34f + (index * 28f), overlayRect.width - 40f, 24f),
                     view.Lines[index],
-                    hudStyle);
+                    hudStyle,
+                    palette.TextMuted,
+                    0.25f);
             }
         }
 
@@ -259,38 +361,36 @@ namespace GetBricked.Gameplay
             }
 
             var slotCount = modifiers.Length;
-            var slotWidth = 116f;
-            var slotSpacing = 8f;
-            var panelWidth = Mathf.Min(Screen.width - 32f, 84f + (slotCount * (slotWidth + slotSpacing)));
-            var panelHeight = 60f;
-            var panelX = Mathf.Clamp((Screen.width - panelWidth) * 0.5f, 8f, Mathf.Max(8f, Screen.width - panelWidth - 8f));
-            var bottomMargin = isDiagnosticsVisible ? 156f : 14f;
-            var panelY = Mathf.Max(84f, Screen.height - panelHeight - bottomMargin);
+            var slotWidth = 128f;
+            var slotSpacing = 10f;
+            var panelWidth = Mathf.Min(Screen.width - 36f, 98f + (slotCount * (slotWidth + slotSpacing)));
+            var panelHeight = 72f;
+            var panelX = Mathf.Clamp((Screen.width - panelWidth) * 0.5f, 18f, Mathf.Max(18f, Screen.width - panelWidth - 18f));
+            var bottomMargin = isDiagnosticsVisible ? 182f : 20f;
+            var panelY = Mathf.Max(100f, Screen.height - panelHeight - bottomMargin);
             var panelRect = new Rect(panelX, panelY, panelWidth, panelHeight);
 
-            DrawSolidRect(panelRect, new Color(0.03f, 0.05f, 0.08f, 0.86f));
-            DrawSolidRect(new Rect(panelRect.x + 3f, panelRect.y + 3f, panelRect.width - 6f, panelRect.height - 6f), new Color(1f, 1f, 1f, 0.04f));
-            GUI.Label(new Rect(panelRect.x + 12f, panelRect.y + 7f, 72f, 14f), "MODS", modifierPanelTitleStyle);
+            DrawPanel(panelRect, palette.AccentPrimary, palette.AccentSecondary, false);
+            DrawSectionLabel(new Rect(panelRect.x + 14f, panelRect.y + 9f, 74f, 14f), "MODS", palette.AccentWarm);
 
-            var effectX = panelRect.x + 84f;
+            var effectX = panelRect.x + 92f;
 
             for (var index = 0; index < modifiers.Length; index++)
             {
                 var modifier = modifiers[index];
-                var effectRect = new Rect(effectX, panelRect.y + 9f, slotWidth, 42f);
-                var fillRect = new Rect(effectRect.x, effectRect.yMax - 5f, effectRect.width * Mathf.Clamp01(modifier.DurationRatio), 5f);
+                var effectRect = new Rect(effectX, panelRect.y + 12f, slotWidth, 46f);
+                var fillRect = new Rect(effectRect.x + 6f, effectRect.yMax - 9f, (effectRect.width - 12f) * Mathf.Clamp01(modifier.DurationRatio), 4f);
 
-                DrawSolidRect(effectRect, new Color(modifier.Color.r, modifier.Color.g, modifier.Color.b, 0.16f));
-                DrawSolidRect(new Rect(effectRect.x, effectRect.y, effectRect.width, 3f), modifier.Color);
-                DrawSolidRect(new Rect(effectRect.x, effectRect.yMax - 5f, effectRect.width, 5f), new Color(1f, 1f, 1f, 0.08f));
+                DrawPanel(effectRect, modifier.Color, palette.AccentPrimary, false, 1.5f);
+                DrawSolidRect(new Rect(effectRect.x + 6f, effectRect.yMax - 9f, effectRect.width - 12f, 4f), WithAlpha(palette.TextPrimary, 0.08f));
 
                 if (fillRect.width > 0.5f)
                 {
                     DrawSolidRect(fillRect, modifier.Color);
                 }
 
-                GUI.Label(new Rect(effectRect.x + 2f, effectRect.y + 7f, effectRect.width - 4f, 12f), modifier.Label, modifierPanelLabelStyle);
-                GUI.Label(new Rect(effectRect.x + 2f, effectRect.y + 20f, effectRect.width - 4f, 12f), $"{modifier.RemainingDuration:0.0}s", modifierPanelTimerStyle);
+                DrawTextWithShadow(new Rect(effectRect.x + 4f, effectRect.y + 8f, effectRect.width - 8f, 12f), modifier.Label, modifierPanelLabelStyle, palette.TextPrimary, 0.25f);
+                DrawTextWithShadow(new Rect(effectRect.x + 4f, effectRect.y + 22f, effectRect.width - 8f, 12f), $"{modifier.RemainingDuration:0.0}s", modifierPanelTimerStyle, palette.TextMuted, 0.2f);
                 effectX += slotWidth + slotSpacing;
             }
         }
@@ -304,152 +404,113 @@ namespace GetBricked.Gameplay
                 return;
             }
 
-            var rect = new Rect((Screen.width * 0.5f) - 170f, 226f, 340f, 36f);
-            var previousGuiColor = GUI.color;
-            GUI.color = new Color(0f, 0f, 0f, 0.35f);
-            GUI.Box(rect, GUIContent.none);
-            GUI.color = view.Color;
-            GUI.Label(rect, view.Text, pickupStyle);
-            GUI.color = previousGuiColor;
+            var rect = new Rect((Screen.width * 0.5f) - 212f, 128f, 424f, 42f);
+            DrawPanel(rect, view.Color, palette.AccentWarm, false, 1.5f);
+            DrawTextWithShadow(rect, view.Text, pickupStyle, view.Color, 0.3f);
         }
 
         private void EnsureStyles()
         {
-            if (hudStyle != null
-                && messageStyle != null
-                && pickupStyle != null
-                && setupTitleStyle != null
-                && setupSelectedStyle != null
-                && setupHintStyle != null
-                && overlayTitleStyle != null
-                && overlayBodyStyle != null
-                && overlayActionStyle != null
-                && overlaySelectedActionStyle != null
-                && hudButtonStyle != null
-                && hudActiveButtonStyle != null
-                && speedMeterCaptionStyle != null
-                && speedMeterValueStyle != null
-                && modifierPanelTitleStyle != null
-                && modifierPanelLabelStyle != null
-                && modifierPanelTimerStyle != null
-                && modifierPanelEmptyStyle != null)
-            {
-                return;
-            }
-
-            hudStyle = new GUIStyle(GUI.skin.label)
+            hudStyle ??= new GUIStyle(GUI.skin.label)
             {
                 fontSize = 18,
-                normal = { textColor = Color.white },
             };
-
-            messageStyle = new GUIStyle(GUI.skin.label)
+            messageStyle ??= new GUIStyle(GUI.skin.label)
             {
                 alignment = TextAnchor.MiddleCenter,
                 fontSize = 22,
-                normal = { textColor = Color.white },
+                fontStyle = FontStyle.Bold,
+                wordWrap = true,
             };
-
-            pickupStyle = new GUIStyle(GUI.skin.label)
+            pickupStyle ??= new GUIStyle(GUI.skin.label)
             {
                 alignment = TextAnchor.MiddleCenter,
                 fontSize = 24,
                 fontStyle = FontStyle.Bold,
-                normal = { textColor = Color.white },
             };
-
-            setupTitleStyle = new GUIStyle(messageStyle)
-            {
-                fontSize = 28,
-            };
-
-            setupSelectedStyle = new GUIStyle(hudStyle)
-            {
-                fontStyle = FontStyle.Bold,
-            };
-            setupSelectedStyle.normal.textColor = new Color(1f, 0.92f, 0.58f, 1f);
-
-            setupHintStyle = new GUIStyle(GUI.skin.label)
-            {
-                alignment = TextAnchor.MiddleCenter,
-                fontSize = 16,
-                wordWrap = true,
-                normal = { textColor = new Color(0.88f, 0.9f, 0.96f, 1f) },
-            };
-
-            overlayTitleStyle = new GUIStyle(messageStyle)
+            setupTitleStyle ??= new GUIStyle(messageStyle)
             {
                 fontSize = 30,
+                alignment = TextAnchor.MiddleLeft,
             };
-
-            overlayBodyStyle = new GUIStyle(hudStyle)
+            setupSelectedStyle ??= new GUIStyle(hudStyle)
             {
-                alignment = TextAnchor.MiddleCenter,
+                fontStyle = FontStyle.Bold,
+            };
+            setupHintStyle ??= new GUIStyle(GUI.skin.label)
+            {
+                alignment = TextAnchor.MiddleLeft,
+                fontSize = 16,
                 wordWrap = true,
             };
-
-            overlayActionStyle = new GUIStyle(hudStyle)
+            overlayTitleStyle ??= new GUIStyle(messageStyle)
+            {
+                fontSize = 32,
+            };
+            overlayBodyStyle ??= new GUIStyle(hudStyle)
+            {
+                alignment = TextAnchor.MiddleLeft,
+                wordWrap = true,
+            };
+            overlayActionStyle ??= new GUIStyle(hudStyle)
             {
                 alignment = TextAnchor.MiddleCenter,
-                fontSize = 20,
-            };
-
-            overlaySelectedActionStyle = new GUIStyle(overlayActionStyle)
-            {
+                fontSize = 19,
                 fontStyle = FontStyle.Bold,
             };
-            overlaySelectedActionStyle.normal.textColor = new Color(1f, 0.92f, 0.58f, 1f);
-
-            hudButtonStyle = new GUIStyle(GUI.skin.button)
+            overlaySelectedActionStyle ??= new GUIStyle(overlayActionStyle);
+            hudButtonStyle ??= new GUIStyle(overlayActionStyle)
             {
-                alignment = TextAnchor.MiddleCenter,
-                fontSize = 15,
-                fontStyle = FontStyle.Bold,
-                padding = new RectOffset(10, 10, 6, 6),
+                fontSize = 14,
             };
-
-            hudActiveButtonStyle = new GUIStyle(hudButtonStyle);
-            hudActiveButtonStyle.normal.textColor = new Color(1f, 0.95f, 0.72f, 1f);
-
-            speedMeterCaptionStyle = new GUIStyle(hudStyle)
+            hudActiveButtonStyle ??= new GUIStyle(hudButtonStyle);
+            speedMeterCaptionStyle ??= new GUIStyle(hudStyle)
             {
                 alignment = TextAnchor.MiddleCenter,
                 fontSize = 14,
                 fontStyle = FontStyle.Bold,
             };
-
-            speedMeterValueStyle = new GUIStyle(hudStyle)
+            speedMeterValueStyle ??= new GUIStyle(hudStyle)
             {
                 alignment = TextAnchor.MiddleCenter,
                 fontSize = 12,
                 fontStyle = FontStyle.Bold,
             };
-
-            modifierPanelTitleStyle = new GUIStyle(hudStyle)
+            modifierPanelTitleStyle ??= new GUIStyle(hudStyle)
             {
                 alignment = TextAnchor.MiddleCenter,
                 fontSize = 11,
                 fontStyle = FontStyle.Bold,
             };
-
-            modifierPanelLabelStyle = new GUIStyle(hudStyle)
+            modifierPanelLabelStyle ??= new GUIStyle(hudStyle)
             {
                 alignment = TextAnchor.MiddleCenter,
                 fontSize = 10,
                 fontStyle = FontStyle.Bold,
             };
-
-            modifierPanelTimerStyle = new GUIStyle(hudStyle)
+            modifierPanelTimerStyle ??= new GUIStyle(hudStyle)
             {
                 alignment = TextAnchor.MiddleCenter,
                 fontSize = 10,
             };
 
-            modifierPanelEmptyStyle = new GUIStyle(modifierPanelTimerStyle)
-            {
-                fontStyle = FontStyle.Bold,
-            };
-            modifierPanelEmptyStyle.normal.textColor = new Color(0.78f, 0.83f, 0.92f, 1f);
+            hudStyle.normal.textColor = palette.TextPrimary;
+            messageStyle.normal.textColor = palette.TextPrimary;
+            pickupStyle.normal.textColor = palette.TextPrimary;
+            setupTitleStyle.normal.textColor = palette.TextPrimary;
+            setupSelectedStyle.normal.textColor = palette.TextPrimary;
+            setupHintStyle.normal.textColor = palette.TextMuted;
+            overlayTitleStyle.normal.textColor = palette.TextPrimary;
+            overlayBodyStyle.normal.textColor = palette.TextMuted;
+            overlayActionStyle.normal.textColor = palette.TextMuted;
+            overlaySelectedActionStyle.normal.textColor = palette.TextPrimary;
+            hudButtonStyle.normal.textColor = palette.TextMuted;
+            hudActiveButtonStyle.normal.textColor = palette.TextPrimary;
+            speedMeterCaptionStyle.normal.textColor = palette.TextPrimary;
+            speedMeterValueStyle.normal.textColor = palette.TextMuted;
+            modifierPanelTitleStyle.normal.textColor = palette.TextMuted;
+            modifierPanelLabelStyle.normal.textColor = palette.TextPrimary;
+            modifierPanelTimerStyle.normal.textColor = palette.TextMuted;
         }
 
         private void DrawBallSpeedMeter(BreakoutUiSpeedMeterView view)
@@ -459,30 +520,28 @@ namespace GetBricked.Gameplay
                 return;
             }
 
-            var panelWidth = 44f;
-            var panelHeight = Mathf.Clamp(Screen.height - (view.IsDiagnosticsVisible ? 260f : 204f), 170f, 320f);
-            var panelX = Mathf.Clamp(view.BounceZoneLeftScreen - panelWidth - 10f, 8f, Mathf.Max(8f, Screen.width - panelWidth - 8f));
-            var panelY = 90f;
+            var panelWidth = 56f;
+            var panelHeight = Mathf.Clamp(Screen.height - (view.IsDiagnosticsVisible ? 286f : 216f), 184f, 334f);
+            var panelX = Mathf.Clamp(view.BounceZoneLeftScreen - panelWidth - 18f, 12f, Mathf.Max(12f, Screen.width - panelWidth - 12f));
+            var panelY = 104f;
             var panelRect = new Rect(panelX, panelY, panelWidth, panelHeight);
-            var trackRect = new Rect(panelRect.x + 14f, panelRect.y + 34f, 16f, panelRect.height - 78f);
+            var trackRect = new Rect(panelRect.x + 17f, panelRect.y + 38f, 22f, panelRect.height - 92f);
             var fillHeight = Mathf.Lerp(0f, trackRect.height, Mathf.Clamp01(view.SpeedRatio));
-            var fillRect = new Rect(trackRect.x, trackRect.yMax - fillHeight, trackRect.width, fillHeight);
-            var meterColor = Color.Lerp(new Color(0.18f, 0.72f, 1f, 1f), new Color(1f, 0.28f, 0.16f, 1f), Mathf.Clamp01(view.SpeedRatio));
+            var fillRect = new Rect(trackRect.x + 3f, trackRect.yMax - fillHeight + 3f, trackRect.width - 6f, Mathf.Max(0f, fillHeight - 6f));
+            var meterColor = Color.Lerp(palette.AccentPrimary, palette.AccentWarm, Mathf.Clamp01(view.SpeedRatio));
 
-            DrawSolidRect(panelRect, new Color(0.03f, 0.05f, 0.08f, 0.82f));
-            DrawSolidRect(trackRect, new Color(0.1f, 0.14f, 0.2f, 0.95f));
+            DrawPanel(panelRect, palette.AccentPrimary, palette.AccentWarm, false);
+            DrawSolidRect(trackRect, WithAlpha(palette.BezelDark, 0.95f));
+            DrawOutline(trackRect, WithAlpha(palette.TextPrimary, 0.08f), 1f);
 
-            if (fillHeight > 0.5f)
+            if (fillRect.height > 1f)
             {
                 DrawSolidRect(fillRect, meterColor);
-                DrawSolidRect(
-                    new Rect(fillRect.x + 2f, fillRect.y + 2f, Mathf.Max(2f, fillRect.width - 4f), Mathf.Max(2f, fillRect.height - 4f)),
-                    new Color(1f, 1f, 1f, 0.12f));
             }
 
-            GUI.Label(new Rect(panelRect.x, panelRect.y + 8f, panelRect.width, 18f), "SPD", speedMeterCaptionStyle);
-            GUI.Label(new Rect(panelRect.x - 8f, panelRect.yMax - 36f, panelRect.width + 16f, 18f), $"{view.Speed:0.00}", speedMeterValueStyle);
-            GUI.Label(new Rect(panelRect.x - 8f, panelRect.yMax - 20f, panelRect.width + 16f, 16f), "u/s", speedMeterValueStyle);
+            DrawTextWithShadow(new Rect(panelRect.x, panelRect.y + 10f, panelRect.width, 18f), "SPD", speedMeterCaptionStyle, palette.TextPrimary, 0.25f);
+            DrawTextWithShadow(new Rect(panelRect.x - 10f, panelRect.yMax - 38f, panelRect.width + 20f, 18f), $"{view.Speed:0.00}", speedMeterValueStyle, palette.TextPrimary, 0.2f);
+            DrawTextWithShadow(new Rect(panelRect.x - 10f, panelRect.yMax - 22f, panelRect.width + 20f, 16f), "u/s", speedMeterValueStyle, palette.TextMuted, 0.2f);
         }
 
         private void DrawActionList(string[] labels, int selectedIndex, float x, float y, float width, float lineHeight, Action<int> onActionClicked)
@@ -495,13 +554,227 @@ namespace GetBricked.Gameplay
             for (var index = 0; index < labels.Length; index++)
             {
                 var isSelected = index == Mathf.Clamp(selectedIndex, 0, Math.Max(0, labels.Length - 1));
-                var actionRect = new Rect(x, y + (lineHeight * index), width, lineHeight);
+                var actionRect = new Rect(x, y + (lineHeight * index), width, lineHeight - 4f);
 
-                if (GUI.Button(actionRect, labels[index], isSelected ? overlaySelectedActionStyle : overlayActionStyle))
+                if (DrawArcadeButton(actionRect, labels[index], isSelected))
                 {
                     onActionClicked?.Invoke(index);
                 }
             }
+        }
+
+        private bool DrawArcadeButton(Rect rect, string label, bool isSelected)
+        {
+            var leftAccent = isSelected ? palette.AccentSecondary : WithAlpha(palette.AccentSecondary, 0.45f);
+            var rightAccent = isSelected ? palette.AccentPrimary : WithAlpha(palette.AccentPrimary, 0.45f);
+            DrawPanel(rect, leftAccent, rightAccent, isSelected, 1.5f);
+
+            if (isSelected)
+            {
+                DrawSolidRect(new Rect(rect.x + 8f, rect.y + rect.height - 7f, rect.width - 16f, 3f), palette.AccentWarm);
+            }
+
+            DrawTextWithShadow(
+                rect,
+                ToArcadeLabel(label),
+                isSelected ? overlaySelectedActionStyle : overlayActionStyle,
+                isSelected ? palette.TextPrimary : palette.TextMuted,
+                0.25f);
+            return GUI.Button(rect, GUIContent.none, GUIStyle.none);
+        }
+
+        private void DrawPanel(Rect rect, Color leftAccent, Color rightAccent, bool emphasize, float borderThickness = 2f)
+        {
+            var glowRect = Inflate(rect, emphasize ? 10f : 6f);
+            DrawSolidRect(glowRect, WithAlpha(Color.Lerp(leftAccent, rightAccent, 0.5f), emphasize ? 0.12f : 0.05f));
+            DrawSolidRect(rect, palette.PanelFill);
+            DrawSolidRect(new Rect(rect.x + 3f, rect.y + 3f, rect.width - 6f, rect.height - 6f), palette.PanelFillSecondary);
+            DrawHorizontalGradient(new Rect(rect.x + 3f, rect.y + 3f, rect.width - 6f, 4f), leftAccent, rightAccent, 18);
+            DrawOutline(rect, WithAlpha(palette.TextPrimary, 0.1f), borderThickness);
+            DrawOutline(new Rect(rect.x + 6f, rect.y + 6f, rect.width - 12f, rect.height - 12f), WithAlpha(rightAccent, emphasize ? 0.28f : 0.12f), 1f);
+            DrawCornerBrackets(rect, leftAccent, rightAccent);
+        }
+
+        private void DrawPlayfieldFrame(Rect rect)
+        {
+            var outer = Inflate(rect, 22f);
+            var innerBezel = Inflate(rect, 12f);
+            var glowBand = Inflate(rect, 8f);
+            DrawFrameBands(outer, innerBezel, WithAlpha(palette.BezelDark, 0.86f));
+            DrawOutline(outer, WithAlpha(palette.TextPrimary, 0.04f), 2f);
+
+            DrawFrameBands(innerBezel, glowBand, WithAlpha(palette.BackgroundGlow, 0.28f));
+            DrawOutline(glowBand, WithAlpha(palette.AccentSecondary, 0.18f), 2f);
+            DrawOutline(rect, WithAlpha(palette.AccentPrimary, 0.36f), 2f);
+
+            DrawHorizontalGradient(new Rect(glowBand.x + 8f, glowBand.y + 8f, glowBand.width - 16f, 3f), palette.AccentSecondary, palette.AccentPrimary, 24);
+            DrawVerticalGradient(new Rect(rect.x, rect.y, rect.width, 12f), WithAlpha(palette.TextPrimary, 0.035f), Color.clear, 8);
+        }
+
+        private void DrawOutsidePlayfieldShade(Rect playfieldRect, bool isMenuLike)
+        {
+            var alpha = isMenuLike ? 0.46f : 0.28f;
+            DrawSolidRect(new Rect(0f, 0f, Screen.width, Mathf.Max(0f, playfieldRect.y - 20f)), WithAlpha(palette.BezelDark, alpha));
+            DrawSolidRect(new Rect(0f, playfieldRect.yMax + 20f, Screen.width, Mathf.Max(0f, Screen.height - playfieldRect.yMax - 20f)), WithAlpha(palette.BezelDark, alpha + 0.06f));
+            DrawSolidRect(new Rect(0f, playfieldRect.y - 20f, Mathf.Max(0f, playfieldRect.x - 20f), playfieldRect.height + 40f), WithAlpha(palette.BezelDark, alpha + 0.04f));
+            DrawSolidRect(new Rect(playfieldRect.xMax + 20f, playfieldRect.y - 20f, Mathf.Max(0f, Screen.width - playfieldRect.xMax - 20f), playfieldRect.height + 40f), WithAlpha(palette.BezelDark, alpha + 0.04f));
+        }
+
+        private void DrawPerspectiveGrid(Rect playfieldRect)
+        {
+            var horizonY = Mathf.Min(Screen.height - 120f, playfieldRect.yMax + 56f);
+            var gridBottom = Screen.height - 18f;
+            var centerX = Screen.width * 0.5f;
+
+            DrawHorizontalGradient(new Rect(0f, horizonY - 3f, Screen.width, 3f), WithAlpha(palette.AccentSecondary, 0f), WithAlpha(palette.AccentPrimary, 0.28f), 30);
+
+            for (var index = 0; index < 9; index++)
+            {
+                var t = (index + 1f) / 9f;
+                var y = Mathf.Lerp(horizonY + 12f, gridBottom, t * t);
+                DrawSolidRect(new Rect(0f, y, Screen.width, 1f), WithAlpha(palette.AccentPrimary, Mathf.Lerp(0.03f, 0.12f, t)));
+            }
+
+            for (var index = -7; index <= 7; index++)
+            {
+                var xBottom = centerX + (index * 84f);
+                DrawSolidRect(new Rect(xBottom, horizonY, 1f, gridBottom - horizonY), WithAlpha(palette.AccentSecondary, 0.03f + (0.01f * Mathf.Abs(index))));
+            }
+        }
+
+        private void DrawMarquee(string title, string subtitle)
+        {
+            var rect = new Rect((Screen.width * 0.5f) - 290f, 26f, 580f, 72f);
+            DrawPanel(rect, palette.AccentSecondary, palette.AccentPrimary, true);
+            DrawTextWithShadow(new Rect(rect.x, rect.y + 8f, rect.width, 28f), ToArcadeLabel(title), overlayTitleStyle, palette.TextPrimary, 0.35f);
+
+            if (!string.IsNullOrWhiteSpace(subtitle))
+            {
+                DrawTextWithShadow(new Rect(rect.x, rect.y + 40f, rect.width, 18f), ToArcadeLabel(subtitle), speedMeterValueStyle, palette.TextMuted, 0.2f);
+            }
+        }
+
+        private void DrawHintBand(Rect rect, string text)
+        {
+            DrawPanel(rect, palette.AccentPrimary, palette.AccentSecondary, false, 1f);
+            DrawTextWithShadow(rect, text, setupHintStyle, palette.TextMuted, 0.2f);
+        }
+
+        private void DrawSectionLabel(Rect rect, string text, Color accent)
+        {
+            DrawTextWithShadow(rect, ToArcadeLabel(text), speedMeterCaptionStyle, accent, 0.25f);
+        }
+
+        private void DrawSelectionBar(Rect rect)
+        {
+            DrawSolidRect(rect, WithAlpha(palette.AccentSecondary, 0.16f));
+            DrawHorizontalGradient(new Rect(rect.x, rect.y, rect.width, 3f), palette.AccentSecondary, palette.AccentPrimary, 20);
+            DrawOutline(rect, WithAlpha(palette.TextPrimary, 0.08f), 1f);
+        }
+
+        private static Rect Inflate(Rect rect, float amount)
+        {
+            return new Rect(rect.x - amount, rect.y - amount, rect.width + (amount * 2f), rect.height + (amount * 2f));
+        }
+
+        private static Color WithAlpha(Color color, float alpha)
+        {
+            return new Color(color.r, color.g, color.b, alpha);
+        }
+
+        private static string ToArcadeLabel(string text)
+        {
+            return string.IsNullOrWhiteSpace(text) ? string.Empty : text.ToUpperInvariant();
+        }
+
+        private void DrawTextWithShadow(Rect rect, string text, GUIStyle style, Color color, float shadowAlpha = 0.5f)
+        {
+            var previousGuiColor = GUI.color;
+            GUI.color = new Color(0f, 0f, 0f, shadowAlpha);
+            GUI.Label(new Rect(rect.x + 1f, rect.y + 2f, rect.width, rect.height), text, style);
+            GUI.color = color;
+            GUI.Label(rect, text, style);
+            GUI.color = previousGuiColor;
+        }
+
+        private void DrawCornerBrackets(Rect rect, Color leftAccent, Color rightAccent)
+        {
+            const float length = 14f;
+            const float thickness = 2f;
+
+            DrawSolidRect(new Rect(rect.x, rect.y, length, thickness), leftAccent);
+            DrawSolidRect(new Rect(rect.x, rect.y, thickness, length), leftAccent);
+            DrawSolidRect(new Rect(rect.xMax - length, rect.y, length, thickness), rightAccent);
+            DrawSolidRect(new Rect(rect.xMax - thickness, rect.y, thickness, length), rightAccent);
+            DrawSolidRect(new Rect(rect.x, rect.yMax - thickness, length, thickness), leftAccent);
+            DrawSolidRect(new Rect(rect.x, rect.yMax - length, thickness, length), leftAccent);
+            DrawSolidRect(new Rect(rect.xMax - length, rect.yMax - thickness, length, thickness), rightAccent);
+            DrawSolidRect(new Rect(rect.xMax - thickness, rect.yMax - length, thickness, length), rightAccent);
+        }
+
+        private void DrawVerticalGradient(Rect rect, Color topColor, Color bottomColor, int steps)
+        {
+            if (steps <= 0)
+            {
+                DrawSolidRect(rect, topColor);
+                return;
+            }
+
+            var stepHeight = rect.height / steps;
+
+            for (var index = 0; index < steps; index++)
+            {
+                var t = steps == 1 ? 0f : index / (float)(steps - 1);
+                var color = Color.Lerp(topColor, bottomColor, t);
+                DrawSolidRect(new Rect(rect.x, rect.y + (stepHeight * index), rect.width, stepHeight + 1f), color);
+            }
+        }
+
+        private void DrawHorizontalGradient(Rect rect, Color leftColor, Color rightColor, int steps)
+        {
+            if (steps <= 0)
+            {
+                DrawSolidRect(rect, leftColor);
+                return;
+            }
+
+            var stepWidth = rect.width / steps;
+
+            for (var index = 0; index < steps; index++)
+            {
+                var t = steps == 1 ? 0f : index / (float)(steps - 1);
+                var color = Color.Lerp(leftColor, rightColor, t);
+                DrawSolidRect(new Rect(rect.x + (stepWidth * index), rect.y, stepWidth + 1f, rect.height), color);
+            }
+        }
+
+        private void DrawOutline(Rect rect, Color color, float thickness)
+        {
+            DrawSolidRect(new Rect(rect.x, rect.y, rect.width, thickness), color);
+            DrawSolidRect(new Rect(rect.x, rect.yMax - thickness, rect.width, thickness), color);
+            DrawSolidRect(new Rect(rect.x, rect.y, thickness, rect.height), color);
+            DrawSolidRect(new Rect(rect.xMax - thickness, rect.y, thickness, rect.height), color);
+        }
+
+        private void DrawScanlines(Rect rect, float spacing, Color color)
+        {
+            if (spacing <= 1f)
+            {
+                return;
+            }
+
+            for (var y = rect.y; y < rect.yMax; y += spacing)
+            {
+                DrawSolidRect(new Rect(rect.x, y, rect.width, 1f), color);
+            }
+        }
+
+        private void DrawFrameBands(Rect outer, Rect inner, Color color)
+        {
+            DrawSolidRect(new Rect(outer.x, outer.y, outer.width, Mathf.Max(0f, inner.y - outer.y)), color);
+            DrawSolidRect(new Rect(outer.x, inner.yMax, outer.width, Mathf.Max(0f, outer.yMax - inner.yMax)), color);
+            DrawSolidRect(new Rect(outer.x, inner.y, Mathf.Max(0f, inner.x - outer.x), inner.height), color);
+            DrawSolidRect(new Rect(inner.xMax, inner.y, Mathf.Max(0f, outer.xMax - inner.xMax), inner.height), color);
         }
 
         private static void DrawSolidRect(Rect rect, Color color)

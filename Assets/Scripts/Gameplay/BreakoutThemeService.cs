@@ -128,6 +128,11 @@ namespace GetBricked.Gameplay
             var paddleStyle = ResolveThemeStyle(ThemeVisualSlot.Paddle, paddleFallback, paddleFallback, squareSprite);
             paddleSpriteRenderer.sprite = paddleStyle.Sprite;
             paddleSpriteRenderer.color = paddleStyle.PrimaryColor;
+
+            if (paddleSpriteRenderer.TryGetComponent<BreakoutGlowRenderer>(out var glowRenderer))
+            {
+                glowRenderer.ApplyStyle(paddleStyle);
+            }
         }
 
         private void ApplyThemeToBalls(IList<BallController> activeBalls)
@@ -161,6 +166,11 @@ namespace GetBricked.Gameplay
             var ballStyle = ResolveBallStyle();
             spriteRenderer.sprite = ballStyle.Sprite;
             spriteRenderer.color = ballStyle.PrimaryColor;
+
+            if (spriteRenderer.TryGetComponent<BreakoutGlowRenderer>(out var glowRenderer))
+            {
+                glowRenderer.ApplyStyle(ballStyle);
+            }
         }
 
         private void ApplyThemeToBricks(IList<Brick> bricks)

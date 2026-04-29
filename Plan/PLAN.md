@@ -1,82 +1,101 @@
 # Get Bricked Plan
 
-## Overview
+## Planning Reset
 
-Get Bricked starts from the classic brick-breaker loop, then expands it with seeded variation, modifiers, co-op competition, and long-term content growth. The immediate goal is not to build all 50 levels or every power-up at once. The goal is to create a stable, data-driven foundation so we can prove the game is fun early, then scale content without reworking the core systems.
+This plan replaces the earlier roadmap that assumed the project still needed its first vertical slice. That is no longer true.
 
-## High-Level Vision
+`Get Bricked` already has a real playable runtime prototype with seeded run setup, procedural level progression, lives, drops, themes, temporary UI flow, and data-driven content hooks. The new plan starts from that baseline and pushes the game toward a stronger identity:
 
-- Core loop: bounce one or more balls with player-controlled platforms to clear breakable bricks while protecting lives.
-- Progression: clear a level to advance; difficulty rises through faster balls, tougher bricks, denser layouts, and trickier hazards.
-- Identity: two-platform multiplayer, multi-ball pressure, seeded runs, and configurable modifiers make this more than a straight Breakout clone.
-- Longevity: support expansion through new brick types, themes, power-ups, modifiers, and level packs or DLC.
+`a run-based arcade roguelite built on brick-breaker feel`
+
+Read [OVERVIEW.md](./OVERVIEW.md) first for the product reframe.
+
+## Current Baseline
+
+The existing prototype already covers:
+
+- one-paddle breakout gameplay with one or more balls
+- seeded run setup and deterministic gameplay rolls
+- procedural multi-level progression
+- data-driven brick, level, power-up, and theme assets
+- timed and instant pickup effects
+- menu, setup, HUD, pause, win, and loss flow
+
+That means the roadmap should focus less on `can we make breakout work?` and more on:
+
+- `how does a run gain identity?`
+- `how do upgrades create synergy stories?`
+- `how do late runs escalate in interesting ways?`
+- `what makes a seed worth replaying or sharing?`
 
 ## Product Pillars
 
-1. The ball physics and paddle control must feel reliable and satisfying before anything else.
-2. The rules should support both authored levels and seeded variation.
-3. Content should be data-driven so new bricks, power-ups, and DLC are additive rather than invasive.
-4. Multiplayer should be layered on top of a proven single-screen gameplay foundation instead of being the first thing we solve.
+1. `Arcade feel first`
+   Paddle control, bounce behavior, and board readability remain the foundation.
+2. `Buildcraft before content sprawl`
+   Depth comes from interactions and run identity, not raw feature count.
+3. `Deterministic replayability`
+   Seeds should support testing, discussion, daily challenges, and future score comparison.
+4. `Readable chaos`
+   Wild builds are welcome as long as the player can still parse the run.
+5. `Single-run strength before social scale`
+   Co-op, versus, and party ideas should grow from a proven single-player run loop.
 
-## Scope Guardrails For The First Milestones
+## Technical Direction
 
-- Start with local multiplayer only.
-- Build a strong single-player vertical slice before full multiplayer rules.
-- Use placeholder art and simple UI until the game loop is stable.
-- Start with a small power-up and power-down pool, then expand after the drop system is proven.
-- Do not author all 50 levels until the level pipeline, seeded variation, and balancing tools are in place.
+- Keep gameplay code under `Assets/Scripts/`
+- Continue using ScriptableObjects and additive content data where practical
+- Preserve a clear separation between:
+  - `RunSettings` for pre-run choices
+  - run-state models for active build and progression state
+  - temporary effect systems for in-run pickups
+- Keep deterministic systems authoritative for:
+  - upgrade offers
+  - encounter generation
+  - score legitimacy
+  - daily challenge reproducibility
+- Expand data registries and content hooks instead of hard-coding special cases into one controller
 
-## Recommended Technical Direction
+## Scope Guardrails
 
-- Runtime code lives under `Assets/Scripts/`.
-- Use ScriptableObjects for data definitions such as brick types, power-up types, modifiers, themes, and level settings.
-- Keep gameplay rules separate from content data:
-  - `LevelDefinition` or `LevelTemplate` for authored layouts and difficulty settings
-  - `RunSettings` for seed, lives, player count, selected modifiers, and ball count
-  - `BrickDefinition` for health, score value, visuals, and special rules
-  - `PowerUpDefinition` for drop behavior and effect application
-- Use a deterministic random service seeded at run start so the same seed can reproduce procedural decisions.
-- Plan for DLC by keeping content registries and asset references additive rather than hard-coded.
-
-## Build Strategy
-
-The safest path is to build the game in layers:
-
-1. Prove the paddle, ball, brick collision, lives, and level clear loop.
-2. Add data-driven brick health and authored level progression.
-3. Add drops and effect systems.
-4. Add multiplayer-specific rules and balancing.
-5. Add seeded generation and user-facing modifiers.
-6. Expand content, menus, polish, and DLC hooks.
+- Do not pivot back toward a giant authored-level campaign as the primary differentiator
+- Do not let multiplayer architecture dictate core single-run systems too early
+- Do not add dozens of disconnected upgrades before the synergy model exists
+- Do not sacrifice gameplay readability for spectacle
+- Do not turn meta progression into permanent stat inflation
 
 ## Roadmap
 
-- [01 Foundation And Vertical Slice](./01-foundation-and-vertical-slice.md)
-- [02 Core Progression And Failure States](./02-core-progression-and-failure-states.md)
-- [03 Brick Content And Level Pipeline](./03-brick-content-and-level-pipeline.md)
-- [04 Power-Ups And Power-Downs](./04-powerups-and-powerdowns.md)
-- [05 Multiplayer Ruleset](./05-multiplayer-ruleset.md)
-- [06 Procedural Seeds And Modifiers](./06-procedural-seeds-and-modifiers.md)
-- [07 HUD Menu And Meta Flow](./07-hud-menu-and-meta-flow.md)
-- [08 DLC Content Pipeline And Polish](./08-dlc-content-pipeline-and-polish.md)
+- [01 Run Architecture And Upgrade Draft](./01-run-architecture-and-upgrade-draft.md)
+- [02 Synergy Engine And Build Rules](./02-synergy-engine-and-build-rules.md)
+- [03 Strategic Bricks, Balls, And Hazards](./03-strategic-bricks-balls-and-hazards.md)
+- [04 Scoring, Risk, And Reward Systems](./04-scoring-risk-and-reward-systems.md)
+- [05 Endless Escalation And Boss Structure](./05-endless-escalation-and-boss-structure.md)
+- [06 Daily Seeds, Meta Progression, And Challenges](./06-daily-seeds-meta-progression-and-challenges.md)
+- [07 UI, Run Readability, And Presentation](./07-ui-run-readability-and-presentation.md)
+- [08 Social Modes, Content Pipeline, And Production Readiness](./08-social-modes-content-pipeline-and-production-readiness.md)
+
+## Sequencing Logic
+
+The new order is intentional:
+
+1. First, define the `run layer` so the game has persistent build identity
+2. Then, make upgrade interactions legible and worth chasing
+3. Next, add encounter content that can answer those builds
+4. After that, deepen mastery with score systems and risk contracts
+5. Then, give runs stronger shape through phases, endless play, and bosses
+6. Finally, wrap retention, presentation, and social expansion around a proven core
 
 ## Open Design Questions
 
-- Is multiplayer cooperative, competitive, or a mode that can swing between both?
-- Do both players share lives, or does each platform own its own failures and recovery rules?
-- Are the 50 starting levels fully authored, fully procedural, or hybrid templates with seeded variation?
-- Should some modifiers disable leaderboard or progression tracking later?
-- How chaotic should multi-ball become by default in multiplayer?
+- How many `Core Mod` slots should a run support before the build becomes too noisy?
+- Which run systems remain score-valid for future daily challenges, and which become `chaos` or `custom` variants?
+- Should bosses gate progress on fixed milestones, seed rules, or score thresholds?
+- Is endless mode a branch from the main structured run or a separate start option?
+- Which social mode should be the first real extension once single-player run depth is proven?
 
-## Suggested Next Build Target
+## Recommended Immediate Focus
 
-Start with Chunk 01 and build a playable single-screen prototype with:
+If only one chunk is tackled next, it should be [Chunk 01](./01-run-architecture-and-upgrade-draft.md).
 
-- one controllable paddle
-- one ball
-- one simple brick grid
-- brick destruction
-- bounce tuning
-- a temporary win/reset flow
-
-That gives us a feel check quickly and keeps later decisions grounded in actual play rather than theory.
+The current prototype already supports seeded progression and modifiers. The biggest missing step is the `between-level upgrade draft`, because it changes the game from a prototype with randomization into a run-builder with identity.

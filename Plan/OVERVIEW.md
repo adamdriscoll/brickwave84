@@ -1,196 +1,163 @@
-1. Run-Based Progression (Roguelite Layer)
+# Get Bricked Overview
 
-You’re already halfway there with seeds.
+## Product Reframe
 
-Instead of just playing levels, make it a run:
+`Get Bricked` should no longer be planned as a straight brick-breaker that gradually adds more levels, more bricks, and eventually multiplayer. The current prototype has already moved past that starting line.
 
-After each level, pick 1 of 3 upgrades
-Upgrades can stack and break the game (in fun ways)
+The stronger direction is:
 
-Examples:
+- a `run-based arcade roguelite`
+- built on readable Breakout fundamentals
+- driven by `seeded replayability`
+- elevated by `upgrade drafts`, `synergies`, and `controlled chaos`
 
-“Ball splits into 2 on every 5th hit”
-“Explosive bricks chain twice as far”
-“Paddle leaves a trail that deflects balls”
-“+50% score but ball speed permanently increases”
+The central player question shifts from:
 
-This turns it from Breakout → “what broken build can I create?”
+`Can I clear the next level?`
 
-2. Synergy-Based Modifiers (This is the goldmine)
+to:
 
-Don’t just add modifiers—make them interact.
+`What kind of broken, risky, or stylish build can I assemble this run?`
 
-Examples:
+## What The Current Prototype Already Proves
 
-Wavy paddle + multi-ball = chaotic skill expression
-Explosive bricks + magnet ball = vacuum chain reactions
-Fast ball + score multiplier = high-risk/high-reward builds
+The current build already gives us a real foundation for this direction:
 
-You can even surface synergies intentionally:
+- runtime run setup and main-menu flow
+- deterministic seed handling
+- procedural multi-level progression
+- data-driven bricks, levels, power-ups, and themes
+- temporary modifier effects and drop logic
+- a playable life-loss, serve, pause, restart, and game-over loop
 
-“If you pick this, it will enhance your current build”
+That means the roadmap should stop treating the game as a blank-slate prototype and instead focus on `run identity`, `build depth`, and `replay structure`.
 
-That’s where replayability explodes.
+## Core Experience
 
-3. New Brick Types That Change Strategy
+Each run should feel like a fast arcade climb that keeps asking the player to make bolder choices.
 
-Instead of just “harder to break,” make them force decisions:
+The intended loop is:
 
-Control Bricks
-Gravity Brick – pulls the ball slightly
-Wind Zones – directional influence areas
-Portal Bricks – teleport ball across screen
-Risk/Reward Bricks
-Multiplier Brick – increases score per hit but speeds ball
-Bomb Chain Core – if triggered right, clears half the board
-Tactical Bricks
-Shielded Bricks – must be hit from certain angles
-Linked Bricks – destroy one, others react
-Growing Bricks – expand if ignored
-4. Ball Behavior Variants (Huge potential)
+1. Start a run from a chosen or generated seed
+2. Clear a board or encounter
+3. Pick `1 of 3` upgrades
+4. Stack synergies, risks, and rule changes across the run
+5. Survive escalating boards, hazards, or boss moments
+6. End the run with a score, summary, and future challenge hook
 
-Right now ball = physics object. You can push that further.
+The run should become progressively less stable in a fun way. Early play is readable and controlled. Mid-run play becomes expressive. Late-run play can become gloriously chaotic as long as readability survives.
 
-Phase Ball – passes through bricks, then “detonates”
-Ricochet Ball – gains speed every bounce
-Drill Ball – tunnels through bricks in a line
-Orbit Ball – curves around the paddle
+## Design Pillars
 
-Let players stack these. That’s where builds get wild.
+### 1. Reliable Arcade Feel
 
-5. Scoring Systems That Reward Skill Expression
+The paddle, ball, bounce logic, and collision readability remain the non-negotiable base. No amount of upgrades or spectacle can compensate for weak feel.
 
-You mentioned speed + time—good instinct. Expand that:
+### 2. Buildcraft Over Content Volume
 
-Combo meter (don’t let ball hit paddle = multiplier)
-Trick shots (angle-based scoring)
-Near-miss bonus (barely catching the ball)
-Speed threshold tiers
+The game gets depth primarily from `interactions`, not from shipping a huge count of isolated features. A smaller pool of well-connected upgrades is better than a larger pool of disconnected gimmicks.
 
-X speed = 2x
+### 3. Readable Chaos
 
-Y speed = 3x
+Runs can become wild, but the player should still understand:
 
-Also:
+- what their build is doing
+- why the run became harder
+- which rewards are helping
+- which risks they chose on purpose
 
-Let players choose to make it harder for more points
+### 4. Deterministic Replayability
 
-That’s a strong loop.
+Seeds are a design asset, not just a debugging convenience. The same seed should make challenge runs, daily runs, and comparison play possible.
 
-6. Infinite Mode → Make It Escalate in Interesting Ways
+### 5. Expandable Social Energy
 
-Instead of just “more bricks faster”:
+Social or multiplayer modes are still valuable, but they should grow out of a strong single-run game instead of defining the project too early.
 
-Introduce phases:
+## System Layers
 
-Phase 1: Standard
-Phase 2: Moving bricks + hazards
-Phase 3: Environmental effects (gravity shifts, shrinking playfield)
-Phase 4: “Chaos mode” (modifier stacking every 10 seconds)
+### Run Layer
 
-You can also:
+This is the backbone of the new direction:
 
-Gradually reduce paddle size
-Add screen shake / visual noise
-Introduce boss waves
-7. Boss Fights (Surprisingly fits well)
+- seeded run start
+- encounter progression
+- between-level upgrade drafts
+- active build tracking
+- run summary and outcome tracking
 
-At certain levels:
+### Upgrade Layer
 
-Giant brick entities with behaviors
-Weak points
-Attack patterns (shoot projectiles, spawn bricks)
+This is where build identity lives:
 
-Examples:
+- persistent run upgrades
+- limited-slot `Core Mods`
+- stackable `Run Mods`
+- temporary pickup effects
+- synergy tags, conflicts, and combo hooks
 
-“Snake” boss made of bricks
-Core that must be exposed by breaking armor
-Boss that reflects the ball intentionally
-8. Party Mode → Make It Social, Not Just Turn-Based
+### Encounter Layer
 
-Turn-based is fine, but you can make it fun chaotic:
+This is how the boards push back:
 
-Shared screen co-op
-Two paddles
-Cooperative combos
-Versus mode
-Send junk bricks to opponent (like Tetris)
-Draft mode
-Players take turns picking modifiers for everyone
+- strategic brick behaviors
+- weird ball behaviors
+- environmental pressure
+- phase-based escalation
+- boss-style encounters
 
-That last one is very fun:
+### Mastery Layer
 
-“I pick something that helps me but screws you later”
+This is what keeps runs replayable:
 
-9. Meta Progression (Keeps people coming back)
+- score expression
+- opt-in risk for reward
+- daily seeds
+- challenge presets
+- local bests and unlockable variety
 
-Not pay-to-win—just unlock variety:
+## Content Direction
 
-Unlock new modifier pools
-Unlock starting loadouts
-Unlock “seed mutators” (e.g., “more explosives”)
+The next content should prioritize mechanics that change decisions.
 
-Also:
+High-value examples:
 
-Daily seed challenge
-Leaderboards per seed
+- bricks that pull, redirect, grow, link, shield, or explode
+- balls that phase, drill, curve, split, or overclock
+- upgrades that intentionally create synergy stories
+- hazards that change the board without requiring huge art scope
+- score systems that reward speed, danger, precision, and clutch recovery
 
-This fits perfectly with your seeded system.
+## Naming And Identity
 
-10. “Sticky Modifiers” (Great idea—expand it)
+Upgrade names, hazard names, and boss names should support the arcade-roguelite fantasy. Even simple mechanics will feel more memorable if they are framed as part of a coherent build language.
 
-Make these feel like build identity:
+Examples of the desired tone:
 
-Permanent modifiers for the entire run
-Limited slots (force decisions)
+- `Overclock`
+- `Chain Reactor`
+- `Singularity Core`
+- `Ghostline`
+- `Glass Cannon`
 
-Example system:
+## Near-Term Priorities
 
-You can equip 3 “Core Mods”
-Everything else is temporary
+If we prioritize only a handful of features, these should lead:
 
-Examples:
+1. Between-level upgrade drafts
+2. Synergy-aware modifier rules
+3. A few standout ball and brick behaviors
+4. Escalating run phases and endless continuation
+5. Daily seeded challenge structure
 
-Sticky paddle
-Double scoring but fragile paddle
-Always-on multi-ball (but smaller balls)
-11. Environmental Effects (Underrated)
-Moving walls
-Rotating playfield
-Shrinking arena
-Fog-of-war (can’t see all bricks)
-Ice physics (slippery paddle)
+That combination best matches the current codebase and gives the game a stronger identity without requiring a massive art or multiplayer scope jump.
 
-These change gameplay without new assets.
+## Near-Term Non-Goals
 
-12. Chaos Toggles (For fun + YouTube factor)
+For now, do not let the roadmap drift toward:
 
-Let players enable:
-
-“Random modifier every 5 seconds”
-“Ball clones on paddle hit”
-“Gravity flips every 10 seconds”
-
-This creates shareable moments.
-
-13. Naming / Identity Layer (Small but powerful)
-
-Give modifiers names like:
-
-“Overclock”
-“Chain Reactor”
-“Singularity Core”
-
-It makes the game feel deeper than it is.
-
-What I’d prioritize (if I were you)
-
-Given your setup and constraints:
-
-Upgrade choices between levels (roguelite layer)
-Modifier synergies
-Infinite mode with escalating phases
-Daily seeded runs + leaderboard
-A few “weird” ball types (not just more bricks)
-
-That combo alone could make the game very replayable.
+- a giant authored level campaign
+- permanent stat grinding
+- full online infrastructure
+- social modes before the single-player run loop sings
+- content quantity that outpaces system clarity

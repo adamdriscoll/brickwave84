@@ -346,6 +346,9 @@ namespace GetBricked.Gameplay
             var spriteRenderer = pickupObject.AddComponent<SpriteRenderer>();
             spriteRenderer.sortingOrder = 14;
 
+            var glowRenderer = pickupObject.AddComponent<BreakoutGlowRenderer>();
+            glowRenderer.Configure(1.18f, 0.26f, 1.4f, 0.08f);
+
             pickupObject.AddComponent<BoxCollider2D>();
 
             var pickup = pickupObject.AddComponent<PowerUpPickup>();
