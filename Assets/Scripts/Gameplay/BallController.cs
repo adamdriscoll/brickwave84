@@ -100,7 +100,7 @@ namespace GetBricked.Gameplay
             if (transform.position.y < lossThresholdY)
             {
                 Stop();
-                gameController.HandleBallLost();
+                gameController.HandleBallLost(this);
                 return;
             }
 

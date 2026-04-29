@@ -10,7 +10,7 @@
   - One enabled build scene: `Assets/Scenes/SampleScene.unity`
   - The serialized scene asset is still close to the template and only contains the default `Main Camera` and `Global Light 2D`
   - A runtime bootstrap now injects the playable prototype into the scene on load
-  - The prototype currently supports one paddle, one ball, a brick wall, score/debug HUD, and temporary win/reset flow
+  - The prototype currently supports one paddle, one ball, a brick wall, score HUD, lives, serve/reset flow between ball losses, and temporary level-complete / game-over states
   - There are custom C# scripts now, but still no `.asmdef` files, no prefabs, and no automated tests yet
 - Input System is enabled and has a starter action asset at `Assets/InputSystem_Actions.inputactions`.
 
@@ -19,7 +19,7 @@
 - `Assets/Scenes/SampleScene.unity`: current playable scene and only scene in build settings
 - `Assets/InputSystem_Actions.inputactions`: starter input maps for `Player` and `UI`
 - `Assets/Scripts/Core/BreakoutBootstrap.cs`: runtime entry point that ensures the prototype controller exists after scene load
-- `Assets/Scripts/Gameplay/BreakoutGameController.cs`: builds the prototype playfield, score HUD, brick wall, and round flow at runtime
+- `Assets/Scripts/Gameplay/BreakoutGameController.cs`: builds the prototype playfield, score/lives HUD, brick wall, and run-state flow at runtime
 - `Assets/Scripts/Gameplay/PaddleController.cs`: keyboard-driven paddle movement with clamped horizontal bounds
 - `Assets/Scripts/Gameplay/BallController.cs`: launch, bounce shaping, speed clamping, and loss detection for the prototype ball
 - `Assets/Scripts/Gameplay/Brick.cs`: simple breakable brick behavior
@@ -37,6 +37,7 @@
 - The current prototype is scene-light and code-heavy: the gameplay board, bounds, ball, paddle, bricks, and temporary HUD are created at runtime instead of being serialized into `SampleScene`.
 - Prototype input is currently read directly from `UnityEngine.InputSystem.Keyboard` rather than being wired through `PlayerInput` or the existing action asset.
 - Ball and paddle behavior use Unity 6-era 2D physics APIs such as `Rigidbody2D.linearVelocity`.
+- Run flow is still runtime-authored inside `BreakoutGameController`, including lives, serve states, level completion, and game over.
 - After adding or renaming scripts, let Unity regenerate project files instead of hand-maintaining the `.sln`.
 
 ## Working Rules For Future Agents
@@ -79,8 +80,10 @@ When making changes, validate with the Unity editor when possible:
   - `Breakout Prototype` appears in the runtime hierarchy automatically
   - `A/D` or left/right arrows move the paddle
   - `Space` launches the ball
+  - Losing the ball removes one life and re-serves from the paddle until lives reach zero
   - Bricks are destroyed on hit
-  - `R` resets the round
+  - Clearing all required bricks reaches the temporary level-complete state
+  - `R` restarts the full run
 - If build configuration changes are made, re-check `ProjectSettings/EditorBuildSettings.asset`.
 
 ## Good First Read Files

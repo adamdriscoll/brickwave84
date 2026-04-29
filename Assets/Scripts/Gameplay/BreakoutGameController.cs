@@ -8,10 +8,11 @@ namespace GetBricked.Gameplay
     {
         private enum RoundState
         {
-            Ready,
+            ReadyToServe,
             Playing,
-            Won,
-            Lost,
+            LifeLost,
+            LevelComplete,
+            GameOver,
         }
 
         [Header("Camera")]
@@ -35,6 +36,9 @@ namespace GetBricked.Gameplay
         [SerializeField, Range(0.15f, 0.95f)] private float minimumVerticalDirection = 0.35f;
         [SerializeField] private Color ballColor = new Color(0.98f, 0.75f, 0.29f, 1f);
 
+        [Header("Run Rules")]
+        [SerializeField, Min(1)] private int startingLives = 3;
+
         [Header("Brick Wall")]
         [SerializeField] private Vector2 brickSize = new Vector2(1.15f, 0.45f);
         [SerializeField] private Vector2 brickSpacing = new Vector2(0.15f, 0.15f);
@@ -55,7 +59,9 @@ namespace GetBricked.Gameplay
         private Sprite circleSprite;
         private PhysicsMaterial2D bounceMaterial;
         private RoundState roundState;
+        private int livesRemaining;
         private int score;
+        private int requiredBricksRemaining;
         private float arenaLeft;
         private float arenaRight;
         private float arenaTop;
@@ -71,7 +77,7 @@ namespace GetBricked.Gameplay
             CreateBounds();
             CreatePaddle();
             CreateBall();
-            StartRound();
+            StartNewRun();
         }
 
         private void OnDestroy()
@@ -103,7 +109,7 @@ namespace GetBricked.Gameplay
 
             if (keyboard.rKey.wasPressedThisFrame)
             {
-                StartRound();
+                StartNewRun();
                 return;
             }
 
@@ -112,16 +118,16 @@ namespace GetBricked.Gameplay
                 return;
             }
 
-            if (roundState == RoundState.Ready)
+            if (roundState == RoundState.ReadyToServe || roundState == RoundState.LifeLost)
             {
                 roundState = RoundState.Playing;
                 ball.Launch();
                 return;
             }
 
-            if (roundState == RoundState.Won || roundState == RoundState.Lost)
+            if (roundState == RoundState.LevelComplete || roundState == RoundState.GameOver)
             {
-                StartRound();
+                StartNewRun();
             }
         }
 
@@ -132,33 +138,53 @@ namespace GetBricked.Gameplay
                 return;
             }
 
-            score += 100;
+            score += brick.ScoreValue;
+
+            if (brick.CountsTowardLevelCompletion)
+            {
+                requiredBricksRemaining = Mathf.Max(0, requiredBricksRemaining - 1);
+            }
+
             brick.gameObject.SetActive(false);
             Destroy(brick.gameObject);
 
-            if (bricks.Count == 0)
+            if (requiredBricksRemaining == 0)
             {
-                roundState = RoundState.Won;
+                roundState = RoundState.LevelComplete;
                 ball.Stop();
             }
         }
 
-        public void HandleBallLost()
+        public void HandleBallLost(BallController lostBall)
         {
-            if (roundState == RoundState.Won || roundState == RoundState.Lost)
+            if (roundState != RoundState.Playing || lostBall == null || lostBall != ball)
             {
                 return;
             }
 
-            roundState = RoundState.Lost;
+            livesRemaining = Mathf.Max(0, livesRemaining - 1);
+
+            if (livesRemaining <= 0)
+            {
+                roundState = RoundState.GameOver;
+                return;
+            }
+
+            PrepareServe(RoundState.LifeLost);
         }
 
-        private void StartRound()
+        private void StartNewRun()
         {
+            livesRemaining = Mathf.Max(1, startingLives);
             score = 0;
-            roundState = RoundState.Ready;
             ClearBricks();
             BuildBrickWall();
+            PrepareServe(RoundState.ReadyToServe);
+        }
+
+        private void PrepareServe(RoundState nextState)
+        {
+            roundState = nextState;
             paddle.ResetToStart();
             ball.ResetToPaddle();
         }
@@ -309,6 +335,7 @@ namespace GetBricked.Gameplay
 
         private void BuildBrickWall()
         {
+            requiredBricksRemaining = 0;
             var totalWidth = (brickGrid.x * brickSize.x) + ((brickGrid.x - 1) * brickSpacing.x);
             var startX = (-totalWidth * 0.5f) + (brickSize.x * 0.5f);
             var startY = arenaTop - brickTopInset;
@@ -344,8 +371,9 @@ namespace GetBricked.Gameplay
             brickObject.AddComponent<BoxCollider2D>();
 
             var brick = brickObject.AddComponent<Brick>();
-            brick.Initialize(this);
+            brick.Initialize(this, 100, true, true);
             bricks.Add(brick);
+            requiredBricksRemaining++;
         }
 
         private void ClearBricks()
@@ -412,8 +440,8 @@ namespace GetBricked.Gameplay
         {
             EnsureGuiStyles();
 
-            GUI.Label(new Rect(16f, 16f, 420f, 30f), $"Score: {score:0000}   Bricks: {bricks.Count:00}", hudStyle);
-            GUI.Label(new Rect(16f, 48f, 900f, 28f), "Move with A/D or Left/Right. Launch with Space. Press R to reset.", hudStyle);
+            GUI.Label(new Rect(16f, 16f, 520f, 30f), $"Score: {score:0000}   Lives: {livesRemaining:00}   Required Bricks: {requiredBricksRemaining:00}", hudStyle);
+            GUI.Label(new Rect(16f, 48f, 900f, 28f), "Move with A/D or Left/Right. Launch or continue with Space. Press R to restart the run.", hudStyle);
 
             if (roundState == RoundState.Playing)
             {
@@ -422,9 +450,10 @@ namespace GetBricked.Gameplay
 
             var message = roundState switch
             {
-                RoundState.Ready => "Press Space to launch the ball.",
-                RoundState.Won => "Wall cleared. Press Space to play again.",
-                RoundState.Lost => "Ball lost. Press Space to retry.",
+                RoundState.ReadyToServe => "Press Space to launch the ball.",
+                RoundState.LifeLost => $"Life lost. {livesRemaining} remaining. Press Space to serve again.",
+                RoundState.LevelComplete => "Wall cleared. Press Space to start a new run.",
+                RoundState.GameOver => "Game over. Press Space to restart.",
                 _ => string.Empty,
             };
 
