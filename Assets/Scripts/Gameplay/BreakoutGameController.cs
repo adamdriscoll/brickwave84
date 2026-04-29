@@ -168,6 +168,8 @@ namespace GetBricked.Gameplay
         private GUIStyle overlaySelectedActionStyle;
         private GUIStyle hudButtonStyle;
         private GUIStyle hudActiveButtonStyle;
+        private GUIStyle speedMeterCaptionStyle;
+        private GUIStyle speedMeterValueStyle;
         private LevelDefinition currentLevel;
         private int currentLevelIndex;
         private int levelScore;
@@ -1699,7 +1701,9 @@ namespace GetBricked.Gameplay
                 && overlayActionStyle != null
                 && overlaySelectedActionStyle != null
                 && hudButtonStyle != null
-                && hudActiveButtonStyle != null)
+                && hudActiveButtonStyle != null
+                && speedMeterCaptionStyle != null
+                && speedMeterValueStyle != null)
             {
                 return;
             }
@@ -1777,6 +1781,20 @@ namespace GetBricked.Gameplay
 
             hudActiveButtonStyle = new GUIStyle(hudButtonStyle);
             hudActiveButtonStyle.normal.textColor = new Color(1f, 0.95f, 0.72f, 1f);
+
+            speedMeterCaptionStyle = new GUIStyle(hudStyle)
+            {
+                alignment = TextAnchor.MiddleCenter,
+                fontSize = 14,
+                fontStyle = FontStyle.Bold,
+            };
+
+            speedMeterValueStyle = new GUIStyle(hudStyle)
+            {
+                alignment = TextAnchor.MiddleCenter,
+                fontSize = 12,
+                fontStyle = FontStyle.Bold,
+            };
         }
 
         private void DrawMainMenuUi()
@@ -1861,6 +1879,7 @@ namespace GetBricked.Gameplay
                 new Rect(20f, topBarRect.y + 40f, contentWidth, 24f),
                 BuildRemainingBricksLabel(),
                 hudStyle);
+            DrawBallSpeedMeter();
 
             if (GUI.Button(
                     new Rect(buttonsX, buttonsY, 108f, 38f),
@@ -1980,10 +1999,49 @@ namespace GetBricked.Gameplay
         private string BuildBallSpeedControlLabel()
         {
             var baseSpeed = GetBallSpeedBase();
-            var currentSpeed = GetCurrentBallSpeed();
+            var currentSpeed = GetDisplayedBallSpeed();
             var maxSpeed = GetMaximumBallSpeed();
             return
                 $"Ball Speed {currentSpeed:0.00} | Base {baseSpeed:0.00} | Manual x{manualBallSpeedMultiplier:0.00} | Cap {maxSpeed:0.00}";
+        }
+
+        private void DrawBallSpeedMeter()
+        {
+            if (activeCamera == null)
+            {
+                return;
+            }
+
+            var bounceZoneLeftScreen = activeCamera.WorldToScreenPoint(new Vector3(arenaLeft, 0f, 0f)).x;
+            var panelWidth = 44f;
+            var panelHeight = Mathf.Clamp(Screen.height - (isDiagnosticsOverlayVisible ? 260f : 204f), 170f, 320f);
+            var panelX = Mathf.Clamp(bounceZoneLeftScreen - panelWidth - 10f, 8f, Mathf.Max(8f, Screen.width - panelWidth - 8f));
+            var panelY = 90f;
+            var panelRect = new Rect(panelX, panelY, panelWidth, panelHeight);
+            var trackRect = new Rect(panelRect.x + 14f, panelRect.y + 34f, 16f, panelRect.height - 78f);
+            var speed = GetDisplayedBallSpeed();
+            var speedRatio = Mathf.Clamp01(speed / Mathf.Max(0.1f, GetMaximumBallSpeed()));
+            var fillHeight = Mathf.Lerp(0f, trackRect.height, speedRatio);
+            var fillRect = new Rect(trackRect.x, trackRect.yMax - fillHeight, trackRect.width, fillHeight);
+            var meterColor = Color.Lerp(
+                new Color(0.18f, 0.72f, 1f, 1f),
+                new Color(1f, 0.28f, 0.16f, 1f),
+                speedRatio);
+
+            DrawSolidRect(panelRect, new Color(0.03f, 0.05f, 0.08f, 0.82f));
+            DrawSolidRect(trackRect, new Color(0.1f, 0.14f, 0.2f, 0.95f));
+
+            if (fillHeight > 0.5f)
+            {
+                DrawSolidRect(fillRect, meterColor);
+                DrawSolidRect(
+                    new Rect(fillRect.x + 2f, fillRect.y + 2f, Mathf.Max(2f, fillRect.width - 4f), Mathf.Max(2f, fillRect.height - 4f)),
+                    new Color(1f, 1f, 1f, 0.12f));
+            }
+
+            GUI.Label(new Rect(panelRect.x, panelRect.y + 8f, panelRect.width, 18f), "SPD", speedMeterCaptionStyle);
+            GUI.Label(new Rect(panelRect.x - 8f, panelRect.yMax - 36f, panelRect.width + 16f, 18f), $"{speed:0.00}", speedMeterValueStyle);
+            GUI.Label(new Rect(panelRect.x - 8f, panelRect.yMax - 20f, panelRect.width + 16f, 16f), "u/s", speedMeterValueStyle);
         }
 
         private string BuildRoundStateLabel()
@@ -2415,6 +2473,26 @@ namespace GetBricked.Gameplay
         private float GetCurrentBallSpeed()
         {
             return GetBallSpeedBase() * Mathf.Clamp(manualBallSpeedMultiplier, 1f, Mathf.Max(1f, manualBallSpeedMaxMultiplier));
+        }
+
+        private float GetDisplayedBallSpeed()
+        {
+            var highestActiveSpeed = 0f;
+
+            for (var index = activeBalls.Count - 1; index >= 0; index--)
+            {
+                var activeBall = activeBalls[index];
+
+                if (activeBall == null)
+                {
+                    activeBalls.RemoveAt(index);
+                    continue;
+                }
+
+                highestActiveSpeed = Mathf.Max(highestActiveSpeed, activeBall.CurrentSpeed);
+            }
+
+            return highestActiveSpeed > 0.01f ? highestActiveSpeed : GetCurrentBallSpeed();
         }
 
         private float GetBallSpeedBase()

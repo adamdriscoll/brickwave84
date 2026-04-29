@@ -18,6 +18,8 @@ namespace GetBricked.Gameplay
         private bool followsPaddleWhenIdle;
         private bool hasLaunched;
 
+        public float CurrentSpeed => ballBody != null ? ballBody.linearVelocity.magnitude : 0f;
+
         public void Configure(
             BreakoutGameController controller,
             PaddleController paddleController,
