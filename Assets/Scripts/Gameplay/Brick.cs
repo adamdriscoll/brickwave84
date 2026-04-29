@@ -33,7 +33,7 @@ namespace GetBricked.Gameplay
 
         private void OnCollisionEnter2D(Collision2D collision)
         {
-            if (definition == null || !collision.collider.TryGetComponent<BallController>(out _))
+            if (definition == null || !collision.collider.TryGetComponent<BallController>(out var scoringBall))
             {
                 return;
             }
@@ -47,7 +47,7 @@ namespace GetBricked.Gameplay
 
             if (hitPointsRemaining <= 0)
             {
-                gameController.HandleBrickDestroyed(this);
+                gameController.HandleBrickDestroyed(this, scoringBall);
                 return;
             }
 

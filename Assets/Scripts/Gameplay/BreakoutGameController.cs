@@ -117,6 +117,8 @@ namespace GetBricked.Gameplay
 
         [Header("Ball Speed Control")]
         [SerializeField, Range(0.02f, 0.25f)] private float manualBallSpeedStep = 0.08f;
+        [SerializeField, Range(0.05f, 0.5f)] private float manualBallSpeedHoldDelay = 0.2f;
+        [SerializeField, Range(0.02f, 0.2f)] private float manualBallSpeedHoldInterval = 0.06f;
         [SerializeField, Range(1f, 2.5f)] private float manualBallSpeedMaxMultiplier = 1.75f;
 
         [Header("Run Rules")]
@@ -189,6 +191,8 @@ namespace GetBricked.Gameplay
         private string currentLevelVariationLabel = "Variation: not started";
         private string pendingValidationMessage = string.Empty;
         private float manualBallSpeedMultiplier = 1f;
+        private int manualBallSpeedHoldDirection;
+        private float manualBallSpeedHoldTimer;
         private bool isDiagnosticsOverlayVisible;
 
         private void Awake()
@@ -243,12 +247,14 @@ namespace GetBricked.Gameplay
                 || roundState == RoundState.LevelComplete
                 || roundState == RoundState.GameOver)
             {
+                ResetManualBallSpeedHold();
                 HandleOverlayMenuInput(keyboard);
                 return;
             }
 
             if (roundState == RoundState.RunSetup)
             {
+                ResetManualBallSpeedHold();
                 HandleRunSetupInput(keyboard);
                 return;
             }
@@ -265,15 +271,7 @@ namespace GetBricked.Gameplay
                 return;
             }
 
-            if (keyboard.upArrowKey.wasPressedThisFrame)
-            {
-                AdjustManualBallSpeed(1);
-            }
-
-            if (keyboard.downArrowKey.wasPressedThisFrame)
-            {
-                AdjustManualBallSpeed(-1);
-            }
+            HandleManualBallSpeedInput(keyboard);
 
             if ((keyboard.spaceKey.wasPressedThisFrame || keyboard.enterKey.wasPressedThisFrame || keyboard.numpadEnterKey.wasPressedThisFrame) == false)
             {
@@ -286,15 +284,16 @@ namespace GetBricked.Gameplay
             }
         }
 
-        public void HandleBrickDestroyed(Brick brick)
+        public void HandleBrickDestroyed(Brick brick, BallController scoringBall)
         {
             if (!bricks.Remove(brick))
             {
                 return;
             }
 
-            score += brick.ScoreValue;
-            levelScore += brick.ScoreValue;
+            var awardedScore = CalculateBrickScore(brick, scoringBall);
+            score += awardedScore;
+            levelScore += awardedScore;
             TrySpawnPickup(brick);
 
             if (brick.CountsTowardLevelCompletion)
@@ -837,6 +836,55 @@ namespace GetBricked.Gameplay
             }
 
             ApplyActiveEffects();
+        }
+
+        private void HandleManualBallSpeedInput(Keyboard keyboard)
+        {
+            if (keyboard == null)
+            {
+                ResetManualBallSpeedHold();
+                return;
+            }
+
+            var direction = 0;
+
+            if (keyboard.upArrowKey.isPressed)
+            {
+                direction += 1;
+            }
+
+            if (keyboard.downArrowKey.isPressed)
+            {
+                direction -= 1;
+            }
+
+            if (direction == 0)
+            {
+                ResetManualBallSpeedHold();
+                return;
+            }
+
+            if (direction != manualBallSpeedHoldDirection)
+            {
+                manualBallSpeedHoldDirection = direction;
+                manualBallSpeedHoldTimer = Mathf.Max(0.02f, manualBallSpeedHoldDelay);
+                AdjustManualBallSpeed(direction);
+                return;
+            }
+
+            manualBallSpeedHoldTimer -= Time.unscaledDeltaTime;
+
+            while (manualBallSpeedHoldTimer <= 0f)
+            {
+                AdjustManualBallSpeed(direction);
+                manualBallSpeedHoldTimer += Mathf.Max(0.02f, manualBallSpeedHoldInterval);
+            }
+        }
+
+        private void ResetManualBallSpeedHold()
+        {
+            manualBallSpeedHoldDirection = 0;
+            manualBallSpeedHoldTimer = 0f;
         }
 
         private bool AppendPressedSeedDigit(Keyboard keyboard)
@@ -2002,7 +2050,7 @@ namespace GetBricked.Gameplay
             var currentSpeed = GetDisplayedBallSpeed();
             var maxSpeed = GetMaximumBallSpeed();
             return
-                $"Ball Speed {currentSpeed:0.00} | Base {baseSpeed:0.00} | Manual x{manualBallSpeedMultiplier:0.00} | Cap {maxSpeed:0.00}";
+                $"Ball Speed {currentSpeed:0.00} | Score x{GetScoreMultiplierForSpeed(currentSpeed):0.00} | Base {baseSpeed:0.00} | Manual x{manualBallSpeedMultiplier:0.00} | Cap {maxSpeed:0.00}";
         }
 
         private void DrawBallSpeedMeter()
@@ -2475,6 +2523,26 @@ namespace GetBricked.Gameplay
             return GetBallSpeedBase() * Mathf.Clamp(manualBallSpeedMultiplier, 1f, Mathf.Max(1f, manualBallSpeedMaxMultiplier));
         }
 
+        private int CalculateBrickScore(Brick brick, BallController scoringBall)
+        {
+            if (brick == null)
+            {
+                return 0;
+            }
+
+            var baseScore = brick.ScoreValue;
+
+            if (baseScore <= 0)
+            {
+                return 0;
+            }
+
+            var scoringSpeed = scoringBall != null && scoringBall.CurrentSpeed > 0.01f
+                ? scoringBall.CurrentSpeed
+                : GetDisplayedBallSpeed();
+            return Mathf.Max(1, Mathf.RoundToInt(baseScore * GetScoreMultiplierForSpeed(scoringSpeed)));
+        }
+
         private float GetDisplayedBallSpeed()
         {
             var highestActiveSpeed = 0f;
@@ -2498,6 +2566,11 @@ namespace GetBricked.Gameplay
         private float GetBallSpeedBase()
         {
             return currentLevelBallSpeed * Mathf.Clamp(GetTimedBallSpeedMultiplier(), 0.6f, 1.75f);
+        }
+
+        private float GetScoreMultiplierForSpeed(float speed)
+        {
+            return Mathf.Max(0.1f, speed / Mathf.Max(0.1f, ballSpeed));
         }
 
         private float GetMaximumBallSpeed()
