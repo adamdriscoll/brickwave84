@@ -179,6 +179,10 @@ namespace GetBricked.Gameplay
         private GUIStyle hudActiveButtonStyle;
         private GUIStyle speedMeterCaptionStyle;
         private GUIStyle speedMeterValueStyle;
+        private GUIStyle modifierPanelTitleStyle;
+        private GUIStyle modifierPanelLabelStyle;
+        private GUIStyle modifierPanelTimerStyle;
+        private GUIStyle modifierPanelEmptyStyle;
         private LevelDefinition currentLevel;
         private int currentLevelIndex;
         private int levelScore;
@@ -1962,6 +1966,7 @@ namespace GetBricked.Gameplay
             }
 
             DrawGameplayHud();
+            DrawActiveModifierIndicator();
 
             if (isDiagnosticsOverlayVisible)
             {
@@ -2016,7 +2021,11 @@ namespace GetBricked.Gameplay
                 && hudButtonStyle != null
                 && hudActiveButtonStyle != null
                 && speedMeterCaptionStyle != null
-                && speedMeterValueStyle != null)
+                && speedMeterValueStyle != null
+                && modifierPanelTitleStyle != null
+                && modifierPanelLabelStyle != null
+                && modifierPanelTimerStyle != null
+                && modifierPanelEmptyStyle != null)
             {
                 return;
             }
@@ -2108,6 +2117,32 @@ namespace GetBricked.Gameplay
                 fontSize = 12,
                 fontStyle = FontStyle.Bold,
             };
+
+            modifierPanelTitleStyle = new GUIStyle(hudStyle)
+            {
+                alignment = TextAnchor.MiddleCenter,
+                fontSize = 11,
+                fontStyle = FontStyle.Bold,
+            };
+
+            modifierPanelLabelStyle = new GUIStyle(hudStyle)
+            {
+                alignment = TextAnchor.MiddleCenter,
+                fontSize = 10,
+                fontStyle = FontStyle.Bold,
+            };
+
+            modifierPanelTimerStyle = new GUIStyle(hudStyle)
+            {
+                alignment = TextAnchor.MiddleCenter,
+                fontSize = 10,
+            };
+
+            modifierPanelEmptyStyle = new GUIStyle(modifierPanelTimerStyle)
+            {
+                fontStyle = FontStyle.Bold,
+            };
+            modifierPanelEmptyStyle.normal.textColor = new Color(0.78f, 0.83f, 0.92f, 1f);
         }
 
         private void DrawMainMenuUi()
@@ -2357,6 +2392,77 @@ namespace GetBricked.Gameplay
             GUI.Label(new Rect(panelRect.x, panelRect.y + 8f, panelRect.width, 18f), "SPD", speedMeterCaptionStyle);
             GUI.Label(new Rect(panelRect.x - 8f, panelRect.yMax - 36f, panelRect.width + 16f, 18f), $"{speed:0.00}", speedMeterValueStyle);
             GUI.Label(new Rect(panelRect.x - 8f, panelRect.yMax - 20f, panelRect.width + 16f, 16f), "u/s", speedMeterValueStyle);
+        }
+
+        private void DrawActiveModifierIndicator()
+        {
+            var validEffectCount = 0;
+
+            for (var index = 0; index < activeTimedEffects.Count; index++)
+            {
+                if (activeTimedEffects[index].Definition != null)
+                {
+                    validEffectCount++;
+                }
+            }
+
+            if (validEffectCount == 0)
+            {
+                return;
+            }
+
+            var slotCount = validEffectCount;
+            var slotWidth = 116f;
+            var slotSpacing = 8f;
+            var panelWidth = Mathf.Min(Screen.width - 32f, 84f + (slotCount * (slotWidth + slotSpacing)));
+            var panelHeight = 60f;
+            var panelX = Mathf.Clamp((Screen.width - panelWidth) * 0.5f, 8f, Mathf.Max(8f, Screen.width - panelWidth - 8f));
+            var bottomMargin = isDiagnosticsOverlayVisible ? 156f : 14f;
+            var panelY = Mathf.Max(84f, Screen.height - panelHeight - bottomMargin);
+            var panelRect = new Rect(panelX, panelY, panelWidth, panelHeight);
+
+            DrawSolidRect(panelRect, new Color(0.03f, 0.05f, 0.08f, 0.86f));
+            DrawSolidRect(new Rect(panelRect.x + 3f, panelRect.y + 3f, panelRect.width - 6f, panelRect.height - 6f), new Color(1f, 1f, 1f, 0.04f));
+            GUI.Label(new Rect(panelRect.x + 12f, panelRect.y + 7f, 72f, 14f), "MODS", modifierPanelTitleStyle);
+
+            var effectX = panelRect.x + 84f;
+
+            for (var index = 0; index < activeTimedEffects.Count; index++)
+            {
+                var activeEffect = activeTimedEffects[index];
+
+                if (activeEffect.Definition == null)
+                {
+                    continue;
+                }
+
+                var effectRect = new Rect(effectX, panelRect.y + 9f, slotWidth, 42f);
+                var effectStyle = ResolvePowerUpStyle(activeEffect.Definition);
+                var timeRatio = activeEffect.Definition.DurationSeconds > 0f
+                    ? Mathf.Clamp01(activeEffect.RemainingDuration / activeEffect.Definition.DurationSeconds)
+                    : 1f;
+                var fillRect = new Rect(effectRect.x, effectRect.yMax - 5f, effectRect.width * timeRatio, 5f);
+
+                DrawSolidRect(effectRect, new Color(effectStyle.PrimaryColor.r, effectStyle.PrimaryColor.g, effectStyle.PrimaryColor.b, 0.16f));
+                DrawSolidRect(new Rect(effectRect.x, effectRect.y, effectRect.width, 3f), effectStyle.PrimaryColor);
+                DrawSolidRect(new Rect(effectRect.x, effectRect.yMax - 5f, effectRect.width, 5f), new Color(1f, 1f, 1f, 0.08f));
+
+                if (fillRect.width > 0.5f)
+                {
+                    DrawSolidRect(fillRect, effectStyle.PrimaryColor);
+                }
+
+                GUI.Label(
+                    new Rect(effectRect.x + 2f, effectRect.y + 7f, effectRect.width - 4f, 12f),
+                    activeEffect.Definition.HudLabel,
+                    modifierPanelLabelStyle);
+                GUI.Label(
+                    new Rect(effectRect.x + 2f, effectRect.y + 20f, effectRect.width - 4f, 12f),
+                    $"{activeEffect.RemainingDuration:0.0}s",
+                    modifierPanelTimerStyle);
+
+                effectX += slotWidth + slotSpacing;
+            }
         }
 
         private string BuildRoundStateLabel()
