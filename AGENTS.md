@@ -10,11 +10,11 @@
   - One enabled build scene: `Assets/Scenes/SampleScene.unity`
   - The serialized scene asset is still close to the template and only contains the default `Main Camera` and `Global Light 2D`
   - A runtime bootstrap now injects the playable prototype into the scene on load
-  - The prototype currently supports a runtime main menu, run setup flow, in-game HUD, pause / restart / return-to-menu actions, one paddle, one or more balls, lives, serve/reset flow between ball losses, authored multi-level progression, temporary level-complete / game-over states, and brick-driven power-up / power-down drops
+  - The prototype currently supports a runtime main menu, run setup flow, in-game HUD, pause / restart / return-to-menu actions, one paddle, one or more balls, lives, serve/reset flow between ball losses, seeded procedural multi-level progression, temporary level-complete / game-over states, and brick-driven power-up / power-down drops
   - Brick content is now data-driven through ScriptableObject assets, including multi-strength breakable bricks, unbreakable obstacle bricks, and optional per-level moving-brick rules
   - Power-up content is now data-driven through ScriptableObject assets, with timed paddle-size and ball-speed modifiers plus an instant multi-ball burst effect
   - Runtime visuals now support data-driven theme selection, with palette-based themes for background, walls, paddle, bricks, power-up pickups, and ball plus sprite hooks reserved for future art passes
-  - Chunk 06 and chunk 07 groundwork are now in place through runtime OnGUI overlays for main menu, run setup, HUD, pause, end-state flow, persisted run-setup choices, seed entry, difficulty presets, modifier validation, deterministic gameplay rolls, and seeded authored-level transforms
+  - Chunk 06 and chunk 07 groundwork are now in place through runtime OnGUI overlays for main menu, run setup, HUD, pause, end-state flow, persisted run-setup choices, seed entry, difficulty presets, modifier validation, deterministic gameplay rolls, and seeded procedural level generation
   - There are custom C# scripts now, but still no `.asmdef` files, no prefabs, and no automated tests yet
 - Input System is enabled and has a starter action asset at `Assets/InputSystem_Actions.inputactions`.
 
@@ -23,14 +23,14 @@
 - `Assets/Scenes/SampleScene.unity`: current playable scene and only scene in build settings
 - `Assets/InputSystem_Actions.inputactions`: starter input maps for `Player` and `UI`
 - `Assets/Scripts/Core/BreakoutBootstrap.cs`: runtime entry point that ensures the prototype controller exists after scene load
-- `Assets/Scripts/Gameplay/BreakoutGameController.cs`: builds the prototype playfield, runtime main menu/setup/HUD overlays, run-setup persistence, pause flow, runtime brick layout, and multi-level run-state flow
+- `Assets/Scripts/Gameplay/BreakoutGameController.cs`: builds the prototype playfield, runtime main menu/setup/HUD overlays, run-setup persistence, pause flow, seeded procedural brick layouts, and multi-level run-state flow
 - `Assets/Scripts/Gameplay/PaddleController.cs`: keyboard-driven paddle movement with clamped horizontal bounds and runtime width modifiers
 - `Assets/Scripts/Gameplay/BallController.cs`: launch, bounce shaping, per-level speed tuning, speed clamping, and single/multi-ball loss detection support
 - `Assets/Scripts/Gameplay/Brick.cs`: definition-driven brick behavior with variable durability, optional moving-body motion, and unbreakable support
 - `Assets/Scripts/Gameplay/PowerUpPickup.cs`: falling pickup behavior and paddle catch detection
 - `Assets/Scripts/Gameplay/DeterministicRandomService.cs`: seed-driven random helper used for gameplay-critical procedural choices
 - `Assets/Scripts/Gameplay/Data/BrickDefinition.cs`: ScriptableObject data for brick durability, scoring, completion contribution, colors, and weighted drop tables
-- `Assets/Scripts/Gameplay/Data/LevelDefinition.cs`: ScriptableObject data for layout rows, legend mapping, optional brick-movement rules, completion rules, and per-level tuning
+- `Assets/Scripts/Gameplay/Data/LevelDefinition.cs`: ScriptableObject data for progression-profile tuning, legacy layout references, completion rules, and optional authored motion hints that now serve mainly as template data
 - `Assets/Scripts/Gameplay/Data/PowerUpDefinition.cs`: ScriptableObject data for pickup effect type, duration, magnitude, and HUD labeling
 - `Assets/Scripts/Gameplay/Data/RunSettings.cs`: runtime run configuration model for seed, difficulty, balls-per-serve, modifier multipliers, and drop-pool restrictions
 - `Assets/Scripts/Gameplay/Data/ThemeDefinition.cs`: ScriptableObject theme data for semantic visual slots, palette colors, and future sprite overrides
@@ -55,14 +55,14 @@
 - Brick definitions now own drop chance plus weighted pickup references, so most drop-table tuning is an asset edit rather than a controller edit.
 - Level definitions can now optionally assign motion rules per layout symbol, including a base direction, a speed, and modifiers such as row/column alternation, checkerboard reversal, and center-relative motion.
 - Theme definitions now own semantic visual-slot palettes under `Assets/Resources/Themes/`; the current implementation uses colors, but the theme pipeline already supports per-slot sprite overrides for future art passes.
-- Level layouts are currently encoded as row strings plus a symbol-to-brick legend, so adding a new level is a data-editing task rather than a code change.
-- Moving bricks currently use dynamic `Rigidbody2D` bodies with bounce material and keep a constant authored speed after collisions, so motion tuning should usually happen in level assets before adding controller-side special cases.
-- The seeded variation layer currently transforms authored levels instead of replacing them: per-level plans can mirror layouts and rotate row strings deterministically from the selected run seed.
+- Level definitions now act primarily as procedural progression profiles: the controller uses the selected run seed plus level index to build reproducible layouts, brick mixes, drop exposure, and motion patterns at runtime.
+- Procedural generation currently ramps difficulty by increasing row/column density, unlocking tougher brick definitions over time, escalating moving-brick frequency, and occasionally switching later levels to score-target completion.
+- Moving bricks still use dynamic `Rigidbody2D` bodies with bounce material and keep a constant authored speed after collisions, but motion pressure is now assigned procedurally per generated cell rather than only coming from authored symbol maps.
 - The game now boots into a runtime main menu instead of straight into gameplay or setup, and the last run-setup selections are persisted through `PlayerPrefs`.
 - The selected theme is part of the persisted run setup, so quick-starting from the main menu reuses the most recently chosen palette.
 - Main menu, run setup, HUD, pause, and end-of-run flow currently live inside `BreakoutGameController` as temporary OnGUI overlays instead of a separate menu scene or prefab-based UI.
 - Difficulty presets and player-selected modifiers are normalized into `RunSettings`, so future tuning should usually flow through that model instead of adding one-off conditionals.
-- Deterministic gameplay randomness currently covers serve launch direction, drop chance / weighted pickup selection, and seeded level-layout transforms.
+- Deterministic gameplay randomness currently covers serve launch direction, drop chance / weighted pickup selection, and seeded procedural level plans keyed off the run seed plus level index.
 - `R` returns to the run-setup overlay, `Esc` / `P` pauses active gameplay, and `Space` launches serves or confirms overlay actions once a configuration has been started.
 - Timed pickup effects currently refresh by extending the same effect's duration, while opposing effects coexist and combine multiplicatively.
 - Life loss now depends on all active balls leaving play, so multi-ball changes should be reviewed against `BreakoutGameController.HandleBallLost`.
@@ -122,10 +122,11 @@ When making changes, validate with the Unity editor when possible:
   - `A/D` or left/right arrows move the paddle
   - `Space` launches the ball
   - `Esc` or `P` pauses active gameplay and exposes resume, restart, setup, and main-menu actions
-  - Replaying the same seed reproduces the same layout mirror/row-shift pattern and deterministic drop/launch rolls
+  - Replaying the same seed reproduces the same procedural layouts, brick/pickup progression, and deterministic drop/launch rolls for the same sequence of level clears
   - Losing the ball removes one life and re-serves from the paddle until lives reach zero
   - Breakable bricks respect their configured hit strength and unbreakable bricks stay in play
-  - Levels without brick-motion entries stay fully static, while authored moving bricks in later levels bounce off walls and other bricks without losing their damage behavior
+  - Early levels start mostly simple, later levels introduce more brick types plus broader pickup/drop exposure, and the same seed reproduces that progression order exactly
+  - Generated moving bricks in later levels bounce off walls and other bricks without losing their damage behavior
   - Run modifiers affect serve ball count, paddle width, ball speed, brick durability, and drop filtering as shown in the setup preview
   - Destroyed breakable bricks can spawn falling pickups, and the paddle can catch or miss them naturally
   - Timed paddle-width and ball-speed effects appear in the HUD and clean themselves up when their timers expire
@@ -159,7 +160,7 @@ If you are a future agent starting work here, read these first:
 
 ## Current Reality Check
 
-- There is now a minimal implemented game loop for a single-screen brick-breaker prototype with authored level data, pickup-driven rule changes, seeded-run support, palette-based theme selection, and a first-pass chunk-07 player-facing menu / HUD / pause flow.
+- There is now a minimal implemented game loop for a single-screen brick-breaker prototype with procedural seeded level generation, pickup-driven rule changes, palette-based theme selection, and a first-pass chunk-07 player-facing menu / HUD / pause flow.
 - The current custom systems are small, but they are real and worth extending deliberately instead of replacing by default.
 - Most near-term work will still be greenfield, but it should now build on the existing runtime prototype and folder structure.
 - If a user asks for game features, you will likely be extending the current scripts and authored content assets first, then deciding when to promote runtime-generated objects into authored scene or prefab assets.

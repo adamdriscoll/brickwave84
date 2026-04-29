@@ -37,9 +37,33 @@ namespace GetBricked.Gameplay
 
         private sealed class LevelLayoutPlan
         {
+            public string DisplayName = string.Empty;
             public string[] LayoutRows = Array.Empty<string>();
+            public ProceduralBrickCell[][] BrickRows = Array.Empty<ProceduralBrickCell[]>();
+            public LevelCompletionRule CompletionRule = LevelCompletionRule.ClearRequiredBricks;
+            public int TargetScore;
+            public float BallSpeedMultiplier = 1f;
+            public float PaddleSpeedMultiplier = 1f;
+            public float TopInset = 1.5f;
             public bool MirrorLayout;
             public int[] RowShifts = Array.Empty<int>();
+            public string PatternLabel = "Procedural";
+            public int UniqueBrickTypeCount;
+            public int AvailableDropTypeCount;
+            public int MovingBrickCount;
+        }
+
+        private sealed class ProceduralBrickCell
+        {
+            public ProceduralBrickCell(BrickDefinition definition, BrickMotionConfig motionConfig)
+            {
+                Definition = definition;
+                MotionConfig = motionConfig;
+            }
+
+            public BrickDefinition Definition { get; }
+
+            public BrickMotionConfig MotionConfig { get; }
         }
 
         private readonly struct BrickMotionConfig
@@ -57,6 +81,16 @@ namespace GetBricked.Gameplay
             public Vector2 InitialDirection { get; }
 
             public bool IsEnabled => Speed > 0.01f && InitialDirection.sqrMagnitude > 0.001f;
+        }
+
+        private enum ProceduralPatternType
+        {
+            Bands = 0,
+            Diamond = 1,
+            Steps = 2,
+            Lattice = 3,
+            Core = 4,
+            Columns = 5,
         }
 
         [Serializable]
@@ -155,6 +189,7 @@ namespace GetBricked.Gameplay
 
         private readonly List<Brick> bricks = new List<Brick>();
         private readonly List<LevelDefinition> loadedLevels = new List<LevelDefinition>();
+        private readonly List<BrickDefinition> loadedBrickDefinitions = new List<BrickDefinition>();
         private readonly List<ThemeDefinition> loadedThemes = new List<ThemeDefinition>();
         private readonly List<BallController> activeBalls = new List<BallController>();
         private readonly List<PowerUpPickup> activePickups = new List<PowerUpPickup>();
@@ -202,6 +237,9 @@ namespace GetBricked.Gameplay
         private GUIStyle modifierPanelEmptyStyle;
         private LevelDefinition currentLevel;
         private int currentLevelIndex;
+        private string currentLevelDisplayName = "No level loaded";
+        private LevelCompletionRule currentLevelCompletionRule = LevelCompletionRule.ClearRequiredBricks;
+        private int currentLevelTargetScore;
         private int levelScore;
         private float currentLevelBallSpeed;
         private float currentLevelPaddleSpeed;
@@ -225,6 +263,7 @@ namespace GetBricked.Gameplay
 
         private void Awake()
         {
+            LoadBrickDefinitions();
             LoadLevelDefinitions();
             LoadThemeDefinitions();
             ConfigureCamera();
@@ -1206,6 +1245,18 @@ namespace GetBricked.Gameplay
             }
         }
 
+        private void LoadBrickDefinitions()
+        {
+            loadedBrickDefinitions.Clear();
+            loadedBrickDefinitions.AddRange(Resources.LoadAll<BrickDefinition>("Bricks"));
+            loadedBrickDefinitions.Sort(CompareBrickDefinitions);
+
+            if (loadedBrickDefinitions.Count == 0)
+            {
+                Debug.LogWarning("No brick definitions were found in Resources/Bricks. Procedural generation will fall back poorly.");
+            }
+        }
+
         private void LoadThemeDefinitions()
         {
             loadedThemes.Clear();
@@ -1224,10 +1275,13 @@ namespace GetBricked.Gameplay
             ClearPickups();
             ClearTimedEffects();
 
-            if (loadedLevels.Count == 0 || levelIndex < 0 || levelIndex >= loadedLevels.Count)
+            if (loadedLevels.Count == 0 || levelIndex < 0)
             {
                 currentLevel = null;
                 currentLevelIndex = 0;
+                currentLevelDisplayName = "No levels loaded";
+                currentLevelCompletionRule = LevelCompletionRule.ClearRequiredBricks;
+                currentLevelTargetScore = 0;
                 levelScore = 0;
                 requiredBricksRemaining = 0;
                 roundState = RoundState.GameOver;
@@ -1238,18 +1292,40 @@ namespace GetBricked.Gameplay
             }
 
             currentLevelIndex = levelIndex;
-            currentLevel = loadedLevels[currentLevelIndex];
-            levelScore = 0;
+            currentLevel = ResolveLevelTemplate(levelIndex);
 
-            ApplyLevelTuning(currentLevel);
-            BuildBrickWall(currentLevel, BuildLevelLayoutPlan(currentLevel));
+            if (currentLevel == null)
+            {
+                currentLevelIndex = 0;
+                currentLevelDisplayName = "No levels loaded";
+                currentLevelCompletionRule = LevelCompletionRule.ClearRequiredBricks;
+                currentLevelTargetScore = 0;
+                levelScore = 0;
+                requiredBricksRemaining = 0;
+                roundState = RoundState.GameOver;
+                selectedOverlayActionIndex = 0;
+                SetSimulationPaused(false);
+                StopAllBalls();
+                return;
+            }
+
+            levelScore = 0;
+            var levelPlan = BuildLevelLayoutPlan(currentLevel);
+            currentLevelDisplayName = string.IsNullOrWhiteSpace(levelPlan.DisplayName)
+                ? currentLevel.DisplayName
+                : levelPlan.DisplayName;
+            currentLevelCompletionRule = levelPlan.CompletionRule;
+            currentLevelTargetScore = levelPlan.TargetScore;
+
+            ApplyLevelTuning(levelPlan);
+            BuildBrickWall(levelPlan);
             PrepareServe(serveState);
             EvaluateLevelCompletion();
         }
 
-        private void ApplyLevelTuning(LevelDefinition level)
+        private void ApplyLevelTuning(LevelLayoutPlan levelPlan)
         {
-            if (level == null)
+            if (levelPlan == null)
             {
                 currentLevelPaddleSpeed = paddleSpeed;
                 currentLevelBallSpeed = ballSpeed;
@@ -1257,8 +1333,8 @@ namespace GetBricked.Gameplay
                 return;
             }
 
-            currentLevelPaddleSpeed = paddleSpeed * level.PaddleSpeedMultiplier;
-            currentLevelBallSpeed = ballSpeed * level.BallSpeedMultiplier * (activeRunSettings?.BallSpeedMultiplier ?? 1f);
+            currentLevelPaddleSpeed = paddleSpeed * Mathf.Max(0.5f, levelPlan.PaddleSpeedMultiplier);
+            currentLevelBallSpeed = ballSpeed * Mathf.Max(0.5f, levelPlan.BallSpeedMultiplier) * (activeRunSettings?.BallSpeedMultiplier ?? 1f);
             ApplyActiveEffects();
         }
 
@@ -1422,12 +1498,7 @@ namespace GetBricked.Gameplay
 
         private LevelLayoutPlan BuildLevelLayoutPlan(LevelDefinition level)
         {
-            var layoutRows = level == null ? Array.Empty<string>() : level.LayoutRows;
-            var plan = new LevelLayoutPlan
-            {
-                LayoutRows = new string[layoutRows.Length],
-                RowShifts = new int[layoutRows.Length],
-            };
+            var plan = new LevelLayoutPlan();
 
             if (level == null)
             {
@@ -1435,70 +1506,154 @@ namespace GetBricked.Gameplay
                 return plan;
             }
 
+            var templateCount = Mathf.Max(1, loadedLevels.Count);
+            var profileIndex = Mathf.Abs(currentLevelIndex % templateCount);
+            var cycleIndex = currentLevelIndex / templateCount;
             var planner = gameplayRandom != null
                 ? gameplayRandom.Fork((currentLevelIndex + 1) * 7919)
                 : new DeterministicRandomService(GenerateSeed());
-            plan.MirrorLayout = planner.NextBool();
+            var pattern = (ProceduralPatternType)planner.Range(0, Enum.GetValues(typeof(ProceduralPatternType)).Length);
+            var rowCount = Mathf.Clamp(Mathf.Max(3, level.LayoutRows.Length) + Mathf.Min(2, cycleIndex) + (profileIndex >= 2 ? 1 : 0), 3, 7);
+            var columnCount = Mathf.Clamp(GetTemplateColumnCount(level) + Mathf.Min(2, cycleIndex) + (profileIndex >= templateCount - 1 ? 1 : 0), 8, 11);
+            var totalBreakableScore = 0;
+            var usedDefinitions = new HashSet<BrickDefinition>();
+            var usedDrops = new HashSet<PowerUpDefinition>();
 
-            for (var rowIndex = 0; rowIndex < layoutRows.Length; rowIndex++)
+            plan.DisplayName = BuildProceduralLevelDisplayName(level, pattern, cycleIndex);
+            plan.LayoutRows = new string[rowCount];
+            plan.BrickRows = new ProceduralBrickCell[rowCount][];
+            plan.RowShifts = new int[rowCount];
+            plan.PatternLabel = GetProceduralPatternLabel(pattern);
+            plan.MirrorLayout = planner.NextFloat() < 0.82f;
+            plan.TopInset = Mathf.Max(1f, level.TopInset - (cycleIndex * 0.08f));
+            plan.PaddleSpeedMultiplier = level.PaddleSpeedMultiplier * (1f + (cycleIndex * 0.035f));
+            plan.BallSpeedMultiplier = level.BallSpeedMultiplier * (1f + (cycleIndex * 0.06f));
+
+            for (var rowIndex = 0; rowIndex < rowCount; rowIndex++)
             {
-                var transformedRow = layoutRows[rowIndex] ?? string.Empty;
+                var cells = new ProceduralBrickCell[columnCount];
+                var symbols = new char[columnCount];
 
-                if (plan.MirrorLayout)
+                for (var fillIndex = 0; fillIndex < symbols.Length; fillIndex++)
                 {
-                    transformedRow = ReverseRow(transformedRow);
+                    symbols[fillIndex] = '.';
                 }
 
-                var occupiedTiles = CountOccupiedTiles(transformedRow);
-                var maxShift = occupiedTiles >= 2 ? Mathf.Min(2, Mathf.Max(0, transformedRow.Length / 4)) : 0;
-                var rowShift = maxShift <= 0 ? 0 : planner.Range(-maxShift, maxShift + 1);
+                var leftSideLength = (columnCount + 1) / 2;
+                var generatedColumns = plan.MirrorLayout ? leftSideLength : columnCount;
 
-                if (occupiedTiles <= 2)
+                for (var columnIndex = 0; columnIndex < generatedColumns; columnIndex++)
                 {
-                    rowShift = Mathf.Clamp(rowShift, -1, 1);
-                }
-
-                transformedRow = RotateRow(transformedRow, rowShift);
-                plan.LayoutRows[rowIndex] = transformedRow;
-                plan.RowShifts[rowIndex] = rowShift;
-            }
-
-            currentLevelVariationLabel = BuildVariationSummary(plan);
-            Debug.Log($"Level variation | seed {activeRunSettings?.Seed ?? 0} | {currentLevel.DisplayName} | {currentLevelVariationLabel}");
-            return plan;
-        }
-
-        private void BuildBrickWall(LevelDefinition level, LevelLayoutPlan layoutPlan)
-        {
-            requiredBricksRemaining = 0;
-            if (level == null)
-            {
-                return;
-            }
-
-            var legend = BuildLegendLookup(level);
-            var brickMovementLookup = BuildBrickMovementLookup(level);
-            var layoutRows = layoutPlan?.LayoutRows ?? level.LayoutRows;
-            var startY = arenaTop - level.TopInset;
-
-            for (var row = 0; row < layoutRows.Length; row++)
-            {
-                var rowLayout = layoutRows[row] ?? string.Empty;
-                var totalWidth = (rowLayout.Length * brickSize.x) + (Mathf.Max(0, rowLayout.Length - 1) * brickSpacing.x);
-                var startX = (-totalWidth * 0.5f) + (brickSize.x * 0.5f);
-
-                for (var column = 0; column < rowLayout.Length; column++)
-                {
-                    var symbol = rowLayout[column];
-
-                    if (symbol == '.' || char.IsWhiteSpace(symbol))
+                    if (!ShouldPlaceProceduralBrick(planner, pattern, rowIndex, columnIndex, rowCount, columnCount, currentLevelIndex))
                     {
                         continue;
                     }
 
-                    if (!legend.TryGetValue(symbol, out var definition) || definition == null)
+                    var definition = SelectProceduralBrickDefinition(planner, rowIndex, columnIndex, rowCount, columnCount, currentLevelIndex);
+
+                    if (definition == null)
                     {
-                        Debug.LogWarning($"Level '{level.DisplayName}' is missing a brick definition for symbol '{symbol}'.");
+                        continue;
+                    }
+
+                    var motionConfig = ResolveProceduralBrickMotion(
+                        planner,
+                        definition,
+                        profileIndex,
+                        cycleIndex,
+                        rowIndex,
+                        columnIndex,
+                        rowCount,
+                        columnCount);
+                    FillProceduralCell(cells, symbols, columnIndex, definition, motionConfig);
+
+                    if (plan.MirrorLayout)
+                    {
+                        var mirroredColumn = (columnCount - 1) - columnIndex;
+                        FillProceduralCell(cells, symbols, mirroredColumn, definition, motionConfig);
+                    }
+                }
+
+                EnsureProceduralRowHasBricks(cells, symbols, planner, rowIndex, rowCount, columnCount, currentLevelIndex, profileIndex, cycleIndex);
+                var rowShift = BuildLevelPlanRowShift(planner, rowIndex, currentLevelIndex, columnCount, CountOccupiedCells(symbols));
+                plan.RowShifts[rowIndex] = rowShift;
+                cells = RotateCells(cells, rowShift);
+                symbols = RotateCharacters(symbols, rowShift);
+                plan.BrickRows[rowIndex] = cells;
+                plan.LayoutRows[rowIndex] = new string(symbols);
+
+                for (var columnIndex = 0; columnIndex < cells.Length; columnIndex++)
+                {
+                    var cell = cells[columnIndex];
+
+                    if (cell == null || cell.Definition == null)
+                    {
+                        continue;
+                    }
+
+                    usedDefinitions.Add(cell.Definition);
+
+                    if (cell.MotionConfig.IsEnabled)
+                    {
+                        plan.MovingBrickCount++;
+                    }
+
+                    if (!cell.Definition.IsBreakable)
+                    {
+                        continue;
+                    }
+
+                    totalBreakableScore += Mathf.Max(0, cell.Definition.ScoreValue);
+                    var dropTable = cell.Definition.DropTable;
+
+                    for (var dropIndex = 0; dropIndex < dropTable.Length; dropIndex++)
+                    {
+                        if (dropTable[dropIndex].PowerUpDefinition != null)
+                        {
+                            usedDrops.Add(dropTable[dropIndex].PowerUpDefinition);
+                        }
+                    }
+                }
+            }
+
+            plan.UniqueBrickTypeCount = usedDefinitions.Count;
+            plan.AvailableDropTypeCount = usedDrops.Count;
+            plan.CompletionRule = ResolveProceduralCompletionRule(level, cycleIndex);
+            plan.TargetScore = plan.CompletionRule == LevelCompletionRule.ReachTargetScore
+                ? Mathf.Clamp(Mathf.RoundToInt(totalBreakableScore * Mathf.Lerp(0.58f, 0.72f, Mathf.Clamp01(cycleIndex * 0.18f))), 350, Mathf.Max(350, totalBreakableScore))
+                : 0;
+
+            currentLevelVariationLabel = BuildVariationSummary(plan);
+            Debug.Log(
+                $"Level variation | seed {activeRunSettings?.Seed ?? 0} | level {currentLevelIndex + 1} | " +
+                $"{plan.DisplayName} | {currentLevelVariationLabel}");
+            return plan;
+        }
+
+        private void BuildBrickWall(LevelLayoutPlan layoutPlan)
+        {
+            requiredBricksRemaining = 0;
+
+            if (layoutPlan == null || layoutPlan.BrickRows.Length == 0)
+            {
+                return;
+            }
+
+            var layoutRows = layoutPlan.BrickRows;
+            var startY = arenaTop - layoutPlan.TopInset;
+
+            for (var row = 0; row < layoutRows.Length; row++)
+            {
+                var rowCells = layoutRows[row] ?? Array.Empty<ProceduralBrickCell>();
+                var totalWidth = (rowCells.Length * brickSize.x) + (Mathf.Max(0, rowCells.Length - 1) * brickSpacing.x);
+                var startX = (-totalWidth * 0.5f) + (brickSize.x * 0.5f);
+
+                for (var column = 0; column < rowCells.Length; column++)
+                {
+                    var cell = rowCells[column];
+
+                    if (cell == null || cell.Definition == null)
+                    {
                         continue;
                     }
 
@@ -1506,77 +1661,465 @@ namespace GetBricked.Gameplay
                         startX + (column * (brickSize.x + brickSpacing.x)),
                         startY - (row * (brickSize.y + brickSpacing.y)));
 
-                    var motionConfig = ResolveBrickMotionConfig(
-                        brickMovementLookup,
-                        symbol,
-                        row,
-                        column,
-                        rowLayout.Length,
-                        layoutRows.Length);
-
-                    CreateBrick(position, definition, row, column, GetEffectiveBrickHitPoints(definition), motionConfig);
+                    CreateBrick(position, cell.Definition, row, column, GetEffectiveBrickHitPoints(cell.Definition), cell.MotionConfig);
                 }
             }
         }
 
-        private Dictionary<char, BrickDefinition> BuildLegendLookup(LevelDefinition level)
+        private LevelDefinition ResolveLevelTemplate(int levelIndex)
         {
-            var legendLookup = new Dictionary<char, BrickDefinition>();
-            var legendEntries = level.Legend;
-
-            for (var index = 0; index < legendEntries.Length; index++)
+            if (loadedLevels.Count == 0 || levelIndex < 0)
             {
-                var entry = legendEntries[index];
-                var symbol = entry.Symbol;
-
-                if (symbol == '\0' || char.IsWhiteSpace(symbol) || symbol == '.')
-                {
-                    continue;
-                }
-
-                legendLookup[symbol] = entry.BrickDefinition;
+                return null;
             }
 
-            return legendLookup;
+            return loadedLevels[levelIndex % loadedLevels.Count];
         }
 
-        private Dictionary<char, LevelBrickMovementEntry> BuildBrickMovementLookup(LevelDefinition level)
+        private int GetTemplateColumnCount(LevelDefinition level)
         {
-            var movementLookup = new Dictionary<char, LevelBrickMovementEntry>();
-            var movementEntries = level.BrickMovement;
-
-            for (var index = 0; index < movementEntries.Length; index++)
+            if (level == null)
             {
-                var entry = movementEntries[index];
-
-                if (!entry.HasMotion)
-                {
-                    continue;
-                }
-
-                movementLookup[entry.Symbol] = entry;
+                return 8;
             }
 
-            return movementLookup;
+            var layoutRows = level.LayoutRows;
+            var maxColumns = 8;
+
+            for (var index = 0; index < layoutRows.Length; index++)
+            {
+                maxColumns = Mathf.Max(maxColumns, string.IsNullOrEmpty(layoutRows[index]) ? 0 : layoutRows[index].Length);
+            }
+
+            return Mathf.Clamp(maxColumns, 8, 10);
         }
 
-        private BrickMotionConfig ResolveBrickMotionConfig(
-            Dictionary<char, LevelBrickMovementEntry> brickMovementLookup,
-            char symbol,
+        private string BuildProceduralLevelDisplayName(LevelDefinition level, ProceduralPatternType pattern, int cycleIndex)
+        {
+            var baseName = level == null ? "Procedural Layout" : level.DisplayName;
+            var patternLabel = GetProceduralPatternLabel(pattern);
+            return cycleIndex <= 0
+                ? $"{baseName} [{patternLabel}]"
+                : $"{baseName} [{patternLabel}] Loop {cycleIndex + 1}";
+        }
+
+        private static string GetProceduralPatternLabel(ProceduralPatternType pattern)
+        {
+            return pattern switch
+            {
+                ProceduralPatternType.Bands => "Bands",
+                ProceduralPatternType.Diamond => "Diamond",
+                ProceduralPatternType.Steps => "Steps",
+                ProceduralPatternType.Lattice => "Lattice",
+                ProceduralPatternType.Core => "Core",
+                ProceduralPatternType.Columns => "Columns",
+                _ => "Procedural",
+            };
+        }
+
+        private bool ShouldPlaceProceduralBrick(
+            DeterministicRandomService planner,
+            ProceduralPatternType pattern,
             int row,
             int column,
-            int rowLength,
-            int totalRows)
+            int totalRows,
+            int totalColumns,
+            int levelIndex)
         {
-            if (brickMovementLookup == null
-                || !brickMovementLookup.TryGetValue(symbol, out var movementEntry)
-                || !movementEntry.HasMotion)
+            var topBias = totalRows <= 1 ? 1f : 1f - ((float)row / (totalRows - 1f));
+            var normalizedColumn = totalColumns <= 1 ? 0.5f : (float)column / (totalColumns - 1f);
+            var centerBias = 1f - Mathf.Abs((normalizedColumn * 2f) - 1f);
+            var noise = planner.Range(-0.18f, 0.18f);
+            var threshold = 0.48f - Mathf.Min(0.1f, levelIndex * 0.015f);
+            var score = BuildProceduralPatternScore(pattern, row, column, totalRows, totalColumns, topBias, centerBias, levelIndex);
+            return score + noise >= threshold;
+        }
+
+        private static float BuildProceduralPatternScore(
+            ProceduralPatternType pattern,
+            int row,
+            int column,
+            int totalRows,
+            int totalColumns,
+            float topBias,
+            float centerBias,
+            int levelIndex)
+        {
+            var centeredRow = totalRows <= 1 ? 0f : Mathf.Abs((((float)row / (totalRows - 1f)) * 2f) - 1f);
+            var stepBias = column <= Mathf.Max(1, totalColumns - 2 - row) ? 0.2f : -0.12f;
+
+            return pattern switch
+            {
+                ProceduralPatternType.Bands => 0.32f + (topBias * 0.48f) + (centerBias * 0.14f) + (((row + levelIndex) & 1) == 0 ? 0.08f : -0.05f),
+                ProceduralPatternType.Diamond => 0.22f + (centerBias * 0.42f) + (topBias * 0.33f) - (centeredRow * 0.22f),
+                ProceduralPatternType.Steps => 0.26f + (topBias * 0.4f) + stepBias + (centerBias * 0.08f),
+                ProceduralPatternType.Lattice => 0.28f + (topBias * 0.3f) + ((((row + column) & 1) == 0) ? 0.2f : -0.18f) + (centerBias * 0.1f),
+                ProceduralPatternType.Core => 0.2f + (centerBias * 0.38f) + (topBias * 0.24f) + (row == 0 || row == totalRows - 1 ? 0.12f : 0f),
+                ProceduralPatternType.Columns => 0.24f + (topBias * 0.36f) + (((column + levelIndex) % 3) == 0 ? 0.24f : -0.05f) + (centerBias * 0.1f),
+                _ => 0.4f,
+            };
+        }
+
+        private BrickDefinition SelectProceduralBrickDefinition(
+            DeterministicRandomService planner,
+            int row,
+            int column,
+            int totalRows,
+            int totalColumns,
+            int levelIndex)
+        {
+            if (loadedBrickDefinitions.Count == 0)
+            {
+                return null;
+            }
+
+            var totalWeight = 0f;
+
+            for (var index = 0; index < loadedBrickDefinitions.Count; index++)
+            {
+                totalWeight += GetProceduralBrickWeight(loadedBrickDefinitions[index], row, column, totalRows, totalColumns, levelIndex);
+            }
+
+            if (totalWeight <= 0f)
+            {
+                return FindFallbackBasicBrick();
+            }
+
+            var roll = planner.Range(0f, totalWeight);
+
+            for (var index = 0; index < loadedBrickDefinitions.Count; index++)
+            {
+                var definition = loadedBrickDefinitions[index];
+                roll -= GetProceduralBrickWeight(definition, row, column, totalRows, totalColumns, levelIndex);
+
+                if (roll <= 0f)
+                {
+                    return definition;
+                }
+            }
+
+            return FindFallbackBasicBrick();
+        }
+
+        private float GetProceduralBrickWeight(
+            BrickDefinition definition,
+            int row,
+            int column,
+            int totalRows,
+            int totalColumns,
+            int levelIndex)
+        {
+            if (definition == null)
+            {
+                return 0f;
+            }
+
+            var topBias = totalRows <= 1 ? 1f : 1f - ((float)row / (totalRows - 1f));
+            var normalizedColumn = totalColumns <= 1 ? 0.5f : (float)column / (totalColumns - 1f);
+            var centerBias = 1f - Mathf.Abs((normalizedColumn * 2f) - 1f);
+            var hotspot = topBias > 0.45f && centerBias > 0.4f;
+
+            if (!definition.IsBreakable)
+            {
+                if (levelIndex < 2)
+                {
+                    return 0f;
+                }
+
+                return hotspot ? 0.2f + (Mathf.Min(4, levelIndex) * 0.03f) : 0.08f + (Mathf.Min(4, levelIndex) * 0.02f);
+            }
+
+            if (definition.IsExplosive)
+            {
+                if (levelIndex < 4)
+                {
+                    return 0f;
+                }
+
+                return 0.22f + (topBias * 0.18f) + (hotspot ? 0.16f : 0f) + ((levelIndex - 4) * 0.05f);
+            }
+
+            if (definition.HitPoints >= 3)
+            {
+                if (levelIndex < 3)
+                {
+                    return 0f;
+                }
+
+                return 0.55f + (topBias * 0.45f) + (hotspot ? 0.2f : 0f) + ((levelIndex - 3) * 0.04f);
+            }
+
+            if (definition.HitPoints == 2)
+            {
+                if (levelIndex < 1)
+                {
+                    return 0f;
+                }
+
+                return 1.2f + (topBias * 0.55f) + (centerBias * 0.15f) + ((levelIndex - 1) * 0.06f);
+            }
+
+            return 4f + ((1f - topBias) * 0.75f);
+        }
+
+        private BrickDefinition FindFallbackBasicBrick()
+        {
+            for (var index = 0; index < loadedBrickDefinitions.Count; index++)
+            {
+                var definition = loadedBrickDefinitions[index];
+
+                if (definition != null && definition.IsBreakable && !definition.IsExplosive && definition.HitPoints <= 1)
+                {
+                    return definition;
+                }
+            }
+
+            for (var index = 0; index < loadedBrickDefinitions.Count; index++)
+            {
+                var definition = loadedBrickDefinitions[index];
+
+                if (definition != null && definition.IsBreakable)
+                {
+                    return definition;
+                }
+            }
+
+            return loadedBrickDefinitions.Count > 0 ? loadedBrickDefinitions[0] : null;
+        }
+
+        private BrickMotionConfig ResolveProceduralBrickMotion(
+            DeterministicRandomService planner,
+            BrickDefinition definition,
+            int profileIndex,
+            int cycleIndex,
+            int row,
+            int column,
+            int totalRows,
+            int totalColumns)
+        {
+            if (definition == null || !definition.IsBreakable || profileIndex <= 0)
             {
                 return default;
             }
 
-            var direction = ResolveBrickMovementDirection(movementEntry, row, column, rowLength, totalRows);
-            return new BrickMotionConfig(movementEntry.Speed, direction);
+            var motionChance = profileIndex switch
+            {
+                1 => definition.HitPoints >= 2 ? 0.14f : 0.05f,
+                2 => definition.HitPoints >= 2 || definition.IsExplosive ? 0.24f : 0.1f,
+                _ => definition.HitPoints >= 2 || definition.IsExplosive ? 0.3f : 0.16f,
+            };
+
+            motionChance += cycleIndex * 0.035f;
+
+            if (planner.NextFloat() > motionChance)
+            {
+                return default;
+            }
+
+            var speed = 1.55f + (profileIndex * 0.22f) + (cycleIndex * 0.14f);
+            Vector2 direction;
+
+            switch (profileIndex)
+            {
+                case 1:
+                    direction = (row & 1) == 0 ? Vector2.right : Vector2.left;
+                    break;
+                case 2:
+                    direction = ((row + column) & 1) == 0
+                        ? ResolveBaseBrickMovementDirection(BrickMovementDirection.Down)
+                        : ResolveBaseBrickMovementDirection(BrickMovementDirection.Right);
+                    break;
+                default:
+                    direction = ResolveCenterRelativeMovementDirection(
+                        row,
+                        column,
+                        totalColumns,
+                        totalRows,
+                        clockwise: ((row + column + cycleIndex) & 1) == 0,
+                        inward: false,
+                        tangential: true);
+                    break;
+            }
+
+            return new BrickMotionConfig(speed, direction);
+        }
+
+        private void EnsureProceduralRowHasBricks(
+            ProceduralBrickCell[] cells,
+            char[] symbols,
+            DeterministicRandomService planner,
+            int row,
+            int totalRows,
+            int totalColumns,
+            int levelIndex,
+            int profileIndex,
+            int cycleIndex)
+        {
+            var occupiedCells = CountOccupiedCells(symbols);
+            var minimumBricks = row == totalRows - 1 ? 2 : Mathf.Clamp(totalColumns / 3, 3, 4);
+
+            if (occupiedCells >= minimumBricks)
+            {
+                return;
+            }
+
+            var centerLeft = Mathf.Max(0, (totalColumns / 2) - 1);
+            var centerRight = Mathf.Min(totalColumns - 1, totalColumns / 2);
+            var preferredColumns = new[]
+            {
+                centerLeft,
+                centerRight,
+                Mathf.Max(0, centerLeft - 1),
+                Mathf.Min(totalColumns - 1, centerRight + 1),
+                0,
+                totalColumns - 1,
+            };
+
+            for (var index = 0; index < preferredColumns.Length && occupiedCells < minimumBricks; index++)
+            {
+                var column = preferredColumns[index];
+
+                if (column < 0 || column >= totalColumns || cells[column] != null)
+                {
+                    continue;
+                }
+
+                var definition = SelectProceduralBrickDefinition(planner, row, column, totalRows, totalColumns, levelIndex) ?? FindFallbackBasicBrick();
+                var motionConfig = ResolveProceduralBrickMotion(planner, definition, profileIndex, cycleIndex, row, column, totalRows, totalColumns);
+                FillProceduralCell(cells, symbols, column, definition, motionConfig);
+                occupiedCells++;
+            }
+        }
+
+        private static void FillProceduralCell(
+            ProceduralBrickCell[] cells,
+            char[] symbols,
+            int column,
+            BrickDefinition definition,
+            BrickMotionConfig motionConfig)
+        {
+            if (cells == null || symbols == null || definition == null || column < 0 || column >= cells.Length || column >= symbols.Length)
+            {
+                return;
+            }
+
+            cells[column] = new ProceduralBrickCell(definition, motionConfig);
+            var symbol = BuildProceduralBrickSymbol(definition);
+            symbols[column] = motionConfig.IsEnabled ? char.ToLowerInvariant(symbol) : symbol;
+        }
+
+        private static ProceduralBrickCell[] RotateCells(ProceduralBrickCell[] rowCells, int shift)
+        {
+            if (rowCells == null || rowCells.Length == 0 || shift == 0)
+            {
+                return rowCells ?? Array.Empty<ProceduralBrickCell>();
+            }
+
+            var length = rowCells.Length;
+            var wrappedShift = ((shift % length) + length) % length;
+
+            if (wrappedShift == 0)
+            {
+                return rowCells;
+            }
+
+            var rotated = new ProceduralBrickCell[length];
+
+            for (var index = 0; index < length; index++)
+            {
+                rotated[(index + wrappedShift) % length] = rowCells[index];
+            }
+
+            return rotated;
+        }
+
+        private static char[] RotateCharacters(char[] rowCharacters, int shift)
+        {
+            if (rowCharacters == null || rowCharacters.Length == 0 || shift == 0)
+            {
+                return rowCharacters ?? Array.Empty<char>();
+            }
+
+            return RotateRow(new string(rowCharacters), shift).ToCharArray();
+        }
+
+        private static int BuildLevelPlanRowShift(DeterministicRandomService planner, int rowIndex, int levelIndex, int totalColumns, int occupiedCells)
+        {
+            var maxShift = occupiedCells >= 3 ? Mathf.Min(2, Mathf.Max(1, totalColumns / 5)) : 0;
+
+            if (maxShift <= 0)
+            {
+                return 0;
+            }
+
+            var baseShift = planner.Range(-maxShift, maxShift + 1);
+
+            if (levelIndex <= 0)
+            {
+                return Mathf.Clamp(baseShift, -1, 1);
+            }
+
+            return rowIndex == 0 ? 0 : baseShift;
+        }
+
+        private static int CountOccupiedCells(char[] rowCharacters)
+        {
+            if (rowCharacters == null || rowCharacters.Length == 0)
+            {
+                return 0;
+            }
+
+            var occupiedCells = 0;
+
+            for (var index = 0; index < rowCharacters.Length; index++)
+            {
+                if (rowCharacters[index] != '.' && !char.IsWhiteSpace(rowCharacters[index]))
+                {
+                    occupiedCells++;
+                }
+            }
+
+            return occupiedCells;
+        }
+
+        private static char BuildProceduralBrickSymbol(BrickDefinition definition)
+        {
+            if (definition == null)
+            {
+                return '.';
+            }
+
+            if (!definition.IsBreakable)
+            {
+                return 'S';
+            }
+
+            if (definition.IsExplosive)
+            {
+                return 'E';
+            }
+
+            return definition.HitPoints switch
+            {
+                <= 1 => 'A',
+                2 => 'B',
+                _ => 'C',
+            };
+        }
+
+        private static LevelCompletionRule ResolveProceduralCompletionRule(LevelDefinition level, int cycleIndex)
+        {
+            if (level == null)
+            {
+                return LevelCompletionRule.ClearRequiredBricks;
+            }
+
+            if (level.CompletionRule == LevelCompletionRule.ReachTargetScore || cycleIndex > 0 && (cycleIndex % 2) == 1)
+            {
+                return LevelCompletionRule.ReachTargetScore;
+            }
+
+            return LevelCompletionRule.ClearRequiredBricks;
         }
 
         private static Vector2 ResolveBrickMovementDirection(
@@ -1749,7 +2292,7 @@ namespace GetBricked.Gameplay
         {
             if (plan == null || plan.LayoutRows.Length == 0)
             {
-                return "Variation: authored";
+                return "Variation: unavailable";
             }
 
             var shiftedRows = 0;
@@ -1762,11 +2305,10 @@ namespace GetBricked.Gameplay
                 }
             }
 
-            return plan.MirrorLayout
-                ? $"Variation: mirrored, {shiftedRows} shifted rows"
-                : shiftedRows > 0
-                    ? $"Variation: authored orientation, {shiftedRows} shifted rows"
-                    : "Variation: authored orientation";
+            var orientationLabel = plan.MirrorLayout ? "mirrored" : "asymmetric";
+            return
+                $"Variation: {plan.PatternLabel}, {orientationLabel}, {shiftedRows} shifted rows, " +
+                $"{plan.UniqueBrickTypeCount} brick types, {plan.AvailableDropTypeCount} drops, {plan.MovingBrickCount} movers";
         }
 
         private void CreateBrick(
@@ -1888,10 +2430,10 @@ namespace GetBricked.Gameplay
                 return;
             }
 
-            var levelCleared = !HasBreakableBricksRemaining() || currentLevel.CompletionRule switch
+            var levelCleared = !HasBreakableBricksRemaining() || currentLevelCompletionRule switch
             {
                 LevelCompletionRule.ClearRequiredBricks => requiredBricksRemaining <= 0,
-                LevelCompletionRule.ReachTargetScore => levelScore >= currentLevel.TargetScore,
+                LevelCompletionRule.ReachTargetScore => levelScore >= currentLevelTargetScore,
                 _ => false,
             };
 
@@ -1929,7 +2471,7 @@ namespace GetBricked.Gameplay
 
         private bool HasNextLevel()
         {
-            return currentLevel != null && currentLevelIndex < loadedLevels.Count - 1;
+            return currentLevel != null && loadedLevels.Count > 0;
         }
 
         private static int CompareLevels(LevelDefinition left, LevelDefinition right)
@@ -1957,6 +2499,58 @@ namespace GetBricked.Gameplay
             }
 
             return string.Compare(left.DisplayName, right.DisplayName, StringComparison.Ordinal);
+        }
+
+        private static int CompareBrickDefinitions(BrickDefinition left, BrickDefinition right)
+        {
+            if (ReferenceEquals(left, right))
+            {
+                return 0;
+            }
+
+            if (left == null)
+            {
+                return 1;
+            }
+
+            if (right == null)
+            {
+                return -1;
+            }
+
+            var rankComparison = GetProceduralBrickRank(left).CompareTo(GetProceduralBrickRank(right));
+
+            if (rankComparison != 0)
+            {
+                return rankComparison;
+            }
+
+            return string.Compare(left.DisplayName, right.DisplayName, StringComparison.Ordinal);
+        }
+
+        private static int GetProceduralBrickRank(BrickDefinition definition)
+        {
+            if (definition == null)
+            {
+                return int.MaxValue;
+            }
+
+            if (!definition.IsBreakable)
+            {
+                return 4;
+            }
+
+            if (definition.IsExplosive)
+            {
+                return 3;
+            }
+
+            return definition.HitPoints switch
+            {
+                <= 1 => 0,
+                2 => 1,
+                _ => 2,
+            };
         }
 
         private static int CompareThemes(ThemeDefinition left, ThemeDefinition right)
@@ -2610,7 +3204,7 @@ namespace GetBricked.Gameplay
         {
             return currentLevel == null
                 ? "No levels loaded"
-                : $"Level {currentLevelIndex + 1:00}/{loadedLevels.Count:00} - {currentLevel.DisplayName}";
+                : $"Level {currentLevelIndex + 1:00} - {currentLevelDisplayName}";
         }
 
         private string BuildRemainingBricksLabel()
@@ -2618,6 +3212,11 @@ namespace GetBricked.Gameplay
             if (currentLevel == null)
             {
                 return "Remaining Bricks --";
+            }
+
+            if (currentLevelCompletionRule == LevelCompletionRule.ReachTargetScore)
+            {
+                return $"Target Score {currentLevelTargetScore:0000} | Level Score {levelScore:0000}";
             }
 
             return $"Remaining Bricks {requiredBricksRemaining:00}";
