@@ -14,6 +14,7 @@
   - Brick content is now data-driven through ScriptableObject assets, including multi-strength breakable bricks, unbreakable obstacle bricks, and optional per-level moving-brick rules
   - Power-up content is now data-driven through ScriptableObject assets, with timed paddle-size and ball-speed modifiers plus an instant multi-ball burst effect
   - Runtime visuals now support data-driven theme selection, with palette-based themes for background, walls, paddle, bricks, power-up pickups, and ball plus sprite hooks reserved for future art passes
+  - The desired presentation direction is now documented in `Plan/STYLE.md`: a readability-first synthwave arcade look with dark indigo backgrounds, magenta/cyan neon accents, controlled CRT glow, and giant-cabinet framing cues
   - Chunk 06 and chunk 07 groundwork are now in place through runtime OnGUI overlays for main menu, run setup, HUD, pause, end-state flow, persisted run-setup choices, seed entry, difficulty presets, modifier validation, deterministic gameplay rolls, and seeded procedural level generation
   - There are custom C# scripts now, but still no `.asmdef` files, no prefabs, and no automated tests yet
 - Input System is enabled and has a starter action asset at `Assets/InputSystem_Actions.inputactions`.
@@ -45,6 +46,7 @@
 - `Assets/Resources/PowerUps/*`: authored power-up definition assets referenced by brick drop tables
 - `Assets/Resources/Themes/*`: authored runtime theme assets loaded by run setup and applied across gameplay visuals
 - `Assets/Settings/*`: URP / 2D renderer assets and template scene assets
+- `Plan/STYLE.md`: durable visual direction guide for the target synthwave arcade presentation and future theme / VFX / UI work
 - `.codex/skills/repo-maintenance/*`: repo-local maintenance skill and snapshot helper for refreshing `AGENTS.md` and local skills after agent work
 - `.codex/skills/unity-compile/*`: repo-local Unity batchmode compile-check skill and helper script for reproducing script compilation failures from the terminal
 - `Packages/manifest.json`: Unity package dependencies
@@ -77,14 +79,24 @@
 - Ball and paddle behavior use Unity 6-era 2D physics APIs such as `Rigidbody2D.linearVelocity`.
 - Run flow is still runtime-authored and coordinated by `BreakoutGameController`, but setup persistence, procedural planning, theme application, pickup/effect state, and OnGUI rendering now live in dedicated gameplay services.
 - Brick and power-up definition assets can optionally override their semantic theme slot, but default routing already maps brick durability tiers plus beneficial/harmful/burst pickups onto the shared theme palette automatically.
+- The current default visuals are still placeholder-level, but future presentation work should follow `Plan/STYLE.md` and aim for a dark synthwave arcade-machine look rather than generic neon dressing.
 - Terminal-side compile validation can now be done with `python .codex/skills/unity-compile/scripts/run_unity_compile.py`, which reads `ProjectVersion.txt`, locates the matching Unity Hub editor, runs batchmode, and summarizes build-blocking script errors from the generated log.
 - After adding or renaming scripts, let Unity regenerate project files instead of hand-maintaining the `.sln`.
+
+## Visual Direction
+
+- Read `Plan/STYLE.md` before making UI, theme, VFX, shader, environment, or presentation changes.
+- The target look is `1980s synthwave retro-futurism`: dark indigo or violet bases, focused magenta/cyan neon accents, warm gold/coral highlights, and restrained CRT or cabinet cues.
+- The visual tone should feel like a game running inside a giant arcade machine: backlit marquee energy, bezel framing, smoked-glass panels, and selective glow.
+- Gameplay readability wins over decoration. The ball path, paddle silhouette, brick durability, pickup polarity, and paused-vs-active state should remain legible at a glance.
+- Use the semantic theme-slot system first for palette mapping, then layer future glow, grid, scanline, or material work on top instead of hard-coding colors inside gameplay logic.
 
 ## Working Rules For Future Agents
 
 - Prefer adding gameplay code under `Assets/Scripts/` unless the user asks for a different layout.
 - Preserve Unity `.meta` pairings for every manually added script and folder under `Assets/Scripts/`.
 - After substantial project work, use `.codex/skills/repo-maintenance/` to refresh `AGENTS.md` and repo-local skills with durable new repo knowledge.
+- Before touching visual style, read `Plan/STYLE.md` and keep the synthwave arcade direction consistent across gameplay, HUD, menus, and future theme assets.
 - Keep Unity `.meta` files intact. If you add an asset or script manually, ensure the matching `.meta` file exists and stays paired with it.
 - Do not edit or rely on generated folders for durable changes:
   - `Library/`
@@ -166,8 +178,9 @@ If you are a future agent starting work here, read these first:
 18. `Assets/Resources/Levels/Level01.asset`
 19. `Assets/Resources/Bricks/BasicBrick.asset`
 20. `Assets/Resources/Themes/ClassicTheme.asset`
-21. `Assets/Scenes/SampleScene.unity`
-22. `.codex/skills/repo-maintenance/SKILL.md`
+21. `Plan/STYLE.md`
+22. `Assets/Scenes/SampleScene.unity`
+23. `.codex/skills/repo-maintenance/SKILL.md`
 
 ## Current Reality Check
 
