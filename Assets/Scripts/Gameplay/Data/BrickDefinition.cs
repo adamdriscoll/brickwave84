@@ -26,6 +26,7 @@ namespace GetBricked.Gameplay.Data
         [SerializeField] private BrickPowerUpDropEntry[] dropTable = Array.Empty<BrickPowerUpDropEntry>();
         [SerializeField] private Color baseColor = Color.white;
         [SerializeField] private Color damagedColor = new Color(0.55f, 0.55f, 0.55f, 1f);
+        [SerializeField] private ThemeVisualSlot themeSlot = ThemeVisualSlot.Auto;
 
         public string DisplayName => string.IsNullOrWhiteSpace(displayName) ? name : displayName;
 
@@ -44,5 +45,25 @@ namespace GetBricked.Gameplay.Data
         public Color BaseColor => baseColor;
 
         public Color DamagedColor => damagedColor;
+
+        public ThemeVisualSlot ResolveThemeSlot()
+        {
+            if (themeSlot != ThemeVisualSlot.Auto)
+            {
+                return themeSlot;
+            }
+
+            if (!IsBreakable)
+            {
+                return ThemeVisualSlot.BrickObstacle;
+            }
+
+            return HitPoints switch
+            {
+                1 => ThemeVisualSlot.BrickPrimary,
+                2 => ThemeVisualSlot.BrickSecondary,
+                _ => ThemeVisualSlot.BrickTertiary,
+            };
+        }
     }
 }

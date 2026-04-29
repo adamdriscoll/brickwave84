@@ -15,7 +15,7 @@ namespace GetBricked.Gameplay
 
         public PowerUpDefinition Definition => definition;
 
-        public void Configure(BreakoutGameController controller, PowerUpDefinition powerUpDefinition, float speed, float missY)
+        public void Configure(BreakoutGameController controller, PowerUpDefinition powerUpDefinition, float speed, float missY, ThemeVisualStyle visualStyle)
         {
             gameController = controller;
             definition = powerUpDefinition;
@@ -28,7 +28,20 @@ namespace GetBricked.Gameplay
                 pickupCollider.isTrigger = true;
             }
 
-            RefreshVisual();
+            ApplyTheme(visualStyle);
+        }
+
+        public void ApplyTheme(ThemeVisualStyle visualStyle)
+        {
+            spriteRenderer ??= GetComponent<SpriteRenderer>();
+
+            if (spriteRenderer == null)
+            {
+                return;
+            }
+
+            spriteRenderer.sprite = visualStyle.Sprite;
+            spriteRenderer.color = visualStyle.PrimaryColor;
         }
 
         private void Update()
@@ -51,14 +64,5 @@ namespace GetBricked.Gameplay
             gameController.HandlePickupCaught(this);
         }
 
-        private void RefreshVisual()
-        {
-            if (spriteRenderer == null || definition == null)
-            {
-                return;
-            }
-
-            spriteRenderer.color = definition.PickupColor;
-        }
     }
 }

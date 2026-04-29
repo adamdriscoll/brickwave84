@@ -12,6 +12,8 @@ namespace GetBricked.Gameplay
         private SpriteRenderer spriteRenderer;
         private int maxHitPoints;
         private int hitPointsRemaining;
+        private Color themedBaseColor;
+        private Color themedDamagedColor;
 
         public BrickDefinition Definition => definition;
 
@@ -19,7 +21,7 @@ namespace GetBricked.Gameplay
 
         public bool CountsTowardLevelCompletion => definition != null && definition.CountsTowardLevelCompletion;
 
-        public void Initialize(BreakoutGameController controller, BrickDefinition brickDefinition, int effectiveHitPoints)
+        public void Initialize(BreakoutGameController controller, BrickDefinition brickDefinition, int effectiveHitPoints, ThemeVisualStyle visualStyle)
         {
             gameController = controller;
             definition = brickDefinition;
@@ -28,6 +30,21 @@ namespace GetBricked.Gameplay
                 ? Mathf.Max(1, effectiveHitPoints)
                 : 0;
             hitPointsRemaining = maxHitPoints;
+            ApplyTheme(visualStyle);
+        }
+
+        public void ApplyTheme(ThemeVisualStyle visualStyle)
+        {
+            spriteRenderer ??= GetComponent<SpriteRenderer>();
+
+            if (spriteRenderer == null)
+            {
+                return;
+            }
+
+            spriteRenderer.sprite = visualStyle.Sprite;
+            themedBaseColor = visualStyle.PrimaryColor;
+            themedDamagedColor = visualStyle.SecondaryColor;
             RefreshVisual();
         }
 
@@ -63,12 +80,12 @@ namespace GetBricked.Gameplay
 
             if (!definition.IsBreakable || maxHitPoints <= 1)
             {
-                spriteRenderer.color = definition.BaseColor;
+                spriteRenderer.color = themedBaseColor;
                 return;
             }
 
             var integrity = Mathf.InverseLerp(1f, maxHitPoints, hitPointsRemaining);
-            spriteRenderer.color = Color.Lerp(definition.DamagedColor, definition.BaseColor, integrity);
+            spriteRenderer.color = Color.Lerp(themedDamagedColor, themedBaseColor, integrity);
         }
     }
 }

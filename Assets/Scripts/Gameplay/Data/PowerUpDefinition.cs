@@ -21,6 +21,7 @@ namespace GetBricked.Gameplay.Data
         [SerializeField, Min(0.1f)] private float scalar = 1.25f;
         [SerializeField, Min(0)] private int extraBallCount = 2;
         [SerializeField] private Color pickupColor = Color.white;
+        [SerializeField] private ThemeVisualSlot themeSlot = ThemeVisualSlot.Auto;
 
         public string DisplayName => string.IsNullOrWhiteSpace(displayName) ? name : displayName;
 
@@ -39,5 +40,20 @@ namespace GetBricked.Gameplay.Data
         public Color PickupColor => pickupColor;
 
         public bool IsTimed => effectType != PowerUpEffectType.MultiBallBurst && DurationSeconds > 0f;
+
+        public ThemeVisualSlot ResolveThemeSlot()
+        {
+            if (themeSlot != ThemeVisualSlot.Auto)
+            {
+                return themeSlot;
+            }
+
+            if (effectType == PowerUpEffectType.MultiBallBurst)
+            {
+                return ThemeVisualSlot.PickupBurst;
+            }
+
+            return beneficial ? ThemeVisualSlot.PickupBeneficial : ThemeVisualSlot.PickupHarmful;
+        }
     }
 }

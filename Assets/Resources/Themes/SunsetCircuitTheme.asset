@@ -1,0 +1,71 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ffdfc6d37d554770a08a852310a8cb17, type: 3}
+  m_Name: SunsetCircuitTheme
+  m_EditorClassIdentifier: 
+  displayName: Sunset Circuit
+  visualEntries:
+  - slot: 1
+    style:
+      primaryColor: {r: 0.1, g: 0.05, b: 0.12, a: 1}
+      secondaryColor: {r: 0.1, g: 0.05, b: 0.12, a: 1}
+      sprite: {fileID: 0}
+  - slot: 2
+    style:
+      primaryColor: {r: 0.28, g: 0.14, b: 0.22, a: 1}
+      secondaryColor: {r: 0.28, g: 0.14, b: 0.22, a: 1}
+      sprite: {fileID: 0}
+  - slot: 3
+    style:
+      primaryColor: {r: 1, g: 0.8, b: 0.59, a: 1}
+      secondaryColor: {r: 1, g: 0.8, b: 0.59, a: 1}
+      sprite: {fileID: 0}
+  - slot: 4
+    style:
+      primaryColor: {r: 1, g: 0.92, b: 0.58, a: 1}
+      secondaryColor: {r: 1, g: 0.92, b: 0.58, a: 1}
+      sprite: {fileID: 0}
+  - slot: 5
+    style:
+      primaryColor: {r: 0.98, g: 0.34, b: 0.57, a: 1}
+      secondaryColor: {r: 0.67, g: 0.14, b: 0.33, a: 1}
+      sprite: {fileID: 0}
+  - slot: 6
+    style:
+      primaryColor: {r: 1, g: 0.55, b: 0.27, a: 1}
+      secondaryColor: {r: 0.74, g: 0.25, b: 0.11, a: 1}
+      sprite: {fileID: 0}
+  - slot: 7
+    style:
+      primaryColor: {r: 0.32, g: 0.88, b: 0.84, a: 1}
+      secondaryColor: {r: 0.12, g: 0.5, b: 0.49, a: 1}
+      sprite: {fileID: 0}
+  - slot: 8
+    style:
+      primaryColor: {r: 0.4, g: 0.31, b: 0.5, a: 1}
+      secondaryColor: {r: 0.21, g: 0.15, b: 0.28, a: 1}
+      sprite: {fileID: 0}
+  - slot: 9
+    style:
+      primaryColor: {r: 0.6, g: 1, b: 0.78, a: 1}
+      secondaryColor: {r: 0.6, g: 1, b: 0.78, a: 1}
+      sprite: {fileID: 0}
+  - slot: 10
+    style:
+      primaryColor: {r: 1, g: 0.45, b: 0.56, a: 1}
+      secondaryColor: {r: 1, g: 0.45, b: 0.56, a: 1}
+      sprite: {fileID: 0}
+  - slot: 11
+    style:
+      primaryColor: {r: 0.96, g: 0.75, b: 0.31, a: 1}
+      secondaryColor: {r: 0.96, g: 0.75, b: 0.31, a: 1}
+      sprite: {fileID: 0}
