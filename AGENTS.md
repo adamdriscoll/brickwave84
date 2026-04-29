@@ -13,6 +13,7 @@
   - The prototype currently supports one paddle, one or more balls, a score HUD, lives, serve/reset flow between ball losses, authored multi-level progression, temporary level-complete / game-over states, and brick-driven power-up / power-down drops
   - Brick content is now data-driven through ScriptableObject assets, including multi-strength breakable bricks and unbreakable obstacle bricks
   - Power-up content is now data-driven through ScriptableObject assets, with timed paddle-size and ball-speed modifiers plus an instant multi-ball burst effect
+  - Chunk 06 groundwork is now in place through a runtime run-setup overlay with seed entry, difficulty presets, modifier validation, deterministic gameplay rolls, and seeded authored-level transforms
   - There are custom C# scripts now, but still no `.asmdef` files, no prefabs, and no automated tests yet
 - Input System is enabled and has a starter action asset at `Assets/InputSystem_Actions.inputactions`.
 
@@ -26,9 +27,11 @@
 - `Assets/Scripts/Gameplay/BallController.cs`: launch, bounce shaping, per-level speed tuning, speed clamping, and single/multi-ball loss detection support
 - `Assets/Scripts/Gameplay/Brick.cs`: definition-driven brick behavior with variable durability and unbreakable support
 - `Assets/Scripts/Gameplay/PowerUpPickup.cs`: falling pickup behavior and paddle catch detection
+- `Assets/Scripts/Gameplay/DeterministicRandomService.cs`: seed-driven random helper used for gameplay-critical procedural choices
 - `Assets/Scripts/Gameplay/Data/BrickDefinition.cs`: ScriptableObject data for brick durability, scoring, completion contribution, colors, and weighted drop tables
 - `Assets/Scripts/Gameplay/Data/LevelDefinition.cs`: ScriptableObject data for layout rows, legend mapping, completion rules, and per-level tuning
 - `Assets/Scripts/Gameplay/Data/PowerUpDefinition.cs`: ScriptableObject data for pickup effect type, duration, magnitude, and HUD labeling
+- `Assets/Scripts/Gameplay/Data/RunSettings.cs`: runtime run configuration model for seed, difficulty, balls-per-serve, modifier multipliers, and drop-pool restrictions
 - `Assets/Resources/Bricks/*`: authored brick definition assets loaded at runtime
 - `Assets/Resources/Levels/*`: authored level definition assets loaded at runtime
 - `Assets/Resources/PowerUps/*`: authored power-up definition assets referenced by brick drop tables
@@ -47,8 +50,14 @@
 - Bricks and levels are now authored as ScriptableObjects under `Assets/Resources/` and loaded by `BreakoutGameController` at runtime.
 - Brick definitions now own drop chance plus weighted pickup references, so most drop-table tuning is an asset edit rather than a controller edit.
 - Level layouts are currently encoded as row strings plus a symbol-to-brick legend, so adding a new level is a data-editing task rather than a code change.
+- The seeded variation layer currently transforms authored levels instead of replacing them: per-level plans can mirror layouts and rotate row strings deterministically from the selected run seed.
+- Run setup currently lives inside `BreakoutGameController` as a temporary OnGUI overlay instead of a separate menu scene or prefab-based UI.
+- Difficulty presets and player-selected modifiers are normalized into `RunSettings`, so future tuning should usually flow through that model instead of adding one-off conditionals.
+- Deterministic gameplay randomness currently covers serve launch direction, drop chance / weighted pickup selection, and seeded level-layout transforms.
+- `R` now returns to the run-setup overlay; `Space` still launches serves and advances/restarts runs once a configuration has been started.
 - Timed pickup effects currently refresh by extending the same effect's duration, while opposing effects coexist and combine multiplicatively.
 - Life loss now depends on all active balls leaving play, so multi-ball changes should be reviewed against `BreakoutGameController.HandleBallLost`.
+- The chunk-06 `Balls Per Serve` modifier spawns extra balls at every serve, so future ball-loss or serve-flow changes should be checked against `BreakoutGameController.SpawnConfiguredServeBalls`.
 - Prototype input is currently read directly from `UnityEngine.InputSystem.Keyboard` rather than being wired through `PlayerInput` or the existing action asset.
 - Ball and paddle behavior use Unity 6-era 2D physics APIs such as `Rigidbody2D.linearVelocity`.
 - Run flow is still runtime-authored inside `BreakoutGameController`, including lives, serve states, level transitions, level completion, game over, pickup spawning, effect timers, and multi-ball cleanup.
@@ -92,16 +101,20 @@ When making changes, validate with the Unity editor when possible:
 - Check the Console for compile errors after adding scripts.
 - If gameplay changes are made, enter Play Mode in `Assets/Scenes/SampleScene.unity`.
 - For the current prototype, verify:
+  - On boot or after pressing `R`, the run-setup overlay appears with seed, preset, and modifier controls
+  - Typing digits changes the run seed, `T` randomizes it, and `Space` starts a run with the shown configuration
   - `Breakout Prototype` appears in the runtime hierarchy automatically
   - `A/D` or left/right arrows move the paddle
   - `Space` launches the ball
+  - Replaying the same seed reproduces the same layout mirror/row-shift pattern and deterministic drop/launch rolls
   - Losing the ball removes one life and re-serves from the paddle until lives reach zero
   - Breakable bricks respect their configured hit strength and unbreakable bricks stay in play
+  - Run modifiers affect serve ball count, paddle width, ball speed, brick durability, and drop filtering as shown in the setup preview
   - Destroyed breakable bricks can spawn falling pickups, and the paddle can catch or miss them naturally
   - Timed paddle-width and ball-speed effects appear in the HUD and clean themselves up when their timers expire
   - Multi-ball does not consume a life until the last active ball is lost
   - Clearing the current objective reaches the temporary level-complete state and `Space` advances to the next authored level
-  - `R` restarts the full run
+  - `R` returns to run setup without leaving orphaned runtime balls or pickups behind
 - If build configuration changes are made, re-check `ProjectSettings/EditorBuildSettings.asset`.
 
 ## Good First Read Files
@@ -115,16 +128,19 @@ If you are a future agent starting work here, read these first:
 5. `Assets/InputSystem_Actions.inputactions`
 6. `Assets/Scripts/Core/BreakoutBootstrap.cs`
 7. `Assets/Scripts/Gameplay/BreakoutGameController.cs`
-8. `Assets/Scripts/Gameplay/Data/LevelDefinition.cs`
-9. `Assets/Scripts/Gameplay/Data/PowerUpDefinition.cs`
-10. `Assets/Resources/Levels/Level01.asset`
-11. `Assets/Resources/Bricks/BasicBrick.asset`
-12. `Assets/Scenes/SampleScene.unity`
-13. `.codex/skills/repo-maintenance/SKILL.md`
+8. `Assets/Scripts/Gameplay/Data/RunSettings.cs`
+9. `Assets/Scripts/Gameplay/DeterministicRandomService.cs`
+10. `Assets/Scripts/Gameplay/Data/LevelDefinition.cs`
+11. `Assets/Scripts/Gameplay/Data/PowerUpDefinition.cs`
+12. `Assets/Resources/Levels/Level01.asset`
+13. `Assets/Resources/Bricks/BasicBrick.asset`
+14. `Assets/Scenes/SampleScene.unity`
+15. `.codex/skills/repo-maintenance/SKILL.md`
 
 ## Current Reality Check
 
-- There is now a minimal implemented game loop for a single-screen brick-breaker prototype with authored level data and a first pass at pickup-driven rule changes.
+- There is now a minimal implemented game loop for a single-screen brick-breaker prototype with authored level data, pickup-driven rule changes, and first-pass chunk-06 seeded-run support.
 - The current custom systems are small, but they are real and worth extending deliberately instead of replacing by default.
 - Most near-term work will still be greenfield, but it should now build on the existing runtime prototype and folder structure.
 - If a user asks for game features, you will likely be extending the current scripts and authored content assets first, then deciding when to promote runtime-generated objects into authored scene or prefab assets.
+- If a user asks for more chunk-06 work, the most likely follow-ups are refining fairness validation, promoting the setup overlay into a dedicated UI flow, and expanding the set of deterministic authored-content transforms.

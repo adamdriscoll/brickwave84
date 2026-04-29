@@ -10,6 +10,7 @@ namespace GetBricked.Gameplay
         private BreakoutGameController gameController;
         private BrickDefinition definition;
         private SpriteRenderer spriteRenderer;
+        private int maxHitPoints;
         private int hitPointsRemaining;
 
         public BrickDefinition Definition => definition;
@@ -18,12 +19,15 @@ namespace GetBricked.Gameplay
 
         public bool CountsTowardLevelCompletion => definition != null && definition.CountsTowardLevelCompletion;
 
-        public void Initialize(BreakoutGameController controller, BrickDefinition brickDefinition)
+        public void Initialize(BreakoutGameController controller, BrickDefinition brickDefinition, int effectiveHitPoints)
         {
             gameController = controller;
             definition = brickDefinition;
             spriteRenderer = GetComponent<SpriteRenderer>();
-            hitPointsRemaining = definition != null && definition.IsBreakable ? definition.HitPoints : 0;
+            maxHitPoints = definition != null && definition.IsBreakable
+                ? Mathf.Max(1, effectiveHitPoints)
+                : 0;
+            hitPointsRemaining = maxHitPoints;
             RefreshVisual();
         }
 
@@ -57,13 +61,13 @@ namespace GetBricked.Gameplay
                 return;
             }
 
-            if (!definition.IsBreakable || definition.HitPoints <= 1)
+            if (!definition.IsBreakable || maxHitPoints <= 1)
             {
                 spriteRenderer.color = definition.BaseColor;
                 return;
             }
 
-            var integrity = Mathf.InverseLerp(1f, definition.HitPoints, hitPointsRemaining);
+            var integrity = Mathf.InverseLerp(1f, maxHitPoints, hitPointsRemaining);
             spriteRenderer.color = Color.Lerp(definition.DamagedColor, definition.BaseColor, integrity);
         }
     }

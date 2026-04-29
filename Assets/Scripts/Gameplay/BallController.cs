@@ -58,7 +58,10 @@ namespace GetBricked.Gameplay
 
         public void Launch()
         {
-            Launch(new Vector2(Random.Range(-0.25f, 0.25f), 1f));
+            var horizontalLaunch = gameController != null
+                ? gameController.NextGameplayRandomFloat(-0.25f, 0.25f)
+                : Random.Range(-0.25f, 0.25f);
+            Launch(new Vector2(horizontalLaunch, 1f));
         }
 
         public void Launch(Vector2 direction)
@@ -210,7 +213,7 @@ namespace GetBricked.Gameplay
                 var adjustedY = launchSpeed * minimumVerticalDirection * ySign;
                 var adjustedX = Mathf.Sqrt(Mathf.Max(0.01f, (launchSpeed * launchSpeed) - (adjustedY * adjustedY)));
                 adjustedX *= Mathf.Approximately(velocity.x, 0f)
-                    ? (Random.value < 0.5f ? -1f : 1f)
+                    ? ((gameController != null ? gameController.NextGameplayRandomBool() : Random.value < 0.5f) ? -1f : 1f)
                     : Mathf.Sign(velocity.x);
                 velocity = new Vector2(adjustedX, adjustedY);
             }

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Text;
 using GetBricked.Gameplay.Data;
 using UnityEngine;
@@ -22,8 +23,38 @@ namespace GetBricked.Gameplay
             public float RemainingDuration { get; set; }
         }
 
+        private sealed class PendingRunSetup
+        {
+            public int Seed;
+            public RunDifficultyPreset DifficultyPreset = RunDifficultyPreset.Standard;
+            public int BallsPerServe = 1;
+            public int PaddleWidthStep;
+            public int BallSpeedStep;
+            public int BrickDurabilityStep;
+            public DropPoolMode DropPoolMode = DropPoolMode.Mixed;
+        }
+
+        private sealed class LevelLayoutPlan
+        {
+            public string[] LayoutRows = Array.Empty<string>();
+            public bool MirrorLayout;
+            public int[] RowShifts = Array.Empty<int>();
+        }
+
+        private enum RunSetupField
+        {
+            Seed = 0,
+            Difficulty = 1,
+            BallsPerServe = 2,
+            PaddleWidth = 3,
+            BallSpeed = 4,
+            BrickDurability = 5,
+            DropPool = 6,
+        }
+
         private enum RoundState
         {
+            RunSetup,
             ReadyToServe,
             Playing,
             LifeLost,
@@ -92,6 +123,9 @@ namespace GetBricked.Gameplay
         private GUIStyle hudStyle;
         private GUIStyle messageStyle;
         private GUIStyle pickupStyle;
+        private GUIStyle setupTitleStyle;
+        private GUIStyle setupSelectedStyle;
+        private GUIStyle setupHintStyle;
         private LevelDefinition currentLevel;
         private int currentLevelIndex;
         private int levelScore;
@@ -101,6 +135,13 @@ namespace GetBricked.Gameplay
         private string pickupBannerText;
         private float pickupBannerTimer;
         private Color pickupBannerColor = Color.white;
+        private PendingRunSetup pendingRunSetup;
+        private RunSettings activeRunSettings;
+        private DeterministicRandomService gameplayRandom;
+        private RunSetupField selectedRunSetupField;
+        private string pendingSeedText = string.Empty;
+        private string currentLevelVariationLabel = "Variation: not started";
+        private string pendingValidationMessage = string.Empty;
 
         private void Awake()
         {
@@ -112,7 +153,8 @@ namespace GetBricked.Gameplay
             CreatePaddle();
             currentLevelBallSpeed = ballSpeed;
             currentLevelPaddleSpeed = paddleSpeed;
-            StartNewRun();
+            ResetPendingRunSetup(generateNewSeed: true);
+            EnterRunSetup();
         }
 
         private void OnDestroy()
@@ -145,9 +187,15 @@ namespace GetBricked.Gameplay
                 return;
             }
 
+            if (roundState == RoundState.RunSetup)
+            {
+                HandleRunSetupInput(keyboard);
+                return;
+            }
+
             if (keyboard.rKey.wasPressedThisFrame)
             {
-                StartNewRun();
+                EnterRunSetup();
                 return;
             }
 
@@ -158,8 +206,7 @@ namespace GetBricked.Gameplay
 
             if (roundState == RoundState.ReadyToServe || roundState == RoundState.LifeLost)
             {
-                roundState = RoundState.Playing;
-                serveBall.Launch();
+                LaunchServe();
                 return;
             }
 
@@ -268,12 +315,395 @@ namespace GetBricked.Gameplay
 
         private void StartNewRun()
         {
-            livesRemaining = Mathf.Max(1, startingLives);
+            if (activeRunSettings == null)
+            {
+                activeRunSettings = BuildRunSettingsFromPending(out pendingValidationMessage, commitSeedText: true);
+            }
+
+            gameplayRandom = new DeterministicRandomService(activeRunSettings.Seed);
+            livesRemaining = activeRunSettings.StartingLives;
             score = 0;
             currentLevelIndex = 0;
+            currentLevelVariationLabel = "Variation: pending";
             ClearTimedEffects();
             ClearPickups();
             LoadLevel(currentLevelIndex, RoundState.ReadyToServe);
+
+            Debug.Log(
+                $"Starting run | seed {activeRunSettings.Seed} | preset {activeRunSettings.DifficultyLabel} | " +
+                $"balls/serve {activeRunSettings.BallsPerServe} | paddle x{activeRunSettings.PaddleWidthMultiplier:0.00} | " +
+                $"ball speed x{activeRunSettings.BallSpeedMultiplier:0.00} | brick durability x{activeRunSettings.BrickDurabilityMultiplier:0.00} | " +
+                $"drops {activeRunSettings.DropPoolLabel}");
+        }
+
+        public float NextGameplayRandomFloat(float minInclusive, float maxInclusive)
+        {
+            return gameplayRandom != null
+                ? gameplayRandom.Range(minInclusive, maxInclusive)
+                : UnityEngine.Random.Range(minInclusive, maxInclusive);
+        }
+
+        public bool NextGameplayRandomBool()
+        {
+            return gameplayRandom != null ? gameplayRandom.NextBool() : UnityEngine.Random.value < 0.5f;
+        }
+
+        private void EnterRunSetup()
+        {
+            if (pendingRunSetup == null)
+            {
+                ResetPendingRunSetup(generateNewSeed: true);
+            }
+
+            roundState = RoundState.RunSetup;
+            selectedRunSetupField = RunSetupField.Seed;
+            pendingValidationMessage = string.Empty;
+            currentLevelVariationLabel = "Variation: pending";
+            ClearBricks();
+            ClearPickups();
+            ClearTimedEffects();
+            StopAllBalls();
+            DestroyAdditionalBalls();
+            activeBalls.Clear();
+
+            if (serveBall != null)
+            {
+                serveBall.Stop();
+                serveBall.gameObject.SetActive(false);
+            }
+
+            paddle.ResetToStart();
+        }
+
+        private void ResetPendingRunSetup(bool generateNewSeed)
+        {
+            pendingRunSetup ??= new PendingRunSetup();
+            pendingRunSetup.DifficultyPreset = RunDifficultyPreset.Standard;
+            pendingRunSetup.BallsPerServe = 1;
+            pendingRunSetup.PaddleWidthStep = 0;
+            pendingRunSetup.BallSpeedStep = 0;
+            pendingRunSetup.BrickDurabilityStep = 0;
+            pendingRunSetup.DropPoolMode = DropPoolMode.Mixed;
+            pendingRunSetup.Seed = generateNewSeed ? GenerateSeed() : pendingRunSetup.Seed;
+            pendingSeedText = pendingRunSetup.Seed.ToString(CultureInfo.InvariantCulture);
+        }
+
+        private void HandleRunSetupInput(Keyboard keyboard)
+        {
+            if (keyboard == null)
+            {
+                return;
+            }
+
+            if (keyboard.upArrowKey.wasPressedThisFrame || keyboard.wKey.wasPressedThisFrame)
+            {
+                selectedRunSetupField = (RunSetupField)Mathf.Max(0, (int)selectedRunSetupField - 1);
+            }
+
+            if (keyboard.downArrowKey.wasPressedThisFrame || keyboard.sKey.wasPressedThisFrame)
+            {
+                selectedRunSetupField = (RunSetupField)Mathf.Min((int)RunSetupField.DropPool, (int)selectedRunSetupField + 1);
+            }
+
+            if (keyboard.leftArrowKey.wasPressedThisFrame || keyboard.aKey.wasPressedThisFrame)
+            {
+                AdjustSelectedSetupField(-1);
+            }
+
+            if (keyboard.rightArrowKey.wasPressedThisFrame || keyboard.dKey.wasPressedThisFrame)
+            {
+                AdjustSelectedSetupField(1);
+            }
+
+            if (keyboard.tKey.wasPressedThisFrame)
+            {
+                pendingRunSetup.Seed = GenerateSeed();
+                pendingSeedText = pendingRunSetup.Seed.ToString(CultureInfo.InvariantCulture);
+            }
+
+            if (keyboard.backspaceKey.wasPressedThisFrame && selectedRunSetupField == RunSetupField.Seed && pendingSeedText.Length > 0)
+            {
+                pendingSeedText = pendingSeedText.Substring(0, pendingSeedText.Length - 1);
+            }
+
+            if (keyboard.deleteKey.wasPressedThisFrame && selectedRunSetupField == RunSetupField.Seed)
+            {
+                pendingSeedText = string.Empty;
+            }
+
+            if (keyboard.nKey.wasPressedThisFrame)
+            {
+                ResetPendingRunSetup(generateNewSeed: true);
+            }
+
+            if (selectedRunSetupField == RunSetupField.Seed)
+            {
+                AppendPressedSeedDigit(keyboard);
+            }
+
+            if (keyboard.spaceKey.wasPressedThisFrame || keyboard.enterKey.wasPressedThisFrame || keyboard.numpadEnterKey.wasPressedThisFrame)
+            {
+                activeRunSettings = BuildRunSettingsFromPending(out pendingValidationMessage, commitSeedText: true);
+                StartNewRun();
+            }
+        }
+
+        private void AdjustSelectedSetupField(int direction)
+        {
+            if (pendingRunSetup == null)
+            {
+                return;
+            }
+
+            switch (selectedRunSetupField)
+            {
+                case RunSetupField.Seed:
+                    pendingRunSetup.Seed = ParsePendingSeed(commitSeedText: false);
+                    pendingRunSetup.Seed = Mathf.Max(0, pendingRunSetup.Seed + direction);
+                    pendingSeedText = pendingRunSetup.Seed.ToString(CultureInfo.InvariantCulture);
+                    break;
+                case RunSetupField.Difficulty:
+                    pendingRunSetup.DifficultyPreset = (RunDifficultyPreset)Mathf.Clamp(
+                        (int)pendingRunSetup.DifficultyPreset + direction,
+                        (int)RunDifficultyPreset.Casual,
+                        (int)RunDifficultyPreset.Brutal);
+                    break;
+                case RunSetupField.BallsPerServe:
+                    pendingRunSetup.BallsPerServe = Mathf.Clamp(pendingRunSetup.BallsPerServe + direction, 1, 4);
+                    break;
+                case RunSetupField.PaddleWidth:
+                    pendingRunSetup.PaddleWidthStep = Mathf.Clamp(pendingRunSetup.PaddleWidthStep + direction, -2, 2);
+                    break;
+                case RunSetupField.BallSpeed:
+                    pendingRunSetup.BallSpeedStep = Mathf.Clamp(pendingRunSetup.BallSpeedStep + direction, -2, 2);
+                    break;
+                case RunSetupField.BrickDurability:
+                    pendingRunSetup.BrickDurabilityStep = Mathf.Clamp(pendingRunSetup.BrickDurabilityStep + direction, -2, 2);
+                    break;
+                case RunSetupField.DropPool:
+                    pendingRunSetup.DropPoolMode = (DropPoolMode)Mathf.Clamp(
+                        (int)pendingRunSetup.DropPoolMode + direction,
+                        (int)DropPoolMode.Mixed,
+                        (int)DropPoolMode.Disabled);
+                    break;
+            }
+        }
+
+        private void AppendPressedSeedDigit(Keyboard keyboard)
+        {
+            if (pendingSeedText.Length >= 9)
+            {
+                return;
+            }
+
+            if (TryGetPressedDigit(keyboard, out var digit))
+            {
+                pendingSeedText += digit;
+            }
+        }
+
+        private static bool TryGetPressedDigit(Keyboard keyboard, out char digit)
+        {
+            if (keyboard.digit0Key.wasPressedThisFrame || keyboard.numpad0Key.wasPressedThisFrame)
+            {
+                digit = '0';
+                return true;
+            }
+
+            if (keyboard.digit1Key.wasPressedThisFrame || keyboard.numpad1Key.wasPressedThisFrame)
+            {
+                digit = '1';
+                return true;
+            }
+
+            if (keyboard.digit2Key.wasPressedThisFrame || keyboard.numpad2Key.wasPressedThisFrame)
+            {
+                digit = '2';
+                return true;
+            }
+
+            if (keyboard.digit3Key.wasPressedThisFrame || keyboard.numpad3Key.wasPressedThisFrame)
+            {
+                digit = '3';
+                return true;
+            }
+
+            if (keyboard.digit4Key.wasPressedThisFrame || keyboard.numpad4Key.wasPressedThisFrame)
+            {
+                digit = '4';
+                return true;
+            }
+
+            if (keyboard.digit5Key.wasPressedThisFrame || keyboard.numpad5Key.wasPressedThisFrame)
+            {
+                digit = '5';
+                return true;
+            }
+
+            if (keyboard.digit6Key.wasPressedThisFrame || keyboard.numpad6Key.wasPressedThisFrame)
+            {
+                digit = '6';
+                return true;
+            }
+
+            if (keyboard.digit7Key.wasPressedThisFrame || keyboard.numpad7Key.wasPressedThisFrame)
+            {
+                digit = '7';
+                return true;
+            }
+
+            if (keyboard.digit8Key.wasPressedThisFrame || keyboard.numpad8Key.wasPressedThisFrame)
+            {
+                digit = '8';
+                return true;
+            }
+
+            if (keyboard.digit9Key.wasPressedThisFrame || keyboard.numpad9Key.wasPressedThisFrame)
+            {
+                digit = '9';
+                return true;
+            }
+
+            digit = default;
+            return false;
+        }
+
+        private RunSettings BuildRunSettingsFromPending(out string validationMessage, bool commitSeedText = false)
+        {
+            pendingRunSetup ??= new PendingRunSetup();
+
+            var seed = ParsePendingSeed(commitSeedText);
+            pendingRunSetup.Seed = seed;
+
+            var lives = startingLives;
+            var paddleWidthMultiplier = 1f;
+            var ballSpeedMultiplier = 1f;
+            var brickDurabilityMultiplier = 1f;
+            var dropChanceMultiplier = 1f;
+
+            switch (pendingRunSetup.DifficultyPreset)
+            {
+                case RunDifficultyPreset.Casual:
+                    lives += 1;
+                    paddleWidthMultiplier *= 1.15f;
+                    ballSpeedMultiplier *= 0.92f;
+                    brickDurabilityMultiplier *= 0.9f;
+                    dropChanceMultiplier *= 1.15f;
+                    break;
+                case RunDifficultyPreset.Brutal:
+                    lives = Mathf.Max(1, lives - 1);
+                    paddleWidthMultiplier *= 0.9f;
+                    ballSpeedMultiplier *= 1.12f;
+                    brickDurabilityMultiplier *= 1.2f;
+                    dropChanceMultiplier *= 0.9f;
+                    break;
+            }
+
+            paddleWidthMultiplier *= 1f + (pendingRunSetup.PaddleWidthStep * 0.12f);
+            ballSpeedMultiplier *= 1f + (pendingRunSetup.BallSpeedStep * 0.08f);
+            brickDurabilityMultiplier *= 1f + (pendingRunSetup.BrickDurabilityStep * 0.16f);
+
+            paddleWidthMultiplier = Mathf.Clamp(paddleWidthMultiplier, 0.7f, 1.55f);
+            ballSpeedMultiplier = Mathf.Clamp(ballSpeedMultiplier, 0.78f, 1.45f);
+            brickDurabilityMultiplier = Mathf.Clamp(brickDurabilityMultiplier, 0.8f, 1.9f);
+
+            var challengeIndex = (ballSpeedMultiplier * brickDurabilityMultiplier) / paddleWidthMultiplier;
+            var warnings = new List<string>();
+
+            if (challengeIndex > 1.75f)
+            {
+                var adjustedBallSpeed = Mathf.Clamp((1.75f * paddleWidthMultiplier) / brickDurabilityMultiplier, 0.78f, ballSpeedMultiplier);
+
+                if (adjustedBallSpeed < ballSpeedMultiplier)
+                {
+                    ballSpeedMultiplier = adjustedBallSpeed;
+                    warnings.Add("Ball speed was capped to keep the preset fair.");
+                }
+            }
+
+            if (pendingRunSetup.DropPoolMode == DropPoolMode.Disabled)
+            {
+                warnings.Add("Drops disabled for this run.");
+            }
+
+            validationMessage = warnings.Count > 0
+                ? string.Join(" ", warnings)
+                : "Run validated. Same seed will replay the same level transforms, launch rolls, and drop rolls.";
+
+            return new RunSettings(
+                seed,
+                pendingRunSetup.DifficultyPreset,
+                lives,
+                pendingRunSetup.BallsPerServe,
+                paddleWidthMultiplier,
+                ballSpeedMultiplier,
+                brickDurabilityMultiplier,
+                dropChanceMultiplier,
+                pendingRunSetup.DropPoolMode);
+        }
+
+        private int ParsePendingSeed(bool commitSeedText)
+        {
+            if (string.IsNullOrWhiteSpace(pendingSeedText)
+                || !int.TryParse(pendingSeedText, NumberStyles.None, CultureInfo.InvariantCulture, out var parsedSeed))
+            {
+                parsedSeed = pendingRunSetup != null && pendingRunSetup.Seed > 0
+                    ? pendingRunSetup.Seed
+                    : GenerateSeed();
+            }
+
+            if (commitSeedText)
+            {
+                pendingSeedText = parsedSeed.ToString(CultureInfo.InvariantCulture);
+            }
+
+            return parsedSeed;
+        }
+
+        private static int GenerateSeed()
+        {
+            unchecked
+            {
+                var tickSeed = (int)DateTime.UtcNow.Ticks;
+                var salt = Environment.TickCount;
+                var combined = tickSeed ^ salt ^ 0x2D1C4EAD;
+                return combined == int.MinValue ? int.MaxValue : Mathf.Abs(combined);
+            }
+        }
+
+        private void LaunchServe()
+        {
+            roundState = RoundState.Playing;
+            serveBall.Launch();
+            SpawnConfiguredServeBalls();
+        }
+
+        private void SpawnConfiguredServeBalls()
+        {
+            var ballsPerServe = activeRunSettings == null ? 1 : activeRunSettings.BallsPerServe;
+
+            if (ballsPerServe <= 1 || serveBall == null)
+            {
+                return;
+            }
+
+            var sourceVelocity = serveBall.GetComponent<Rigidbody2D>().linearVelocity;
+            var sourceDirection = sourceVelocity.sqrMagnitude > 0.01f
+                ? sourceVelocity.normalized
+                : Vector2.up;
+            var extraBallCount = ballsPerServe - 1;
+
+            for (var index = 0; index < extraBallCount; index++)
+            {
+                var angle = extraBallCount == 1
+                    ? 0f
+                    : Mathf.Lerp(-multiBallSpreadAngle * 0.75f, multiBallSpreadAngle * 0.75f, index / (extraBallCount - 1f));
+                var direction = (Vector2)(Quaternion.Euler(0f, 0f, angle) * sourceDirection);
+                var extraBall = CreateBall(false);
+                extraBall.SetWorldPosition(serveBall.transform.position);
+                extraBall.Launch(direction);
+                activeBalls.Add(extraBall);
+            }
         }
 
         private void PrepareServe(RoundState nextState)
@@ -323,7 +753,7 @@ namespace GetBricked.Gameplay
             levelScore = 0;
 
             ApplyLevelTuning(currentLevel);
-            BuildBrickWall(currentLevel);
+            BuildBrickWall(currentLevel, BuildLevelLayoutPlan(currentLevel));
             PrepareServe(serveState);
             EvaluateLevelCompletion();
         }
@@ -339,7 +769,7 @@ namespace GetBricked.Gameplay
             }
 
             currentLevelPaddleSpeed = paddleSpeed * level.PaddleSpeedMultiplier;
-            currentLevelBallSpeed = ballSpeed * level.BallSpeedMultiplier;
+            currentLevelBallSpeed = ballSpeed * level.BallSpeedMultiplier * (activeRunSettings?.BallSpeedMultiplier ?? 1f);
             ApplyActiveEffects();
         }
 
@@ -498,7 +928,55 @@ namespace GetBricked.Gameplay
             return ball;
         }
 
-        private void BuildBrickWall(LevelDefinition level)
+        private LevelLayoutPlan BuildLevelLayoutPlan(LevelDefinition level)
+        {
+            var layoutRows = level == null ? Array.Empty<string>() : level.LayoutRows;
+            var plan = new LevelLayoutPlan
+            {
+                LayoutRows = new string[layoutRows.Length],
+                RowShifts = new int[layoutRows.Length],
+            };
+
+            if (level == null)
+            {
+                currentLevelVariationLabel = "Variation: unavailable";
+                return plan;
+            }
+
+            var planner = gameplayRandom != null
+                ? gameplayRandom.Fork((currentLevelIndex + 1) * 7919)
+                : new DeterministicRandomService(GenerateSeed());
+            plan.MirrorLayout = planner.NextBool();
+
+            for (var rowIndex = 0; rowIndex < layoutRows.Length; rowIndex++)
+            {
+                var transformedRow = layoutRows[rowIndex] ?? string.Empty;
+
+                if (plan.MirrorLayout)
+                {
+                    transformedRow = ReverseRow(transformedRow);
+                }
+
+                var occupiedTiles = CountOccupiedTiles(transformedRow);
+                var maxShift = occupiedTiles >= 2 ? Mathf.Min(2, Mathf.Max(0, transformedRow.Length / 4)) : 0;
+                var rowShift = maxShift <= 0 ? 0 : planner.Range(-maxShift, maxShift + 1);
+
+                if (occupiedTiles <= 2)
+                {
+                    rowShift = Mathf.Clamp(rowShift, -1, 1);
+                }
+
+                transformedRow = RotateRow(transformedRow, rowShift);
+                plan.LayoutRows[rowIndex] = transformedRow;
+                plan.RowShifts[rowIndex] = rowShift;
+            }
+
+            currentLevelVariationLabel = BuildVariationSummary(plan);
+            Debug.Log($"Level variation | seed {activeRunSettings?.Seed ?? 0} | {currentLevel.DisplayName} | {currentLevelVariationLabel}");
+            return plan;
+        }
+
+        private void BuildBrickWall(LevelDefinition level, LevelLayoutPlan layoutPlan)
         {
             requiredBricksRemaining = 0;
             if (level == null)
@@ -507,7 +985,7 @@ namespace GetBricked.Gameplay
             }
 
             var legend = BuildLegendLookup(level);
-            var layoutRows = level.LayoutRows;
+            var layoutRows = layoutPlan?.LayoutRows ?? level.LayoutRows;
             var startY = arenaTop - level.TopInset;
 
             for (var row = 0; row < layoutRows.Length; row++)
@@ -535,7 +1013,7 @@ namespace GetBricked.Gameplay
                         startX + (column * (brickSize.x + brickSpacing.x)),
                         startY - (row * (brickSize.y + brickSpacing.y)));
 
-                    CreateBrick(position, definition, row, column);
+                    CreateBrick(position, definition, row, column, GetEffectiveBrickHitPoints(definition));
                 }
             }
         }
@@ -561,7 +1039,81 @@ namespace GetBricked.Gameplay
             return legendLookup;
         }
 
-        private void CreateBrick(Vector2 position, BrickDefinition definition, int row, int column)
+        private static int CountOccupiedTiles(string rowLayout)
+        {
+            if (string.IsNullOrEmpty(rowLayout))
+            {
+                return 0;
+            }
+
+            var occupiedTiles = 0;
+
+            for (var index = 0; index < rowLayout.Length; index++)
+            {
+                if (rowLayout[index] != '.' && !char.IsWhiteSpace(rowLayout[index]))
+                {
+                    occupiedTiles++;
+                }
+            }
+
+            return occupiedTiles;
+        }
+
+        private static string ReverseRow(string rowLayout)
+        {
+            if (string.IsNullOrEmpty(rowLayout))
+            {
+                return string.Empty;
+            }
+
+            var characters = rowLayout.ToCharArray();
+            Array.Reverse(characters);
+            return new string(characters);
+        }
+
+        private static string RotateRow(string rowLayout, int shift)
+        {
+            if (string.IsNullOrEmpty(rowLayout) || shift == 0)
+            {
+                return rowLayout ?? string.Empty;
+            }
+
+            var length = rowLayout.Length;
+            var wrappedShift = ((shift % length) + length) % length;
+
+            if (wrappedShift == 0)
+            {
+                return rowLayout;
+            }
+
+            return rowLayout.Substring(length - wrappedShift, wrappedShift) + rowLayout.Substring(0, length - wrappedShift);
+        }
+
+        private static string BuildVariationSummary(LevelLayoutPlan plan)
+        {
+            if (plan == null || plan.LayoutRows.Length == 0)
+            {
+                return "Variation: authored";
+            }
+
+            var shiftedRows = 0;
+
+            for (var index = 0; index < plan.RowShifts.Length; index++)
+            {
+                if (plan.RowShifts[index] != 0)
+                {
+                    shiftedRows++;
+                }
+            }
+
+            return plan.MirrorLayout
+                ? $"Variation: mirrored, {shiftedRows} shifted rows"
+                : shiftedRows > 0
+                    ? $"Variation: authored orientation, {shiftedRows} shifted rows"
+                    : "Variation: authored orientation";
+        }
+
+        private void CreateBrick(Vector2 position, BrickDefinition definition, int row, int column, int effectiveHitPoints)
         {
             var brickObject = new GameObject($"{definition.DisplayName} {row + 1}-{column + 1}");
             brickObject.transform.SetParent(bricksRoot, false);
@@ -575,13 +1127,24 @@ namespace GetBricked.Gameplay
             brickObject.AddComponent<BoxCollider2D>();
 
             var brick = brickObject.AddComponent<Brick>();
-            brick.Initialize(this, definition);
+            brick.Initialize(this, definition, effectiveHitPoints);
             bricks.Add(brick);
 
             if (brick.CountsTowardLevelCompletion)
             {
                 requiredBricksRemaining++;
             }
+        }
+
+        private int GetEffectiveBrickHitPoints(BrickDefinition definition)
+        {
+            if (definition == null || !definition.IsBreakable)
+            {
+                return 0;
+            }
+
+            var durabilityMultiplier = activeRunSettings?.BrickDurabilityMultiplier ?? 1f;
+            return Mathf.Max(1, Mathf.RoundToInt(definition.HitPoints * durabilityMultiplier));
         }
 
         private void ClearBricks()
@@ -704,6 +1267,12 @@ namespace GetBricked.Gameplay
         {
             EnsureGuiStyles();
 
+            if (roundState == RoundState.RunSetup)
+            {
+                DrawRunSetupUi();
+                return;
+            }
+
             var levelLabel = currentLevel == null
                 ? "No levels loaded"
                 : $"Level: {currentLevelIndex + 1:00}/{loadedLevels.Count:00} - {currentLevel.DisplayName}";
@@ -716,8 +1285,15 @@ namespace GetBricked.Gameplay
 
             GUI.Label(new Rect(16f, 16f, 900f, 30f), $"Score: {score:0000}   Lives: {livesRemaining:00}   {levelLabel}", hudStyle);
             GUI.Label(new Rect(16f, 48f, 1100f, 28f), objectiveLabel, hudStyle);
-            GUI.Label(new Rect(16f, 80f, 1100f, 28f), "Move with A/D or Left/Right. Launch or continue with Space. Press R to restart the run.", hudStyle);
-            GUI.Label(new Rect(16f, 112f, 1200f, 28f), BuildActiveEffectsLabel(), hudStyle);
+            GUI.Label(new Rect(16f, 80f, 1200f, 28f), "Move with A/D or Left/Right. Launch or continue with Space. Press R to reopen run setup.", hudStyle);
+            GUI.Label(new Rect(16f, 112f, 1400f, 28f), BuildRunSummaryLabel(), hudStyle);
+            GUI.Label(new Rect(16f, 144f, 1400f, 28f), currentLevelVariationLabel, hudStyle);
+            GUI.Label(new Rect(16f, 176f, 1200f, 28f), BuildActiveEffectsLabel(), hudStyle);
+
+            if (!string.IsNullOrWhiteSpace(pendingValidationMessage))
+            {
+                GUI.Label(new Rect(16f, 208f, 1400f, 28f), pendingValidationMessage, hudStyle);
+            }
 
             if (roundState == RoundState.Playing)
             {
@@ -744,7 +1320,7 @@ namespace GetBricked.Gameplay
 
         private void EnsureGuiStyles()
         {
-            if (hudStyle != null && messageStyle != null && pickupStyle != null)
+            if (hudStyle != null && messageStyle != null && pickupStyle != null && setupTitleStyle != null && setupSelectedStyle != null && setupHintStyle != null)
             {
                 return;
             }
@@ -769,6 +1345,88 @@ namespace GetBricked.Gameplay
                 fontStyle = FontStyle.Bold,
                 normal = { textColor = Color.white },
             };
+
+            setupTitleStyle = new GUIStyle(messageStyle)
+            {
+                fontSize = 28,
+            };
+
+            setupSelectedStyle = new GUIStyle(hudStyle)
+            {
+                fontStyle = FontStyle.Bold,
+            };
+            setupSelectedStyle.normal.textColor = new Color(1f, 0.92f, 0.58f, 1f);
+
+            setupHintStyle = new GUIStyle(GUI.skin.label)
+            {
+                alignment = TextAnchor.MiddleCenter,
+                fontSize = 16,
+                wordWrap = true,
+                normal = { textColor = new Color(0.88f, 0.9f, 0.96f, 1f) },
+            };
+        }
+
+        private void DrawRunSetupUi()
+        {
+            var previewSettings = BuildRunSettingsFromPending(out var previewValidation);
+            var boxRect = new Rect((Screen.width * 0.5f) - 360f, (Screen.height * 0.5f) - 215f, 720f, 430f);
+            GUI.Box(boxRect, GUIContent.none);
+            GUI.Label(new Rect(boxRect.x + 24f, boxRect.y + 18f, boxRect.width - 48f, 34f), "Chunk 06 Run Setup", setupTitleStyle);
+            GUI.Label(new Rect(boxRect.x + 28f, boxRect.y + 56f, boxRect.width - 56f, 22f), "Author levels stay intact, then the seed mirrors/shifts them deterministically per run.", setupHintStyle);
+
+            var fieldX = boxRect.x + 36f;
+            var fieldWidth = boxRect.width - 72f;
+            var lineHeight = 30f;
+            var startY = boxRect.y + 96f;
+
+            DrawRunSetupField(fieldX, startY + (lineHeight * 0f), fieldWidth, RunSetupField.Seed, $"Seed: {GetPendingSeedDisplay()}");
+            DrawRunSetupField(fieldX, startY + (lineHeight * 1f), fieldWidth, RunSetupField.Difficulty, $"Difficulty: {pendingRunSetup.DifficultyPreset}");
+            DrawRunSetupField(fieldX, startY + (lineHeight * 2f), fieldWidth, RunSetupField.BallsPerServe, $"Balls Per Serve: {pendingRunSetup.BallsPerServe}");
+            DrawRunSetupField(fieldX, startY + (lineHeight * 3f), fieldWidth, RunSetupField.PaddleWidth, $"Paddle Width Bias: {FormatSignedStep(pendingRunSetup.PaddleWidthStep)}");
+            DrawRunSetupField(fieldX, startY + (lineHeight * 4f), fieldWidth, RunSetupField.BallSpeed, $"Ball Speed Bias: {FormatSignedStep(pendingRunSetup.BallSpeedStep)}");
+            DrawRunSetupField(fieldX, startY + (lineHeight * 5f), fieldWidth, RunSetupField.BrickDurability, $"Brick Durability Bias: {FormatSignedStep(pendingRunSetup.BrickDurabilityStep)}");
+            DrawRunSetupField(fieldX, startY + (lineHeight * 6f), fieldWidth, RunSetupField.DropPool, $"Drop Pool: {previewSettings.DropPoolLabel}");
+
+            GUI.Label(
+                new Rect(boxRect.x + 28f, boxRect.y + 315f, boxRect.width - 56f, 24f),
+                $"Preview: Lives {previewSettings.StartingLives} | Paddle x{previewSettings.PaddleWidthMultiplier:0.00} | Ball speed x{previewSettings.BallSpeedMultiplier:0.00} | Brick durability x{previewSettings.BrickDurabilityMultiplier:0.00}",
+                hudStyle);
+            GUI.Label(
+                new Rect(boxRect.x + 28f, boxRect.y + 345f, boxRect.width - 56f, 40f),
+                previewValidation,
+                setupHintStyle);
+            GUI.Label(
+                new Rect(boxRect.x + 28f, boxRect.y + 384f, boxRect.width - 56f, 28f),
+                "Up/Down selects. Left/Right adjusts. Type digits for the seed. Backspace edits. T randomizes. N resets defaults. Space starts.",
+                setupHintStyle);
+        }
+
+        private void DrawRunSetupField(float x, float y, float width, RunSetupField field, string value)
+        {
+            var isSelected = selectedRunSetupField == field;
+            GUI.Label(new Rect(x, y, width, 26f), $"{(isSelected ? "> " : "  ")}{value}", isSelected ? setupSelectedStyle : hudStyle);
+        }
+
+        private string BuildRunSummaryLabel()
+        {
+            if (activeRunSettings == null)
+            {
+                return $"Run Seed: {GetPendingSeedDisplay()} | Preview only";
+            }
+
+            return
+                $"Run Seed: {activeRunSettings.Seed} | {activeRunSettings.DifficultyLabel} | Balls/Serve {activeRunSettings.BallsPerServe} | " +
+                $"Drops: {activeRunSettings.DropPoolLabel} | Paddle x{activeRunSettings.PaddleWidthMultiplier:0.00} | Ball x{activeRunSettings.BallSpeedMultiplier:0.00}";
+        }
+
+        private string GetPendingSeedDisplay()
+        {
+            return string.IsNullOrWhiteSpace(pendingSeedText) ? "<random on start>" : pendingSeedText;
+        }
+
+        private static string FormatSignedStep(int value)
+        {
+            return value == 0 ? "0" : value > 0 ? $"+{value}" : value.ToString(CultureInfo.InvariantCulture);
         }
 
         private void UpdateTimedEffects()
@@ -827,8 +1485,12 @@ namespace GetBricked.Gameplay
 
             var brickDefinition = brick.Definition;
             var dropTable = brickDefinition.DropTable;
+            var effectiveDropChance = Mathf.Clamp01(brickDefinition.DropChance * (activeRunSettings?.DropChanceMultiplier ?? 1f));
 
-            if (dropTable.Length == 0 || brickDefinition.DropChance <= 0f || UnityEngine.Random.value > brickDefinition.DropChance)
+            if (dropTable.Length == 0
+                || effectiveDropChance <= 0f
+                || activeRunSettings?.DropPoolMode == DropPoolMode.Disabled
+                || NextGameplayRandomFloat(0f, 1f) > effectiveDropChance)
             {
                 return;
             }
@@ -837,6 +1499,11 @@ namespace GetBricked.Gameplay
 
             for (var index = 0; index < dropTable.Length; index++)
             {
+                if (!IsDropAllowed(dropTable[index].PowerUpDefinition))
+                {
+                    continue;
+                }
+
                 totalWeight += dropTable[index].Weight;
             }
 
@@ -845,12 +1512,18 @@ namespace GetBricked.Gameplay
                 return;
             }
 
-            var roll = UnityEngine.Random.value * totalWeight;
+            var roll = NextGameplayRandomFloat(0f, totalWeight);
             PowerUpDefinition selectedPowerUp = null;
 
             for (var index = 0; index < dropTable.Length; index++)
             {
                 var entry = dropTable[index];
+
+                if (!IsDropAllowed(entry.PowerUpDefinition))
+                {
+                    continue;
+                }
+
                 roll -= entry.Weight;
 
                 if (roll > 0f)
@@ -868,6 +1541,24 @@ namespace GetBricked.Gameplay
             }
 
             CreatePickup((Vector2)brick.transform.position, selectedPowerUp);
+        }
+
+        private bool IsDropAllowed(PowerUpDefinition powerUpDefinition)
+        {
+            if (powerUpDefinition == null)
+            {
+                return false;
+            }
+
+            var dropPoolMode = activeRunSettings?.DropPoolMode ?? DropPoolMode.Mixed;
+
+            return dropPoolMode switch
+            {
+                DropPoolMode.HelpfulOnly => powerUpDefinition.IsBeneficial,
+                DropPoolMode.HarmfulOnly => !powerUpDefinition.IsBeneficial,
+                DropPoolMode.Disabled => false,
+                _ => true,
+            };
         }
 
         private void CreatePickup(Vector2 position, PowerUpDefinition powerUpDefinition)
@@ -932,8 +1623,8 @@ namespace GetBricked.Gameplay
 
         private void ApplyActiveEffects()
         {
-            var paddleWidthMultiplier = 1f;
-            var ballSpeedMultiplier = 1f;
+            var paddleWidthMultiplier = activeRunSettings?.PaddleWidthMultiplier ?? 1f;
+            var timedBallSpeedMultiplier = 1f;
 
             // Matching effects extend duration; opposing effects multiply together and naturally cancel each other out.
             for (var index = 0; index < activeTimedEffects.Count; index++)
@@ -951,7 +1642,7 @@ namespace GetBricked.Gameplay
                         paddleWidthMultiplier *= powerUpDefinition.Scalar;
                         break;
                     case PowerUpEffectType.BallSpeedMultiplier:
-                        ballSpeedMultiplier *= powerUpDefinition.Scalar;
+                        timedBallSpeedMultiplier *= powerUpDefinition.Scalar;
                         break;
                 }
             }
@@ -959,7 +1650,7 @@ namespace GetBricked.Gameplay
             paddle.SetMoveSpeed(currentLevelPaddleSpeed);
             paddle.SetWidthMultiplier(Mathf.Clamp(paddleWidthMultiplier, 0.6f, 1.8f));
 
-            var currentBallSpeed = currentLevelBallSpeed * Mathf.Clamp(ballSpeedMultiplier, 0.6f, 1.75f);
+            var currentBallSpeed = currentLevelBallSpeed * Mathf.Clamp(timedBallSpeedMultiplier, 0.6f, 1.75f);
 
             if (serveBall != null)
             {
@@ -1078,7 +1769,7 @@ namespace GetBricked.Gameplay
 
         private float GetCurrentBallSpeed()
         {
-            var ballSpeedMultiplier = 1f;
+            var timedBallSpeedMultiplier = 1f;
 
             for (var index = 0; index < activeTimedEffects.Count; index++)
             {
@@ -1089,10 +1780,10 @@ namespace GetBricked.Gameplay
                     continue;
                 }
 
-                ballSpeedMultiplier *= powerUpDefinition.Scalar;
+                timedBallSpeedMultiplier *= powerUpDefinition.Scalar;
             }
 
-            return currentLevelBallSpeed * Mathf.Clamp(ballSpeedMultiplier, 0.6f, 1.75f);
+            return currentLevelBallSpeed * Mathf.Clamp(timedBallSpeedMultiplier, 0.6f, 1.75f);
         }
 
         private string BuildActiveEffectsLabel()
