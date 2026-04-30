@@ -32,6 +32,7 @@
 - `Assets/Scripts/Gameplay/BreakoutRunState.cs`: run-layer state for cleared encounters, chosen permanent upgrades, pending draft offers, and aggregated persistent modifiers
 - `Assets/Scripts/Gameplay/BreakoutThemeService.cs`: runtime theme resolver/applicator for camera, walls, paddle, balls, bricks, and pickups
 - `Assets/Scripts/Gameplay/BreakoutPowerUpService.cs`: pickup spawning, timed-effect tracking, banner state, and effect-modifier calculations
+- `Assets/Scripts/Gameplay/BreakoutUiRenderer.cs`: runtime OnGUI presentation service for main menu, run setup, HUD, pause, upgrade draft, and end-state overlays
 - `Assets/Scripts/Gameplay/BreakoutUpgradeDraftService.cs`: deterministic `1 of 3` run-upgrade offer generator using the run seed, cleared-level count, and prior picks
 - `Assets/Scripts/Gameplay/BreakoutGlowRenderer.cs`: legacy runtime helper for layered neon halo sprites that still exists for optional use, but is no longer the default glow path for core gameplay pieces
 - `Assets/Scripts/Gameplay/PaddleController.cs`: keyboard-driven paddle movement with clamped horizontal bounds and runtime width modifiers
@@ -57,6 +58,7 @@
 - `Plan/PLAN.md`: current roadmap built on the run-based roguelite direction
 - `Assets/Settings/*`: URP / 2D renderer assets and template scene assets
 - `Plan/STYLE.md`: durable visual direction guide for the target synthwave arcade presentation and future theme / VFX / UI work
+- `Plan/VOICE.md`: durable naming, tone, slang, and UI-copy guide for the game's synthwave arcade personality
 - `.codex/skills/breakout-svg-art/*`: repo-local skill for generating and wiring new SVG gameplay art into the runtime theme pipeline
 - `.codex/skills/repo-maintenance/*`: repo-local maintenance skill and snapshot helper for refreshing `AGENTS.md` and local skills after agent work
 - `.codex/skills/unity-compile/*`: repo-local Unity batchmode compile-check skill and helper script for reproducing script compilation failures from the terminal
@@ -83,6 +85,7 @@
 - The game now boots into a runtime main menu instead of straight into gameplay or setup, and the last run-setup selections are persisted through `PlayerPrefs`.
 - The selected theme is part of the persisted run setup, so quick-starting from the main menu reuses the most recently chosen palette.
 - Main menu, run setup, HUD, pause, diagnostics, and end-of-run flow currently still use temporary runtime OnGUI UI, but that layer now includes theme-aware cabinet styling with marquee/bezel framing, smoked-glass panels, subtle perspective-grid treatment, and restrained scanlines; it is still a likely future candidate for authored UI/prefab migration.
+- The runtime OnGUI and overlay text should now follow `Plan/VOICE.md`, which defines the game's 80s arcade naming, slang-density, and UI-labeling rules for menus, callouts, pickups, bricks, stages, and result screens.
 - Runtime presentation now enables URP bloom from code, uses a custom additive sprite shader for the ball and pickups, and uses URP sprite-unlit materials for the paddle, bricks, walls, and backdrop; the older `BreakoutGlowRenderer` helper still exists but is no longer the default glow path for core gameplay pieces.
 - Difficulty presets and player-selected modifiers are normalized into `RunSettings`, so future tuning should usually flow through that model instead of adding one-off conditionals.
 - Permanent build mods now live in a separate run layer instead of mutating `RunSettings`; `BreakoutRunState` tracks chosen upgrades while `BreakoutPowerUpService` still owns temporary pickup effects.
@@ -110,12 +113,21 @@
 - Gameplay readability wins over decoration. The ball path, paddle silhouette, brick durability, pickup polarity, and paused-vs-active state should remain legible at a glance.
 - Use the semantic theme-slot system first for palette mapping, then layer future glow, grid, scanline, or material work on top instead of hard-coding colors inside gameplay logic.
 
+## Voice And Naming
+
+- Read `Plan/VOICE.md` before adding or revising UI copy, labels, power-up names, brick names, stage names, achievement text, callouts, or result-screen text.
+- The target voice is a lost 1984 arcade cabinet: fast, punchy, readable, cheerfully cocky, and arcade-first with 80s slang used sparingly.
+- Keep most display labels to `1-3` words, prefer mechanical clarity over cleverness, and pair stylized names with plain-English descriptions or tooltips.
+- Avoid parody-overload slang stacks, insensitive dated slang, and direct references to real films, bands, brands, or existing game IP.
+- For procedural run terminology, prefer the cassette-flavored defaults from `Plan/VOICE.md`, including `Mixtape` for runs, `Tape ID` for seeds, `Stage` for levels, and `Capsule` or `Token` for pickups unless a feature needs a stronger reason to differ.
+
 ## Working Rules For Future Agents
 
 - Prefer adding gameplay code under `Assets/Scripts/` unless the user asks for a different layout.
 - Preserve Unity `.meta` pairings for every manually added script and folder under `Assets/Scripts/`.
 - After substantial project work, use `.codex/skills/repo-maintenance/` to refresh `AGENTS.md` and repo-local skills with durable new repo knowledge.
 - Before touching visual style, read `Plan/STYLE.md` and keep the synthwave arcade direction consistent across gameplay, HUD, menus, and future theme assets.
+- Before touching UI copy, naming, event callouts, or flavor text, read `Plan/VOICE.md` and keep the arcade-cabinet tone plus labeling rules consistent across gameplay, menus, pickups, stages, and result screens.
 - Keep Unity `.meta` files intact. If you add an asset or script manually, ensure the matching `.meta` file exists and stays paired with it.
 - Do not edit or rely on generated folders for durable changes:
   - `Library/`
@@ -212,9 +224,10 @@ If you are a future agent starting work here, read these first:
 24. `Plan/OVERVIEW.md`
 25. `Plan/PLAN.md`
 26. `Plan/STYLE.md`
-27. `Assets/Scenes/SampleScene.unity`
-28. `.codex/skills/breakout-svg-art/SKILL.md`
-29. `.codex/skills/repo-maintenance/SKILL.md`
+27. `Plan/VOICE.md`
+28. `Assets/Scenes/SampleScene.unity`
+29. `.codex/skills/breakout-svg-art/SKILL.md`
+30. `.codex/skills/repo-maintenance/SKILL.md`
 
 ## Current Reality Check
 
@@ -222,4 +235,4 @@ If you are a future agent starting work here, read these first:
 - The current custom systems are small, but they are real and worth extending deliberately instead of replacing by default.
 - Most near-term work will still be greenfield, but it should now build on the existing runtime prototype and folder structure.
 - If a user asks for game features, you will likely be extending the current scripts and authored content assets first, then deciding when to promote runtime-generated objects into authored scene or prefab assets.
-- If a user asks for more UI or meta-flow work, the most likely follow-ups are promoting the runtime OnGUI overlays into authored UI/prefabs, separating meta-flow concerns out of `BreakoutGameController`, and broadening persisted settings beyond run setup.
+- If a user asks for more UI or meta-flow work, the most likely follow-ups are promoting the runtime OnGUI overlays into authored UI/prefabs, separating meta-flow concerns out of `BreakoutGameController`, broadening persisted settings beyond run setup, and applying `Plan/VOICE.md` consistently to menu text, prompts, callouts, and labeling.
