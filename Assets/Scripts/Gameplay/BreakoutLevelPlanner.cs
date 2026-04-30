@@ -96,15 +96,13 @@ namespace GetBricked.Gameplay
             var templateCount = Mathf.Max(1, loadedLevels.Count);
             var profileIndex = Mathf.Abs(levelIndex % templateCount);
             var cycleIndex = levelIndex / templateCount;
+            var isBrutalRun = activeRunSettings != null && activeRunSettings.DifficultyPreset == RunDifficultyPreset.Brutal;
             var planner = gameplayRandom != null
                 ? gameplayRandom.Fork((levelIndex + 1) * 7919)
                 : new DeterministicRandomService(seedGenerator());
             var pattern = (ProceduralPatternType)planner.Range(0, Enum.GetValues(typeof(ProceduralPatternType)).Length);
             var rowCount = Mathf.Clamp(Mathf.Max(3, level.LayoutRows.Length) + Mathf.Min(2, cycleIndex) + (profileIndex >= 2 ? 1 : 0), 3, 7);
             var columnCount = Mathf.Clamp(GetTemplateColumnCount(level) + Mathf.Min(2, cycleIndex) + (profileIndex >= templateCount - 1 ? 1 : 0), 8, 11);
-            var totalBreakableScore = 0;
-            var usedDefinitions = new HashSet<BrickDefinition>();
-            var usedDrops = new HashSet<PowerUpDefinition>();
 
             plan.DisplayName = BuildProceduralLevelDisplayName(level, pattern, cycleIndex);
             plan.LayoutRows = new string[rowCount];
@@ -136,7 +134,7 @@ namespace GetBricked.Gameplay
                         continue;
                     }
 
-                    var definition = SelectProceduralBrickDefinition(planner, rowIndex, columnIndex, rowCount, columnCount, levelIndex);
+                    var definition = SelectProceduralBrickDefinition(planner, rowIndex, columnIndex, rowCount, columnCount, levelIndex, isBrutalRun);
 
                     if (definition == null)
                     {
@@ -161,50 +159,21 @@ namespace GetBricked.Gameplay
                     }
                 }
 
-                EnsureProceduralRowHasBricks(cells, symbols, planner, rowIndex, rowCount, columnCount, levelIndex, profileIndex, cycleIndex);
+                EnsureProceduralRowHasBricks(cells, symbols, planner, rowIndex, rowCount, columnCount, levelIndex, profileIndex, cycleIndex, isBrutalRun);
                 var rowShift = BuildLevelPlanRowShift(planner, rowIndex, levelIndex, columnCount, CountOccupiedCells(symbols));
                 plan.RowShifts[rowIndex] = rowShift;
                 cells = RotateCells(cells, rowShift);
                 symbols = RotateCharacters(symbols, rowShift);
                 plan.BrickRows[rowIndex] = cells;
                 plan.LayoutRows[rowIndex] = new string(symbols);
-
-                for (var columnIndex = 0; columnIndex < cells.Length; columnIndex++)
-                {
-                    var cell = cells[columnIndex];
-
-                    if (cell == null || cell.Definition == null)
-                    {
-                        continue;
-                    }
-
-                    usedDefinitions.Add(cell.Definition);
-
-                    if (cell.MotionConfig.IsEnabled)
-                    {
-                        plan.MovingBrickCount++;
-                    }
-
-                    if (!cell.Definition.IsBreakable)
-                    {
-                        continue;
-                    }
-
-                    totalBreakableScore += Mathf.Max(0, cell.Definition.ScoreValue);
-                    var dropTable = cell.Definition.DropTable;
-
-                    for (var dropIndex = 0; dropIndex < dropTable.Length; dropIndex++)
-                    {
-                        if (dropTable[dropIndex].PowerUpDefinition != null)
-                        {
-                            usedDrops.Add(dropTable[dropIndex].PowerUpDefinition);
-                        }
-                    }
-                }
             }
 
-            plan.UniqueBrickTypeCount = usedDefinitions.Count;
-            plan.AvailableDropTypeCount = usedDrops.Count;
+            if (isBrutalRun && levelIndex == 0)
+            {
+                EnsureOpeningBrutalVariety(plan, planner, profileIndex, cycleIndex, rowCount, columnCount);
+            }
+
+            var totalBreakableScore = RecalculatePlanStats(plan);
             plan.CompletionRule = ResolveProceduralCompletionRule(level, cycleIndex);
             plan.TargetScore = plan.CompletionRule == LevelCompletionRule.ReachTargetScore
                 ? Mathf.Clamp(Mathf.RoundToInt(totalBreakableScore * Mathf.Lerp(0.58f, 0.72f, Mathf.Clamp01(cycleIndex * 0.18f))), 350, Mathf.Max(350, totalBreakableScore))
@@ -307,7 +276,8 @@ namespace GetBricked.Gameplay
             int column,
             int totalRows,
             int totalColumns,
-            int levelIndex)
+            int levelIndex,
+            bool isBrutalRun)
         {
             if (loadedBrickDefinitions.Count == 0)
             {
@@ -318,7 +288,7 @@ namespace GetBricked.Gameplay
 
             for (var index = 0; index < loadedBrickDefinitions.Count; index++)
             {
-                totalWeight += GetProceduralBrickWeight(loadedBrickDefinitions[index], row, column, totalRows, totalColumns, levelIndex);
+                totalWeight += GetProceduralBrickWeight(loadedBrickDefinitions[index], row, column, totalRows, totalColumns, levelIndex, isBrutalRun);
             }
 
             if (totalWeight <= 0f)
@@ -331,7 +301,7 @@ namespace GetBricked.Gameplay
             for (var index = 0; index < loadedBrickDefinitions.Count; index++)
             {
                 var definition = loadedBrickDefinitions[index];
-                roll -= GetProceduralBrickWeight(definition, row, column, totalRows, totalColumns, levelIndex);
+                roll -= GetProceduralBrickWeight(definition, row, column, totalRows, totalColumns, levelIndex, isBrutalRun);
 
                 if (roll <= 0f)
                 {
@@ -348,7 +318,8 @@ namespace GetBricked.Gameplay
             int column,
             int totalRows,
             int totalColumns,
-            int levelIndex)
+            int levelIndex,
+            bool isBrutalRun)
         {
             if (definition == null)
             {
@@ -362,7 +333,7 @@ namespace GetBricked.Gameplay
 
             if (!definition.IsBreakable)
             {
-                if (levelIndex < 2)
+                if (!isBrutalRun && levelIndex < 2)
                 {
                     return 0f;
                 }
@@ -372,7 +343,7 @@ namespace GetBricked.Gameplay
 
             if (definition.IsExplosive)
             {
-                if (levelIndex < 4)
+                if (!isBrutalRun && levelIndex < 4)
                 {
                     return 0f;
                 }
@@ -382,7 +353,7 @@ namespace GetBricked.Gameplay
 
             if (definition.SpinsOnHit)
             {
-                if (levelIndex < 2)
+                if (!isBrutalRun && levelIndex < 2)
                 {
                     return 0f;
                 }
@@ -392,7 +363,7 @@ namespace GetBricked.Gameplay
 
             if (definition.HitPoints >= 3)
             {
-                if (levelIndex < 3)
+                if (!isBrutalRun && levelIndex < 3)
                 {
                     return 0f;
                 }
@@ -402,7 +373,7 @@ namespace GetBricked.Gameplay
 
             if (definition.HitPoints == 2)
             {
-                if (levelIndex < 1)
+                if (!isBrutalRun && levelIndex < 1)
                 {
                     return 0f;
                 }
@@ -504,7 +475,8 @@ namespace GetBricked.Gameplay
             int totalColumns,
             int levelIndex,
             int profileIndex,
-            int cycleIndex)
+            int cycleIndex,
+            bool isBrutalRun)
         {
             var occupiedCells = CountOccupiedCells(symbols);
             var minimumBricks = row == totalRows - 1 ? 2 : Mathf.Clamp(totalColumns / 3, 3, 4);
@@ -535,11 +507,173 @@ namespace GetBricked.Gameplay
                     continue;
                 }
 
-                var definition = SelectProceduralBrickDefinition(planner, row, column, totalRows, totalColumns, levelIndex) ?? FindFallbackBasicBrick();
+                var definition = SelectProceduralBrickDefinition(planner, row, column, totalRows, totalColumns, levelIndex, isBrutalRun) ?? FindFallbackBasicBrick();
                 var motionConfig = ResolveProceduralBrickMotion(planner, definition, profileIndex, cycleIndex, row, column, totalRows, totalColumns);
                 FillProceduralCell(cells, symbols, column, definition, motionConfig);
                 occupiedCells++;
             }
+        }
+
+        private void EnsureOpeningBrutalVariety(
+            BreakoutLevelLayoutPlan plan,
+            DeterministicRandomService planner,
+            int profileIndex,
+            int cycleIndex,
+            int totalRows,
+            int totalColumns)
+        {
+            if (plan == null || plan.BrickRows == null || plan.BrickRows.Length == 0 || loadedBrickDefinitions.Count == 0)
+            {
+                return;
+            }
+
+            var candidatePositions = new List<Vector2Int>(totalRows * totalColumns);
+
+            for (var rowIndex = 0; rowIndex < plan.BrickRows.Length; rowIndex++)
+            {
+                var row = plan.BrickRows[rowIndex];
+
+                if (row == null)
+                {
+                    continue;
+                }
+
+                for (var columnIndex = 0; columnIndex < row.Length; columnIndex++)
+                {
+                    if (row[columnIndex] != null)
+                    {
+                        candidatePositions.Add(new Vector2Int(columnIndex, rowIndex));
+                    }
+                }
+            }
+
+            if (candidatePositions.Count == 0)
+            {
+                for (var rowIndex = 0; rowIndex < totalRows; rowIndex++)
+                {
+                    for (var columnIndex = 0; columnIndex < totalColumns; columnIndex++)
+                    {
+                        candidatePositions.Add(new Vector2Int(columnIndex, rowIndex));
+                    }
+                }
+            }
+
+            plan.MirrorLayout = false;
+
+            for (var index = 0; index < loadedBrickDefinitions.Count && index < candidatePositions.Count; index++)
+            {
+                var definition = loadedBrickDefinitions[index];
+
+                if (definition == null)
+                {
+                    continue;
+                }
+
+                var position = candidatePositions[index];
+                var motionConfig = ResolveProceduralBrickMotion(
+                    planner,
+                    definition,
+                    profileIndex,
+                    cycleIndex,
+                    position.y,
+                    position.x,
+                    totalRows,
+                    totalColumns);
+                SetPlanCell(plan, position.y, position.x, definition, motionConfig);
+            }
+        }
+
+        private static void SetPlanCell(
+            BreakoutLevelLayoutPlan plan,
+            int rowIndex,
+            int columnIndex,
+            BrickDefinition definition,
+            BreakoutBrickMotionConfig motionConfig)
+        {
+            if (plan == null
+                || rowIndex < 0
+                || rowIndex >= plan.BrickRows.Length
+                || rowIndex >= plan.LayoutRows.Length
+                || definition == null)
+            {
+                return;
+            }
+
+            var row = plan.BrickRows[rowIndex];
+
+            if (row == null || columnIndex < 0 || columnIndex >= row.Length)
+            {
+                return;
+            }
+
+            row[columnIndex] = new BreakoutProceduralBrickCell(definition, motionConfig);
+
+            var symbols = (plan.LayoutRows[rowIndex] ?? string.Empty).PadRight(row.Length, '.').ToCharArray();
+            symbols[columnIndex] = motionConfig.IsEnabled
+                ? char.ToLowerInvariant(BuildProceduralBrickSymbol(definition))
+                : BuildProceduralBrickSymbol(definition);
+            plan.LayoutRows[rowIndex] = new string(symbols);
+        }
+
+        private static int RecalculatePlanStats(BreakoutLevelLayoutPlan plan)
+        {
+            if (plan == null || plan.BrickRows == null)
+            {
+                return 0;
+            }
+
+            var totalBreakableScore = 0;
+            var usedDefinitions = new HashSet<BrickDefinition>();
+            var usedDrops = new HashSet<PowerUpDefinition>();
+
+            plan.MovingBrickCount = 0;
+
+            for (var rowIndex = 0; rowIndex < plan.BrickRows.Length; rowIndex++)
+            {
+                var row = plan.BrickRows[rowIndex];
+
+                if (row == null)
+                {
+                    continue;
+                }
+
+                for (var columnIndex = 0; columnIndex < row.Length; columnIndex++)
+                {
+                    var cell = row[columnIndex];
+
+                    if (cell == null || cell.Definition == null)
+                    {
+                        continue;
+                    }
+
+                    usedDefinitions.Add(cell.Definition);
+
+                    if (cell.MotionConfig.IsEnabled)
+                    {
+                        plan.MovingBrickCount++;
+                    }
+
+                    if (!cell.Definition.IsBreakable)
+                    {
+                        continue;
+                    }
+
+                    totalBreakableScore += Mathf.Max(0, cell.Definition.ScoreValue);
+                    var dropTable = cell.Definition.DropTable;
+
+                    for (var dropIndex = 0; dropIndex < dropTable.Length; dropIndex++)
+                    {
+                        if (dropTable[dropIndex].PowerUpDefinition != null)
+                        {
+                            usedDrops.Add(dropTable[dropIndex].PowerUpDefinition);
+                        }
+                    }
+                }
+            }
+
+            plan.UniqueBrickTypeCount = usedDefinitions.Count;
+            plan.AvailableDropTypeCount = usedDrops.Count;
+            return totalBreakableScore;
         }
 
         private static void FillProceduralCell(

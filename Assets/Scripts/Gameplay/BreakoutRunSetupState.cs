@@ -55,7 +55,7 @@ namespace GetBricked.Gameplay
             BallSpeedStep = 0;
             BrickDurabilityStep = 0;
             DropPoolMode = DropPoolMode.Mixed;
-            IsCapsulePartyEnabled = false;
+            IsCapsulePartyEnabled = true;
             ThemeId = defaultThemeId ?? string.Empty;
             Seed = generateNewSeed ? GenerateSeed(seedGenerator) : Seed;
             PendingSeedText = Seed.ToString(CultureInfo.InvariantCulture);

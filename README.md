@@ -69,14 +69,14 @@ The setup screen already supports these run-shaping inputs:
 | Ball Speed Bias | `-2` to `+2` setup steps |
 | Brick Durability Bias | `-2` to `+2` setup steps |
 | Drop Pool | `Mixed`, `Helpful Only`, `Harmful Only`, `Disabled` |
-| Capsule Party | Forces every eligible brick to drop a capsule |
+| Capsule Party | Forces every eligible brick to drop a capsule, and fresh setup resets now default it to `On` |
 | Theme | `Classic`, `Neon Forge`, `Sunset Circuit` |
 
 Difficulty presets already change more than labels:
 
 - `Casual`: +1 starting life, wider paddle, slower ball, softer bricks, more drops
 - `Standard`: baseline tuning
-- `Brutal`: -1 starting life, narrower paddle, faster ball, tougher bricks, fewer drops
+- `Brutal`: -1 starting life, narrower paddle, faster ball, tougher bricks, fewer drops, and the full brick/drop ecosystem is in play from stage 1
 
 ### Stage Generation And Progression
 
@@ -87,7 +87,7 @@ Difficulty presets already change more than labels:
   - `Pressure Test`
 - Runtime generation remixes those templates into seeded stages using pattern families like bands, diamonds, steps, lattice, core, and columns.
 - Generated boards can be mirrored or asymmetric, can row-shift horizontally, and can assign moving-brick behavior procedurally.
-- Later stages ramp pressure by increasing density, introducing tougher brick types like spinner bricks, unlocking more drop types, and using more moving bricks.
+- Later stages ramp pressure by increasing density, introducing more movers, and leaning harder on the tougher brick/drop mixes already available in `Brutal` from stage 1.
 - Some stages use `clear all required bricks`; later pressure stages can switch to `reach target score`.
 - Clearing a stage advances the run and attempts to open a deterministic upgrade draft before the next stage loads.
 

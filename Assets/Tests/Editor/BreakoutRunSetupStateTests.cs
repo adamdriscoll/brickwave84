@@ -49,7 +49,7 @@ public sealed class BreakoutRunSetupStateTests
     }
 
     [Test]
-    public void BuildRunSettingsDefaultsCapsulePartyOff()
+    public void BuildRunSettingsDefaultsCapsulePartyOn()
     {
         var state = CreateRunSetupState();
         var buildRunSettings = state.GetType().GetMethod("BuildRunSettings", InstanceFlags);
@@ -60,6 +60,46 @@ public sealed class BreakoutRunSetupStateTests
             3,
             null,
             new Func<int>(() => 7777),
+            null,
+            true,
+        };
+
+        var runSettings = (RunSettings)buildRunSettings.Invoke(state, args);
+
+        Assert.That(runSettings.ForcePickupDropsOnBreak, Is.True);
+        Assert.That(runSettings.DropCadenceLabel, Is.EqualTo("Capsule Party"));
+    }
+
+    [Test]
+    public void RestoreCanStillLeaveCapsulePartyOff()
+    {
+        var state = CreateRunSetupState();
+        var stateType = state.GetType();
+
+        stateType.GetMethod("Restore", InstanceFlags)?.Invoke(
+            state,
+            new object[]
+            {
+                1111,
+                "1111",
+                RunDifficultyPreset.Standard,
+                1,
+                0,
+                0,
+                0,
+                DropPoolMode.Mixed,
+                false,
+                string.Empty,
+            });
+
+        var buildRunSettings = stateType.GetMethod("BuildRunSettings", InstanceFlags);
+        Assert.That(buildRunSettings, Is.Not.Null);
+
+        var args = new object[]
+        {
+            3,
+            null,
+            new Func<int>(() => 1111),
             null,
             true,
         };
