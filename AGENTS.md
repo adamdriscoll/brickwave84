@@ -22,6 +22,7 @@
 
 ## What Exists
 
+- `README.md`: human-readable project overview and implemented-content inventory; keep this aligned with the actual playable state
 - `Assets/Scenes/SampleScene.unity`: current playable scene and only scene in build settings
 - `Assets/InputSystem_Actions.inputactions`: starter input maps for `Player` and `UI`
 - `Assets/Scripts/Core/BreakoutBootstrap.cs`: runtime entry point that ensures the prototype controller exists after scene load
@@ -133,6 +134,7 @@
 - Prefer adding gameplay code under `Assets/Scripts/` unless the user asks for a different layout.
 - Preserve Unity `.meta` pairings for every manually added script and folder under `Assets/Scripts/`.
 - After substantial project work, use `.codex/skills/repo-maintenance/` to refresh `AGENTS.md` and repo-local skills with durable new repo knowledge.
+- Keep `README.md` up to date when implemented gameplay systems, controls, content pools, setup/build options, themes, or other player-visible features change.
 - When behavior changes or a bug is fixed, add or update the closest relevant automated test when practical instead of leaving coverage behind.
 - After code or behavior changes, run the relevant automated tests plus the Unity compile check before closing the task whenever the environment allows it.
 - Before touching visual style, read `Plan/STYLE.md` and keep the synthwave arcade direction consistent across gameplay, HUD, menus, and future theme assets.
@@ -218,37 +220,38 @@ When making changes, validate with the Unity editor when possible:
 If you are a future agent starting work here, read these first:
 
 1. `AGENTS.md`
-2. `ProjectSettings/ProjectVersion.txt`
-3. `Packages/manifest.json`
-4. `ProjectSettings/EditorBuildSettings.asset`
-5. `Assets/InputSystem_Actions.inputactions`
-6. `Assets/Scripts/Core/BreakoutBootstrap.cs`
-7. `Assets/Scripts/Gameplay/BreakoutGameController.cs`
-8. `Assets/Scripts/Gameplay/BreakoutLevelPlanner.cs`
-9. `Assets/Scripts/Gameplay/BreakoutRunSetupState.cs`
-10. `Assets/Scripts/Gameplay/BreakoutThemeService.cs`
-11. `Assets/Scripts/Gameplay/BreakoutPowerUpService.cs`
-12. `Assets/Scripts/Gameplay/BreakoutRunState.cs`
-13. `Assets/Scripts/Gameplay/BreakoutUpgradeDraftService.cs`
-14. `Assets/Scripts/Gameplay/Data/RunSettings.cs`
-15. `Assets/Scripts/Gameplay/Data/RunUpgradeDefinition.cs`
-16. `Assets/Scripts/Gameplay/DeterministicRandomService.cs`
-17. `Assets/Scripts/Gameplay/Data/LevelDefinition.cs`
-18. `Assets/Scripts/Gameplay/Data/PowerUpDefinition.cs`
-19. `Assets/Scripts/Gameplay/Data/ThemeDefinition.cs`
-20. `Assets/Resources/Levels/Level01.asset`
-21. `Assets/Resources/Bricks/BasicBrick.asset`
-22. `Assets/Resources/Upgrades/WideLoader.asset`
-23. `Assets/Resources/Themes/ClassicTheme.asset`
-24. `Plan/OVERVIEW.md`
-25. `Plan/PLAN.md`
-26. `Plan/STYLE.md`
-27. `Plan/VOICE.md`
-28. `Assets/Scenes/SampleScene.unity`
-29. `.codex/skills/breakout-svg-art/SKILL.md`
-30. `.codex/skills/repo-maintenance/SKILL.md`
-31. `.codex/skills/unity-tests/SKILL.md`
-32. `Assets/Tests/Editor/BreakoutGameControllerPowerUpTests.cs`
+2. `README.md`
+3. `ProjectSettings/ProjectVersion.txt`
+4. `Packages/manifest.json`
+5. `ProjectSettings/EditorBuildSettings.asset`
+6. `Assets/InputSystem_Actions.inputactions`
+7. `Assets/Scripts/Core/BreakoutBootstrap.cs`
+8. `Assets/Scripts/Gameplay/BreakoutGameController.cs`
+9. `Assets/Scripts/Gameplay/BreakoutLevelPlanner.cs`
+10. `Assets/Scripts/Gameplay/BreakoutRunSetupState.cs`
+11. `Assets/Scripts/Gameplay/BreakoutThemeService.cs`
+12. `Assets/Scripts/Gameplay/BreakoutPowerUpService.cs`
+13. `Assets/Scripts/Gameplay/BreakoutRunState.cs`
+14. `Assets/Scripts/Gameplay/BreakoutUpgradeDraftService.cs`
+15. `Assets/Scripts/Gameplay/Data/RunSettings.cs`
+16. `Assets/Scripts/Gameplay/Data/RunUpgradeDefinition.cs`
+17. `Assets/Scripts/Gameplay/DeterministicRandomService.cs`
+18. `Assets/Scripts/Gameplay/Data/LevelDefinition.cs`
+19. `Assets/Scripts/Gameplay/Data/PowerUpDefinition.cs`
+20. `Assets/Scripts/Gameplay/Data/ThemeDefinition.cs`
+21. `Assets/Resources/Levels/Level01.asset`
+22. `Assets/Resources/Bricks/BasicBrick.asset`
+23. `Assets/Resources/Upgrades/WideLoader.asset`
+24. `Assets/Resources/Themes/ClassicTheme.asset`
+25. `Plan/OVERVIEW.md`
+26. `Plan/PLAN.md`
+27. `Plan/STYLE.md`
+28. `Plan/VOICE.md`
+29. `Assets/Scenes/SampleScene.unity`
+30. `.codex/skills/breakout-svg-art/SKILL.md`
+31. `.codex/skills/repo-maintenance/SKILL.md`
+32. `.codex/skills/unity-tests/SKILL.md`
+33. `Assets/Tests/Editor/BreakoutGameControllerPowerUpTests.cs`
 
 ## Current Reality Check
 
