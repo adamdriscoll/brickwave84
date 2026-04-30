@@ -10,26 +10,47 @@ namespace GetBricked.Gameplay
         private readonly Color wallFallback;
         private readonly Color paddleFallback;
         private readonly Color ballFallback;
-        private readonly Sprite squareSprite;
-        private readonly Sprite circleSprite;
+        private readonly Sprite backgroundFallbackSprite;
+        private readonly Sprite wallFallbackSprite;
+        private readonly Sprite paddleFallbackSprite;
+        private readonly Sprite ballFallbackSprite;
+        private readonly Sprite brickFallbackSprite;
+        private readonly Sprite powerUpFallbackSprite;
 
         public BreakoutThemeService(
             Color backgroundFallback,
             Color wallFallback,
             Color paddleFallback,
             Color ballFallback,
-            Sprite squareSprite,
-            Sprite circleSprite)
+            Sprite backgroundFallbackSprite,
+            Sprite wallFallbackSprite,
+            Sprite paddleFallbackSprite,
+            Sprite ballFallbackSprite,
+            Sprite brickFallbackSprite,
+            Sprite powerUpFallbackSprite)
         {
             this.backgroundFallback = backgroundFallback;
             this.wallFallback = wallFallback;
             this.paddleFallback = paddleFallback;
             this.ballFallback = ballFallback;
-            this.squareSprite = squareSprite;
-            this.circleSprite = circleSprite;
+            this.backgroundFallbackSprite = backgroundFallbackSprite;
+            this.wallFallbackSprite = wallFallbackSprite;
+            this.paddleFallbackSprite = paddleFallbackSprite;
+            this.ballFallbackSprite = ballFallbackSprite;
+            this.brickFallbackSprite = brickFallbackSprite;
+            this.powerUpFallbackSprite = powerUpFallbackSprite;
         }
 
         public ThemeDefinition AppliedTheme { get; private set; }
+
+        public ThemeVisualStyle ResolveBackgroundStyle(Sprite fallbackSprite = null)
+        {
+            return ResolveThemeStyle(
+                ThemeVisualSlot.Background,
+                backgroundFallback,
+                backgroundFallback,
+                fallbackSprite != null ? fallbackSprite : backgroundFallbackSprite);
+        }
 
         public void ApplyTheme(
             ThemeDefinition theme,
@@ -53,27 +74,27 @@ namespace GetBricked.Gameplay
 
         public ThemeVisualStyle ResolveBallStyle()
         {
-            return ResolveThemeStyle(ThemeVisualSlot.Ball, ballFallback, ballFallback, circleSprite);
+            return ResolveThemeStyle(ThemeVisualSlot.Ball, ballFallback, ballFallback, ballFallbackSprite);
         }
 
         public ThemeVisualStyle ResolveBrickStyle(BrickDefinition definition)
         {
             if (definition == null)
             {
-                return new ThemeVisualStyle(Color.white, Color.gray, squareSprite);
+                return new ThemeVisualStyle(Color.white, Color.gray, brickFallbackSprite);
             }
 
-            return ResolveThemeStyle(definition.ResolveThemeSlot(), definition.BaseColor, definition.DamagedColor, squareSprite);
+            return ResolveThemeStyle(definition.ResolveThemeSlot(), definition.BaseColor, definition.DamagedColor, brickFallbackSprite);
         }
 
         public ThemeVisualStyle ResolvePowerUpStyle(PowerUpDefinition definition)
         {
             if (definition == null)
             {
-                return new ThemeVisualStyle(Color.white, Color.white, squareSprite);
+                return new ThemeVisualStyle(Color.white, Color.white, powerUpFallbackSprite);
             }
 
-            return ResolveThemeStyle(definition.ResolveThemeSlot(), definition.PickupColor, definition.PickupColor, squareSprite);
+            return ResolveThemeStyle(definition.ResolveThemeSlot(), definition.PickupColor, definition.PickupColor, powerUpFallbackSprite);
         }
 
         public ThemeVisualStyle ResolveThemeStyle(ThemeVisualSlot slot, Color fallbackPrimary, Color fallbackSecondary, Sprite fallbackSprite)
@@ -91,7 +112,7 @@ namespace GetBricked.Gameplay
                 return;
             }
 
-            activeCamera.backgroundColor = ResolveThemeStyle(ThemeVisualSlot.Background, backgroundFallback, backgroundFallback, null).PrimaryColor;
+            activeCamera.backgroundColor = ResolveBackgroundStyle().PrimaryColor;
         }
 
         private void ApplyThemeToWalls(IList<SpriteRenderer> wallRenderers)
@@ -101,7 +122,7 @@ namespace GetBricked.Gameplay
                 return;
             }
 
-            var wallStyle = ResolveThemeStyle(ThemeVisualSlot.Wall, wallFallback, wallFallback, squareSprite);
+            var wallStyle = ResolveThemeStyle(ThemeVisualSlot.Wall, wallFallback, wallFallback, wallFallbackSprite);
 
             for (var index = wallRenderers.Count - 1; index >= 0; index--)
             {
@@ -125,8 +146,9 @@ namespace GetBricked.Gameplay
                 return;
             }
 
-            var paddleStyle = ResolveThemeStyle(ThemeVisualSlot.Paddle, paddleFallback, paddleFallback, squareSprite);
+            var paddleStyle = ResolveThemeStyle(ThemeVisualSlot.Paddle, paddleFallback, paddleFallback, paddleFallbackSprite);
             paddleSpriteRenderer.sprite = paddleStyle.Sprite;
+            NormalizeSpriteRendererScale(paddleSpriteRenderer);
             paddleSpriteRenderer.color = paddleStyle.PrimaryColor;
 
             if (paddleSpriteRenderer.TryGetComponent<BreakoutGlowRenderer>(out var glowRenderer))
@@ -213,6 +235,27 @@ namespace GetBricked.Gameplay
 
                 pickup.ApplyTheme(ResolvePowerUpStyle(pickup.Definition));
             }
+        }
+
+        private static void NormalizeSpriteRendererScale(SpriteRenderer spriteRenderer)
+        {
+            if (spriteRenderer == null)
+            {
+                return;
+            }
+
+            var sprite = spriteRenderer.sprite;
+
+            if (sprite == null)
+            {
+                spriteRenderer.transform.localScale = Vector3.one;
+                return;
+            }
+
+            var spriteSize = sprite.bounds.size;
+            var scaleX = spriteSize.x > 0.0001f ? 1f / spriteSize.x : 1f;
+            var scaleY = spriteSize.y > 0.0001f ? 1f / spriteSize.y : 1f;
+            spriteRenderer.transform.localScale = new Vector3(scaleX, scaleY, 1f);
         }
     }
 }

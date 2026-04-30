@@ -10,7 +10,6 @@ namespace GetBricked.Gameplay
     }
 
     [RequireComponent(typeof(BoxCollider2D))]
-    [RequireComponent(typeof(SpriteRenderer))]
     public sealed class Brick : MonoBehaviour
     {
         private BreakoutGameController gameController;
@@ -45,8 +44,8 @@ namespace GetBricked.Gameplay
         {
             gameController = controller;
             definition = brickDefinition;
-            spriteRenderer = GetComponent<SpriteRenderer>();
-            glowRenderer = GetComponent<BreakoutGlowRenderer>();
+            spriteRenderer = GetComponentInChildren<SpriteRenderer>();
+            glowRenderer = GetComponentInChildren<BreakoutGlowRenderer>();
             maxHitPoints = definition != null && definition.IsBreakable
                 ? Mathf.Max(1, effectiveHitPoints)
                 : 0;
@@ -57,7 +56,7 @@ namespace GetBricked.Gameplay
 
         public void ApplyTheme(ThemeVisualStyle visualStyle)
         {
-            spriteRenderer ??= GetComponent<SpriteRenderer>();
+            spriteRenderer ??= GetComponentInChildren<SpriteRenderer>();
 
             if (spriteRenderer == null)
             {
@@ -65,6 +64,7 @@ namespace GetBricked.Gameplay
             }
 
             spriteRenderer.sprite = visualStyle.Sprite;
+            NormalizeSpriteRendererScale();
             themedBaseColor = visualStyle.PrimaryColor;
             themedDamagedColor = visualStyle.SecondaryColor;
             glowRenderer?.ApplyStyle(visualStyle);
@@ -203,6 +203,27 @@ namespace GetBricked.Gameplay
             var integrity = Mathf.InverseLerp(1f, maxHitPoints, hitPointsRemaining);
             spriteRenderer.color = Color.Lerp(themedDamagedColor, themedBaseColor, integrity);
             glowRenderer?.ApplyColor(spriteRenderer.color);
+        }
+
+        private void NormalizeSpriteRendererScale()
+        {
+            if (spriteRenderer == null)
+            {
+                return;
+            }
+
+            var sprite = spriteRenderer.sprite;
+
+            if (sprite == null)
+            {
+                spriteRenderer.transform.localScale = Vector3.one;
+                return;
+            }
+
+            var spriteSize = sprite.bounds.size;
+            var scaleX = spriteSize.x > 0.0001f ? 1f / spriteSize.x : 1f;
+            var scaleY = spriteSize.y > 0.0001f ? 1f / spriteSize.y : 1f;
+            spriteRenderer.transform.localScale = new Vector3(scaleX, scaleY, 1f);
         }
     }
 }

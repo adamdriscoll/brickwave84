@@ -39,12 +39,14 @@ namespace GetBricked.Gameplay
         private readonly Vector2 pickupSize;
         private readonly float pickupFallSpeed;
         private readonly float multiBallSpreadAngle;
+        private readonly Material pickupMaterial;
 
-        public BreakoutPowerUpService(Vector2 pickupSize, float pickupFallSpeed, float multiBallSpreadAngle)
+        public BreakoutPowerUpService(Vector2 pickupSize, float pickupFallSpeed, float multiBallSpreadAngle, Material pickupMaterial)
         {
             this.pickupSize = pickupSize;
             this.pickupFallSpeed = pickupFallSpeed;
             this.multiBallSpreadAngle = multiBallSpreadAngle;
+            this.pickupMaterial = pickupMaterial;
         }
 
         public List<PowerUpPickup> ActivePickups { get; } = new List<PowerUpPickup>();
@@ -345,11 +347,10 @@ namespace GetBricked.Gameplay
 
             var spriteRenderer = pickupObject.AddComponent<SpriteRenderer>();
             spriteRenderer.sortingOrder = 14;
-
-            var glowRenderer = pickupObject.AddComponent<BreakoutGlowRenderer>();
-            glowRenderer.Configure(1.18f, 0.26f, 1.4f, 0.08f);
+            spriteRenderer.sharedMaterial = pickupMaterial;
 
             pickupObject.AddComponent<BoxCollider2D>();
+            pickupObject.AddComponent<Rigidbody2D>();
 
             var pickup = pickupObject.AddComponent<PowerUpPickup>();
             var pickupStyle = themeService != null

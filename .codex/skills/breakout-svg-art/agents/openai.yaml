@@ -1,0 +1,4 @@
+interface:
+  display_name: "Breakout SVG Art"
+  short_description: "Generate and wire synthwave SVG gameplay art"
+  default_prompt: "Use the Get Bricked style guide to create or update SVG gameplay art and hook it into the runtime theme pipeline."
