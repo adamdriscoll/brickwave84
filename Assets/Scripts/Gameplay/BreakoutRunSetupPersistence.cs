@@ -7,7 +7,7 @@ namespace GetBricked.Gameplay
     internal static class BreakoutRunSetupPersistence
     {
         private const string PersistedRunSetupKey = "GetBricked.RunSetup";
-        private const int PersistedRunSetupVersion = 2;
+        private const int PersistedRunSetupVersion = 3;
 
         [Serializable]
         private sealed class PersistedRunSetup
@@ -16,6 +16,7 @@ namespace GetBricked.Gameplay
             public int Seed;
             public string PendingSeedText = string.Empty;
             public int DifficultyPreset = (int)RunDifficultyPreset.Standard;
+            public int ScoringModeValue = (int)RunScoringMode.Classic;
             public int BallsPerServe = 1;
             public int PaddleWidthStep;
             public int BallSpeedStep;
@@ -46,7 +47,10 @@ namespace GetBricked.Gameplay
             {
                 var persistedRunSetup = JsonUtility.FromJson<PersistedRunSetup>(json);
 
-                if (persistedRunSetup == null || (persistedRunSetup.Version != 1 && persistedRunSetup.Version != PersistedRunSetupVersion))
+                if (persistedRunSetup == null
+                    || (persistedRunSetup.Version != 1
+                        && persistedRunSetup.Version != 2
+                        && persistedRunSetup.Version != PersistedRunSetupVersion))
                 {
                     return;
                 }
@@ -58,6 +62,12 @@ namespace GetBricked.Gameplay
                         persistedRunSetup.DifficultyPreset,
                         (int)RunDifficultyPreset.Casual,
                         (int)RunDifficultyPreset.Brutal),
+                    persistedRunSetup.Version >= 3
+                        ? (RunScoringMode)Mathf.Clamp(
+                            persistedRunSetup.ScoringModeValue,
+                            (int)RunScoringMode.Classic,
+                            (int)RunScoringMode.HighScore)
+                        : RunScoringMode.Classic,
                     Mathf.Clamp(persistedRunSetup.BallsPerServe, 1, 4),
                     Mathf.Clamp(persistedRunSetup.PaddleWidthStep, -2, 2),
                     Mathf.Clamp(persistedRunSetup.BallSpeedStep, -2, 2),
@@ -92,6 +102,7 @@ namespace GetBricked.Gameplay
                 Seed = runSetupState.Seed > 0 ? runSetupState.Seed : GenerateSeed(seedGenerator),
                 PendingSeedText = runSetupState.PendingSeedText ?? string.Empty,
                 DifficultyPreset = (int)runSetupState.DifficultyPreset,
+                ScoringModeValue = (int)runSetupState.ScoringMode,
                 BallsPerServe = runSetupState.BallsPerServe,
                 PaddleWidthStep = runSetupState.PaddleWidthStep,
                 BallSpeedStep = runSetupState.BallSpeedStep,

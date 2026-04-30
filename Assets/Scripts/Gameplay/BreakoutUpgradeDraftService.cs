@@ -13,7 +13,7 @@ namespace GetBricked.Gameplay
             this.loadedDefinitions = loadedDefinitions ?? new List<RunUpgradeDefinition>();
         }
 
-        public RunUpgradeDefinition[] GenerateDraft(BreakoutRunState runState, int runSeed, int levelIndex, int offerCount)
+        public RunUpgradeDefinition[] GenerateDraft(BreakoutRunState runState, RunSettings runSettings, int runSeed, int levelIndex, int offerCount)
         {
             if (runState == null || loadedDefinitions.Count == 0 || offerCount <= 0)
             {
@@ -26,7 +26,7 @@ namespace GetBricked.Gameplay
             {
                 var definition = loadedDefinitions[index];
 
-                if (runState.CanOffer(definition))
+                if (runState.CanOffer(definition) && IsUpgradeCompatibleWithRun(definition, runSettings))
                 {
                     available.Add(definition);
                 }
@@ -48,6 +48,23 @@ namespace GetBricked.Gameplay
             }
 
             return offers.ToArray();
+        }
+
+        private static bool IsUpgradeCompatibleWithRun(RunUpgradeDefinition definition, RunSettings runSettings)
+        {
+            if (definition == null)
+            {
+                return false;
+            }
+
+            if (runSettings != null
+                && runSettings.ScoringMode == RunScoringMode.HighScore
+                && definition.BonusLives > 0)
+            {
+                return false;
+            }
+
+            return true;
         }
 
         private static DeterministicRandomService CreateDraftRandom(BreakoutRunState runState, int runSeed, int levelIndex)

@@ -21,6 +21,7 @@ public sealed class BreakoutRunSetupStateTests
                 4242,
                 "4242",
                 RunDifficultyPreset.Standard,
+                RunScoringMode.Classic,
                 1,
                 0,
                 0,
@@ -36,6 +37,7 @@ public sealed class BreakoutRunSetupStateTests
         var args = new object[]
         {
             3,
+            500,
             null,
             new Func<int>(() => 4242),
             null,
@@ -58,6 +60,7 @@ public sealed class BreakoutRunSetupStateTests
         var args = new object[]
         {
             3,
+            500,
             null,
             new Func<int>(() => 7777),
             null,
@@ -83,6 +86,7 @@ public sealed class BreakoutRunSetupStateTests
                 1111,
                 "1111",
                 RunDifficultyPreset.Standard,
+                RunScoringMode.Classic,
                 1,
                 0,
                 0,
@@ -98,6 +102,7 @@ public sealed class BreakoutRunSetupStateTests
         var args = new object[]
         {
             3,
+            500,
             null,
             new Func<int>(() => 1111),
             null,
@@ -108,6 +113,50 @@ public sealed class BreakoutRunSetupStateTests
 
         Assert.That(runSettings.ForcePickupDropsOnBreak, Is.False);
         Assert.That(runSettings.DropCadenceLabel, Is.EqualTo("Standard"));
+    }
+
+    [Test]
+    public void BuildRunSettingsCarriesHighScoreModeAndLifeLossPenalty()
+    {
+        var state = CreateRunSetupState();
+        var stateType = state.GetType();
+
+        stateType.GetMethod("Restore", InstanceFlags)?.Invoke(
+            state,
+            new object[]
+            {
+                2024,
+                "2024",
+                RunDifficultyPreset.Standard,
+                RunScoringMode.HighScore,
+                1,
+                0,
+                0,
+                0,
+                DropPoolMode.Mixed,
+                true,
+                string.Empty,
+            });
+
+        var buildRunSettings = stateType.GetMethod("BuildRunSettings", InstanceFlags);
+        Assert.That(buildRunSettings, Is.Not.Null);
+
+        var args = new object[]
+        {
+            3,
+            600,
+            null,
+            new Func<int>(() => 2024),
+            null,
+            true,
+        };
+
+        var runSettings = (RunSettings)buildRunSettings.Invoke(state, args);
+
+        Assert.That(runSettings.ScoringMode, Is.EqualTo(RunScoringMode.HighScore));
+        Assert.That(runSettings.LifeLossScorePenalty, Is.EqualTo(600));
+        Assert.That(runSettings.UsesLifeLossScorePenalty, Is.True);
+        Assert.That(runSettings.ScoringModeLabel, Is.EqualTo("High Score"));
     }
 
     private static object CreateRunSetupState()

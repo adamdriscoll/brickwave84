@@ -57,7 +57,7 @@ public sealed class BreakoutLevelPlannerTests
                 level,
                 0,
                 new DeterministicRandomService(4242),
-                new RunSettings(4242, RunDifficultyPreset.Brutal, 2, 1, 1f, 1f, 1f, 1f, DropPoolMode.Mixed, true, null),
+                new RunSettings(4242, RunDifficultyPreset.Brutal, RunScoringMode.Classic, 2, 500, 1, 1f, 1f, 1f, 1f, DropPoolMode.Mixed, true, null),
             });
 
         Assert.That(GetFieldValue<int>(plan, "UniqueBrickTypeCount"), Is.EqualTo(bricks.Count));

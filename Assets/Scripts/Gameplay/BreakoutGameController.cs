@@ -80,6 +80,7 @@ namespace GetBricked.Gameplay
 
         [Header("Run Rules")]
         [SerializeField, Min(1)] private int startingLives = 3;
+        [SerializeField, Min(0)] private int lifeLossScorePenalty = 500;
 
         [Header("Brick Wall")]
         [SerializeField] private Vector2 brickSize = new Vector2(1.15f, 0.58f);
@@ -134,6 +135,7 @@ namespace GetBricked.Gameplay
         private BreakoutUpgradeDraftService upgradeDraftService;
         private RoundState roundState;
         private int livesRemaining;
+        private int lifeLossCount;
         private int score;
         private int requiredBricksRemaining;
         private float arenaLeft;
@@ -411,7 +413,22 @@ namespace GetBricked.Gameplay
                 return;
             }
 
+            if (UsesHighScoreMode())
+            {
+                lifeLossCount += 1;
+                ApplyLifeLossScorePenalty();
+
+                if (!isServeBall)
+                {
+                    Destroy(lostBall.gameObject);
+                }
+
+                PrepareServe(RoundState.LifeLost);
+                return;
+            }
+
             livesRemaining = Mathf.Max(0, livesRemaining - 1);
+            ApplyLifeLossScorePenalty();
 
             if (livesRemaining <= 0)
             {
@@ -523,6 +540,7 @@ namespace GetBricked.Gameplay
             selectedOverlayActionIndex = 0;
             gameplayRandom = new DeterministicRandomService(activeRunSettings.Seed);
             livesRemaining = activeRunSettings.StartingLives;
+            lifeLossCount = 0;
             score = 0;
             currentLevelIndex = 0;
             currentLevelVariationLabel = "Variation: pending";
@@ -537,6 +555,7 @@ namespace GetBricked.Gameplay
 
             Debug.Log(
                 $"Starting run | seed {activeRunSettings.Seed} | preset {activeRunSettings.DifficultyLabel} | " +
+                $"score mode {activeRunSettings.ScoringModeLabel} | life loss penalty {activeRunSettings.LifeLossScorePenalty} | " +
                 $"balls/serve {activeRunSettings.BallsPerServe} | paddle x{activeRunSettings.PaddleWidthMultiplier:0.00} | " +
                 $"ball speed x{activeRunSettings.BallSpeedMultiplier:0.00} | brick durability x{activeRunSettings.BrickDurabilityMultiplier:0.00} | " +
                 $"drops {activeRunSettings.DropPoolLabel} | theme {activeRunSettings.ThemeLabel}");
@@ -982,7 +1001,7 @@ namespace GetBricked.Gameplay
         {
             pendingRunSetup ??= new BreakoutRunSetupState(GetDefaultThemeId(), GenerateSeed);
             var selectedTheme = ResolvePendingThemeDefinition();
-            return pendingRunSetup.BuildRunSettings(startingLives, selectedTheme, GenerateSeed, out validationMessage, commitSeedText);
+            return pendingRunSetup.BuildRunSettings(startingLives, lifeLossScorePenalty, selectedTheme, GenerateSeed, out validationMessage, commitSeedText);
         }
 
         private int ParsePendingSeed(bool commitSeedText)
@@ -2410,7 +2429,13 @@ namespace GetBricked.Gameplay
             var message = roundState switch
             {
                 RoundState.ReadyToServe => "Press Space to launch the ball. Up/Down tunes speed.",
-                RoundState.LifeLost => $"Life lost. {livesRemaining} remaining. Press Space to serve again. Up/Down tunes speed.",
+                RoundState.LifeLost => GetLifeLossScorePenalty() > 0
+                    ? UsesHighScoreMode()
+                        ? $"Ball lost. -{GetLifeLossScorePenalty():0000} score. Losses {lifeLossCount:00}. Press Space to serve again. Up/Down tunes speed."
+                        : $"Life lost. -{GetLifeLossScorePenalty():0000} score. {livesRemaining} remaining. Press Space to serve again. Up/Down tunes speed."
+                    : UsesHighScoreMode()
+                        ? $"Ball lost. Losses {lifeLossCount:00}. Press Space to serve again. Up/Down tunes speed."
+                        : $"Life lost. {livesRemaining} remaining. Press Space to serve again. Up/Down tunes speed.",
                 _ => string.Empty,
             };
             uiRenderer.DrawMessageOverlay(message);
@@ -2440,22 +2465,24 @@ namespace GetBricked.Gameplay
             return new BreakoutUiMenuView
             {
                 Title = "Get Bricked",
-                Subtitle = "Neon cabinet online. Quick-start the last tuned run or open the control panel and retune the seed, modifiers, and palette.",
+                Subtitle = "Neon cabinet online. Quick-start the last tuned run or open the control panel and retune the seed, score mode, modifiers, and palette.",
                 SectionTitle = "Control Panel",
                 ActionLabels = BuildOverlayActionLabels(GetOverlayActionsForState(RoundState.MainMenu)),
                 SelectedActionIndex = selectedOverlayActionIndex,
                 PreviewTitle = "Saved Run Loadout",
                 PreviewLines = new[]
                 {
-                    $"Seed: {GetPendingSeedDisplay()}",
-                    $"Difficulty: {pendingRunSetup.DifficultyPreset} | Balls/Serve: {pendingRunSetup.BallsPerServe}",
-                    $"Theme: {previewSettings.ThemeLabel} | Paddle x{previewSettings.PaddleWidthMultiplier:0.00}",
-                    $"Ball x{previewSettings.BallSpeedMultiplier:0.00} | Brick durability x{previewSettings.BrickDurabilityMultiplier:0.00}",
+                    $"Tape ID: {GetPendingSeedDisplay()}",
+                    $"Difficulty: {pendingRunSetup.DifficultyPreset} | Score Mode: {previewSettings.ScoringModeLabel}",
+                    $"Balls/Serve: {pendingRunSetup.BallsPerServe} | {BuildRetrySummaryLabel(previewSettings)}",
+                    $"Theme: {previewSettings.ThemeLabel}",
+                    $"Paddle x{previewSettings.PaddleWidthMultiplier:0.00} | Ball x{previewSettings.BallSpeedMultiplier:0.00}",
+                    $"Brick durability x{previewSettings.BrickDurabilityMultiplier:0.00} | {BuildScoreModeSummaryLabel(previewSettings)}",
                     $"Drops: {BuildDropSummaryLabel(previewSettings)}",
                 },
                 ValidationText = previewValidation,
                 FooterText = "Run setup selections persist automatically, so quick start reuses the last cabinet tuning across sessions.",
-                HintText = "Up/Down selects. Space confirms. Open Run Setup for seed editing, modifier tuning, and theme cycling.",
+                HintText = "Up/Down selects. Space confirms. Open Run Setup for Tape ID editing, score mode tuning, modifier tweaks, and theme cycling.",
             };
         }
 
@@ -2465,11 +2492,12 @@ namespace GetBricked.Gameplay
             return new BreakoutUiRunSetupView
             {
                 Title = "Run Setup",
-                Subtitle = "Dial in the cabinet before launch. The same seed preserves the run while presets, modifiers, and palette reshape the pressure curve.",
+                Subtitle = "Dial in the cabinet before launch. The same Tape ID preserves the run while score mode, modifiers, and palette reshape the pressure curve.",
                 FieldLines = new[]
                 {
-                    $"Seed: {GetPendingSeedDisplay()}",
+                    $"Tape ID: {GetPendingSeedDisplay()}",
                     $"Difficulty: {pendingRunSetup.DifficultyPreset}",
+                    $"Score Mode: {previewSettings.ScoringModeLabel}",
                     $"Balls Per Serve: {pendingRunSetup.BallsPerServe}",
                     $"Paddle Width Bias: {FormatSignedStep(pendingRunSetup.PaddleWidthStep)}",
                     $"Ball Speed Bias: {FormatSignedStep(pendingRunSetup.BallSpeedStep)}",
@@ -2479,9 +2507,9 @@ namespace GetBricked.Gameplay
                     $"Theme: {previewSettings.ThemeLabel}",
                 },
                 SelectedFieldIndex = (int)selectedRunSetupField,
-                PreviewLine = $"Preview: Lives {previewSettings.StartingLives} | Paddle x{previewSettings.PaddleWidthMultiplier:0.00} | Ball speed x{previewSettings.BallSpeedMultiplier:0.00} | Brick durability x{previewSettings.BrickDurabilityMultiplier:0.00} | Drops {BuildDropSummaryLabel(previewSettings)}",
+                PreviewLine = $"Preview: {BuildScoreModeSummaryLabel(previewSettings)} | {BuildRetrySummaryLabel(previewSettings)} | Paddle x{previewSettings.PaddleWidthMultiplier:0.00} | Ball speed x{previewSettings.BallSpeedMultiplier:0.00} | Brick durability x{previewSettings.BrickDurabilityMultiplier:0.00} | Drops {BuildDropSummaryLabel(previewSettings)}",
                 ValidationText = previewValidation,
-                HintText = "Up/Down selects. Left/Right adjusts. Type digits for the seed. Backspace edits. T randomizes. N resets defaults. Esc returns to menu. Space launches.",
+                HintText = "Up/Down selects. Left/Right adjusts. Type digits for the Tape ID. Backspace edits. T randomizes. N resets defaults. Esc returns to menu. Space launches.",
             };
         }
 
@@ -2493,7 +2521,7 @@ namespace GetBricked.Gameplay
             var speed = GetDisplayedBallSpeed();
             return new BreakoutUiHudView
             {
-                TopLine = $"SCORE {score:0000}   LIVES {livesRemaining:00}   {BuildLevelLabel().ToUpperInvariant()}",
+                TopLine = $"{GetScoreDisplayLabel().ToUpperInvariant()} {FormatScoreValue(score)}   {GetLifeCounterLabel().ToUpperInvariant()} {GetLifeCounterValue():00}   {BuildLevelLabel().ToUpperInvariant()}",
                 BottomLine = BuildGameplayStatusLine().ToUpperInvariant(),
                 ShowMenuButton = CanPauseRoundState(roundState) || roundState == RoundState.Paused,
                 IsPaused = roundState == RoundState.Paused,
@@ -2582,10 +2610,10 @@ namespace GetBricked.Gameplay
                     ? "Level Cleared"
                     : "Final Layout Cleared";
             var summary = isGameOver
-                ? $"Score {score:0000} | Reached {BuildLevelLabel()} | Seed {activeRunSettings?.Seed.ToString(CultureInfo.InvariantCulture) ?? GetPendingSeedDisplay()}"
+                ? $"{GetScoreDisplayLabel()} {FormatScoreValue(score)} | Reached {BuildLevelLabel()} | Tape ID {activeRunSettings?.Seed.ToString(CultureInfo.InvariantCulture) ?? GetPendingSeedDisplay()}"
                 : HasNextLevel()
-                    ? $"Score {score:0000} | Lives {livesRemaining:00} | Next up: level {currentLevelIndex + 2:00}"
-                    : $"Score {score:0000} | Lives {livesRemaining:00} | Seed {activeRunSettings?.Seed.ToString(CultureInfo.InvariantCulture) ?? GetPendingSeedDisplay()}";
+                    ? $"{GetScoreDisplayLabel()} {FormatScoreValue(score)} | {GetLifeCounterLabel()} {GetLifeCounterValue():00} | Next up: level {currentLevelIndex + 2:00}"
+                    : $"{GetScoreDisplayLabel()} {FormatScoreValue(score)} | {GetLifeCounterLabel()} {GetLifeCounterValue():00} | Tape ID {activeRunSettings?.Seed.ToString(CultureInfo.InvariantCulture) ?? GetPendingSeedDisplay()}";
             var footer = isGameOver
                 ? "Restart the run, jump back to setup, or return to the main menu."
                 : HasNextLevel()
@@ -2715,6 +2743,58 @@ namespace GetBricked.Gameplay
                 : $"Level {currentLevelIndex + 1:00} - {currentLevelDisplayName}";
         }
 
+        private string GetScoreDisplayLabel()
+        {
+            return activeRunSettings != null && activeRunSettings.ScoringMode == RunScoringMode.HighScore
+                ? "High Score"
+                : "Score";
+        }
+
+        private string GetLifeCounterLabel()
+        {
+            return UsesHighScoreMode() ? "Losses" : "Lives";
+        }
+
+        private int GetLifeCounterValue()
+        {
+            return UsesHighScoreMode() ? lifeLossCount : livesRemaining;
+        }
+
+        private string BuildScoreModeSummaryLabel(RunSettings settings)
+        {
+            if (settings == null)
+            {
+                return "Score Mode offline";
+            }
+
+            return settings.UsesLifeLossScorePenalty
+                ? $"{settings.ScoringModeLabel} | Life Loss -{settings.LifeLossScorePenalty:0000}"
+                : settings.ScoringModeLabel;
+        }
+
+        private static string BuildRetrySummaryLabel(RunSettings settings)
+        {
+            if (settings == null)
+            {
+                return "Retries offline";
+            }
+
+            return settings.ScoringMode == RunScoringMode.HighScore
+                ? "Retries unlimited"
+                : $"Lives {settings.StartingLives}";
+        }
+
+        private static string FormatScoreValue(int value)
+        {
+            if (value < 0)
+            {
+                var absoluteValue = -(long)value;
+                return $"-{absoluteValue:0000}";
+            }
+
+            return value.ToString("0000", CultureInfo.InvariantCulture);
+        }
+
         private string BuildRemainingBricksLabel()
         {
             if (currentLevel == null)
@@ -2744,7 +2824,7 @@ namespace GetBricked.Gameplay
 
         private string BuildPauseSummaryLabel()
         {
-            return $"Score {score:0000} | Lives {livesRemaining:00} | Balls {Mathf.Max(0, activeBalls.Count):00} | {BuildLevelLabel()}";
+            return $"{GetScoreDisplayLabel()} {FormatScoreValue(score)} | {GetLifeCounterLabel()} {GetLifeCounterValue():00} | Balls {Mathf.Max(0, activeBalls.Count):00} | {BuildLevelLabel()}";
         }
 
         private string BuildUpgradeSummaryLabel(int maxNames)
@@ -2806,12 +2886,13 @@ namespace GetBricked.Gameplay
         {
             if (activeRunSettings == null)
             {
-                return $"Run Seed: {GetPendingSeedDisplay()} | Theme: {ResolvePendingThemeDefinition()?.DisplayName ?? "Fallback"} | Preview only";
+                return $"Tape ID: {GetPendingSeedDisplay()} | Theme: {ResolvePendingThemeDefinition()?.DisplayName ?? "Fallback"} | Preview only";
             }
 
-            return
-                $"Run Seed: {activeRunSettings.Seed} | {activeRunSettings.DifficultyLabel} | Balls/Serve {GetEffectiveBallsPerServe()} | " +
+            var summary =
+                $"Tape ID: {activeRunSettings.Seed} | {activeRunSettings.DifficultyLabel} | {BuildScoreModeSummaryLabel(activeRunSettings)} | {BuildRetrySummaryLabel(activeRunSettings)} | Balls/Serve {GetEffectiveBallsPerServe()} | " +
                 $"Theme: {activeRunSettings.ThemeLabel} | Drops: {BuildDropSummaryLabel(activeRunSettings)} | Paddle x{activeRunSettings.PaddleWidthMultiplier:0.00} | Ball x{activeRunSettings.BallSpeedMultiplier:0.00} | Build {GetChosenUpgradeCount():00}";
+            return summary;
         }
 
         private static string BuildDropSummaryLabel(RunSettings settings)
@@ -3057,6 +3138,30 @@ namespace GetBricked.Gameplay
             return GetBallSpeedBase() * Mathf.Clamp(manualBallSpeedMultiplier, 1f, Mathf.Max(1f, manualBallSpeedMaxMultiplier));
         }
 
+        private int GetLifeLossScorePenalty()
+        {
+            return activeRunSettings != null && activeRunSettings.UsesLifeLossScorePenalty
+                ? activeRunSettings.LifeLossScorePenalty
+                : 0;
+        }
+
+        private bool UsesHighScoreMode()
+        {
+            return activeRunSettings != null && activeRunSettings.ScoringMode == RunScoringMode.HighScore;
+        }
+
+        private void ApplyLifeLossScorePenalty()
+        {
+            var penalty = GetLifeLossScorePenalty();
+
+            if (penalty <= 0)
+            {
+                return;
+            }
+
+            score -= penalty;
+        }
+
         private int CalculateBrickScore(Brick brick, BallController scoringBall)
         {
             if (brick == null)
@@ -3130,7 +3235,7 @@ namespace GetBricked.Gameplay
             }
 
             activeRunState.RegisterLevelClear();
-            var offers = upgradeDraftService.GenerateDraft(activeRunState, activeRunSettings.Seed, currentLevelIndex, 3);
+            var offers = upgradeDraftService.GenerateDraft(activeRunState, activeRunSettings, activeRunSettings.Seed, currentLevelIndex, 3);
 
             if (offers.Length == 0)
             {
@@ -3158,7 +3263,7 @@ namespace GetBricked.Gameplay
                 return;
             }
 
-            if (appliedUpgrade != null && appliedUpgrade.BonusLives > 0)
+            if (!UsesHighScoreMode() && appliedUpgrade != null && appliedUpgrade.BonusLives > 0)
             {
                 livesRemaining += appliedUpgrade.BonusLives;
             }

@@ -11,13 +11,14 @@ namespace GetBricked.Gameplay
     {
         Seed = 0,
         Difficulty = 1,
-        BallsPerServe = 2,
-        PaddleWidth = 3,
-        BallSpeed = 4,
-        BrickDurability = 5,
-        DropPool = 6,
-        CapsuleParty = 7,
-        Theme = 8,
+        ScoreMode = 2,
+        BallsPerServe = 3,
+        PaddleWidth = 4,
+        BallSpeed = 5,
+        BrickDurability = 6,
+        DropPool = 7,
+        CapsuleParty = 8,
+        Theme = 9,
     }
 
     internal sealed class BreakoutRunSetupState
@@ -30,6 +31,8 @@ namespace GetBricked.Gameplay
         public int Seed { get; private set; }
 
         public RunDifficultyPreset DifficultyPreset { get; private set; } = RunDifficultyPreset.Standard;
+
+        public RunScoringMode ScoringMode { get; private set; } = RunScoringMode.Classic;
 
         public int BallsPerServe { get; private set; } = 1;
 
@@ -50,6 +53,7 @@ namespace GetBricked.Gameplay
         public void Reset(string defaultThemeId, Func<int> seedGenerator, bool generateNewSeed)
         {
             DifficultyPreset = RunDifficultyPreset.Standard;
+            ScoringMode = RunScoringMode.Classic;
             BallsPerServe = 1;
             PaddleWidthStep = 0;
             BallSpeedStep = 0;
@@ -65,6 +69,7 @@ namespace GetBricked.Gameplay
             int seed,
             string pendingSeedText,
             RunDifficultyPreset difficultyPreset,
+            RunScoringMode scoringMode,
             int ballsPerServe,
             int paddleWidthStep,
             int ballSpeedStep,
@@ -76,6 +81,7 @@ namespace GetBricked.Gameplay
             Seed = Mathf.Max(0, seed);
             PendingSeedText = pendingSeedText ?? string.Empty;
             DifficultyPreset = difficultyPreset;
+            ScoringMode = scoringMode;
             BallsPerServe = Mathf.Clamp(ballsPerServe, 1, 4);
             PaddleWidthStep = Mathf.Clamp(paddleWidthStep, -2, 2);
             BallSpeedStep = Mathf.Clamp(ballSpeedStep, -2, 2);
@@ -103,6 +109,12 @@ namespace GetBricked.Gameplay
                         (int)DifficultyPreset + direction,
                         (int)RunDifficultyPreset.Casual,
                         (int)RunDifficultyPreset.Brutal);
+                    break;
+                case BreakoutRunSetupField.ScoreMode:
+                    ScoringMode = (RunScoringMode)Mathf.Clamp(
+                        (int)ScoringMode + direction,
+                        (int)RunScoringMode.Classic,
+                        (int)RunScoringMode.HighScore);
                     break;
                 case BreakoutRunSetupField.BallsPerServe:
                     BallsPerServe = Mathf.Clamp(BallsPerServe + direction, 1, 4);
@@ -168,6 +180,7 @@ namespace GetBricked.Gameplay
 
         public RunSettings BuildRunSettings(
             int startingLives,
+            int lifeLossScorePenalty,
             ThemeDefinition selectedTheme,
             Func<int> seedGenerator,
             out string validationMessage,
@@ -223,6 +236,11 @@ namespace GetBricked.Gameplay
                 }
             }
 
+            if (ScoringMode == RunScoringMode.HighScore)
+            {
+                warnings.Add($"High Score mode live: every life loss costs {lifeLossScorePenalty:0000} points.");
+            }
+
             if (DropPoolMode == Gameplay.Data.DropPoolMode.Disabled)
             {
                 warnings.Add("Drops disabled for this run.");
@@ -239,7 +257,9 @@ namespace GetBricked.Gameplay
             return new RunSettings(
                 seed,
                 DifficultyPreset,
+                ScoringMode,
                 lives,
+                lifeLossScorePenalty,
                 BallsPerServe,
                 paddleWidthMultiplier,
                 ballSpeedMultiplier,

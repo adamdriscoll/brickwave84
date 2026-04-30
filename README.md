@@ -20,7 +20,7 @@
 ## What Is Implemented Right Now
 
 - Runtime main menu with quick start, run setup access, and reset-to-defaults flow
-- Run setup with seed entry, difficulty presets, modifier tuning, drop-pool filtering, Capsule Party, and theme selection
+- Run setup with seed entry, difficulty presets, score mode selection, modifier tuning, drop-pool filtering, Capsule Party, and theme selection
 - Seeded multi-stage progression with deterministic procedural layouts
 - Pause, restart, return-to-setup, and return-to-menu flows
 - One paddle, one or more active balls, lives, serve/reset flow, and game-over handling
@@ -36,7 +36,7 @@
 ## Core Loop
 
 1. Start from the runtime main menu.
-2. Open `Run Setup` to pick a seed, difficulty, modifiers, and theme.
+2. Open `Run Setup` to pick a seed, difficulty, score mode, modifiers, and theme.
 3. Launch into a seeded stage with one or more serve balls.
 4. Break bricks, manage lives, and catch or dodge falling capsules.
 5. Clear the stage objective to open a deterministic `1 of 3` upgrade draft.
@@ -65,6 +65,7 @@ The setup screen already supports these run-shaping inputs:
 | --- | --- |
 | Seed / Tape ID | Numeric seed. The same seed plus the same draft picks reproduces layout patterns, launch rolls, drop rolls, and draft offers. |
 | Difficulty | `Casual`, `Standard`, `Brutal` |
+| Score Mode | `Classic`, `High Score` |
 | Balls Per Serve | `1` to `4` before permanent upgrades |
 | Paddle Width Bias | `-2` to `+2` setup steps |
 | Ball Speed Bias | `-2` to `+2` setup steps |
@@ -96,6 +97,7 @@ Difficulty presets already change more than labels:
 
 - Lives are active and are affected by setup difficulty plus permanent upgrade picks.
 - The run only spends a life when the last active ball is lost. Multi-ball does not punish you until every ball is gone.
+- `High Score` mode keeps score climbing from brick breaks, subtracts a fixed penalty every time a ball is lost, never ends the run on life depletion, and can go negative.
 - `Balls Per Serve` applies on every fresh serve, not just the opening launch.
 - `Shield Wall` can rescue a falling ball before it becomes a life loss.
 - Ball speed is not only feel tuning; brick score payout scales with current ball speed.

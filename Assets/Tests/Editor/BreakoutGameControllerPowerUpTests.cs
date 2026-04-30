@@ -120,6 +120,30 @@ public sealed class BreakoutGameControllerPowerUpTests
         Assert.That(serveBall.GetComponent<Rigidbody2D>().linearVelocity.y, Is.GreaterThan(0f));
     }
 
+    [Test]
+    public void LosingALifeInHighScoreModeSubtractsPenaltyFromScoreAndKeepsRunAlive()
+    {
+        var controller = CreateControllerHarness(out var paddle);
+        var serveBall = CreateBallHarness(controller, paddle);
+        SetPrivateField(
+            controller,
+            "activeRunSettings",
+            new RunSettings(1234, RunDifficultyPreset.Standard, RunScoringMode.HighScore, 3, 650, 1, 1f, 1f, 1f, 1f, DropPoolMode.Mixed, false, null));
+        SetPrivateField(controller, "serveBall", serveBall);
+        SetPrivateField(controller, "livesRemaining", 3);
+        SetPrivateField(controller, "score", 125);
+        GetPrivateField<List<BallController>>(controller, "activeBalls").Add(serveBall);
+        SetPrivateEnumField(controller, "roundState", "Playing");
+
+        controller.HandleBallLost(serveBall);
+
+        Assert.That(GetPrivateField<int>(controller, "livesRemaining"), Is.EqualTo(3));
+        Assert.That(GetPrivateField<int>(controller, "lifeLossCount"), Is.EqualTo(1));
+        Assert.That(GetPrivateField<int>(controller, "score"), Is.EqualTo(-525));
+        Assert.That(GetPrivateField<object>(controller, "roundState").ToString(), Is.EqualTo("LifeLost"));
+        Assert.That(GetPrivateField<List<BallController>>(controller, "activeBalls").Count, Is.EqualTo(1));
+    }
+
     private BreakoutGameController CreateControllerHarness(out PaddleController paddle)
     {
         controllerObject = new GameObject("BreakoutGameController Test");
@@ -137,7 +161,7 @@ public sealed class BreakoutGameControllerPowerUpTests
         SetPrivateField(
             controller,
             "activeRunSettings",
-            new RunSettings(1234, RunDifficultyPreset.Standard, 3, 1, 1f, 1f, 1f, 1f, DropPoolMode.Mixed, false, null));
+            new RunSettings(1234, RunDifficultyPreset.Standard, RunScoringMode.Classic, 3, 500, 1, 1f, 1f, 1f, 1f, DropPoolMode.Mixed, false, null));
         SetPrivateField(controller, "currentLevelPaddleSpeed", 12f);
         SetPrivateField(controller, "currentLevelBallSpeed", 8f);
         SetPrivateField(controller, "arenaTop", 5f);
