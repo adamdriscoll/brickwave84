@@ -17,7 +17,7 @@
 - Runtime visuals now also support SVG-backed gameplay sprites plus a resource-backed background image, with URP bloom driving additive glow for the ball and pickups while paddle and bricks stay crisp on unlit sprite materials; the backdrop path now layers a smoked-glass haze and scanline treatment behind gameplay pieces for better contrast
   - The desired presentation direction is now documented in `Plan/STYLE.md`: a readability-first synthwave arcade look with dark indigo backgrounds, magenta/cyan neon accents, controlled CRT glow, and giant-cabinet framing cues
   - The current groundwork already includes runtime OnGUI-based main menu, run setup, HUD, pause, end-state flow, persisted run-setup choices, seed entry, difficulty presets, modifier validation, deterministic gameplay rolls, and seeded procedural level generation
-  - There are custom C# scripts now, but still no `.asmdef` files, no prefabs, and no automated tests yet
+  - There are custom C# scripts now, still no `.asmdef` files and no prefabs, and there is now a first small layer of automated Unity Edit Mode coverage under `Assets/Tests/Editor/`
 - Input System is enabled and has a starter action asset at `Assets/InputSystem_Actions.inputactions`.
 
 ## What Exists
@@ -46,6 +46,7 @@
 - `Assets/Scripts/Gameplay/Data/RunSettings.cs`: runtime run configuration model for seed, difficulty, balls-per-serve, modifier multipliers, and drop-pool restrictions
 - `Assets/Scripts/Gameplay/Data/RunUpgradeDefinition.cs`: ScriptableObject data for permanent run modifiers, draft weighting, stack caps, exclusions, and upgrade presentation
 - `Assets/Scripts/Gameplay/Data/ThemeDefinition.cs`: ScriptableObject theme data for semantic visual slots, palette colors, and future sprite overrides
+- `Assets/Tests/Editor/BreakoutGameControllerPowerUpTests.cs`: first Unity Edit Mode regression coverage for immediate power-up modifier application on the paddle
 - `Assets/Resources/Bricks/*`: authored brick definition assets loaded at runtime
 - `Assets/Resources/Levels/*`: authored level definition assets loaded at runtime
 - `Assets/Resources/PowerUps/*`: authored power-up definition assets referenced by brick drop tables
@@ -62,6 +63,7 @@
 - `.codex/skills/breakout-svg-art/*`: repo-local skill for generating and wiring new SVG gameplay art into the runtime theme pipeline
 - `.codex/skills/repo-maintenance/*`: repo-local maintenance skill and snapshot helper for refreshing `AGENTS.md` and local skills after agent work
 - `.codex/skills/unity-compile/*`: repo-local Unity batchmode compile-check skill and helper script for reproducing script compilation failures from the terminal
+- `.codex/skills/unity-tests/*`: repo-local Unity Test Framework skill and batchmode runner for Edit Mode and Play Mode suites
 - `Packages/manifest.json`: Unity package dependencies
 - `ProjectSettings/ProjectVersion.txt`: authoritative Unity version
 - `Get Bricked.sln`: may stay sparse until Unity regenerates project files after script import
@@ -71,6 +73,7 @@
 - This is a Unity 6 project, so future edits should assume modern Unity APIs and URP defaults.
 - The package list shows a 2D-focused setup plus the new Input System, UGUI, Timeline, and Visual Scripting.
 - `com.unity.vectorgraphics` is now installed so Unity imports the repo's SVG gameplay art through the Vector Graphics package.
+- `com.unity.test-framework` is installed and the project now has a starter Edit Mode test layer under `Assets/Tests/Editor/`.
 - The input action asset already includes common starter actions like `Move`, `Look`, `Attack`, `Interact`, `Jump`, `Sprint`, `Previous`, and `Next`.
 - The current prototype is scene-light and code-heavy: the gameplay board, bounds, ball, paddle, bricks, and temporary HUD are created at runtime instead of being serialized into `SampleScene`.
 - Bricks and levels are now authored as ScriptableObjects under `Assets/Resources/` and loaded at runtime by the controller plus its leaf services.
@@ -103,6 +106,8 @@
 - Brick and power-up definition assets can optionally override their semantic theme slot, but default routing already maps brick durability tiers plus beneficial/harmful/burst pickups onto the shared theme palette automatically.
 - The current default visuals now reach a first-pass synthwave cabinet presentation through theme palettes, theme-derived UI chrome, playfield framing, and a softer glowing ball silhouette, but there is still room for authored art, material, VFX, and post-processing polish.
 - Terminal-side compile validation can now be done with `python .codex/skills/unity-compile/scripts/run_unity_compile.py`, which reads `ProjectVersion.txt`, locates the matching Unity Hub editor, runs batchmode, and summarizes build-blocking script errors from the generated log.
+- Terminal-side test validation can now be done with `python .codex/skills/unity-tests/scripts/run_unity_tests.py`, which locates the matching Unity editor, runs Unity Test Framework suites in batchmode, and summarizes XML result totals plus failing test names.
+- The first automated regression coverage currently checks that caught power-up modifiers immediately reapply to the paddle, including wavy and width-modifier behavior.
 - After adding or renaming scripts, let Unity regenerate project files instead of hand-maintaining the `.sln`.
 
 ## Visual Direction
@@ -126,6 +131,8 @@
 - Prefer adding gameplay code under `Assets/Scripts/` unless the user asks for a different layout.
 - Preserve Unity `.meta` pairings for every manually added script and folder under `Assets/Scripts/`.
 - After substantial project work, use `.codex/skills/repo-maintenance/` to refresh `AGENTS.md` and repo-local skills with durable new repo knowledge.
+- When behavior changes or a bug is fixed, add or update the closest relevant automated test when practical instead of leaving coverage behind.
+- After code or behavior changes, run the relevant automated tests plus the Unity compile check before closing the task whenever the environment allows it.
 - Before touching visual style, read `Plan/STYLE.md` and keep the synthwave arcade direction consistent across gameplay, HUD, menus, and future theme assets.
 - Before touching UI copy, naming, event callouts, or flavor text, read `Plan/VOICE.md` and keep the arcade-cabinet tone plus labeling rules consistent across gameplay, menus, pickups, stages, and result screens.
 - Keep Unity `.meta` files intact. If you add an asset or script manually, ensure the matching `.meta` file exists and stays paired with it.
@@ -149,7 +156,9 @@
   - `Assets/Scripts/Core/`
 - Keep first-pass gameplay tuning values serialized on the controlling MonoBehaviour so feel can be adjusted quickly in the Inspector during playtesting.
 - Add prefabs under `Assets/Prefabs/`, art under `Assets/Art/`, and audio under `Assets/Audio/` if those areas are created later.
-- If tests are added, prefer Unity Test Framework with clear separation between Edit Mode and Play Mode tests.
+- Prefer Unity Test Framework with clear separation between Edit Mode and Play Mode tests.
+- Keep test code under `Assets/Tests/`, using `Editor/` for Edit Mode coverage and `PlayMode/` for runtime integration coverage if that folder is introduced later.
+- Prefer narrow regression tests for gameplay bugs first, then broaden coverage when shared systems or runtime integration is at risk.
 - If you add more authored gameplay content, keep using `.asset` plus `.meta` pairings under `Assets/Resources/Bricks/`, `Assets/Resources/Levels/`, `Assets/Resources/PowerUps/`, and `Assets/Resources/Upgrades/` unless the project deliberately migrates to a different content-loading path.
 - If you add or replace gameplay SVGs, keep them under `Assets/Resources/Sprites/` unless a request explicitly introduces a new content path, and let Unity generate or refresh the paired `.meta` files after import.
 - If you add or change vector art workflow guidance, prefer updating `.codex/skills/breakout-svg-art/` instead of repeating the same SVG hookup instructions in task-specific notes.
@@ -161,8 +170,10 @@ When making changes, validate with the Unity editor when possible:
 - Open the project in Unity `6000.3.6f1` or the closest compatible version.
 - Confirm the scene loads without missing scripts or broken references.
 - Check the Console for compile errors after adding scripts.
+- Add or update relevant automated tests when the change affects gameplay rules, bug-prone logic, or reusable runtime services.
 - If gameplay changes are made, enter Play Mode in `Assets/Scenes/SampleScene.unity`.
 - Before or after gameplay script edits, prefer running `python .codex/skills/unity-compile/scripts/run_unity_compile.py` from the repo root for a fast terminal compile check when Unity UI validation is not yet practical.
+- After adding or updating tests, prefer running `python .codex/skills/unity-tests/scripts/run_unity_tests.py --platform editmode` for logic coverage and switch to `--platform playmode` or `--platform all` when the change depends on runtime integration.
 - For the current prototype, verify:
   - On boot, the runtime main menu appears and can start a run or open run setup without editor interaction
   - From run setup, seed, preset, and modifier controls still respond correctly and `Esc` returns to the main menu
@@ -228,10 +239,13 @@ If you are a future agent starting work here, read these first:
 28. `Assets/Scenes/SampleScene.unity`
 29. `.codex/skills/breakout-svg-art/SKILL.md`
 30. `.codex/skills/repo-maintenance/SKILL.md`
+31. `.codex/skills/unity-tests/SKILL.md`
+32. `Assets/Tests/Editor/BreakoutGameControllerPowerUpTests.cs`
 
 ## Current Reality Check
 
 - There is now a minimal implemented game loop for a single-screen brick-breaker prototype with procedural seeded level generation, pickup-driven rule changes, deterministic between-level run-upgrade drafts, palette-based theme selection, SVG-backed gameplay art, a resource-backed synthwave background layer, and a first-pass player-facing menu / HUD / pause flow.
+- There is now a first small layer of automated regression coverage for gameplay modifier application, but test coverage is still sparse and should grow alongside bug fixes and behavior changes.
 - The current custom systems are small, but they are real and worth extending deliberately instead of replacing by default.
 - Most near-term work will still be greenfield, but it should now build on the existing runtime prototype and folder structure.
 - If a user asks for game features, you will likely be extending the current scripts and authored content assets first, then deciding when to promote runtime-generated objects into authored scene or prefab assets.

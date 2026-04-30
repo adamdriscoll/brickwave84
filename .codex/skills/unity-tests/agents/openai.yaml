@@ -1,0 +1,4 @@
+interface:
+  display_name: "Unity Tests"
+  short_description: "Run Unity Edit Mode and Play Mode tests"
+  default_prompt: "Use $unity-tests to run Unity Test Framework suites for this repository, summarize the results, and call out any failures or missing coverage."

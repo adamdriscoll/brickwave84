@@ -2765,7 +2765,15 @@ namespace GetBricked.Gameplay
 
         private void ApplyPowerUp(PowerUpDefinition powerUpDefinition)
         {
-            if (powerUpService != null && powerUpService.ApplyPowerUp(powerUpDefinition, themeService))
+            if (powerUpService == null)
+            {
+                return;
+            }
+
+            var shouldSpawnMultiBall = powerUpService.ApplyPowerUp(powerUpDefinition, themeService);
+            ApplyActiveEffects();
+
+            if (shouldSpawnMultiBall)
             {
                 SpawnMultiBall(powerUpDefinition);
             }
