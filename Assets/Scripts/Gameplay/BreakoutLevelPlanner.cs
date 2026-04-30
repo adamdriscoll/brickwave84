@@ -380,6 +380,16 @@ namespace GetBricked.Gameplay
                 return 0.22f + (topBias * 0.18f) + (hotspot ? 0.16f : 0f) + ((levelIndex - 4) * 0.05f);
             }
 
+            if (definition.SpinsOnHit)
+            {
+                if (levelIndex < 2)
+                {
+                    return 0f;
+                }
+
+                return 0.42f + (topBias * 0.3f) + (centerBias * 0.16f) + (hotspot ? 0.18f : 0f) + ((levelIndex - 2) * 0.045f);
+            }
+
             if (definition.HitPoints >= 3)
             {
                 if (levelIndex < 3)
@@ -438,7 +448,7 @@ namespace GetBricked.Gameplay
             int totalRows,
             int totalColumns)
         {
-            if (definition == null || !definition.IsBreakable || profileIndex <= 0)
+            if (definition == null || !definition.IsBreakable || profileIndex <= 0 || definition.SpinsOnHit)
             {
                 return default;
             }
@@ -638,6 +648,11 @@ namespace GetBricked.Gameplay
             if (definition.IsExplosive)
             {
                 return 'E';
+            }
+
+            if (definition.SpinsOnHit)
+            {
+                return 'R';
             }
 
             return definition.HitPoints switch

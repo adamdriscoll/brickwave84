@@ -27,6 +27,8 @@ namespace GetBricked.Gameplay
 
         public float CurrentSpeed => ballBody != null ? ballBody.linearVelocity.magnitude : 0f;
 
+        public Vector2 CurrentVelocity => ballBody != null ? ballBody.linearVelocity : Vector2.zero;
+
         public bool IsAttachedToPaddle => attachedToPaddle;
 
         public void Configure(
@@ -226,6 +228,21 @@ namespace GetBricked.Gameplay
             }
         }
 
+        public void ApplyCollisionResponse(Vector2 direction, float minimumVerticalFraction = -1f)
+        {
+            if (ballBody == null)
+            {
+                return;
+            }
+
+            var resolvedMinimumVertical = minimumVerticalFraction < 0f
+                ? minimumVerticalDirection
+                : Mathf.Clamp(minimumVerticalFraction, 0f, 0.95f);
+            var resolvedDirection = NormalizeDirection(direction, resolvedMinimumVertical);
+            lastTravelDirection = resolvedDirection;
+            ballBody.linearVelocity = resolvedDirection * GetTargetSpeed();
+        }
+
         private void FixedUpdate()
         {
             if (ballBody == null)
@@ -296,6 +313,12 @@ namespace GetBricked.Gameplay
                 return;
             }
 
+            if (collision.collider.TryGetComponent<Brick>(out var spinningBrick)
+                && spinningBrick.TryApplyBallCollisionResponse(this, collision))
+            {
+                return;
+            }
+
             ClampBallVelocity();
         }
 
@@ -325,11 +348,10 @@ namespace GetBricked.Gameplay
                     Mathf.Sign(Mathf.Approximately(bounceDirection.y, 0f) ? 1f : bounceDirection.y) * minimumVerticalDirection).normalized;
             }
 
-            lastTravelDirection = bounceDirection;
-            ballBody.linearVelocity = bounceDirection * GetTargetSpeed();
+            ApplyCollisionResponse(bounceDirection);
         }
 
-        private void ClampBallVelocity()
+        private void ClampBallVelocity(float minimumVerticalFraction = -1f)
         {
             if (ballBody == null)
             {
@@ -344,21 +366,12 @@ namespace GetBricked.Gameplay
                 velocity = Vector2.up * targetSpeed;
             }
 
-            velocity = velocity.normalized * targetSpeed;
-
-            if (Mathf.Abs(velocity.y) < targetSpeed * minimumVerticalDirection)
-            {
-                var ySign = Mathf.Sign(Mathf.Approximately(velocity.y, 0f) ? 1f : velocity.y);
-                var adjustedY = targetSpeed * minimumVerticalDirection * ySign;
-                var adjustedX = Mathf.Sqrt(Mathf.Max(0.01f, (targetSpeed * targetSpeed) - (adjustedY * adjustedY)));
-                adjustedX *= Mathf.Approximately(velocity.x, 0f)
-                    ? ((gameController != null ? gameController.NextGameplayRandomBool() : Random.value < 0.5f) ? -1f : 1f)
-                    : Mathf.Sign(velocity.x);
-                velocity = new Vector2(adjustedX, adjustedY);
-            }
-
-            lastTravelDirection = velocity.normalized;
-            ballBody.linearVelocity = velocity;
+            var resolvedMinimumVertical = minimumVerticalFraction < 0f
+                ? minimumVerticalDirection
+                : Mathf.Clamp(minimumVerticalFraction, 0f, 0.95f);
+            var direction = NormalizeDirection(velocity, resolvedMinimumVertical);
+            lastTravelDirection = direction;
+            ballBody.linearVelocity = direction * targetSpeed;
         }
 
         private void UpdateSpeedBurstTimer()
@@ -430,6 +443,26 @@ namespace GetBricked.Gameplay
         {
             speedBurstMultiplier = 1f;
             speedBurstTimeRemaining = 0f;
+        }
+
+        private Vector2 NormalizeDirection(Vector2 direction, float minimumVerticalFraction)
+        {
+            var resolvedDirection = direction.sqrMagnitude > 0.001f
+                ? direction.normalized
+                : (lastTravelDirection.sqrMagnitude > 0.001f ? lastTravelDirection.normalized : Vector2.up);
+
+            if (minimumVerticalFraction <= 0f || Mathf.Abs(resolvedDirection.y) >= minimumVerticalFraction)
+            {
+                return resolvedDirection;
+            }
+
+            var ySign = Mathf.Sign(Mathf.Approximately(resolvedDirection.y, 0f) ? 1f : resolvedDirection.y);
+            var adjustedY = minimumVerticalFraction * ySign;
+            var adjustedX = Mathf.Sqrt(Mathf.Max(0.01f, 1f - (adjustedY * adjustedY)));
+            adjustedX *= Mathf.Approximately(resolvedDirection.x, 0f)
+                ? ((gameController != null ? gameController.NextGameplayRandomBool() : Random.value < 0.5f) ? -1f : 1f)
+                : Mathf.Sign(resolvedDirection.x);
+            return new Vector2(adjustedX, adjustedY).normalized;
         }
     }
 }

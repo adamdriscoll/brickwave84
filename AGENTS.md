@@ -11,7 +11,7 @@
   - The serialized scene asset is still close to the template and only contains the default `Main Camera` and `Global Light 2D`
   - A runtime bootstrap now injects the playable prototype into the scene on load
   - The prototype currently supports a runtime main menu, run setup flow, in-game HUD, pause / restart / return-to-menu actions, one paddle, one or more balls, lives, serve/reset flow between ball losses, seeded procedural multi-level progression, deterministic between-level `pick 1 of 3` run-upgrade drafts, temporary timed pickups, and brick-driven power-up / power-down drops
-  - Brick content is now data-driven through ScriptableObject assets, including multi-strength breakable bricks, unbreakable obstacle bricks, and optional per-level moving-brick rules
+- Brick content is now data-driven through ScriptableObject assets, including multi-strength breakable bricks, spin-reactive breakable bricks, unbreakable obstacle bricks, and optional per-level moving-brick rules
   - Power-up content is now data-driven through ScriptableObject assets, with timed paddle-size, ball-speed, sticky, laser, phase, chain-lightning, reverse-control, split-paddle, gravity-well, fog-of-war, and lag-spike modifiers plus instant multi-ball burst and shield-wall effects
   - Runtime visuals now support data-driven theme selection, with palette-based themes for background, walls, paddle, bricks, power-up pickups, and ball plus sprite hooks reserved for future art passes
 - Runtime visuals now also support SVG-backed gameplay sprites plus a resource-backed background image, with URP bloom driving additive glow for the ball and pickups while paddle and bricks stay crisp on unlit sprite materials; the backdrop path now layers a smoked-glass haze and scanline treatment behind gameplay pieces for better contrast
@@ -37,8 +37,8 @@
 - `Assets/Scripts/Gameplay/BreakoutUpgradeDraftService.cs`: deterministic `1 of 3` run-upgrade offer generator using the run seed, cleared-level count, and prior picks
 - `Assets/Scripts/Gameplay/BreakoutGlowRenderer.cs`: legacy runtime helper for layered neon halo sprites that still exists for optional use, but is no longer the default glow path for core gameplay pieces
 - `Assets/Scripts/Gameplay/PaddleController.cs`: keyboard-driven paddle movement with clamped horizontal bounds and runtime width modifiers
-- `Assets/Scripts/Gameplay/BallController.cs`: launch, bounce shaping, per-level speed tuning, speed clamping, and single/multi-ball loss detection support
-- `Assets/Scripts/Gameplay/Brick.cs`: definition-driven brick behavior with variable durability, optional moving-body motion, and unbreakable support
+- `Assets/Scripts/Gameplay/BallController.cs`: launch, bounce shaping, spin-biased brick ricochet response, per-level speed tuning, speed clamping, and single/multi-ball loss detection support
+- `Assets/Scripts/Gameplay/Brick.cs`: definition-driven brick behavior with variable durability, optional anchored spin response, optional moving-body motion, and unbreakable support
 - `Assets/Scripts/Gameplay/PowerUpPickup.cs`: falling pickup behavior and paddle catch detection
 - `Assets/Scripts/Gameplay/DeterministicRandomService.cs`: seed-driven random helper used for gameplay-critical procedural choices
 - `Assets/Scripts/Gameplay/Data/BrickDefinition.cs`: ScriptableObject data for brick durability, scoring, completion contribution, colors, and weighted drop tables
@@ -48,12 +48,13 @@
 - `Assets/Scripts/Gameplay/Data/RunUpgradeDefinition.cs`: ScriptableObject data for permanent run modifiers, draft weighting, stack caps, exclusions, and upgrade presentation
 - `Assets/Scripts/Gameplay/Data/ThemeDefinition.cs`: ScriptableObject theme data for semantic visual slots, palette colors, and future sprite overrides
 - `Assets/Tests/Editor/BreakoutGameControllerPowerUpTests.cs`: first Unity Edit Mode regression coverage for immediate power-up modifier application on the paddle
+- `Assets/Tests/Editor/BreakoutSpinningBrickTests.cs`: Unity Edit Mode regression coverage for spinning-brick rigidbody setup and spin-biased bounce math
 - `Assets/Resources/Bricks/*`: authored brick definition assets loaded at runtime
 - `Assets/Resources/Levels/*`: authored level definition assets loaded at runtime
 - `Assets/Resources/PowerUps/*`: authored power-up definition assets referenced by brick drop tables
 - `Assets/Resources/Upgrades/*`: authored permanent run-upgrade assets loaded for between-level draft offers
 - `Assets/Resources/Themes/*`: authored runtime theme assets loaded by run setup and applied across gameplay visuals
-- `Assets/Resources/Sprites/*`: default SVG gameplay sprites loaded at runtime as fallback art for the ball, bricks, paddle, and power-up pickups
+- `Assets/Resources/Sprites/*`: default SVG gameplay sprites loaded at runtime as fallback art for the ball, bricks, paddle, and power-up pickups, with `spinning-brick.svg` available for spin-reactive brick definitions through per-brick sprite resource overrides
 - `Assets/Resources/Backgrounds/*`: backdrop images available for runtime background presentation; the runtime now rotates them by level index using the sorted contents of this folder and supports assets imported as either `Sprite` or plain `Texture2D`
 - `Assets/Shaders/SpriteAdditive.shader`: custom URP-compatible additive sprite shader used by the runtime ball and pickup presentation path
 - `Plan/OVERVIEW.md`: current high-level product reframe toward a run-based arcade roguelite structure
@@ -79,12 +80,14 @@
 - The current prototype is scene-light and code-heavy: the gameplay board, bounds, ball, paddle, bricks, and temporary HUD are created at runtime instead of being serialized into `SampleScene`.
 - Bricks and levels are now authored as ScriptableObjects under `Assets/Resources/` and loaded at runtime by the controller plus its leaf services.
 - Brick definitions now own drop chance plus weighted pickup references, so most drop-table tuning is an asset edit rather than a controller edit.
+- Brick definitions can now also opt into anchored spin behavior, tune torque/bounce response, and point at a per-definition fallback sprite resource path without changing controller code.
 - Level definitions can now optionally assign motion rules per layout symbol, including a base direction, a speed, and modifiers such as row/column alternation, checkerboard reversal, and center-relative motion.
 - Theme definitions now own semantic visual-slot palettes under `Assets/Resources/Themes/`; the current implementation uses colors, drives both runtime object tinting and derived UI chrome accents, and still supports per-slot sprite overrides for future art passes.
-- The runtime controller now loads default fallback gameplay art from `Assets/Resources/Sprites/ball.svg`, `brick.svg`, `paddle.svg`, and `powerup.svg`; theme slot sprite overrides still win when they are present in a `ThemeDefinition`.
+- The runtime controller now loads default fallback gameplay art from `Assets/Resources/Sprites/ball.svg`, `brick.svg`, `paddle.svg`, and `powerup.svg`; brick definitions can also request a specific fallback sprite such as `Sprites/spinning-brick`, and theme slot sprite overrides still win when they are present in a `ThemeDefinition`.
 - The runtime background layer now rotates through the sorted contents of `Assets/Resources/Backgrounds/` as levels advance, with support for both Sprite-imported images and runtime-created sprites from plain textures, then overlays a hazy smoked-glass pass plus procedural scanlines behind the playfield to keep gameplay silhouettes legible.
 - Level definitions now act primarily as procedural progression profiles: the controller uses the selected run seed plus level index to build reproducible layouts, brick mixes, drop exposure, and motion patterns at runtime.
 - Procedural generation currently ramps difficulty by increasing row/column density, unlocking tougher brick definitions over time, escalating moving-brick frequency, and occasionally switching later levels to score-target completion.
+- Spin-reactive bricks currently enter the procedural pool after the opening levels and deliberately skip the separate moving-brick assignment path so their hinge-based rotation can stay centered and physically constrained by neighbors.
 - Moving bricks still use dynamic `Rigidbody2D` bodies with bounce material and keep a constant authored speed after collisions, but motion pressure is now assigned procedurally per generated cell rather than only coming from authored symbol maps.
 - The game now boots into a runtime main menu instead of straight into gameplay or setup, and the last run-setup selections are persisted through `PlayerPrefs`.
 - The selected theme is part of the persisted run setup, so quick-starting from the main menu reuses the most recently chosen palette.
@@ -196,6 +199,7 @@ When making changes, validate with the Unity editor when possible:
   - Breakable bricks respect their configured hit strength and unbreakable bricks stay in play
   - Early levels start mostly simple, later levels introduce more brick types plus broader pickup/drop exposure, and the same seed reproduces that progression order exactly
   - Generated moving bricks in later levels bounce off walls and other bricks without losing their damage behavior
+  - Spinner bricks start rotating when struck, stay anchored around their center point, can have that rotation physically limited by nearby bricks, and can kick balls into visibly stranger bounce angles than standard bricks
   - Run modifiers affect serve ball count, paddle width, ball speed, brick durability, and drop filtering as shown in the setup preview
   - Destroyed breakable bricks can spawn falling pickups, and the paddle can catch or miss them naturally
   - Shield Wall catches the next ball that falls below the arena and bounces it back into play instead of immediately spending a life

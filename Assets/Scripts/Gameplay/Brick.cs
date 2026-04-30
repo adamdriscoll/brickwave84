@@ -19,12 +19,14 @@ namespace GetBricked.Gameplay
         private SpriteRenderer spriteRenderer;
         private BreakoutGlowRenderer glowRenderer;
         private Rigidbody2D brickBody;
+        private HingeJoint2D spinJoint;
         private int maxHitPoints;
         private int hitPointsRemaining;
         private float movementSpeed;
         private Vector2 lastMovementDirection;
         private bool hasMotion;
         private bool isPendingRemoval;
+        private bool canSpin;
         private Color themedBaseColor;
         private Color themedDamagedColor;
         private float visibilityMultiplier = 1f;
@@ -84,21 +86,35 @@ namespace GetBricked.Gameplay
         {
             if (!hasMotion || brickBody == null)
             {
-                return;
+                if (!canSpin || brickBody == null)
+                {
+                    return;
+                }
             }
 
-            var currentVelocity = brickBody.linearVelocity;
-
-            if (currentVelocity.sqrMagnitude > 0.0001f)
+            if (hasMotion)
             {
-                lastMovementDirection = currentVelocity.normalized;
-            }
-            else if (lastMovementDirection.sqrMagnitude <= 0.0001f)
-            {
-                lastMovementDirection = Vector2.right;
+                var currentVelocity = brickBody.linearVelocity;
+
+                if (currentVelocity.sqrMagnitude > 0.0001f)
+                {
+                    lastMovementDirection = currentVelocity.normalized;
+                }
+                else if (lastMovementDirection.sqrMagnitude <= 0.0001f)
+                {
+                    lastMovementDirection = Vector2.right;
+                }
+
+                brickBody.linearVelocity = lastMovementDirection * movementSpeed;
             }
 
-            brickBody.linearVelocity = lastMovementDirection * movementSpeed;
+            if (canSpin && definition != null)
+            {
+                brickBody.angularVelocity = Mathf.Clamp(
+                    brickBody.angularVelocity,
+                    -definition.SpinMaxAngularVelocity,
+                    definition.SpinMaxAngularVelocity);
+            }
         }
 
         private void OnCollisionEnter2D(Collision2D collision)
@@ -113,6 +129,11 @@ namespace GetBricked.Gameplay
             if (definition == null || !collision.collider.TryGetComponent<BallController>(out var scoringBall))
             {
                 return;
+            }
+
+            if (definition.SpinsOnHit)
+            {
+                ApplyImpactSpin(collision);
             }
 
             if (!definition.IsBreakable)
@@ -145,34 +166,141 @@ namespace GetBricked.Gameplay
             ApplyDamage(Mathf.Max(1, damage), scoringBall, destructionCause);
         }
 
-        private void ConfigureMotion(float motionSpeed, Vector2 motionDirection)
+        public bool TryApplyBallCollisionResponse(BallController ball, Collision2D collision)
         {
-            movementSpeed = Mathf.Max(0f, motionSpeed);
-            hasMotion = movementSpeed > 0.01f && motionDirection.sqrMagnitude > 0.001f;
+            if (ball == null
+                || collision == null
+                || definition == null
+                || !definition.SpinsOnHit)
+            {
+                return false;
+            }
 
-            if (!hasMotion)
+            var contactPoint = collision.contactCount > 0
+                ? collision.GetContact(0).point
+                : (Vector2)ball.transform.position;
+            var relativeVelocity = collision.relativeVelocity;
+
+            if (relativeVelocity.sqrMagnitude <= 0.0001f)
+            {
+                relativeVelocity = ball.CurrentVelocity;
+            }
+
+            var incomingDirection = relativeVelocity.sqrMagnitude > 0.0001f
+                ? relativeVelocity.normalized
+                : Vector2.down;
+
+            if (!TryGetSpinBounceDirection(contactPoint, incomingDirection, relativeVelocity.magnitude, out var bounceDirection))
+            {
+                return false;
+            }
+
+            ball.ApplyCollisionResponse(bounceDirection, 0.08f);
+            return true;
+        }
+
+        internal bool TryGetSpinBounceDirection(
+            Vector2 impactPoint,
+            Vector2 incomingDirection,
+            float relativeSpeed,
+            out Vector2 bounceDirection)
+        {
+            bounceDirection = Vector2.zero;
+
+            if (definition == null || !definition.SpinsOnHit)
+            {
+                return false;
+            }
+
+            var resolvedIncomingDirection = incomingDirection.sqrMagnitude > 0.0001f
+                ? incomingDirection.normalized
+                : Vector2.down;
+            var contactOffset = impactPoint - (Vector2)transform.position;
+
+            if (contactOffset.sqrMagnitude <= 0.0001f)
+            {
+                contactOffset = new Vector2(resolvedIncomingDirection.x, 0.5f);
+            }
+
+            var surfaceNormal = contactOffset.normalized;
+
+            if (Vector2.Dot(surfaceNormal, resolvedIncomingDirection) > -0.05f)
+            {
+                surfaceNormal = -surfaceNormal;
+            }
+
+            var reflectedDirection = Vector2.Reflect(resolvedIncomingDirection, surfaceNormal).normalized;
+            var tangentDirection = new Vector2(-surfaceNormal.y, surfaceNormal.x);
+            var predictedAngularVelocity = Mathf.Clamp(
+                (brickBody != null ? brickBody.angularVelocity : 0f) + EstimateAngularVelocityDelta(impactPoint, resolvedIncomingDirection, relativeSpeed),
+                -definition.SpinMaxAngularVelocity,
+                definition.SpinMaxAngularVelocity);
+            var spinFactor = definition.SpinMaxAngularVelocity > 0.01f
+                ? predictedAngularVelocity / definition.SpinMaxAngularVelocity
+                : 0f;
+            var motionInfluence = brickBody != null ? brickBody.linearVelocity * 0.045f : Vector2.zero;
+            var biasedDirection = (
+                reflectedDirection
+                + (tangentDirection * spinFactor * definition.SpinBounceStrength)
+                + motionInfluence).normalized;
+
+            if (biasedDirection.sqrMagnitude <= 0.0001f)
+            {
+                return false;
+            }
+
+            bounceDirection = biasedDirection;
+            return true;
+        }
+
+        internal void RegisterImpactSpin(Vector2 impactPoint, Vector2 incomingDirection, float impactSpeed)
+        {
+            if (definition == null || !definition.SpinsOnHit)
             {
                 return;
             }
 
-            lastMovementDirection = motionDirection.normalized;
-            brickBody = GetComponent<Rigidbody2D>();
+            EnsureDynamicBody();
 
             if (brickBody == null)
             {
-                brickBody = gameObject.AddComponent<Rigidbody2D>();
+                return;
             }
 
-            brickBody.bodyType = RigidbodyType2D.Dynamic;
-            brickBody.gravityScale = 0f;
-            brickBody.freezeRotation = true;
-            brickBody.interpolation = RigidbodyInterpolation2D.Interpolate;
-            brickBody.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
-            brickBody.linearDamping = 0f;
-            brickBody.angularDamping = 0f;
-            brickBody.sleepMode = RigidbodySleepMode2D.NeverSleep;
-            brickBody.mass = 8f;
-            brickBody.linearVelocity = lastMovementDirection * movementSpeed;
+            brickBody.angularVelocity += EstimateAngularVelocityDelta(impactPoint, incomingDirection, impactSpeed);
+            brickBody.angularVelocity = Mathf.Clamp(
+                brickBody.angularVelocity,
+                -definition.SpinMaxAngularVelocity,
+                definition.SpinMaxAngularVelocity);
+            brickBody.WakeUp();
+        }
+
+        private void ConfigureMotion(float motionSpeed, Vector2 motionDirection)
+        {
+            canSpin = definition != null && definition.SpinsOnHit;
+            movementSpeed = Mathf.Max(0f, motionSpeed);
+            hasMotion = movementSpeed > 0.01f && motionDirection.sqrMagnitude > 0.001f;
+
+            if (!hasMotion && !canSpin)
+            {
+                return;
+            }
+
+            if (hasMotion)
+            {
+                lastMovementDirection = motionDirection.normalized;
+            }
+
+            EnsureDynamicBody();
+
+            if (brickBody == null)
+            {
+                return;
+            }
+
+            brickBody.linearVelocity = hasMotion
+                ? lastMovementDirection * movementSpeed
+                : Vector2.zero;
         }
 
         private void UpdateMotionDirectionFromCollision(Collision2D collision)
@@ -237,6 +365,96 @@ namespace GetBricked.Gameplay
             }
 
             RefreshVisual();
+        }
+
+        private void EnsureDynamicBody()
+        {
+            brickBody = GetComponent<Rigidbody2D>();
+
+            if (brickBody == null)
+            {
+                brickBody = gameObject.AddComponent<Rigidbody2D>();
+            }
+
+            brickBody.bodyType = RigidbodyType2D.Dynamic;
+            brickBody.gravityScale = 0f;
+            brickBody.freezeRotation = !canSpin;
+            brickBody.interpolation = RigidbodyInterpolation2D.Interpolate;
+            brickBody.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
+            brickBody.linearDamping = hasMotion ? 0f : 0.35f;
+            brickBody.angularDamping = canSpin && definition != null ? definition.SpinAngularDamping : 0f;
+            brickBody.sleepMode = RigidbodySleepMode2D.NeverSleep;
+            brickBody.mass = canSpin ? 10f : 8f;
+
+            if (canSpin)
+            {
+                ConfigureSpinJoint();
+            }
+        }
+
+        private void ConfigureSpinJoint()
+        {
+            spinJoint = GetComponent<HingeJoint2D>();
+
+            if (spinJoint == null)
+            {
+                spinJoint = gameObject.AddComponent<HingeJoint2D>();
+            }
+
+            spinJoint.autoConfigureConnectedAnchor = false;
+            spinJoint.anchor = Vector2.zero;
+            spinJoint.connectedBody = null;
+            spinJoint.connectedAnchor = transform.position;
+            spinJoint.useLimits = false;
+            spinJoint.useMotor = false;
+        }
+
+        private void ApplyImpactSpin(Collision2D collision)
+        {
+            if (collision == null)
+            {
+                return;
+            }
+
+            var impactPoint = collision.contactCount > 0
+                ? collision.GetContact(0).point
+                : (Vector2)transform.position;
+            var impactVelocity = collision.relativeVelocity;
+
+            if (impactVelocity.sqrMagnitude <= 0.0001f)
+            {
+                impactVelocity = collision.collider.attachedRigidbody != null
+                    ? collision.collider.attachedRigidbody.linearVelocity
+                    : Vector2.down;
+            }
+
+            RegisterImpactSpin(impactPoint, impactVelocity.normalized, impactVelocity.magnitude);
+        }
+
+        private float EstimateAngularVelocityDelta(Vector2 impactPoint, Vector2 incomingDirection, float impactSpeed)
+        {
+            if (definition == null || !definition.SpinsOnHit)
+            {
+                return 0f;
+            }
+
+            var contactOffset = impactPoint - (Vector2)transform.position;
+
+            if (contactOffset.sqrMagnitude <= 0.0001f)
+            {
+                return 0f;
+            }
+
+            var resolvedIncomingDirection = incomingDirection.sqrMagnitude > 0.0001f
+                ? incomingDirection.normalized
+                : Vector2.down;
+            var tangentialDirection = new Vector2(-contactOffset.y, contactOffset.x).normalized;
+            var signedSpin = Vector2.Dot(resolvedIncomingDirection, tangentialDirection);
+            var spinDirection = Mathf.Abs(signedSpin) > 0.0001f
+                ? Mathf.Sign(signedSpin)
+                : Mathf.Sign(resolvedIncomingDirection.x);
+            var speedFactor = Mathf.Clamp(impactSpeed / 7.5f, 0.55f, 1.45f);
+            return definition.SpinTorqueImpulse * spinDirection * speedFactor;
         }
 
         private void NormalizeSpriteRendererScale()

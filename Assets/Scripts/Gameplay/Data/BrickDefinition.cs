@@ -26,10 +26,16 @@ namespace GetBricked.Gameplay.Data
         [SerializeField, Min(0.5f)] private float explosionRadius = 1.5f;
         [SerializeField, Min(1f)] private float explosionSpeedMultiplier = 2.2f;
         [SerializeField, Min(0.1f)] private float explosionSpeedDuration = 2.75f;
+        [SerializeField] private bool spinsOnHit;
+        [SerializeField, Min(0f)] private float spinTorqueImpulse = 140f;
+        [SerializeField, Min(0f)] private float spinMaxAngularVelocity = 360f;
+        [SerializeField, Min(0f)] private float spinAngularDamping = 2.4f;
+        [SerializeField, Range(0f, 2f)] private float spinBounceStrength = 0.75f;
         [SerializeField, Range(0f, 1f)] private float dropChance = 0.15f;
         [SerializeField] private BrickPowerUpDropEntry[] dropTable = Array.Empty<BrickPowerUpDropEntry>();
         [SerializeField] private Color baseColor = Color.white;
         [SerializeField] private Color damagedColor = new Color(0.55f, 0.55f, 0.55f, 1f);
+        [SerializeField] private string spriteResourcePath = string.Empty;
         [SerializeField] private ThemeVisualSlot themeSlot = ThemeVisualSlot.Auto;
 
         public string DisplayName => string.IsNullOrWhiteSpace(displayName) ? name : displayName;
@@ -50,6 +56,16 @@ namespace GetBricked.Gameplay.Data
 
         public float ExplosionSpeedDuration => IsExplosive ? Mathf.Max(0.1f, explosionSpeedDuration) : 0f;
 
+        public bool SpinsOnHit => spinsOnHit;
+
+        public float SpinTorqueImpulse => SpinsOnHit ? Mathf.Max(0f, spinTorqueImpulse) : 0f;
+
+        public float SpinMaxAngularVelocity => SpinsOnHit ? Mathf.Max(1f, spinMaxAngularVelocity) : 0f;
+
+        public float SpinAngularDamping => SpinsOnHit ? Mathf.Max(0f, spinAngularDamping) : 0f;
+
+        public float SpinBounceStrength => SpinsOnHit ? Mathf.Clamp(spinBounceStrength, 0f, 2f) : 0f;
+
         public float DropChance => Mathf.Clamp01(dropChance);
 
         public BrickPowerUpDropEntry[] DropTable => dropTable ?? Array.Empty<BrickPowerUpDropEntry>();
@@ -57,6 +73,13 @@ namespace GetBricked.Gameplay.Data
         public Color BaseColor => baseColor;
 
         public Color DamagedColor => damagedColor;
+
+        public string ResolveSpriteResourcePath()
+        {
+            return string.IsNullOrWhiteSpace(spriteResourcePath)
+                ? string.Empty
+                : spriteResourcePath.Trim();
+        }
 
         public ThemeVisualSlot ResolveThemeSlot()
         {

@@ -19,6 +19,7 @@ namespace GetBricked.Gameplay
         private readonly Sprite powerUpFallbackSprite;
         private readonly IDictionary<string, Sprite> powerUpSpriteOverrides;
         private readonly Dictionary<string, Sprite> powerUpSpriteCache;
+        private readonly Dictionary<string, Sprite> brickSpriteCache;
 
         public BreakoutThemeService(
             Color backgroundFallback,
@@ -45,6 +46,7 @@ namespace GetBricked.Gameplay
             this.powerUpFallbackSprite = powerUpFallbackSprite;
             this.powerUpSpriteOverrides = powerUpSpriteOverrides;
             powerUpSpriteCache = new Dictionary<string, Sprite>(StringComparer.OrdinalIgnoreCase);
+            brickSpriteCache = new Dictionary<string, Sprite>(StringComparer.OrdinalIgnoreCase);
         }
 
         public ThemeDefinition AppliedTheme { get; private set; }
@@ -90,7 +92,11 @@ namespace GetBricked.Gameplay
                 return new ThemeVisualStyle(Color.white, Color.gray, brickFallbackSprite);
             }
 
-            return ResolveThemeStyle(definition.ResolveThemeSlot(), definition.BaseColor, definition.DamagedColor, brickFallbackSprite);
+            return ResolveThemeStyle(
+                definition.ResolveThemeSlot(),
+                definition.BaseColor,
+                definition.DamagedColor,
+                ResolveBrickSprite(definition));
         }
 
         public ThemeVisualStyle ResolvePowerUpStyle(PowerUpDefinition definition)
@@ -275,6 +281,29 @@ namespace GetBricked.Gameplay
             }
 
             return cachedSprite != null ? cachedSprite : powerUpFallbackSprite;
+        }
+
+        private Sprite ResolveBrickSprite(BrickDefinition definition)
+        {
+            if (definition == null)
+            {
+                return brickFallbackSprite;
+            }
+
+            var resourcePath = definition.ResolveSpriteResourcePath();
+
+            if (string.IsNullOrWhiteSpace(resourcePath))
+            {
+                return brickFallbackSprite;
+            }
+
+            if (!brickSpriteCache.TryGetValue(resourcePath, out var cachedSprite))
+            {
+                cachedSprite = Resources.Load<Sprite>(resourcePath);
+                brickSpriteCache[resourcePath] = cachedSprite;
+            }
+
+            return cachedSprite != null ? cachedSprite : brickFallbackSprite;
         }
 
         private static void NormalizeSpriteRendererScale(SpriteRenderer spriteRenderer)
