@@ -35,4 +35,5 @@ MonoBehaviour:
     weight: 1
   baseColor: {r: 0.95, g: 0.28, b: 0.18, a: 1}
   damagedColor: {r: 0.52, g: 0.08, b: 0.05, a: 1}
+  spriteResourcePath: Sprites/explosive-brick
   themeSlot: 10

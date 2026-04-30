@@ -22,9 +22,9 @@ MonoBehaviour:
   explosionSpeedMultiplier: 2.2
   explosionSpeedDuration: 2.75
   spinsOnHit: 1
-  spinTorqueImpulse: 160
-  spinMaxAngularVelocity: 420
-  spinAngularDamping: 2.2
+  spinTorqueImpulse: 195
+  spinMaxAngularVelocity: 460
+  spinAngularDamping: 1.85
   spinBounceStrength: 0.9
   dropChance: 0.24
   dropTable:
