@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Reflection;
 using GetBricked.Gameplay;
 using GetBricked.Gameplay.Data;
@@ -11,6 +12,7 @@ public sealed class BreakoutGameControllerPowerUpTests
 
     private GameObject controllerObject;
     private GameObject paddleObject;
+    private readonly List<GameObject> runtimeObjects = new List<GameObject>();
 
     [TearDown]
     public void TearDown()
@@ -24,6 +26,16 @@ public sealed class BreakoutGameControllerPowerUpTests
         {
             UnityEngine.Object.DestroyImmediate(paddleObject);
         }
+
+        for (var index = runtimeObjects.Count - 1; index >= 0; index--)
+        {
+            if (runtimeObjects[index] != null)
+            {
+                UnityEngine.Object.DestroyImmediate(runtimeObjects[index]);
+            }
+        }
+
+        runtimeObjects.Clear();
     }
 
     [Test]
@@ -57,6 +69,57 @@ public sealed class BreakoutGameControllerPowerUpTests
 
         Assert.That(paddle.transform.localScale.x, Is.EqualTo(2.1f * 1.45f).Within(0.0001f));
     }
+
+    [Test]
+    public void ApplyingAdvancedTimedPowerUpsUpdatesControllerAndBallState()
+    {
+        var controller = CreateControllerHarness(out var paddle);
+        var serveBall = CreateBallHarness(controller, paddle);
+        SetPrivateField(controller, "serveBall", serveBall);
+        GetPrivateField<List<BallController>>(controller, "activeBalls").Add(serveBall);
+
+        InvokePrivateMethod(controller, "ApplyPowerUp", CreatePowerUp("Sticky Paddle", PowerUpEffectType.StickyPaddle, true, 15f, 1f));
+        InvokePrivateMethod(controller, "ApplyPowerUp", CreatePowerUp("Laser Paddle", PowerUpEffectType.LaserPaddle, true, 15f, 1f));
+        InvokePrivateMethod(controller, "ApplyPowerUp", CreatePowerUp("Phase Ball", PowerUpEffectType.PhaseBall, true, 12f, 1f));
+        InvokePrivateMethod(controller, "ApplyPowerUp", CreatePowerUp("Chain Lightning", PowerUpEffectType.ChainLightning, true, 14f, 0.35f));
+        InvokePrivateMethod(controller, "ApplyPowerUp", CreatePowerUp("Reverse Controls", PowerUpEffectType.ReverseControls, false, 8f, 1f));
+        InvokePrivateMethod(controller, "ApplyPowerUp", CreatePowerUp("Split Paddle", PowerUpEffectType.SplitPaddle, false, 12f, 1f));
+        InvokePrivateMethod(controller, "ApplyPowerUp", CreatePowerUp("Gravity Well", PowerUpEffectType.GravityWell, false, 12f, 0.35f));
+        InvokePrivateMethod(controller, "ApplyPowerUp", CreatePowerUp("Fog of War", PowerUpEffectType.FogOfWar, false, 10f, 0.55f));
+        InvokePrivateMethod(controller, "ApplyPowerUp", CreatePowerUp("Lag Spike", PowerUpEffectType.LagSpike, false, 8f, 0.5f));
+
+        var activeEffectModifiers = GetPrivateField<object>(controller, "activeEffectModifiers");
+
+        Assert.That(GetPropertyValue<bool>(activeEffectModifiers, "StickyPaddleEnabled"), Is.True);
+        Assert.That(GetPropertyValue<bool>(activeEffectModifiers, "LaserPaddleEnabled"), Is.True);
+        Assert.That(GetPropertyValue<bool>(activeEffectModifiers, "PhaseBallEnabled"), Is.True);
+        Assert.That(GetPropertyValue<float>(activeEffectModifiers, "ChainLightningStrength"), Is.EqualTo(0.35f).Within(0.0001f));
+        Assert.That(GetPropertyValue<float>(activeEffectModifiers, "FogVisibilityMultiplier"), Is.EqualTo(0.55f).Within(0.0001f));
+        Assert.That(GetPrivateField<bool>(paddle, "controlsReversed"), Is.True);
+        Assert.That(GetPrivateField<float>(paddle, "splitGapWidthNormalized"), Is.GreaterThan(0.2f));
+        Assert.That(GetPrivateField<float>(paddle, "lagSpikeStrength"), Is.EqualTo(0.5f).Within(0.0001f));
+        Assert.That(GetPrivateField<bool>(serveBall, "phaseThroughBricks"), Is.True);
+        Assert.That(GetPrivateField<float>(serveBall, "gravityWellStrength"), Is.EqualTo(0.35f).Within(0.0001f));
+    }
+
+    [Test]
+    public void ApplyingShieldWallPowerUpGrantsAndConsumesRescueCharge()
+    {
+        var controller = CreateControllerHarness(out var paddle);
+        var serveBall = CreateBallHarness(controller, paddle);
+        SetPrivateEnumField(controller, "roundState", "Playing");
+
+        InvokePrivateMethod(
+            controller,
+            "ApplyPowerUp",
+            CreatePowerUp("Shield Wall", PowerUpEffectType.ShieldWall, true, 0f, 1f));
+
+        Assert.That(GetPrivateField<int>(controller, "shieldWallCharges"), Is.EqualTo(1));
+        Assert.That(controller.TryRescueBallWithShield(serveBall), Is.True);
+        Assert.That(GetPrivateField<int>(controller, "shieldWallCharges"), Is.EqualTo(0));
+        Assert.That(serveBall.GetComponent<Rigidbody2D>().linearVelocity.y, Is.GreaterThan(0f));
+    }
+
     private BreakoutGameController CreateControllerHarness(out PaddleController paddle)
     {
         controllerObject = new GameObject("BreakoutGameController Test");
@@ -77,7 +140,20 @@ public sealed class BreakoutGameControllerPowerUpTests
             new RunSettings(1234, RunDifficultyPreset.Standard, 3, 1, 1f, 1f, 1f, 1f, DropPoolMode.Mixed, false, null));
         SetPrivateField(controller, "currentLevelPaddleSpeed", 12f);
         SetPrivateField(controller, "currentLevelBallSpeed", 8f);
+        SetPrivateField(controller, "arenaTop", 5f);
+        SetPrivateField(controller, "arenaBottom", -5f);
         return controller;
+    }
+
+    private BallController CreateBallHarness(BreakoutGameController controller, PaddleController paddle)
+    {
+        var ballObject = new GameObject("Ball");
+        runtimeObjects.Add(ballObject);
+        ballObject.AddComponent<CircleCollider2D>();
+        ballObject.AddComponent<Rigidbody2D>();
+        var ball = ballObject.AddComponent<BallController>();
+        ball.Configure(controller, paddle, 8f, 0.35f, -6f, 0.5f, false);
+        return ball;
     }
 
     private static object CreatePowerUpService()
@@ -125,10 +201,25 @@ public sealed class BreakoutGameControllerPowerUpTests
         return (T)field.GetValue(instance);
     }
 
+    private static T GetPropertyValue<T>(object instance, string propertyName)
+    {
+        var property = instance.GetType().GetProperty(propertyName, InstanceFlags);
+        Assert.That(property, Is.Not.Null, $"Missing property '{propertyName}' on {instance.GetType().Name}.");
+        return (T)property.GetValue(instance);
+    }
+
     private static void SetPrivateField(object instance, string fieldName, object value)
     {
         var field = instance.GetType().GetField(fieldName, InstanceFlags);
         Assert.That(field, Is.Not.Null, $"Missing field '{fieldName}' on {instance.GetType().Name}.");
         field.SetValue(instance, value);
+    }
+
+    private static void SetPrivateEnumField(object instance, string fieldName, string enumValue)
+    {
+        var field = instance.GetType().GetField(fieldName, InstanceFlags);
+        Assert.That(field, Is.Not.Null, $"Missing field '{fieldName}' on {instance.GetType().Name}.");
+        var resolvedEnumValue = Enum.Parse(field.FieldType, enumValue);
+        field.SetValue(instance, resolvedEnumValue);
     }
 }

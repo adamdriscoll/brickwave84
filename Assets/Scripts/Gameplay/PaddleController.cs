@@ -13,6 +13,8 @@ namespace GetBricked.Gameplay
         private const float WavyMaxVerticalAmplitude = 0.32f;
         private const float WavyMaxRotationDegrees = 16f;
         private const float WavyStrengthEpsilon = 0.001f;
+        private const float LagSpikeCycleSeconds = 0.72f;
+        private const float LagSpikeMaxPauseSeconds = 0.14f;
 
         private BreakoutGameController gameController;
         private Rigidbody2D paddleBody;
@@ -29,6 +31,9 @@ namespace GetBricked.Gameplay
         private float targetWavyYOffset;
         private float targetWavyRotation;
         private float wavyRetargetTimer;
+        private bool controlsReversed;
+        private float splitGapWidthNormalized;
+        private float lagSpikeStrength;
 
         public float HalfWidthWorld { get; private set; }
 
@@ -75,6 +80,32 @@ namespace GetBricked.Gameplay
             RetargetWavyMotion();
         }
 
+        public void SetControlsReversed(bool reversed)
+        {
+            controlsReversed = reversed;
+        }
+
+        public void SetSplitGapWidthNormalized(float normalizedWidth)
+        {
+            splitGapWidthNormalized = Mathf.Clamp(normalizedWidth, 0f, 0.45f);
+        }
+
+        public void SetLagSpikeStrength(float strength)
+        {
+            lagSpikeStrength = Mathf.Clamp01(strength);
+        }
+
+        public bool IsPointInsideSplitGap(float worldX)
+        {
+            if (splitGapWidthNormalized <= WavyStrengthEpsilon)
+            {
+                return false;
+            }
+
+            var localOffset = Mathf.Abs(worldX - transform.position.x);
+            return localOffset <= HalfWidthWorld * splitGapWidthNormalized * 0.5f;
+        }
+
         public void ResetToStart()
         {
             var resetPosition = startingPosition;
@@ -108,6 +139,11 @@ namespace GetBricked.Gameplay
                 paddleBody.position.x + (horizontalInput * moveSpeed * Time.fixedDeltaTime),
                 leftBoundaryX + HalfWidthWorld,
                 rightBoundaryX - HalfWidthWorld);
+
+            if (IsLagPauseWindow())
+            {
+                nextX = paddleBody.position.x;
+            }
 
             paddleBody.MovePosition(new Vector2(nextX, startingY + currentWavyYOffset));
             paddleBody.MoveRotation(currentWavyRotation);
@@ -194,7 +230,18 @@ namespace GetBricked.Gameplay
                 : Random.Range(minInclusive, maxInclusive);
         }
 
-        private static float ReadHorizontalInput()
+        private bool IsLagPauseWindow()
+        {
+            if (lagSpikeStrength <= WavyStrengthEpsilon)
+            {
+                return false;
+            }
+
+            var cycleTime = Mathf.Repeat(Time.time, LagSpikeCycleSeconds);
+            return cycleTime < LagSpikeMaxPauseSeconds * lagSpikeStrength;
+        }
+
+        private float ReadHorizontalInput()
         {
             var keyboard = Keyboard.current;
 
@@ -215,7 +262,7 @@ namespace GetBricked.Gameplay
                 direction += 1f;
             }
 
-            return direction;
+            return controlsReversed ? -direction : direction;
         }
     }
 }

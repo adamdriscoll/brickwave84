@@ -29,6 +29,10 @@ MonoBehaviour:
     weight: 2
   - powerUpDefinition: {fileID: 11400000, guid: f5c2e01a8d0447d1b6ac0e8b7a93d4cf, type: 2}
     weight: 1
+  - powerUpDefinition: {fileID: 11400000, guid: 463b05af45944b169afee1b491c302b5, type: 2}
+    weight: 1
+  - powerUpDefinition: {fileID: 11400000, guid: da6206496837499caed0779d2ca9b41e, type: 2}
+    weight: 1
   baseColor: {r: 0.95, g: 0.28, b: 0.18, a: 1}
   damagedColor: {r: 0.52, g: 0.08, b: 0.05, a: 1}
   themeSlot: 10

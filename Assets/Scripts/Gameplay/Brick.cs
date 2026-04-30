@@ -7,6 +7,8 @@ namespace GetBricked.Gameplay
     {
         Impact = 0,
         Explosion = 1,
+        Laser = 2,
+        ChainLightning = 3,
     }
 
     [RequireComponent(typeof(BoxCollider2D))]
@@ -25,6 +27,7 @@ namespace GetBricked.Gameplay
         private bool isPendingRemoval;
         private Color themedBaseColor;
         private Color themedDamagedColor;
+        private float visibilityMultiplier = 1f;
 
         public BrickDefinition Definition => definition;
 
@@ -71,6 +74,12 @@ namespace GetBricked.Gameplay
             RefreshVisual();
         }
 
+        public void SetVisibilityMultiplier(float multiplier)
+        {
+            visibilityMultiplier = Mathf.Clamp(multiplier, 0.15f, 1f);
+            RefreshVisual();
+        }
+
         private void FixedUpdate()
         {
             if (!hasMotion || brickBody == null)
@@ -111,16 +120,7 @@ namespace GetBricked.Gameplay
                 return;
             }
 
-            hitPointsRemaining = Mathf.Max(0, hitPointsRemaining - 1);
-
-            if (hitPointsRemaining <= 0)
-            {
-                isPendingRemoval = true;
-                gameController.HandleBrickDestroyed(this, scoringBall, BrickDestructionCause.Impact);
-                return;
-            }
-
-            RefreshVisual();
+            ApplyDamage(1, scoringBall, BrickDestructionCause.Impact);
         }
 
         public void DestroyByExplosion(BallController scoringBall)
@@ -133,6 +133,16 @@ namespace GetBricked.Gameplay
             isPendingRemoval = true;
             hitPointsRemaining = 0;
             gameController.HandleBrickDestroyed(this, scoringBall, BrickDestructionCause.Explosion);
+        }
+
+        public void ApplyEffectHit(BallController scoringBall, BrickDestructionCause destructionCause, int damage = 1)
+        {
+            if (isPendingRemoval || definition == null || !definition.IsBreakable)
+            {
+                return;
+            }
+
+            ApplyDamage(Mathf.Max(1, damage), scoringBall, destructionCause);
         }
 
         private void ConfigureMotion(float motionSpeed, Vector2 motionDirection)
@@ -193,16 +203,40 @@ namespace GetBricked.Gameplay
                 return;
             }
 
+            Color resolvedColor;
+
             if (!definition.IsBreakable || maxHitPoints <= 1)
             {
-                spriteRenderer.color = themedBaseColor;
-                glowRenderer?.ApplyColor(themedBaseColor);
+                resolvedColor = themedBaseColor;
+            }
+            else
+            {
+                var integrity = Mathf.InverseLerp(1f, maxHitPoints, hitPointsRemaining);
+                resolvedColor = Color.Lerp(themedDamagedColor, themedBaseColor, integrity);
+            }
+
+            resolvedColor.a *= visibilityMultiplier;
+            spriteRenderer.color = resolvedColor;
+            glowRenderer?.ApplyColor(resolvedColor);
+        }
+
+        private void ApplyDamage(int damage, BallController scoringBall, BrickDestructionCause destructionCause)
+        {
+            if (definition == null || !definition.IsBreakable)
+            {
                 return;
             }
 
-            var integrity = Mathf.InverseLerp(1f, maxHitPoints, hitPointsRemaining);
-            spriteRenderer.color = Color.Lerp(themedDamagedColor, themedBaseColor, integrity);
-            glowRenderer?.ApplyColor(spriteRenderer.color);
+            hitPointsRemaining = Mathf.Max(0, hitPointsRemaining - Mathf.Max(1, damage));
+
+            if (hitPointsRemaining <= 0)
+            {
+                isPendingRemoval = true;
+                gameController.HandleBrickDestroyed(this, scoringBall, destructionCause);
+                return;
+            }
+
+            RefreshVisual();
         }
 
         private void NormalizeSpriteRendererScale()

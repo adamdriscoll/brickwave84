@@ -16,6 +16,7 @@ namespace GetBricked.Gameplay
         private Collider2D pickupCollider;
         private float fallSpeed;
         private float missThresholdY;
+        private float visibilityMultiplier = 1f;
         private bool isResolved;
 
         public PowerUpDefinition Definition => definition;
@@ -59,8 +60,24 @@ namespace GetBricked.Gameplay
             }
 
             spriteRenderer.sprite = visualStyle.Sprite;
-            spriteRenderer.color = visualStyle.PrimaryColor;
+            var resolvedColor = visualStyle.PrimaryColor;
+            resolvedColor.a *= visibilityMultiplier;
+            spriteRenderer.color = resolvedColor;
             glowRenderer?.ApplyStyle(visualStyle);
+        }
+
+        public void SetVisibilityMultiplier(float multiplier)
+        {
+            visibilityMultiplier = Mathf.Clamp(multiplier, 0.15f, 1f);
+
+            if (spriteRenderer == null)
+            {
+                return;
+            }
+
+            var color = spriteRenderer.color;
+            color.a = visibilityMultiplier;
+            spriteRenderer.color = color;
         }
 
         private void FixedUpdate()

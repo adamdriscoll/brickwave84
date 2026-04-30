@@ -12,7 +12,7 @@
   - A runtime bootstrap now injects the playable prototype into the scene on load
   - The prototype currently supports a runtime main menu, run setup flow, in-game HUD, pause / restart / return-to-menu actions, one paddle, one or more balls, lives, serve/reset flow between ball losses, seeded procedural multi-level progression, deterministic between-level `pick 1 of 3` run-upgrade drafts, temporary timed pickups, and brick-driven power-up / power-down drops
   - Brick content is now data-driven through ScriptableObject assets, including multi-strength breakable bricks, unbreakable obstacle bricks, and optional per-level moving-brick rules
-  - Power-up content is now data-driven through ScriptableObject assets, with timed paddle-size and ball-speed modifiers plus an instant multi-ball burst effect
+  - Power-up content is now data-driven through ScriptableObject assets, with timed paddle-size, ball-speed, sticky, laser, phase, chain-lightning, reverse-control, split-paddle, gravity-well, fog-of-war, and lag-spike modifiers plus instant multi-ball burst and shield-wall effects
   - Runtime visuals now support data-driven theme selection, with palette-based themes for background, walls, paddle, bricks, power-up pickups, and ball plus sprite hooks reserved for future art passes
 - Runtime visuals now also support SVG-backed gameplay sprites plus a resource-backed background image, with URP bloom driving additive glow for the ball and pickups while paddle and bricks stay crisp on unlit sprite materials; the backdrop path now layers a smoked-glass haze and scanline treatment behind gameplay pieces for better contrast
   - The desired presentation direction is now documented in `Plan/STYLE.md`: a readability-first synthwave arcade look with dark indigo backgrounds, magenta/cyan neon accents, controlled CRT glow, and giant-cabinet framing cues
@@ -31,7 +31,7 @@
 - `Assets/Scripts/Gameplay/BreakoutRunSetupPersistence.cs`: `PlayerPrefs` persistence helper for saved run-setup choices and theme selection
 - `Assets/Scripts/Gameplay/BreakoutRunState.cs`: run-layer state for cleared encounters, chosen permanent upgrades, pending draft offers, and aggregated persistent modifiers
 - `Assets/Scripts/Gameplay/BreakoutThemeService.cs`: runtime theme resolver/applicator for camera, walls, paddle, balls, bricks, and pickups
-- `Assets/Scripts/Gameplay/BreakoutPowerUpService.cs`: pickup spawning, timed-effect tracking, banner state, and effect-modifier calculations
+- `Assets/Scripts/Gameplay/BreakoutPowerUpService.cs`: pickup spawning, timed-effect tracking, banner state, and effect-modifier calculations for movement, control, visibility, laser, phase, and chain behaviors
 - `Assets/Scripts/Gameplay/BreakoutUiRenderer.cs`: runtime OnGUI presentation service for main menu, run setup, HUD, pause, upgrade draft, and end-state overlays
 - `Assets/Scripts/Gameplay/BreakoutUpgradeDraftService.cs`: deterministic `1 of 3` run-upgrade offer generator using the run seed, cleared-level count, and prior picks
 - `Assets/Scripts/Gameplay/BreakoutGlowRenderer.cs`: legacy runtime helper for layered neon halo sprites that still exists for optional use, but is no longer the default glow path for core gameplay pieces
@@ -96,14 +96,16 @@
 - Run-upgrade offers are currently deterministic from the run seed, cleared-level count, and previously chosen upgrades, so reproducing the same seed plus the same pick order should reproduce the same draft sequence.
 - The first curated permanent-upgrade pool currently covers paddle width, ball speed, drop chance, extra lives, extra balls per serve, and a persistent mild wavy-paddle modifier.
 - Deterministic gameplay randomness currently covers serve launch direction, drop chance / weighted pickup selection, and seeded procedural level plans keyed off the run seed plus level index.
-- `R` returns to the run-setup overlay, `Esc` / `P` pauses active gameplay, `Space` launches serves or confirms overlay actions, and between-level upgrade drafts use left/right plus `Space` with `R` still acting as an abandon-to-setup shortcut.
+- `R` returns to the run-setup overlay, `Esc` / `P` pauses active gameplay, `Space` launches serves or confirms overlay actions, active sticky catches relaunch on `Space`, active laser volleys also fire on `Space` during gameplay, and between-level upgrade drafts use left/right plus `Space` with `R` still acting as an abandon-to-setup shortcut.
 - Timed pickup effects currently refresh by extending the same effect's duration, while opposing effects coexist and combine multiplicatively.
+- The advanced pickup set now works through runtime-authored effect state rather than bespoke per-asset branches: sticky paddle can trap one ball for a manual relaunch, laser paddle fires with `Space` during active play, phase ball keeps launched balls moving through breakable bricks, chain lightning arcs from destroyed bricks into nearby targets, shield wall stores one or more bottom-edge rescues, reverse controls flips paddle input, split paddle opens a temporary center gap, gravity well bends balls toward the arena midpoint, fog of war dims bricks and pickups, and lag spike intermittently stalls paddle movement.
 - Life loss now depends on all active balls leaving play, so multi-ball changes should be reviewed against `BreakoutGameController.HandleBallLost`.
 - The current `Balls Per Serve` run modifier spawns extra balls at every serve, so future ball-loss or serve-flow changes should be checked against `BreakoutGameController.SpawnConfiguredServeBalls`.
 - Prototype input is currently read directly from `UnityEngine.InputSystem.Keyboard` rather than being wired through `PlayerInput` or the existing action asset.
 - Ball and paddle behavior use Unity 6-era 2D physics APIs such as `Rigidbody2D.linearVelocity`.
 - Run flow is still runtime-authored and coordinated by `BreakoutGameController`, but setup persistence, procedural planning, theme application, pickup/effect state, and OnGUI rendering now live in dedicated gameplay services.
 - Brick and power-up definition assets can optionally override their semantic theme slot, but default routing already maps brick durability tiers plus beneficial/harmful/burst pickups onto the shared theme palette automatically.
+- Laser shots, chain-lightning arcs, and phase-ball passthrough all route back through brick runtime damage helpers instead of bypassing `BrickDefinition` durability and score rules, so future direct-damage effects should usually build on `Brick.ApplyEffectHit`.
 - The current default visuals now reach a first-pass synthwave cabinet presentation through theme palettes, theme-derived UI chrome, playfield framing, and a softer glowing ball silhouette, but there is still room for authored art, material, VFX, and post-processing polish.
 - Terminal-side compile validation can now be done with `python .codex/skills/unity-compile/scripts/run_unity_compile.py`, which reads `ProjectVersion.txt`, locates the matching Unity Hub editor, runs batchmode, and summarizes build-blocking script errors from the generated log.
 - Terminal-side test validation can now be done with `python .codex/skills/unity-tests/scripts/run_unity_tests.py`, which locates the matching Unity editor, runs Unity Test Framework suites in batchmode, and summarizes XML result totals plus failing test names.
@@ -194,6 +196,12 @@ When making changes, validate with the Unity editor when possible:
   - Generated moving bricks in later levels bounce off walls and other bricks without losing their damage behavior
   - Run modifiers affect serve ball count, paddle width, ball speed, brick durability, and drop filtering as shown in the setup preview
   - Destroyed breakable bricks can spawn falling pickups, and the paddle can catch or miss them naturally
+  - Shield Wall catches the next ball that falls below the arena and bounces it back into play instead of immediately spending a life
+  - Sticky Paddle can trap a ball on paddle contact and relaunch it with `Space`
+  - Laser Paddle lets `Space` fire upward brick hits during active play without breaking normal pause or menu flow
+  - Phase Ball keeps active balls moving through breakable bricks while still damaging them
+  - Chain Lightning can jump from a destroyed brick into nearby breakable bricks
+  - Reverse Controls, Split Paddle, Gravity Well, Fog of War, and Lag Spike each visibly change control feel or playfield readability when caught
   - Ball and pickup glow now comes from bloom on additive sprites instead of the old layered halo look, while paddle and bricks remain crisp and readable on unlit materials
   - Timed paddle-width and ball-speed effects appear in the HUD and clean themselves up when their timers expire
   - Multi-ball does not consume a life until the last active ball is lost

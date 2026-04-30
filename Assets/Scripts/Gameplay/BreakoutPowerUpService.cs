@@ -20,11 +20,32 @@ namespace GetBricked.Gameplay
 
     internal readonly struct BreakoutEffectModifiers
     {
-        public BreakoutEffectModifiers(float paddleWidthMultiplier, float wavyPaddleStrength, float timedBallSpeedMultiplier)
+        public BreakoutEffectModifiers(
+            float paddleWidthMultiplier,
+            float wavyPaddleStrength,
+            float timedBallSpeedMultiplier,
+            bool stickyPaddleEnabled,
+            bool laserPaddleEnabled,
+            bool phaseBallEnabled,
+            float chainLightningStrength,
+            bool reverseControlsEnabled,
+            float splitPaddleGapNormalized,
+            float gravityWellStrength,
+            float fogVisibilityMultiplier,
+            float lagSpikeStrength)
         {
             PaddleWidthMultiplier = paddleWidthMultiplier;
             WavyPaddleStrength = wavyPaddleStrength;
             TimedBallSpeedMultiplier = timedBallSpeedMultiplier;
+            StickyPaddleEnabled = stickyPaddleEnabled;
+            LaserPaddleEnabled = laserPaddleEnabled;
+            PhaseBallEnabled = phaseBallEnabled;
+            ChainLightningStrength = chainLightningStrength;
+            ReverseControlsEnabled = reverseControlsEnabled;
+            SplitPaddleGapNormalized = splitPaddleGapNormalized;
+            GravityWellStrength = gravityWellStrength;
+            FogVisibilityMultiplier = fogVisibilityMultiplier;
+            LagSpikeStrength = lagSpikeStrength;
         }
 
         public float PaddleWidthMultiplier { get; }
@@ -32,6 +53,37 @@ namespace GetBricked.Gameplay
         public float WavyPaddleStrength { get; }
 
         public float TimedBallSpeedMultiplier { get; }
+
+        public bool StickyPaddleEnabled { get; }
+
+        public bool LaserPaddleEnabled { get; }
+
+        public bool PhaseBallEnabled { get; }
+
+        public float ChainLightningStrength { get; }
+
+        public bool ReverseControlsEnabled { get; }
+
+        public float SplitPaddleGapNormalized { get; }
+
+        public float GravityWellStrength { get; }
+
+        public float FogVisibilityMultiplier { get; }
+
+        public float LagSpikeStrength { get; }
+    }
+
+    internal readonly struct BreakoutPowerUpApplicationResult
+    {
+        public BreakoutPowerUpApplicationResult(bool shouldSpawnMultiBall, int shieldWallChargesGranted)
+        {
+            ShouldSpawnMultiBall = shouldSpawnMultiBall;
+            ShieldWallChargesGranted = Mathf.Max(0, shieldWallChargesGranted);
+        }
+
+        public bool ShouldSpawnMultiBall { get; }
+
+        public int ShieldWallChargesGranted { get; }
     }
 
     internal sealed class BreakoutPowerUpService
@@ -185,11 +237,11 @@ namespace GetBricked.Gameplay
             CreatePickup((Vector2)brick.transform.position, selectedPowerUp, pickupsRoot, arenaBottom, themeService, controller);
         }
 
-        public bool ApplyPowerUp(PowerUpDefinition powerUpDefinition, BreakoutThemeService themeService)
+        public BreakoutPowerUpApplicationResult ApplyPowerUp(PowerUpDefinition powerUpDefinition, BreakoutThemeService themeService)
         {
             if (powerUpDefinition == null)
             {
-                return false;
+                return default;
             }
 
             ShowPickupBanner(powerUpDefinition, themeService);
@@ -197,10 +249,15 @@ namespace GetBricked.Gameplay
             if (powerUpDefinition.IsTimed)
             {
                 AddOrExtendTimedEffect(powerUpDefinition);
-                return false;
+                return default;
             }
 
-            return powerUpDefinition.EffectType == PowerUpEffectType.MultiBallBurst;
+            return powerUpDefinition.EffectType switch
+            {
+                PowerUpEffectType.MultiBallBurst => new BreakoutPowerUpApplicationResult(true, 0),
+                PowerUpEffectType.ShieldWall => new BreakoutPowerUpApplicationResult(false, Mathf.Max(1, powerUpDefinition.ExtraBallCount > 0 ? powerUpDefinition.ExtraBallCount : Mathf.RoundToInt(powerUpDefinition.Scalar))),
+                _ => default,
+            };
         }
 
         public BreakoutEffectModifiers CalculateEffectModifiers(RunSettings activeRunSettings)
@@ -208,6 +265,15 @@ namespace GetBricked.Gameplay
             var paddleWidthMultiplier = activeRunSettings?.PaddleWidthMultiplier ?? 1f;
             var wavyPaddleStrength = 0f;
             var timedBallSpeedMultiplier = 1f;
+            var stickyPaddleEnabled = false;
+            var laserPaddleEnabled = false;
+            var phaseBallEnabled = false;
+            var chainLightningStrength = 0f;
+            var reverseControlsEnabled = false;
+            var splitPaddleGapNormalized = 0f;
+            var gravityWellStrength = 0f;
+            var fogVisibilityMultiplier = 1f;
+            var lagSpikeStrength = 0f;
 
             for (var index = 0; index < ActiveTimedEffects.Count; index++)
             {
@@ -233,10 +299,76 @@ namespace GetBricked.Gameplay
                 if (powerUpDefinition.EffectType == PowerUpEffectType.WavyPaddle)
                 {
                     wavyPaddleStrength = Mathf.Max(wavyPaddleStrength, powerUpDefinition.Scalar);
+                    continue;
+                }
+
+                if (powerUpDefinition.EffectType == PowerUpEffectType.StickyPaddle)
+                {
+                    stickyPaddleEnabled = true;
+                    continue;
+                }
+
+                if (powerUpDefinition.EffectType == PowerUpEffectType.LaserPaddle)
+                {
+                    laserPaddleEnabled = true;
+                    continue;
+                }
+
+                if (powerUpDefinition.EffectType == PowerUpEffectType.PhaseBall)
+                {
+                    phaseBallEnabled = true;
+                    continue;
+                }
+
+                if (powerUpDefinition.EffectType == PowerUpEffectType.ChainLightning)
+                {
+                    chainLightningStrength = Mathf.Max(chainLightningStrength, powerUpDefinition.Scalar);
+                    continue;
+                }
+
+                if (powerUpDefinition.EffectType == PowerUpEffectType.ReverseControls)
+                {
+                    reverseControlsEnabled = true;
+                    continue;
+                }
+
+                if (powerUpDefinition.EffectType == PowerUpEffectType.SplitPaddle)
+                {
+                    splitPaddleGapNormalized = Mathf.Max(splitPaddleGapNormalized, Mathf.Clamp(powerUpDefinition.Scalar * 0.34f, 0.18f, 0.42f));
+                    continue;
+                }
+
+                if (powerUpDefinition.EffectType == PowerUpEffectType.GravityWell)
+                {
+                    gravityWellStrength = Mathf.Max(gravityWellStrength, Mathf.Clamp01(powerUpDefinition.Scalar));
+                    continue;
+                }
+
+                if (powerUpDefinition.EffectType == PowerUpEffectType.FogOfWar)
+                {
+                    fogVisibilityMultiplier = Mathf.Min(fogVisibilityMultiplier, Mathf.Clamp(powerUpDefinition.Scalar, 0.2f, 1f));
+                    continue;
+                }
+
+                if (powerUpDefinition.EffectType == PowerUpEffectType.LagSpike)
+                {
+                    lagSpikeStrength = Mathf.Max(lagSpikeStrength, Mathf.Clamp01(powerUpDefinition.Scalar));
                 }
             }
 
-            return new BreakoutEffectModifiers(paddleWidthMultiplier, wavyPaddleStrength, timedBallSpeedMultiplier);
+            return new BreakoutEffectModifiers(
+                paddleWidthMultiplier,
+                wavyPaddleStrength,
+                timedBallSpeedMultiplier,
+                stickyPaddleEnabled,
+                laserPaddleEnabled,
+                phaseBallEnabled,
+                chainLightningStrength,
+                reverseControlsEnabled,
+                splitPaddleGapNormalized,
+                gravityWellStrength,
+                fogVisibilityMultiplier,
+                lagSpikeStrength);
         }
 
         public BreakoutEffectModifiers CalculateEffectModifiers(float basePaddleWidthMultiplier, float baseWavyPaddleStrength)
@@ -244,6 +376,15 @@ namespace GetBricked.Gameplay
             var paddleWidthMultiplier = Mathf.Max(0.1f, basePaddleWidthMultiplier);
             var wavyPaddleStrength = Mathf.Clamp01(baseWavyPaddleStrength);
             var timedBallSpeedMultiplier = 1f;
+            var stickyPaddleEnabled = false;
+            var laserPaddleEnabled = false;
+            var phaseBallEnabled = false;
+            var chainLightningStrength = 0f;
+            var reverseControlsEnabled = false;
+            var splitPaddleGapNormalized = 0f;
+            var gravityWellStrength = 0f;
+            var fogVisibilityMultiplier = 1f;
+            var lagSpikeStrength = 0f;
 
             for (var index = 0; index < ActiveTimedEffects.Count; index++)
             {
@@ -269,10 +410,76 @@ namespace GetBricked.Gameplay
                 if (powerUpDefinition.EffectType == PowerUpEffectType.WavyPaddle)
                 {
                     wavyPaddleStrength = Mathf.Max(wavyPaddleStrength, powerUpDefinition.Scalar);
+                    continue;
+                }
+
+                if (powerUpDefinition.EffectType == PowerUpEffectType.StickyPaddle)
+                {
+                    stickyPaddleEnabled = true;
+                    continue;
+                }
+
+                if (powerUpDefinition.EffectType == PowerUpEffectType.LaserPaddle)
+                {
+                    laserPaddleEnabled = true;
+                    continue;
+                }
+
+                if (powerUpDefinition.EffectType == PowerUpEffectType.PhaseBall)
+                {
+                    phaseBallEnabled = true;
+                    continue;
+                }
+
+                if (powerUpDefinition.EffectType == PowerUpEffectType.ChainLightning)
+                {
+                    chainLightningStrength = Mathf.Max(chainLightningStrength, powerUpDefinition.Scalar);
+                    continue;
+                }
+
+                if (powerUpDefinition.EffectType == PowerUpEffectType.ReverseControls)
+                {
+                    reverseControlsEnabled = true;
+                    continue;
+                }
+
+                if (powerUpDefinition.EffectType == PowerUpEffectType.SplitPaddle)
+                {
+                    splitPaddleGapNormalized = Mathf.Max(splitPaddleGapNormalized, Mathf.Clamp(powerUpDefinition.Scalar * 0.34f, 0.18f, 0.42f));
+                    continue;
+                }
+
+                if (powerUpDefinition.EffectType == PowerUpEffectType.GravityWell)
+                {
+                    gravityWellStrength = Mathf.Max(gravityWellStrength, Mathf.Clamp01(powerUpDefinition.Scalar));
+                    continue;
+                }
+
+                if (powerUpDefinition.EffectType == PowerUpEffectType.FogOfWar)
+                {
+                    fogVisibilityMultiplier = Mathf.Min(fogVisibilityMultiplier, Mathf.Clamp(powerUpDefinition.Scalar, 0.2f, 1f));
+                    continue;
+                }
+
+                if (powerUpDefinition.EffectType == PowerUpEffectType.LagSpike)
+                {
+                    lagSpikeStrength = Mathf.Max(lagSpikeStrength, Mathf.Clamp01(powerUpDefinition.Scalar));
                 }
             }
 
-            return new BreakoutEffectModifiers(paddleWidthMultiplier, wavyPaddleStrength, timedBallSpeedMultiplier);
+            return new BreakoutEffectModifiers(
+                paddleWidthMultiplier,
+                wavyPaddleStrength,
+                timedBallSpeedMultiplier,
+                stickyPaddleEnabled,
+                laserPaddleEnabled,
+                phaseBallEnabled,
+                chainLightningStrength,
+                reverseControlsEnabled,
+                splitPaddleGapNormalized,
+                gravityWellStrength,
+                fogVisibilityMultiplier,
+                lagSpikeStrength);
         }
 
         public Vector2[] BuildMultiBallDirections(Vector2 sourceDirection, int extraBallCount)

@@ -17,10 +17,17 @@ namespace GetBricked.Gameplay
         private float paddleFollowOffset;
         private float speedBurstMultiplier = 1f;
         private float speedBurstTimeRemaining;
+        private bool attachedToPaddle;
         private bool followsPaddleWhenIdle;
         private bool hasLaunched;
+        private bool phaseThroughBricks;
+        private float gravityWellStrength;
+        private Vector2 gravityWellPoint;
+        private Vector2 lastTravelDirection = Vector2.up;
 
         public float CurrentSpeed => ballBody != null ? ballBody.linearVelocity.magnitude : 0f;
+
+        public bool IsAttachedToPaddle => attachedToPaddle;
 
         public void Configure(
             BreakoutGameController controller,
@@ -44,6 +51,7 @@ namespace GetBricked.Gameplay
         public void ResetToPaddle()
         {
             hasLaunched = false;
+            attachedToPaddle = false;
             ClearSpeedBurst();
 
             if (ballBody == null)
@@ -76,6 +84,7 @@ namespace GetBricked.Gameplay
                 return;
             }
 
+            attachedToPaddle = false;
             hasLaunched = true;
 
             var launchDirection = direction.sqrMagnitude > 0.001f
@@ -89,6 +98,7 @@ namespace GetBricked.Gameplay
                     Mathf.Sign(Mathf.Approximately(launchDirection.y, 0f) ? 1f : launchDirection.y) * minimumVerticalDirection).normalized;
             }
 
+            lastTravelDirection = launchDirection;
             ballBody.linearVelocity = launchDirection * GetTargetSpeed();
         }
 
@@ -100,6 +110,86 @@ namespace GetBricked.Gameplay
             {
                 ballBody.linearVelocity = ballBody.linearVelocity.normalized * GetTargetSpeed();
             }
+        }
+
+        public void SetPhaseThroughBricks(bool enabled)
+        {
+            phaseThroughBricks = enabled;
+        }
+
+        public void SetGravityWell(Vector2 centerPoint, float strength)
+        {
+            gravityWellPoint = centerPoint;
+            gravityWellStrength = Mathf.Clamp01(strength);
+        }
+
+        public void AttachToPaddle()
+        {
+            if (ballBody == null)
+            {
+                ballBody = GetComponent<Rigidbody2D>();
+            }
+
+            attachedToPaddle = true;
+            hasLaunched = false;
+            ClearSpeedBurst();
+
+            if (ballBody != null)
+            {
+                ballBody.linearVelocity = Vector2.zero;
+            }
+
+            if (paddle != null)
+            {
+                SetWorldPosition((Vector2)paddle.transform.position + (Vector2.up * paddleFollowOffset));
+            }
+        }
+
+        public void PassThroughPaddle(float horizontalDirection)
+        {
+            if (ballBody == null)
+            {
+                return;
+            }
+
+            attachedToPaddle = false;
+            hasLaunched = true;
+            var xDirection = Mathf.Abs(horizontalDirection) < 0.15f
+                ? ((gameController != null && gameController.NextGameplayRandomBool()) ? -0.35f : 0.35f)
+                : Mathf.Sign(horizontalDirection) * Mathf.Max(0.2f, Mathf.Abs(horizontalDirection));
+            var downwardDirection = new Vector2(xDirection, -1f).normalized;
+            lastTravelDirection = downwardDirection;
+            ballBody.position += downwardDirection * 0.08f;
+            ballBody.linearVelocity = downwardDirection * GetTargetSpeed();
+        }
+
+        public void BounceFromShield(float yPosition)
+        {
+            if (ballBody == null)
+            {
+                return;
+            }
+
+            var currentVelocity = ballBody.linearVelocity;
+            var rescuedDirection = currentVelocity.sqrMagnitude > 0.01f
+                ? new Vector2(currentVelocity.x, Mathf.Abs(currentVelocity.y))
+                : new Vector2(
+                    gameController != null ? gameController.NextGameplayRandomFloat(-0.45f, 0.45f) : Random.Range(-0.45f, 0.45f),
+                    1f);
+
+            if (Mathf.Abs(rescuedDirection.y) < minimumVerticalDirection)
+            {
+                rescuedDirection = new Vector2(
+                    rescuedDirection.x,
+                    minimumVerticalDirection).normalized;
+            }
+
+            attachedToPaddle = false;
+            hasLaunched = true;
+            var rescuedPosition = new Vector2(transform.position.x, yPosition);
+            SetWorldPosition(rescuedPosition);
+            lastTravelDirection = rescuedDirection.normalized;
+            ballBody.linearVelocity = lastTravelDirection * GetTargetSpeed();
         }
 
         public void ApplySpeedBurst(float multiplier, float durationSeconds)
@@ -127,6 +217,7 @@ namespace GetBricked.Gameplay
         public void Stop()
         {
             hasLaunched = false;
+            attachedToPaddle = false;
             ClearSpeedBurst();
 
             if (ballBody != null)
@@ -144,7 +235,7 @@ namespace GetBricked.Gameplay
 
             if (!hasLaunched)
             {
-                if (!followsPaddleWhenIdle || paddle == null)
+                if ((!followsPaddleWhenIdle && !attachedToPaddle) || paddle == null)
                 {
                     return;
                 }
@@ -154,14 +245,27 @@ namespace GetBricked.Gameplay
                 return;
             }
 
+            var currentVelocity = ballBody.linearVelocity;
+
+            if (currentVelocity.sqrMagnitude > 0.01f)
+            {
+                lastTravelDirection = currentVelocity.normalized;
+            }
+
             if (transform.position.y < lossThresholdY)
             {
+                if (gameController != null && gameController.TryRescueBallWithShield(this))
+                {
+                    return;
+                }
+
                 Stop();
                 gameController.HandleBallLost(this);
                 return;
             }
 
             UpdateSpeedBurstTimer();
+            ApplyGravityWell();
             ClampBallVelocity();
         }
 
@@ -174,7 +278,21 @@ namespace GetBricked.Gameplay
 
             if (collision.collider.TryGetComponent<PaddleController>(out var hitPaddle))
             {
+                if (gameController != null && gameController.TryHandleBallPaddleCollision(this, hitPaddle, collision))
+                {
+                    return;
+                }
+
                 RedirectFromPaddle(hitPaddle, collision);
+                return;
+            }
+
+            if (phaseThroughBricks
+                && collision.collider.TryGetComponent<Brick>(out var hitBrick)
+                && hitBrick.Definition != null
+                && hitBrick.Definition.IsBreakable)
+            {
+                ContinueThroughBrickImpact();
                 return;
             }
 
@@ -207,6 +325,7 @@ namespace GetBricked.Gameplay
                     Mathf.Sign(Mathf.Approximately(bounceDirection.y, 0f) ? 1f : bounceDirection.y) * minimumVerticalDirection).normalized;
             }
 
+            lastTravelDirection = bounceDirection;
             ballBody.linearVelocity = bounceDirection * GetTargetSpeed();
         }
 
@@ -238,6 +357,7 @@ namespace GetBricked.Gameplay
                 velocity = new Vector2(adjustedX, adjustedY);
             }
 
+            lastTravelDirection = velocity.normalized;
             ballBody.linearVelocity = velocity;
         }
 
@@ -261,6 +381,49 @@ namespace GetBricked.Gameplay
         private float GetTargetSpeed()
         {
             return launchSpeed * Mathf.Max(1f, speedBurstMultiplier);
+        }
+
+        private void ContinueThroughBrickImpact()
+        {
+            if (ballBody == null)
+            {
+                return;
+            }
+
+            var direction = lastTravelDirection.sqrMagnitude > 0.001f
+                ? lastTravelDirection.normalized
+                : Vector2.up;
+            ballBody.position += direction * 0.04f;
+            ballBody.linearVelocity = direction * GetTargetSpeed();
+        }
+
+        private void ApplyGravityWell()
+        {
+            if (ballBody == null || gravityWellStrength <= 0.001f)
+            {
+                return;
+            }
+
+            var pullVector = gravityWellPoint - ballBody.position;
+
+            if (pullVector.sqrMagnitude <= 0.0001f)
+            {
+                return;
+            }
+
+            var currentDirection = ballBody.linearVelocity.sqrMagnitude > 0.01f
+                ? ballBody.linearVelocity.normalized
+                : lastTravelDirection.normalized;
+            var bendFactor = gravityWellStrength * Time.fixedDeltaTime * 3.25f;
+            var curvedDirection = (currentDirection + (pullVector.normalized * bendFactor)).normalized;
+
+            if (curvedDirection.sqrMagnitude <= 0.0001f)
+            {
+                return;
+            }
+
+            lastTravelDirection = curvedDirection;
+            ballBody.linearVelocity = curvedDirection * GetTargetSpeed();
         }
 
         private void ClearSpeedBurst()

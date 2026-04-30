@@ -15,6 +15,8 @@ namespace GetBricked.Gameplay
         private const string BrickSpriteResourcePath = "Sprites/brick";
         private const string PaddleSpriteResourcePath = "Sprites/paddle";
         private const string PowerUpSpriteResourcePath = "Sprites/powerup";
+        private const float LaserShotCooldownSeconds = 0.3f;
+        private const float ShieldWallYOffset = 0.38f;
 
         private enum RoundState
         {
@@ -161,6 +163,11 @@ namespace GetBricked.Gameplay
         private float manualBallSpeedHoldTimer;
         private bool isDiagnosticsOverlayVisible;
         private int selectedUpgradeDraftIndex;
+        private BreakoutEffectModifiers activeEffectModifiers;
+        private BallController stickyCaughtBall;
+        private SpriteRenderer shieldWallRenderer;
+        private int shieldWallCharges;
+        private float laserShotCooldownTimer;
 
         public Collider2D PaddleCollider => paddleCollider;
 
@@ -192,6 +199,7 @@ namespace GetBricked.Gameplay
             CreateRuntimeRoots();
             CreateBackground();
             CreateBounds();
+            CreateShieldWallVisual();
             CreatePaddle();
             currentLevelBallSpeed = ballSpeed;
             currentLevelPaddleSpeed = paddleSpeed;
@@ -257,6 +265,7 @@ namespace GetBricked.Gameplay
         {
             UpdateTimedEffects();
             UpdatePickupBanner();
+            laserShotCooldownTimer = Mathf.Max(0f, laserShotCooldownTimer - Time.deltaTime);
 
             var keyboard = Keyboard.current;
 
@@ -303,9 +312,24 @@ namespace GetBricked.Gameplay
 
             HandleManualBallSpeedInput(keyboard);
 
-            if ((keyboard.spaceKey.wasPressedThisFrame || keyboard.enterKey.wasPressedThisFrame || keyboard.numpadEnterKey.wasPressedThisFrame) == false)
+            var actionPressed = keyboard.spaceKey.wasPressedThisFrame || keyboard.enterKey.wasPressedThisFrame || keyboard.numpadEnterKey.wasPressedThisFrame;
+
+            if (!actionPressed)
             {
                 return;
+            }
+
+            if (roundState == RoundState.Playing)
+            {
+                if (ReleaseStickyCaughtBall())
+                {
+                    return;
+                }
+
+                if (FireLaserVolley())
+                {
+                    return;
+                }
             }
 
             if (roundState == RoundState.ReadyToServe || roundState == RoundState.LifeLost)
@@ -353,6 +377,8 @@ namespace GetBricked.Gameplay
                 DestroyBricksInExplosionRadius(explosionCenter, brickDefinition.ExplosionRadius, brick, scoringBall);
             }
 
+            TryTriggerChainLightning(explosionCenter, brick, scoringBall, destructionCause);
+
             EvaluateLevelCompletion();
         }
 
@@ -364,6 +390,11 @@ namespace GetBricked.Gameplay
             }
 
             var isServeBall = lostBall == serveBall;
+            if (lostBall == stickyCaughtBall)
+            {
+                stickyCaughtBall = null;
+            }
+
             activeBalls.Remove(lostBall);
 
             if (activeBalls.Count > 0)
@@ -402,6 +433,55 @@ namespace GetBricked.Gameplay
             }
 
             PrepareServe(RoundState.LifeLost);
+        }
+
+        public bool TryRescueBallWithShield(BallController ball)
+        {
+            if (roundState != RoundState.Playing || ball == null || shieldWallCharges <= 0)
+            {
+                return false;
+            }
+
+            shieldWallCharges = Mathf.Max(0, shieldWallCharges - 1);
+            ball.BounceFromShield(arenaBottom + ShieldWallYOffset + 0.12f);
+            UpdateShieldWallVisual();
+
+            if (powerUpService != null)
+            {
+                var shieldColor = themeService != null
+                    ? themeService.ResolveThemeStyle(ThemeVisualSlot.PickupBeneficial, new Color(0.45f, 0.95f, 0.72f, 1f), new Color(0.45f, 0.95f, 0.72f, 1f), squareSprite).PrimaryColor
+                    : new Color(0.45f, 0.95f, 0.72f, 1f);
+                powerUpService.ShowStatusBanner("+ SHIELD SAVE", shieldColor, 1.2f);
+            }
+
+            return true;
+        }
+
+        public bool TryHandleBallPaddleCollision(BallController ball, PaddleController hitPaddle, Collision2D collision)
+        {
+            if (ball == null || hitPaddle == null || collision == null)
+            {
+                return false;
+            }
+
+            var contactPoint = collision.contactCount > 0
+                ? collision.GetContact(0).point
+                : (Vector2)ball.transform.position;
+
+            if (activeEffectModifiers.SplitPaddleGapNormalized > 0f && hitPaddle.IsPointInsideSplitGap(contactPoint.x))
+            {
+                ball.PassThroughPaddle(Mathf.Sign(contactPoint.x - hitPaddle.transform.position.x));
+                return true;
+            }
+
+            if (activeEffectModifiers.StickyPaddleEnabled && stickyCaughtBall == null)
+            {
+                stickyCaughtBall = ball;
+                ball.AttachToPaddle();
+                return true;
+            }
+
+            return false;
         }
 
         public void HandlePickupCaught(PowerUpPickup pickup)
@@ -446,9 +526,13 @@ namespace GetBricked.Gameplay
             score = 0;
             currentLevelIndex = 0;
             currentLevelVariationLabel = "Variation: pending";
+            shieldWallCharges = 0;
+            laserShotCooldownTimer = 0f;
+            stickyCaughtBall = null;
             activeRunState?.Reset();
             ClearTimedEffects();
             ClearPickups();
+            UpdateShieldWallVisual();
             LoadLevel(currentLevelIndex, RoundState.ReadyToServe);
 
             Debug.Log(
@@ -511,6 +595,10 @@ namespace GetBricked.Gameplay
             activeBalls.Clear();
             activeRunState?.ClearPendingDraftOffers();
             selectedUpgradeDraftIndex = 0;
+            stickyCaughtBall = null;
+            shieldWallCharges = 0;
+            laserShotCooldownTimer = 0f;
+            UpdateShieldWallVisual();
 
             if (serveBall != null)
             {
@@ -957,6 +1045,7 @@ namespace GetBricked.Gameplay
             SetSimulationPaused(false);
             ClearPickups();
             paddle.ResetToStart();
+            stickyCaughtBall = null;
             EnsureServeBallExists();
             DestroyAdditionalBalls();
             activeBalls.Clear();
@@ -1017,6 +1106,7 @@ namespace GetBricked.Gameplay
         {
             ClearBricks();
             ClearPickups();
+            stickyCaughtBall = null;
             ClearTimedEffects();
 
             if (loadedLevels.Count == 0 || levelIndex < 0)
@@ -1252,6 +1342,20 @@ namespace GetBricked.Gameplay
             collider.sharedMaterial = bounceMaterial;
         }
 
+        private void CreateShieldWallVisual()
+        {
+            var shieldObject = new GameObject("Shield Wall");
+            shieldObject.transform.SetParent(runtimeRoot, false);
+            shieldObject.transform.position = new Vector2(0f, arenaBottom + ShieldWallYOffset);
+            shieldObject.transform.localScale = new Vector3((arenaRight - arenaLeft) - 0.3f, 0.16f, 1f);
+
+            shieldWallRenderer = shieldObject.AddComponent<SpriteRenderer>();
+            shieldWallRenderer.sprite = squareSprite;
+            shieldWallRenderer.sharedMaterial = additiveSpriteMaterial;
+            shieldWallRenderer.sortingOrder = 12;
+            shieldWallRenderer.enabled = false;
+        }
+
         private void CreatePaddle()
         {
             var paddleObject = new GameObject("Paddle");
@@ -1323,6 +1427,8 @@ namespace GetBricked.Gameplay
                 arenaBottom - 1f,
                 ballRadius + (paddleSize.y * 0.5f) + 0.05f,
                 followsPaddleWhenIdle);
+            ball.SetPhaseThroughBricks(activeEffectModifiers.PhaseBallEnabled);
+            ball.SetGravityWell(new Vector2(0f, (arenaTop + arenaBottom) * 0.5f), activeEffectModifiers.GravityWellStrength);
 
             return ball;
         }
@@ -1541,6 +1647,7 @@ namespace GetBricked.Gameplay
             SetSimulationPaused(false);
             ClearPickups();
             StopAllBalls();
+            stickyCaughtBall = null;
 
             if (TryOpenUpgradeDraft())
             {
@@ -1773,6 +1880,8 @@ namespace GetBricked.Gameplay
                 bricks,
                 powerUpService?.ActivePickups);
             UpdateBackgroundVisuals();
+            ApplyVisualEffectState();
+            UpdateShieldWallVisual();
         }
 
         private BreakoutUiThemePalette BuildUiThemePalette()
@@ -2774,6 +2883,7 @@ namespace GetBricked.Gameplay
                 arenaBottom,
                 themeService,
                 this);
+            ApplyVisualEffectState();
         }
 
         private void ApplyPowerUp(PowerUpDefinition powerUpDefinition)
@@ -2783,10 +2893,17 @@ namespace GetBricked.Gameplay
                 return;
             }
 
-            var shouldSpawnMultiBall = powerUpService.ApplyPowerUp(powerUpDefinition, themeService);
+            var applicationResult = powerUpService.ApplyPowerUp(powerUpDefinition, themeService);
+
+            if (applicationResult.ShieldWallChargesGranted > 0)
+            {
+                shieldWallCharges += applicationResult.ShieldWallChargesGranted;
+                UpdateShieldWallVisual();
+            }
+
             ApplyActiveEffects();
 
-            if (shouldSpawnMultiBall)
+            if (applicationResult.ShouldSpawnMultiBall)
             {
                 SpawnMultiBall(powerUpDefinition);
             }
@@ -2795,23 +2912,38 @@ namespace GetBricked.Gameplay
         private void ApplyActiveEffects()
         {
             var persistentModifiers = GetPersistentRunUpgradeModifiers();
-            var modifiers = powerUpService != null
+            activeEffectModifiers = powerUpService != null
                 ? powerUpService.CalculateEffectModifiers(
                     (activeRunSettings?.PaddleWidthMultiplier ?? 1f) * persistentModifiers.PaddleWidthMultiplier,
                     persistentModifiers.WavyPaddleStrength)
                 : new BreakoutEffectModifiers(
                     (activeRunSettings?.PaddleWidthMultiplier ?? 1f) * persistentModifiers.PaddleWidthMultiplier,
                     persistentModifiers.WavyPaddleStrength,
-                    1f);
+                    1f,
+                    false,
+                    false,
+                    false,
+                    0f,
+                    false,
+                    0f,
+                    0f,
+                    1f,
+                    0f);
             paddle.SetMoveSpeed(currentLevelPaddleSpeed);
-            paddle.SetWidthMultiplier(Mathf.Clamp(modifiers.PaddleWidthMultiplier, 0.6f, 1.8f));
-            paddle.SetWavyStrength(modifiers.WavyPaddleStrength);
+            paddle.SetWidthMultiplier(Mathf.Clamp(activeEffectModifiers.PaddleWidthMultiplier, 0.6f, 1.8f));
+            paddle.SetWavyStrength(activeEffectModifiers.WavyPaddleStrength);
+            paddle.SetControlsReversed(activeEffectModifiers.ReverseControlsEnabled);
+            paddle.SetSplitGapWidthNormalized(activeEffectModifiers.SplitPaddleGapNormalized);
+            paddle.SetLagSpikeStrength(activeEffectModifiers.LagSpikeStrength);
 
             var currentBallSpeed = GetCurrentBallSpeed();
+            var gravityWellCenter = new Vector2(0f, (arenaTop + arenaBottom) * 0.5f);
 
             if (serveBall != null)
             {
                 serveBall.SetMovementSpeed(currentBallSpeed);
+                serveBall.SetPhaseThroughBricks(activeEffectModifiers.PhaseBallEnabled);
+                serveBall.SetGravityWell(gravityWellCenter, activeEffectModifiers.GravityWellStrength);
             }
 
             for (var index = activeBalls.Count - 1; index >= 0; index--)
@@ -2825,6 +2957,16 @@ namespace GetBricked.Gameplay
                 }
 
                 activeBall.SetMovementSpeed(currentBallSpeed);
+                activeBall.SetPhaseThroughBricks(activeEffectModifiers.PhaseBallEnabled);
+                activeBall.SetGravityWell(gravityWellCenter, activeEffectModifiers.GravityWellStrength);
+            }
+
+            ApplyVisualEffectState();
+            UpdateShieldWallVisual();
+
+            if (stickyCaughtBall != null && !activeEffectModifiers.StickyPaddleEnabled)
+            {
+                ReleaseStickyCaughtBall();
             }
         }
 
@@ -3122,6 +3264,235 @@ namespace GetBricked.Gameplay
             }
 
             powerUpService.ShowStatusBanner($"+ BUILD {upgrade.DisplayName}", ResolveRunUpgradeAccentColor(upgrade), 2.2f);
+        }
+
+        private bool ReleaseStickyCaughtBall()
+        {
+            if (stickyCaughtBall == null)
+            {
+                return false;
+            }
+
+            var releasedBall = stickyCaughtBall;
+            stickyCaughtBall = null;
+
+            if (releasedBall != null)
+            {
+                releasedBall.Launch();
+            }
+
+            return true;
+        }
+
+        private bool FireLaserVolley()
+        {
+            if (roundState != RoundState.Playing
+                || paddle == null
+                || !activeEffectModifiers.LaserPaddleEnabled
+                || laserShotCooldownTimer > 0f)
+            {
+                return false;
+            }
+
+            var targets = new List<Brick>(2);
+            var excluded = new HashSet<Brick>();
+            var leftEmitterX = paddle.transform.position.x - (paddle.HalfWidthWorld * 0.55f);
+            var rightEmitterX = paddle.transform.position.x + (paddle.HalfWidthWorld * 0.55f);
+            var leftTarget = FindLaserTarget(leftEmitterX, excluded);
+
+            if (leftTarget != null)
+            {
+                targets.Add(leftTarget);
+                excluded.Add(leftTarget);
+            }
+
+            var rightTarget = FindLaserTarget(rightEmitterX, excluded);
+
+            if (rightTarget != null)
+            {
+                targets.Add(rightTarget);
+            }
+
+            if (targets.Count == 0)
+            {
+                return false;
+            }
+
+            var scoringBall = ResolvePrimaryScoringBall();
+
+            for (var index = 0; index < targets.Count; index++)
+            {
+                targets[index]?.ApplyEffectHit(scoringBall, BrickDestructionCause.Laser, 1);
+            }
+
+            laserShotCooldownTimer = LaserShotCooldownSeconds;
+            return true;
+        }
+
+        private Brick FindLaserTarget(float beamOriginX, ISet<Brick> excluded)
+        {
+            Brick bestCandidate = null;
+            var bestScore = float.MaxValue;
+
+            for (var index = 0; index < bricks.Count; index++)
+            {
+                var candidate = bricks[index];
+
+                if (candidate == null
+                    || (excluded != null && excluded.Contains(candidate))
+                    || candidate.Definition == null
+                    || !candidate.Definition.IsBreakable
+                    || candidate.transform.position.y <= paddle.transform.position.y + 0.2f)
+                {
+                    continue;
+                }
+
+                var score = Mathf.Abs(candidate.transform.position.x - beamOriginX)
+                    + Mathf.Abs(candidate.transform.position.y - paddle.transform.position.y) * 0.08f;
+
+                if (score >= bestScore)
+                {
+                    continue;
+                }
+
+                bestScore = score;
+                bestCandidate = candidate;
+            }
+
+            return bestCandidate;
+        }
+
+        private BallController ResolvePrimaryScoringBall()
+        {
+            for (var index = 0; index < activeBalls.Count; index++)
+            {
+                if (activeBalls[index] != null)
+                {
+                    return activeBalls[index];
+                }
+            }
+
+            return serveBall;
+        }
+
+        private void TryTriggerChainLightning(Vector2 origin, Brick sourceBrick, BallController scoringBall, BrickDestructionCause destructionCause)
+        {
+            if (activeEffectModifiers.ChainLightningStrength <= 0.001f || destructionCause == BrickDestructionCause.ChainLightning)
+            {
+                return;
+            }
+
+            var chainRadius = Mathf.Lerp(1.8f, 3.25f, Mathf.Clamp01(activeEffectModifiers.ChainLightningStrength));
+            var chainRadiusSquared = chainRadius * chainRadius;
+            var maxTargets = Mathf.Clamp(1 + Mathf.RoundToInt(activeEffectModifiers.ChainLightningStrength * 4f), 1, 3);
+            var candidates = new List<Brick>();
+
+            for (var index = 0; index < bricks.Count; index++)
+            {
+                var candidate = bricks[index];
+
+                if (candidate == null
+                    || candidate == sourceBrick
+                    || candidate.Definition == null
+                    || !candidate.Definition.IsBreakable)
+                {
+                    continue;
+                }
+
+                var offset = (Vector2)candidate.transform.position - origin;
+
+                if (offset.sqrMagnitude > chainRadiusSquared)
+                {
+                    continue;
+                }
+
+                candidates.Add(candidate);
+            }
+
+            if (candidates.Count == 0)
+            {
+                return;
+            }
+
+            candidates.Sort((left, right) =>
+            {
+                var leftDistance = ((Vector2)left.transform.position - origin).sqrMagnitude;
+                var rightDistance = ((Vector2)right.transform.position - origin).sqrMagnitude;
+                return leftDistance.CompareTo(rightDistance);
+            });
+
+            for (var index = 0; index < candidates.Count && index < maxTargets; index++)
+            {
+                candidates[index]?.ApplyEffectHit(scoringBall, BrickDestructionCause.ChainLightning, 1);
+            }
+        }
+
+        private void ApplyVisualEffectState()
+        {
+            var visibilityMultiplier = activeEffectModifiers.FogVisibilityMultiplier > 0.001f
+                ? activeEffectModifiers.FogVisibilityMultiplier
+                : 1f;
+
+            for (var index = bricks.Count - 1; index >= 0; index--)
+            {
+                var brick = bricks[index];
+
+                if (brick == null)
+                {
+                    bricks.RemoveAt(index);
+                    continue;
+                }
+
+                brick.SetVisibilityMultiplier(visibilityMultiplier);
+            }
+
+            var activePickups = powerUpService?.ActivePickups;
+
+            if (activePickups != null)
+            {
+                for (var index = activePickups.Count - 1; index >= 0; index--)
+                {
+                    var pickup = activePickups[index];
+
+                    if (pickup == null)
+                    {
+                        activePickups.RemoveAt(index);
+                        continue;
+                    }
+
+                    pickup.SetVisibilityMultiplier(visibilityMultiplier);
+                }
+            }
+
+            if (backgroundHazeRenderer != null)
+            {
+                var hazeColor = backgroundHazeRenderer.color;
+                hazeColor.a = Mathf.Clamp01(backgroundHazeAlpha + ((1f - visibilityMultiplier) * 0.32f));
+                backgroundHazeRenderer.color = hazeColor;
+            }
+        }
+
+        private void UpdateShieldWallVisual()
+        {
+            if (shieldWallRenderer == null)
+            {
+                return;
+            }
+
+            shieldWallRenderer.enabled = shieldWallCharges > 0;
+
+            if (!shieldWallRenderer.enabled)
+            {
+                return;
+            }
+
+            var shieldStyle = themeService != null
+                ? themeService.ResolveThemeStyle(ThemeVisualSlot.PickupBeneficial, new Color(0.45f, 0.95f, 0.72f, 1f), new Color(0.45f, 0.95f, 0.72f, 1f), squareSprite)
+                : new ThemeVisualStyle(new Color(0.45f, 0.95f, 0.72f, 1f), new Color(0.45f, 0.95f, 0.72f, 1f), squareSprite);
+            var shieldColor = shieldStyle.PrimaryColor;
+            shieldColor.a = Mathf.Clamp(0.52f + ((shieldWallCharges - 1) * 0.08f), 0.52f, 0.82f);
+            shieldWallRenderer.color = shieldColor;
+            shieldWallRenderer.transform.position = new Vector2(0f, arenaBottom + ShieldWallYOffset);
         }
 
         private string BuildActiveEffectsLabel()

@@ -31,5 +31,11 @@ MonoBehaviour:
     weight: 1
   - powerUpDefinition: {fileID: 11400000, guid: f5c2e01a8d0447d1b6ac0e8b7a93d4cf, type: 2}
     weight: 1
+  - powerUpDefinition: {fileID: 11400000, guid: 85d9928f920e41e89628eaa0eeffd1fc, type: 2}
+    weight: 1
+  - powerUpDefinition: {fileID: 11400000, guid: 6bd0d0156da64b90aad566e24a8d3a43, type: 2}
+    weight: 1
+  - powerUpDefinition: {fileID: 11400000, guid: 066296ff563a44a89e3cd9422bc395c0, type: 2}
+    weight: 1
   baseColor: {r: 0.98, g: 0.78, b: 0.28, a: 1}
   damagedColor: {r: 0.74, g: 0.48, b: 0.12, a: 1}
