@@ -109,6 +109,7 @@ namespace GetBricked.Gameplay
         public void TrySpawnPickup(
             Brick brick,
             RunSettings activeRunSettings,
+            float effectiveDropChanceMultiplier,
             System.Func<float, float, float> nextGameplayRandomFloat,
             Transform pickupsRoot,
             float arenaBottom,
@@ -122,7 +123,7 @@ namespace GetBricked.Gameplay
 
             var brickDefinition = brick.Definition;
             var dropTable = brickDefinition.DropTable;
-            var effectiveDropChance = Mathf.Clamp01(brickDefinition.DropChance * (activeRunSettings?.DropChanceMultiplier ?? 1f));
+            var effectiveDropChance = Mathf.Clamp01(brickDefinition.DropChance * Mathf.Max(0f, effectiveDropChanceMultiplier));
 
             if (dropTable.Length == 0
                 || effectiveDropChance <= 0f
@@ -235,6 +236,42 @@ namespace GetBricked.Gameplay
             return new BreakoutEffectModifiers(paddleWidthMultiplier, wavyPaddleStrength, timedBallSpeedMultiplier);
         }
 
+        public BreakoutEffectModifiers CalculateEffectModifiers(float basePaddleWidthMultiplier, float baseWavyPaddleStrength)
+        {
+            var paddleWidthMultiplier = Mathf.Max(0.1f, basePaddleWidthMultiplier);
+            var wavyPaddleStrength = Mathf.Clamp01(baseWavyPaddleStrength);
+            var timedBallSpeedMultiplier = 1f;
+
+            for (var index = 0; index < ActiveTimedEffects.Count; index++)
+            {
+                var powerUpDefinition = ActiveTimedEffects[index].Definition;
+
+                if (powerUpDefinition == null)
+                {
+                    continue;
+                }
+
+                if (powerUpDefinition.EffectType == PowerUpEffectType.PaddleWidthMultiplier)
+                {
+                    paddleWidthMultiplier *= powerUpDefinition.Scalar;
+                    continue;
+                }
+
+                if (powerUpDefinition.EffectType == PowerUpEffectType.BallSpeedMultiplier)
+                {
+                    timedBallSpeedMultiplier *= powerUpDefinition.Scalar;
+                    continue;
+                }
+
+                if (powerUpDefinition.EffectType == PowerUpEffectType.WavyPaddle)
+                {
+                    wavyPaddleStrength = Mathf.Max(wavyPaddleStrength, powerUpDefinition.Scalar);
+                }
+            }
+
+            return new BreakoutEffectModifiers(paddleWidthMultiplier, wavyPaddleStrength, timedBallSpeedMultiplier);
+        }
+
         public Vector2[] BuildMultiBallDirections(Vector2 sourceDirection, int extraBallCount)
         {
             var resolvedDirection = sourceDirection.sqrMagnitude > 0.01f ? sourceDirection.normalized : Vector2.up;
@@ -279,6 +316,13 @@ namespace GetBricked.Gameplay
         public void ClearTimedEffects()
         {
             ActiveTimedEffects.Clear();
+        }
+
+        public void ShowStatusBanner(string text, Color color, float durationSeconds = 1.8f)
+        {
+            PickupBannerText = text ?? string.Empty;
+            PickupBannerColor = color;
+            PickupBannerTimer = Mathf.Max(0f, durationSeconds);
         }
 
         public string BuildActiveEffectsLabel()

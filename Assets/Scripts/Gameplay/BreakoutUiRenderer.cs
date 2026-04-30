@@ -83,6 +83,24 @@ namespace GetBricked.Gameplay
         public bool IsCompact;
     }
 
+    internal sealed class BreakoutUiUpgradeDraftOptionView
+    {
+        public string Title = string.Empty;
+        public string Description = string.Empty;
+        public string Detail = string.Empty;
+        public Color Accent = Color.white;
+    }
+
+    internal sealed class BreakoutUiUpgradeDraftView
+    {
+        public string Title = string.Empty;
+        public string Subtitle = string.Empty;
+        public string BuildLine = string.Empty;
+        public BreakoutUiUpgradeDraftOptionView[] Options = Array.Empty<BreakoutUiUpgradeDraftOptionView>();
+        public int SelectedOptionIndex;
+        public string HintText = string.Empty;
+    }
+
     internal sealed class BreakoutUiModifierView
     {
         public string Label = string.Empty;
@@ -310,6 +328,57 @@ namespace GetBricked.Gameplay
                     palette.TextMuted,
                     0.3f);
             }
+        }
+
+        public void DrawUpgradeDraft(BreakoutUiUpgradeDraftView view, Action<int> onOptionClicked)
+        {
+            EnsureStyles();
+
+            if (view == null || view.Options == null || view.Options.Length == 0)
+            {
+                return;
+            }
+
+            var boxRect = new Rect((Screen.width * 0.5f) - 520f, (Screen.height * 0.5f) - 266f, 1040f, 532f);
+            DrawPanel(boxRect, palette.AccentSecondary, palette.AccentPrimary, true);
+            DrawTextWithShadow(new Rect(boxRect.x + 30f, boxRect.y + 22f, boxRect.width - 60f, 40f), view.Title, overlayTitleStyle, palette.TextPrimary);
+            DrawTextWithShadow(new Rect(boxRect.x + 30f, boxRect.y + 64f, boxRect.width - 60f, 26f), view.Subtitle, setupHintStyle, palette.TextMuted, 0.35f);
+            DrawTextWithShadow(new Rect(boxRect.x + 30f, boxRect.y + 96f, boxRect.width - 60f, 26f), view.BuildLine, hudStyle, palette.TextPrimary, 0.25f);
+
+            var optionCount = view.Options.Length;
+            var optionWidth = 300f;
+            var optionSpacing = 20f;
+            var totalWidth = (optionCount * optionWidth) + ((optionCount - 1) * optionSpacing);
+            var startX = boxRect.x + ((boxRect.width - totalWidth) * 0.5f);
+            var optionY = boxRect.y + 142f;
+
+            for (var index = 0; index < optionCount; index++)
+            {
+                var option = view.Options[index];
+                var isSelected = index == Mathf.Clamp(view.SelectedOptionIndex, 0, optionCount - 1);
+                var optionRect = new Rect(startX + (index * (optionWidth + optionSpacing)), optionY, optionWidth, 246f);
+                var accent = option.Accent;
+                accent.a = 1f;
+
+                DrawPanel(optionRect, accent, isSelected ? palette.AccentWarm : palette.AccentPrimary, false, isSelected ? 2.4f : 1.5f);
+
+                if (isSelected)
+                {
+                    DrawSelectionBar(new Rect(optionRect.x - 4f, optionRect.y - 4f, optionRect.width + 8f, optionRect.height + 8f));
+                }
+
+                if (GUI.Button(optionRect, GUIContent.none, GUIStyle.none))
+                {
+                    onOptionClicked?.Invoke(index);
+                }
+
+                DrawSectionLabel(new Rect(optionRect.x + 16f, optionRect.y + 14f, optionRect.width - 32f, 18f), $"PICK {index + 1}", accent);
+                DrawTextWithShadow(new Rect(optionRect.x + 16f, optionRect.y + 42f, optionRect.width - 32f, 52f), option.Title, overlayActionStyle, palette.TextPrimary, 0.3f);
+                DrawTextWithShadow(new Rect(optionRect.x + 16f, optionRect.y + 100f, optionRect.width - 32f, 92f), option.Description, overlayBodyStyle, palette.TextMuted, 0.22f);
+                DrawTextWithShadow(new Rect(optionRect.x + 16f, optionRect.y + 200f, optionRect.width - 32f, 28f), option.Detail, setupHintStyle, palette.TextPrimary, 0.25f);
+            }
+
+            DrawHintBand(new Rect(boxRect.x + 30f, boxRect.y + 418f, boxRect.width - 60f, 72f), view.HintText);
         }
 
         public void DrawMessageOverlay(string message)

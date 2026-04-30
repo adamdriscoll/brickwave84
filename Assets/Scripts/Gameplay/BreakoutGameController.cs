@@ -20,6 +20,7 @@ namespace GetBricked.Gameplay
         {
             MainMenu,
             RunSetup,
+            UpgradeDraft,
             ReadyToServe,
             Playing,
             Paused,
@@ -91,6 +92,7 @@ namespace GetBricked.Gameplay
         private readonly List<LevelDefinition> loadedLevels = new List<LevelDefinition>();
         private readonly List<BrickDefinition> loadedBrickDefinitions = new List<BrickDefinition>();
         private readonly List<ThemeDefinition> loadedThemes = new List<ThemeDefinition>();
+        private readonly List<RunUpgradeDefinition> loadedRunUpgradeDefinitions = new List<RunUpgradeDefinition>();
         private readonly List<BallController> activeBalls = new List<BallController>();
         private readonly List<Sprite> loadedBackgroundSprites = new List<Sprite>();
         private readonly List<Texture2D> loadedBackgroundTextures = new List<Texture2D>();
@@ -126,6 +128,8 @@ namespace GetBricked.Gameplay
         private BreakoutThemeService themeService;
         private BreakoutPowerUpService powerUpService;
         private BreakoutUiRenderer uiRenderer;
+        private BreakoutRunState activeRunState;
+        private BreakoutUpgradeDraftService upgradeDraftService;
         private RoundState roundState;
         private int livesRemaining;
         private int score;
@@ -156,6 +160,7 @@ namespace GetBricked.Gameplay
         private int manualBallSpeedHoldDirection;
         private float manualBallSpeedHoldTimer;
         private bool isDiagnosticsOverlayVisible;
+        private int selectedUpgradeDraftIndex;
 
         public Collider2D PaddleCollider => paddleCollider;
 
@@ -164,6 +169,7 @@ namespace GetBricked.Gameplay
             LoadBrickDefinitions();
             LoadLevelDefinitions();
             LoadThemeDefinitions();
+            LoadRunUpgradeDefinitions();
             levelPlanner = new BreakoutLevelPlanner(loadedLevels, loadedBrickDefinitions, GenerateSeed);
             ConfigureCamera();
             CreateRuntimeAssets();
@@ -181,6 +187,8 @@ namespace GetBricked.Gameplay
                 powerUpSprite);
             powerUpService = new BreakoutPowerUpService(pickupSize, pickupFallSpeed, multiBallSpreadAngle, additiveSpriteMaterial);
             uiRenderer = new BreakoutUiRenderer();
+            activeRunState = new BreakoutRunState();
+            upgradeDraftService = new BreakoutUpgradeDraftService(loadedRunUpgradeDefinitions);
             CreateRuntimeRoots();
             CreateBackground();
             CreateBounds();
@@ -264,6 +272,13 @@ namespace GetBricked.Gameplay
             {
                 ResetManualBallSpeedHold();
                 HandleOverlayMenuInput(keyboard);
+                return;
+            }
+
+            if (roundState == RoundState.UpgradeDraft)
+            {
+                ResetManualBallSpeedHold();
+                HandleUpgradeDraftInput(keyboard);
                 return;
             }
 
@@ -431,6 +446,7 @@ namespace GetBricked.Gameplay
             score = 0;
             currentLevelIndex = 0;
             currentLevelVariationLabel = "Variation: pending";
+            activeRunState?.Reset();
             ClearTimedEffects();
             ClearPickups();
             LoadLevel(currentLevelIndex, RoundState.ReadyToServe);
@@ -449,6 +465,7 @@ namespace GetBricked.Gameplay
             pendingValidationMessage = string.Empty;
             currentLevelVariationLabel = "Variation: pending";
             isDiagnosticsOverlayVisible = false;
+            activeRunState?.Reset();
             ResetRuntimeForMetaFlow();
             ApplyPendingThemePreview();
         }
@@ -477,6 +494,7 @@ namespace GetBricked.Gameplay
             pendingValidationMessage = string.Empty;
             currentLevelVariationLabel = "Variation: pending";
             isDiagnosticsOverlayVisible = false;
+            activeRunState?.Reset();
             ResetRuntimeForMetaFlow();
             ApplyPendingThemePreview();
         }
@@ -491,6 +509,8 @@ namespace GetBricked.Gameplay
             StopAllBalls();
             DestroyAdditionalBalls();
             activeBalls.Clear();
+            activeRunState?.ClearPendingDraftOffers();
+            selectedUpgradeDraftIndex = 0;
 
             if (serveBall != null)
             {
@@ -603,6 +623,37 @@ namespace GetBricked.Gameplay
             {
                 ApplyPendingThemePreview();
                 SavePersistedRunSetup();
+            }
+        }
+
+        private void HandleUpgradeDraftInput(Keyboard keyboard)
+        {
+            var offers = activeRunState?.PendingDraftOffers;
+
+            if (keyboard == null || offers == null || offers.Count == 0)
+            {
+                return;
+            }
+
+            if (keyboard.rKey.wasPressedThisFrame)
+            {
+                EnterRunSetup();
+                return;
+            }
+
+            if (keyboard.leftArrowKey.wasPressedThisFrame || keyboard.aKey.wasPressedThisFrame)
+            {
+                selectedUpgradeDraftIndex = (selectedUpgradeDraftIndex + offers.Count - 1) % offers.Count;
+            }
+
+            if (keyboard.rightArrowKey.wasPressedThisFrame || keyboard.dKey.wasPressedThisFrame)
+            {
+                selectedUpgradeDraftIndex = (selectedUpgradeDraftIndex + 1) % offers.Count;
+            }
+
+            if (keyboard.spaceKey.wasPressedThisFrame || keyboard.enterKey.wasPressedThisFrame || keyboard.numpadEnterKey.wasPressedThisFrame)
+            {
+                HandleUpgradeDraftChoice(selectedUpgradeDraftIndex);
             }
         }
 
@@ -873,7 +924,7 @@ namespace GetBricked.Gameplay
 
         private void SpawnConfiguredServeBalls()
         {
-            var ballsPerServe = activeRunSettings == null ? 1 : activeRunSettings.BallsPerServe;
+            var ballsPerServe = GetEffectiveBallsPerServe();
 
             if (ballsPerServe <= 1 || serveBall == null)
             {
@@ -950,6 +1001,18 @@ namespace GetBricked.Gameplay
             }
         }
 
+        private void LoadRunUpgradeDefinitions()
+        {
+            loadedRunUpgradeDefinitions.Clear();
+            loadedRunUpgradeDefinitions.AddRange(Resources.LoadAll<RunUpgradeDefinition>("Upgrades"));
+            loadedRunUpgradeDefinitions.Sort(CompareRunUpgradeDefinitions);
+
+            if (loadedRunUpgradeDefinitions.Count == 0)
+            {
+                Debug.LogWarning("No run upgrade definitions were found in Resources/Upgrades. Between-level drafts will be skipped.");
+            }
+        }
+
         private void LoadLevel(int levelIndex, RoundState serveState)
         {
             ClearBricks();
@@ -1009,16 +1072,21 @@ namespace GetBricked.Gameplay
 
         private void ApplyLevelTuning(BreakoutLevelLayoutPlan levelPlan)
         {
+            var persistentModifiers = GetPersistentRunUpgradeModifiers();
+
             if (levelPlan == null)
             {
                 currentLevelPaddleSpeed = paddleSpeed;
-                currentLevelBallSpeed = ballSpeed;
+                currentLevelBallSpeed = ballSpeed * persistentModifiers.BallSpeedMultiplier;
                 ApplyActiveEffects();
                 return;
             }
 
             currentLevelPaddleSpeed = paddleSpeed * Mathf.Max(0.5f, levelPlan.PaddleSpeedMultiplier);
-            currentLevelBallSpeed = ballSpeed * Mathf.Max(0.5f, levelPlan.BallSpeedMultiplier) * (activeRunSettings?.BallSpeedMultiplier ?? 1f);
+            currentLevelBallSpeed = ballSpeed
+                * Mathf.Max(0.5f, levelPlan.BallSpeedMultiplier)
+                * (activeRunSettings?.BallSpeedMultiplier ?? 1f)
+                * persistentModifiers.BallSpeedMultiplier;
             ApplyActiveEffects();
         }
 
@@ -1470,11 +1538,17 @@ namespace GetBricked.Gameplay
                 return;
             }
 
-            roundState = RoundState.LevelComplete;
-            selectedOverlayActionIndex = 0;
             SetSimulationPaused(false);
             ClearPickups();
             StopAllBalls();
+
+            if (TryOpenUpgradeDraft())
+            {
+                return;
+            }
+
+            roundState = RoundState.LevelComplete;
+            selectedOverlayActionIndex = 0;
         }
 
         private bool HasBreakableBricksRemaining()
@@ -1582,6 +1656,26 @@ namespace GetBricked.Gameplay
         }
 
         private static int CompareThemes(ThemeDefinition left, ThemeDefinition right)
+        {
+            if (ReferenceEquals(left, right))
+            {
+                return 0;
+            }
+
+            if (left == null)
+            {
+                return 1;
+            }
+
+            if (right == null)
+            {
+                return -1;
+            }
+
+            return string.Compare(left.DisplayName, right.DisplayName, StringComparison.Ordinal);
+        }
+
+        private static int CompareRunUpgradeDefinitions(RunUpgradeDefinition left, RunUpgradeDefinition right)
         {
             if (ReferenceEquals(left, right))
             {
@@ -2167,6 +2261,14 @@ namespace GetBricked.Gameplay
                 return;
             }
 
+            if (roundState == RoundState.UpgradeDraft)
+            {
+                uiRenderer.DrawCabinetBackdrop(BuildChromeView("Upgrade Draft", "Choose one permanent mod", true));
+                uiRenderer.DrawUpgradeDraft(BuildUpgradeDraftView(), HandleUpgradeDraftChoice);
+                uiRenderer.DrawPickupBanner(BuildPickupBannerView());
+                return;
+            }
+
             uiRenderer.DrawCabinetBackdrop(BuildChromeView(string.Empty, string.Empty, false));
             uiRenderer.DrawGameplayHud(BuildHudView(), ToggleDiagnosticsOverlay, ToggleHudMenuOverlay);
             uiRenderer.DrawModifierIndicator(BuildModifierViews(), isDiagnosticsOverlayVisible);
@@ -2282,7 +2384,7 @@ namespace GetBricked.Gameplay
             return new BreakoutUiHudView
             {
                 TopLine = $"SCORE {score:0000}   LIVES {livesRemaining:00}   {BuildLevelLabel().ToUpperInvariant()}",
-                BottomLine = BuildRemainingBricksLabel().ToUpperInvariant(),
+                BottomLine = BuildGameplayStatusLine().ToUpperInvariant(),
                 ShowMenuButton = CanPauseRoundState(roundState) || roundState == RoundState.Paused,
                 IsPaused = roundState == RoundState.Paused,
                 IsDiagnosticsVisible = isDiagnosticsOverlayVisible,
@@ -2304,6 +2406,7 @@ namespace GetBricked.Gameplay
                 SummaryLines = new[]
                 {
                     BuildPauseSummaryLabel(),
+                    BuildUpgradeSummaryLabel(3),
                     currentLevelVariationLabel,
                 },
                 ActionLabels = BuildOverlayActionLabels(GetOverlayActionsForState(RoundState.Paused)),
@@ -2314,6 +2417,49 @@ namespace GetBricked.Gameplay
                     "Up/Down selects. Space confirms. Esc or P resumes immediately.",
                 },
                 IsCompact = true,
+            };
+        }
+
+        private BreakoutUiUpgradeDraftView BuildUpgradeDraftView()
+        {
+            var offers = activeRunState?.PendingDraftOffers;
+
+            if (offers == null || offers.Count == 0)
+            {
+                return new BreakoutUiUpgradeDraftView
+                {
+                    Title = "Upgrade Draft",
+                    Subtitle = "No upgrades available.",
+                    BuildLine = BuildUpgradeSummaryLabel(3),
+                    HintText = "Press R to return to setup.",
+                };
+            }
+
+            var optionViews = new BreakoutUiUpgradeDraftOptionView[offers.Count];
+
+            for (var index = 0; index < offers.Count; index++)
+            {
+                var upgrade = offers[index];
+                var currentStacks = activeRunState != null ? activeRunState.GetStackCount(upgrade) : 0;
+                optionViews[index] = new BreakoutUiUpgradeDraftOptionView
+                {
+                    Title = upgrade != null ? upgrade.DisplayName : "Missing Upgrade",
+                    Description = upgrade != null ? upgrade.Description : "This draft slot failed to load.",
+                    Detail = upgrade != null
+                        ? $"Stacks {currentStacks}/{upgrade.MaxStacks}   |   {BuildUpgradeMechanicalSummary(upgrade)}"
+                        : "Unavailable",
+                    Accent = ResolveRunUpgradeAccentColor(upgrade),
+                };
+            }
+
+            return new BreakoutUiUpgradeDraftView
+            {
+                Title = "Upgrade Draft",
+                Subtitle = $"Level {currentLevelIndex + 1:00} cleared. Choose one cabinet mod to lock in for the rest of this run.",
+                BuildLine = BuildUpgradeSummaryLabel(4),
+                Options = optionViews,
+                SelectedOptionIndex = Mathf.Clamp(selectedUpgradeDraftIndex, 0, optionViews.Length - 1),
+                HintText = "Left/Right selects. Space confirms. Clicking a card also takes it. R abandons the run and returns to setup.",
             };
         }
 
@@ -2393,6 +2539,7 @@ namespace GetBricked.Gameplay
                 $"{currentLevelVariationLabel}   |   State: {BuildRoundStateLabel()}",
                 BuildBallSpeedControlLabel(),
                 $"{BuildActiveEffectsLabel()}   |   {BuildRunSummaryLabel()}",
+                BuildUpgradeSummaryLabel(6),
             };
 
             if (!string.IsNullOrWhiteSpace(pendingValidationMessage))
@@ -2473,9 +2620,52 @@ namespace GetBricked.Gameplay
             return $"Remaining Bricks {requiredBricksRemaining:00}";
         }
 
+        private string BuildGameplayStatusLine()
+        {
+            var progressLabel = BuildRemainingBricksLabel();
+
+            if (activeRunState == null || !activeRunState.HasActiveBuild)
+            {
+                return progressLabel;
+            }
+
+            return $"{progressLabel} | {BuildUpgradeSummaryLabel(2)}";
+        }
+
         private string BuildPauseSummaryLabel()
         {
             return $"Score {score:0000} | Lives {livesRemaining:00} | Balls {Mathf.Max(0, activeBalls.Count):00} | {BuildLevelLabel()}";
+        }
+
+        private string BuildUpgradeSummaryLabel(int maxNames)
+        {
+            if (activeRunState == null || !activeRunState.HasActiveBuild)
+            {
+                return "Build: none";
+            }
+
+            var chosenUpgrades = activeRunState.ChosenUpgrades;
+            var names = new List<string>();
+
+            for (var index = 0; index < chosenUpgrades.Count && names.Count < Mathf.Max(1, maxNames); index++)
+            {
+                var upgrade = chosenUpgrades[index];
+
+                if (upgrade != null)
+                {
+                    names.Add(upgrade.HudLabel);
+                }
+            }
+
+            var remainder = Mathf.Max(0, chosenUpgrades.Count - names.Count);
+            var labels = string.Join(", ", names);
+
+            if (remainder > 0)
+            {
+                labels = string.IsNullOrWhiteSpace(labels) ? $"+{remainder} more" : $"{labels}, +{remainder} more";
+            }
+
+            return $"Build {chosenUpgrades.Count:00}: {labels}";
         }
 
         private string BuildBallSpeedControlLabel()
@@ -2494,6 +2684,7 @@ namespace GetBricked.Gameplay
                 RoundState.ReadyToServe => "Ready to serve",
                 RoundState.Playing => "Ball in play",
                 RoundState.LifeLost => "Recovering from a loss",
+                RoundState.UpgradeDraft => "Choosing a permanent upgrade",
                 RoundState.Paused => "Paused",
                 RoundState.LevelComplete => "Level complete",
                 RoundState.GameOver => "Game over",
@@ -2509,8 +2700,8 @@ namespace GetBricked.Gameplay
             }
 
             return
-                $"Run Seed: {activeRunSettings.Seed} | {activeRunSettings.DifficultyLabel} | Balls/Serve {activeRunSettings.BallsPerServe} | " +
-                $"Theme: {activeRunSettings.ThemeLabel} | Drops: {activeRunSettings.DropPoolLabel} | Paddle x{activeRunSettings.PaddleWidthMultiplier:0.00} | Ball x{activeRunSettings.BallSpeedMultiplier:0.00}";
+                $"Run Seed: {activeRunSettings.Seed} | {activeRunSettings.DifficultyLabel} | Balls/Serve {GetEffectiveBallsPerServe()} | " +
+                $"Theme: {activeRunSettings.ThemeLabel} | Drops: {activeRunSettings.DropPoolLabel} | Paddle x{activeRunSettings.PaddleWidthMultiplier:0.00} | Ball x{activeRunSettings.BallSpeedMultiplier:0.00} | Build {GetChosenUpgradeCount():00}";
         }
 
         private void ToggleHudMenuOverlay()
@@ -2561,7 +2752,15 @@ namespace GetBricked.Gameplay
 
         private void TrySpawnPickup(Brick brick)
         {
-            powerUpService?.TrySpawnPickup(brick, activeRunSettings, NextGameplayRandomFloat, pickupsRoot, arenaBottom, themeService, this);
+            powerUpService?.TrySpawnPickup(
+                brick,
+                activeRunSettings,
+                GetEffectiveDropChanceMultiplier(),
+                NextGameplayRandomFloat,
+                pickupsRoot,
+                arenaBottom,
+                themeService,
+                this);
         }
 
         private void ApplyPowerUp(PowerUpDefinition powerUpDefinition)
@@ -2574,9 +2773,15 @@ namespace GetBricked.Gameplay
 
         private void ApplyActiveEffects()
         {
+            var persistentModifiers = GetPersistentRunUpgradeModifiers();
             var modifiers = powerUpService != null
-                ? powerUpService.CalculateEffectModifiers(activeRunSettings)
-                : new BreakoutEffectModifiers(activeRunSettings?.PaddleWidthMultiplier ?? 1f, 0f, 1f);
+                ? powerUpService.CalculateEffectModifiers(
+                    (activeRunSettings?.PaddleWidthMultiplier ?? 1f) * persistentModifiers.PaddleWidthMultiplier,
+                    persistentModifiers.WavyPaddleStrength)
+                : new BreakoutEffectModifiers(
+                    (activeRunSettings?.PaddleWidthMultiplier ?? 1f) * persistentModifiers.PaddleWidthMultiplier,
+                    persistentModifiers.WavyPaddleStrength,
+                    1f);
             paddle.SetMoveSpeed(currentLevelPaddleSpeed);
             paddle.SetWidthMultiplier(Mathf.Clamp(modifiers.PaddleWidthMultiplier, 0.6f, 1.8f));
             paddle.SetWavyStrength(modifiers.WavyPaddleStrength);
@@ -2746,9 +2951,156 @@ namespace GetBricked.Gameplay
 
         private float GetTimedBallSpeedMultiplier()
         {
+            var persistentModifiers = GetPersistentRunUpgradeModifiers();
             return powerUpService != null
-                ? powerUpService.CalculateEffectModifiers(activeRunSettings).TimedBallSpeedMultiplier
+                ? powerUpService.CalculateEffectModifiers(
+                    (activeRunSettings?.PaddleWidthMultiplier ?? 1f) * persistentModifiers.PaddleWidthMultiplier,
+                    persistentModifiers.WavyPaddleStrength).TimedBallSpeedMultiplier
                 : 1f;
+        }
+
+        private bool TryOpenUpgradeDraft()
+        {
+            if (activeRunState == null || upgradeDraftService == null || activeRunSettings == null)
+            {
+                return false;
+            }
+
+            activeRunState.RegisterLevelClear();
+            var offers = upgradeDraftService.GenerateDraft(activeRunState, activeRunSettings.Seed, currentLevelIndex, 3);
+
+            if (offers.Length == 0)
+            {
+                activeRunState.ClearPendingDraftOffers();
+                return false;
+            }
+
+            activeRunState.SetPendingDraftOffers(offers);
+            roundState = RoundState.UpgradeDraft;
+            selectedUpgradeDraftIndex = 0;
+            return true;
+        }
+
+        private void HandleUpgradeDraftChoice(int optionIndex)
+        {
+            if (activeRunState == null)
+            {
+                return;
+            }
+
+            selectedUpgradeDraftIndex = optionIndex;
+
+            if (!activeRunState.TryApplyPendingDraftOffer(optionIndex, out var appliedUpgrade))
+            {
+                return;
+            }
+
+            if (appliedUpgrade != null && appliedUpgrade.BonusLives > 0)
+            {
+                livesRemaining += appliedUpgrade.BonusLives;
+            }
+
+            ApplyActiveEffects();
+            ShowRunUpgradeBanner(appliedUpgrade);
+
+            if (HasNextLevel())
+            {
+                LoadLevel(currentLevelIndex + 1, RoundState.ReadyToServe);
+            }
+            else
+            {
+                roundState = RoundState.LevelComplete;
+                selectedOverlayActionIndex = 0;
+            }
+        }
+
+        private BreakoutRunUpgradeModifiers GetPersistentRunUpgradeModifiers()
+        {
+            return activeRunState != null
+                ? activeRunState.CalculateModifiers()
+                : new BreakoutRunUpgradeModifiers(1f, 1f, 1f, 0f, 0);
+        }
+
+        private int GetEffectiveBallsPerServe()
+        {
+            var baseBallsPerServe = activeRunSettings == null ? 1 : activeRunSettings.BallsPerServe;
+            var persistentModifiers = GetPersistentRunUpgradeModifiers();
+            return Mathf.Clamp(baseBallsPerServe + persistentModifiers.ExtraBallsPerServe, 1, 6);
+        }
+
+        private float GetEffectiveDropChanceMultiplier()
+        {
+            var baseMultiplier = activeRunSettings?.DropChanceMultiplier ?? 1f;
+            return Mathf.Clamp(baseMultiplier * GetPersistentRunUpgradeModifiers().DropChanceMultiplier, 0f, 3f);
+        }
+
+        private int GetChosenUpgradeCount()
+        {
+            return activeRunState?.ChosenUpgrades.Count ?? 0;
+        }
+
+        private string BuildUpgradeMechanicalSummary(RunUpgradeDefinition upgrade)
+        {
+            if (upgrade == null)
+            {
+                return "Unavailable";
+            }
+
+            var parts = new List<string>();
+
+            if (!Mathf.Approximately(upgrade.PaddleWidthMultiplier, 1f))
+            {
+                parts.Add($"Paddle x{upgrade.PaddleWidthMultiplier:0.00}");
+            }
+
+            if (!Mathf.Approximately(upgrade.BallSpeedMultiplier, 1f))
+            {
+                parts.Add($"Ball x{upgrade.BallSpeedMultiplier:0.00}");
+            }
+
+            if (!Mathf.Approximately(upgrade.DropChanceMultiplier, 1f))
+            {
+                parts.Add($"Drops x{upgrade.DropChanceMultiplier:0.00}");
+            }
+
+            if (upgrade.ExtraBallsPerServe > 0)
+            {
+                parts.Add($"+{upgrade.ExtraBallsPerServe} ball/serve");
+            }
+
+            if (upgrade.BonusLives > 0)
+            {
+                parts.Add($"+{upgrade.BonusLives} life");
+            }
+
+            if (upgrade.WavyPaddleStrength > 0.001f)
+            {
+                parts.Add($"Wave {upgrade.WavyPaddleStrength:0.00}");
+            }
+
+            return parts.Count == 0 ? "Passive build mod" : string.Join(" | ", parts);
+        }
+
+        private Color ResolveRunUpgradeAccentColor(RunUpgradeDefinition upgrade)
+        {
+            if (upgrade == null)
+            {
+                return Color.white;
+            }
+
+            return themeService != null
+                ? themeService.ResolveThemeStyle(upgrade.ThemeSlot, upgrade.AccentColor, upgrade.AccentColor, squareSprite).PrimaryColor
+                : upgrade.AccentColor;
+        }
+
+        private void ShowRunUpgradeBanner(RunUpgradeDefinition upgrade)
+        {
+            if (upgrade == null || powerUpService == null)
+            {
+                return;
+            }
+
+            powerUpService.ShowStatusBanner($"+ BUILD {upgrade.DisplayName}", ResolveRunUpgradeAccentColor(upgrade), 2.2f);
         }
 
         private string BuildActiveEffectsLabel()

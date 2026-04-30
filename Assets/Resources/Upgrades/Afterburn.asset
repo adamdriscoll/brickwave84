@@ -1,0 +1,29 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: aa7a315cf1c5489f8503b6d3309305e1, type: 3}
+  m_Name: Afterburn
+  m_EditorClassIdentifier: 
+  upgradeId: afterburn
+  displayName: Afterburn Coil
+  hudLabel: BURN
+  description: The cabinet overclocks every serve, keeping the ball hotter for all remaining levels.
+  draftWeight: 1.05
+  maxStacks: 4
+  excludedUpgradeIds: []
+  themeSlot: 11
+  accentColor: {r: 0.99, g: 0.87, b: 0.36, a: 1}
+  paddleWidthMultiplier: 1
+  ballSpeedMultiplier: 1.08
+  dropChanceMultiplier: 1
+  wavyPaddleStrength: 0
+  extraBallsPerServe: 0
+  bonusLives: 0

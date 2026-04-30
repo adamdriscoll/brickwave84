@@ -10,7 +10,7 @@
   - One enabled build scene: `Assets/Scenes/SampleScene.unity`
   - The serialized scene asset is still close to the template and only contains the default `Main Camera` and `Global Light 2D`
   - A runtime bootstrap now injects the playable prototype into the scene on load
-  - The prototype currently supports a runtime main menu, run setup flow, in-game HUD, pause / restart / return-to-menu actions, one paddle, one or more balls, lives, serve/reset flow between ball losses, seeded procedural multi-level progression, temporary level-complete / game-over states, and brick-driven power-up / power-down drops
+  - The prototype currently supports a runtime main menu, run setup flow, in-game HUD, pause / restart / return-to-menu actions, one paddle, one or more balls, lives, serve/reset flow between ball losses, seeded procedural multi-level progression, deterministic between-level `pick 1 of 3` run-upgrade drafts, temporary timed pickups, and brick-driven power-up / power-down drops
   - Brick content is now data-driven through ScriptableObject assets, including multi-strength breakable bricks, unbreakable obstacle bricks, and optional per-level moving-brick rules
   - Power-up content is now data-driven through ScriptableObject assets, with timed paddle-size and ball-speed modifiers plus an instant multi-ball burst effect
   - Runtime visuals now support data-driven theme selection, with palette-based themes for background, walls, paddle, bricks, power-up pickups, and ball plus sprite hooks reserved for future art passes
@@ -29,8 +29,10 @@
 - `Assets/Scripts/Gameplay/BreakoutLevelPlanner.cs`: deterministic procedural level-planning service that builds seeded layout plans and moving-brick assignments from level templates and brick definitions
 - `Assets/Scripts/Gameplay/BreakoutRunSetupState.cs`: mutable run-setup state model for seed text, difficulty/modifier choices, and validated `RunSettings` construction
 - `Assets/Scripts/Gameplay/BreakoutRunSetupPersistence.cs`: `PlayerPrefs` persistence helper for saved run-setup choices and theme selection
+- `Assets/Scripts/Gameplay/BreakoutRunState.cs`: run-layer state for cleared encounters, chosen permanent upgrades, pending draft offers, and aggregated persistent modifiers
 - `Assets/Scripts/Gameplay/BreakoutThemeService.cs`: runtime theme resolver/applicator for camera, walls, paddle, balls, bricks, and pickups
 - `Assets/Scripts/Gameplay/BreakoutPowerUpService.cs`: pickup spawning, timed-effect tracking, banner state, and effect-modifier calculations
+- `Assets/Scripts/Gameplay/BreakoutUpgradeDraftService.cs`: deterministic `1 of 3` run-upgrade offer generator using the run seed, cleared-level count, and prior picks
 - `Assets/Scripts/Gameplay/BreakoutGlowRenderer.cs`: legacy runtime helper for layered neon halo sprites that still exists for optional use, but is no longer the default glow path for core gameplay pieces
 - `Assets/Scripts/Gameplay/PaddleController.cs`: keyboard-driven paddle movement with clamped horizontal bounds and runtime width modifiers
 - `Assets/Scripts/Gameplay/BallController.cs`: launch, bounce shaping, per-level speed tuning, speed clamping, and single/multi-ball loss detection support
@@ -41,10 +43,12 @@
 - `Assets/Scripts/Gameplay/Data/LevelDefinition.cs`: ScriptableObject data for progression-profile tuning, legacy layout references, completion rules, and optional authored motion hints that now serve mainly as template data
 - `Assets/Scripts/Gameplay/Data/PowerUpDefinition.cs`: ScriptableObject data for pickup effect type, duration, magnitude, and HUD labeling
 - `Assets/Scripts/Gameplay/Data/RunSettings.cs`: runtime run configuration model for seed, difficulty, balls-per-serve, modifier multipliers, and drop-pool restrictions
+- `Assets/Scripts/Gameplay/Data/RunUpgradeDefinition.cs`: ScriptableObject data for permanent run modifiers, draft weighting, stack caps, exclusions, and upgrade presentation
 - `Assets/Scripts/Gameplay/Data/ThemeDefinition.cs`: ScriptableObject theme data for semantic visual slots, palette colors, and future sprite overrides
 - `Assets/Resources/Bricks/*`: authored brick definition assets loaded at runtime
 - `Assets/Resources/Levels/*`: authored level definition assets loaded at runtime
 - `Assets/Resources/PowerUps/*`: authored power-up definition assets referenced by brick drop tables
+- `Assets/Resources/Upgrades/*`: authored permanent run-upgrade assets loaded for between-level draft offers
 - `Assets/Resources/Themes/*`: authored runtime theme assets loaded by run setup and applied across gameplay visuals
 - `Assets/Resources/Sprites/*`: default SVG gameplay sprites loaded at runtime as fallback art for the ball, bricks, paddle, and power-up pickups
 - `Assets/Resources/Backgrounds/*`: backdrop images available for runtime background presentation; the runtime now rotates them by level index using the sorted contents of this folder and supports assets imported as either `Sprite` or plain `Texture2D`
@@ -81,8 +85,12 @@
 - Main menu, run setup, HUD, pause, diagnostics, and end-of-run flow currently still use temporary runtime OnGUI UI, but that layer now includes theme-aware cabinet styling with marquee/bezel framing, smoked-glass panels, subtle perspective-grid treatment, and restrained scanlines; it is still a likely future candidate for authored UI/prefab migration.
 - Runtime presentation now enables URP bloom from code, uses a custom additive sprite shader for the ball and pickups, and uses URP sprite-unlit materials for the paddle, bricks, walls, and backdrop; the older `BreakoutGlowRenderer` helper still exists but is no longer the default glow path for core gameplay pieces.
 - Difficulty presets and player-selected modifiers are normalized into `RunSettings`, so future tuning should usually flow through that model instead of adding one-off conditionals.
+- Permanent build mods now live in a separate run layer instead of mutating `RunSettings`; `BreakoutRunState` tracks chosen upgrades while `BreakoutPowerUpService` still owns temporary pickup effects.
+- Clearing a level now attempts to open a deterministic upgrade draft before the next board loads; the current implementation sources offers from `Assets/Resources/Upgrades/`, applies one selected modifier permanently for the run, and then advances to the next level.
+- Run-upgrade offers are currently deterministic from the run seed, cleared-level count, and previously chosen upgrades, so reproducing the same seed plus the same pick order should reproduce the same draft sequence.
+- The first curated permanent-upgrade pool currently covers paddle width, ball speed, drop chance, extra lives, extra balls per serve, and a persistent mild wavy-paddle modifier.
 - Deterministic gameplay randomness currently covers serve launch direction, drop chance / weighted pickup selection, and seeded procedural level plans keyed off the run seed plus level index.
-- `R` returns to the run-setup overlay, `Esc` / `P` pauses active gameplay, and `Space` launches serves or confirms overlay actions once a configuration has been started.
+- `R` returns to the run-setup overlay, `Esc` / `P` pauses active gameplay, `Space` launches serves or confirms overlay actions, and between-level upgrade drafts use left/right plus `Space` with `R` still acting as an abandon-to-setup shortcut.
 - Timed pickup effects currently refresh by extending the same effect's duration, while opposing effects coexist and combine multiplicatively.
 - Life loss now depends on all active balls leaving play, so multi-ball changes should be reviewed against `BreakoutGameController.HandleBallLost`.
 - The current `Balls Per Serve` run modifier spawns extra balls at every serve, so future ball-loss or serve-flow changes should be checked against `BreakoutGameController.SpawnConfiguredServeBalls`.
@@ -130,7 +138,7 @@
 - Keep first-pass gameplay tuning values serialized on the controlling MonoBehaviour so feel can be adjusted quickly in the Inspector during playtesting.
 - Add prefabs under `Assets/Prefabs/`, art under `Assets/Art/`, and audio under `Assets/Audio/` if those areas are created later.
 - If tests are added, prefer Unity Test Framework with clear separation between Edit Mode and Play Mode tests.
-- If you add more authored gameplay content, keep using `.asset` plus `.meta` pairings under `Assets/Resources/Bricks/`, `Assets/Resources/Levels/`, and `Assets/Resources/PowerUps/` unless the project deliberately migrates to a different content-loading path.
+- If you add more authored gameplay content, keep using `.asset` plus `.meta` pairings under `Assets/Resources/Bricks/`, `Assets/Resources/Levels/`, `Assets/Resources/PowerUps/`, and `Assets/Resources/Upgrades/` unless the project deliberately migrates to a different content-loading path.
 - If you add or replace gameplay SVGs, keep them under `Assets/Resources/Sprites/` unless a request explicitly introduces a new content path, and let Unity generate or refresh the paired `.meta` files after import.
 - If you add or change vector art workflow guidance, prefer updating `.codex/skills/breakout-svg-art/` instead of repeating the same SVG hookup instructions in task-specific notes.
 
@@ -166,7 +174,10 @@ When making changes, validate with the Unity editor when possible:
   - Ball and pickup glow now comes from bloom on additive sprites instead of the old layered halo look, while paddle and bricks remain crisp and readable on unlit materials
   - Timed paddle-width and ball-speed effects appear in the HUD and clean themselves up when their timers expire
   - Multi-ball does not consume a life until the last active ball is lost
-  - Clearing the current objective reaches the temporary level-complete state and the overlay menu can advance, restart, or return to the main menu
+  - Clearing the current objective opens a deterministic `1 of 3` upgrade draft before the next level, and the selected upgrade persists for the rest of the run
+  - Replaying the same seed and taking the same upgrade picks reproduces the same draft offers in the same order
+  - Permanent upgrades that affect paddle width, ball speed, drop chance, lives, or serve ball count immediately update the current run and keep affecting later levels
+  - The HUD and diagnostics show the active build summary once at least one permanent upgrade has been drafted
   - Game over exposes restart, setup, and main-menu actions
   - `R` returns to run setup without leaving orphaned runtime balls or pickups behind
 - If build configuration changes are made, re-check `ProjectSettings/EditorBuildSettings.asset`.
@@ -186,24 +197,28 @@ If you are a future agent starting work here, read these first:
 9. `Assets/Scripts/Gameplay/BreakoutRunSetupState.cs`
 10. `Assets/Scripts/Gameplay/BreakoutThemeService.cs`
 11. `Assets/Scripts/Gameplay/BreakoutPowerUpService.cs`
-12. `Assets/Scripts/Gameplay/Data/RunSettings.cs`
-13. `Assets/Scripts/Gameplay/DeterministicRandomService.cs`
-14. `Assets/Scripts/Gameplay/Data/LevelDefinition.cs`
-15. `Assets/Scripts/Gameplay/Data/PowerUpDefinition.cs`
-16. `Assets/Scripts/Gameplay/Data/ThemeDefinition.cs`
-17. `Assets/Resources/Levels/Level01.asset`
-18. `Assets/Resources/Bricks/BasicBrick.asset`
-19. `Assets/Resources/Themes/ClassicTheme.asset`
-20. `Plan/OVERVIEW.md`
-21. `Plan/PLAN.md`
-22. `Plan/STYLE.md`
-23. `Assets/Scenes/SampleScene.unity`
-24. `.codex/skills/breakout-svg-art/SKILL.md`
-25. `.codex/skills/repo-maintenance/SKILL.md`
+12. `Assets/Scripts/Gameplay/BreakoutRunState.cs`
+13. `Assets/Scripts/Gameplay/BreakoutUpgradeDraftService.cs`
+14. `Assets/Scripts/Gameplay/Data/RunSettings.cs`
+15. `Assets/Scripts/Gameplay/Data/RunUpgradeDefinition.cs`
+16. `Assets/Scripts/Gameplay/DeterministicRandomService.cs`
+17. `Assets/Scripts/Gameplay/Data/LevelDefinition.cs`
+18. `Assets/Scripts/Gameplay/Data/PowerUpDefinition.cs`
+19. `Assets/Scripts/Gameplay/Data/ThemeDefinition.cs`
+20. `Assets/Resources/Levels/Level01.asset`
+21. `Assets/Resources/Bricks/BasicBrick.asset`
+22. `Assets/Resources/Upgrades/WideLoader.asset`
+23. `Assets/Resources/Themes/ClassicTheme.asset`
+24. `Plan/OVERVIEW.md`
+25. `Plan/PLAN.md`
+26. `Plan/STYLE.md`
+27. `Assets/Scenes/SampleScene.unity`
+28. `.codex/skills/breakout-svg-art/SKILL.md`
+29. `.codex/skills/repo-maintenance/SKILL.md`
 
 ## Current Reality Check
 
-- There is now a minimal implemented game loop for a single-screen brick-breaker prototype with procedural seeded level generation, pickup-driven rule changes, palette-based theme selection, SVG-backed gameplay art, a resource-backed synthwave background layer, and a first-pass player-facing menu / HUD / pause flow.
+- There is now a minimal implemented game loop for a single-screen brick-breaker prototype with procedural seeded level generation, pickup-driven rule changes, deterministic between-level run-upgrade drafts, palette-based theme selection, SVG-backed gameplay art, a resource-backed synthwave background layer, and a first-pass player-facing menu / HUD / pause flow.
 - The current custom systems are small, but they are real and worth extending deliberately instead of replacing by default.
 - Most near-term work will still be greenfield, but it should now build on the existing runtime prototype and folder structure.
 - If a user asks for game features, you will likely be extending the current scripts and authored content assets first, then deciding when to promote runtime-generated objects into authored scene or prefab assets.
