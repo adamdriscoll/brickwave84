@@ -15,7 +15,7 @@ MonoBehaviour:
   displayName: Narrow Paddle
   hudLabel: SHRINK
   powerUpId: small_paddle
-  iconResourcePath: 
+  iconResourcePath: Sprites/small-paddle
   effectType: 0
   beneficial: 0
   durationSeconds: 10

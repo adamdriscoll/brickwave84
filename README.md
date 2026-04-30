@@ -25,10 +25,11 @@
 - Pause, restart, return-to-setup, and return-to-menu flows
 - One paddle, one or more active balls, lives, serve/reset flow, and game-over handling
 - Timed power-ups and power-downs from brick drops
+- Falling capsules now spin as they drop for a little more arcade energy
 - Spinning breakable bricks that wake up on impact, ricochet the ball at odd angles, and can have their rotation restricted by neighboring bricks
 - Deterministic `pick 1 of 3` permanent upgrade drafts between cleared stages
 - Data-driven brick, level, pickup, upgrade, and theme content through ScriptableObjects
-- SVG-backed gameplay sprites plus rotating background art from `Resources/Backgrounds`
+- SVG-backed gameplay sprites plus rotating background art from `Resources/Backgrounds`, including dedicated pickup silhouettes for the active capsule set
 - Bloom-backed glow on balls and pickups, with crisp unlit paddle and brick rendering
 - A first layer of Unity Edit Mode coverage around gameplay modifier behavior
 

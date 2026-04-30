@@ -15,7 +15,7 @@ MonoBehaviour:
   displayName: Fast Ball
   hudLabel: FAST
   powerUpId: fast_ball
-  iconResourcePath: 
+  iconResourcePath: Sprites/fast-ball
   effectType: 1
   beneficial: 0
   durationSeconds: 10

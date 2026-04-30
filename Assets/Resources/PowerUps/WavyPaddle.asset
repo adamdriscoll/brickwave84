@@ -15,7 +15,7 @@ MonoBehaviour:
   displayName: Wavy Paddle
   hudLabel: WAVY
   powerUpId: wavy_paddle
-  iconResourcePath: 
+  iconResourcePath: Sprites/wavy-paddle
   effectType: 3
   beneficial: 0
   durationSeconds: 12

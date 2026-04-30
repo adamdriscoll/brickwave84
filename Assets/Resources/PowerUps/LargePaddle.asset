@@ -15,7 +15,7 @@ MonoBehaviour:
   displayName: Wide Paddle
   hudLabel: WIDE
   powerUpId: large_paddle
-  iconResourcePath: 
+  iconResourcePath: Sprites/wide-paddle
   effectType: 0
   beneficial: 1
   durationSeconds: 12

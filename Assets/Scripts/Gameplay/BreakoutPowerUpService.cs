@@ -610,7 +610,14 @@ namespace GetBricked.Gameplay
             var pickupStyle = themeService != null
                 ? themeService.ResolvePowerUpStyle(powerUpDefinition)
                 : new ThemeVisualStyle(powerUpDefinition.PickupColor, powerUpDefinition.PickupColor, null);
-            pickup.Configure(controller, powerUpDefinition, pickupFallSpeed, arenaBottom - 0.9f, pickupStyle);
+            pickup.Configure(
+                controller,
+                powerUpDefinition,
+                pickupFallSpeed,
+                arenaBottom - 0.9f,
+                ResolvePickupStartingRotation(powerUpDefinition),
+                ResolvePickupSpinDegreesPerSecond(powerUpDefinition),
+                pickupStyle);
             ActivePickups.Add(pickup);
         }
 
@@ -641,6 +648,33 @@ namespace GetBricked.Gameplay
                 ? themeService.ResolvePowerUpStyle(powerUpDefinition).PrimaryColor
                 : Color.white;
             PickupBannerTimer = 1.6f;
+        }
+
+        private static float ResolvePickupStartingRotation(PowerUpDefinition powerUpDefinition)
+        {
+            if (powerUpDefinition == null)
+            {
+                return 45f;
+            }
+
+            return 45f + ((((int)powerUpDefinition.EffectType) % 4) * 12f);
+        }
+
+        private static float ResolvePickupSpinDegreesPerSecond(PowerUpDefinition powerUpDefinition)
+        {
+            if (powerUpDefinition == null)
+            {
+                return 150f;
+            }
+
+            var baseSpeed = 135f + (((int)powerUpDefinition.EffectType) * 9f);
+
+            if (powerUpDefinition.EffectType == PowerUpEffectType.MultiBallBurst)
+            {
+                baseSpeed += 24f;
+            }
+
+            return powerUpDefinition.IsBeneficial ? baseSpeed : -baseSpeed;
         }
     }
 }

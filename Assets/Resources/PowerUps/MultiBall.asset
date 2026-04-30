@@ -15,7 +15,7 @@ MonoBehaviour:
   displayName: Multi-Ball
   hudLabel: MULTI
   powerUpId: multi_ball
-  iconResourcePath: 
+  iconResourcePath: Sprites/multiball
   effectType: 2
   beneficial: 1
   durationSeconds: 0

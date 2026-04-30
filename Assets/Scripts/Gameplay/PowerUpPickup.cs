@@ -16,17 +16,30 @@ namespace GetBricked.Gameplay
         private Collider2D pickupCollider;
         private float fallSpeed;
         private float missThresholdY;
+        private float rotationDegreesPerSecond;
+        private float currentRotationDegrees;
+        private Vector3 targetVisualScale = Vector3.one;
         private float visibilityMultiplier = 1f;
         private bool isResolved;
 
         public PowerUpDefinition Definition => definition;
 
-        public void Configure(BreakoutGameController controller, PowerUpDefinition powerUpDefinition, float speed, float missY, ThemeVisualStyle visualStyle)
+        public void Configure(
+            BreakoutGameController controller,
+            PowerUpDefinition powerUpDefinition,
+            float speed,
+            float missY,
+            float startingRotationDegrees,
+            float spinDegreesPerSecond,
+            ThemeVisualStyle visualStyle)
         {
             gameController = controller;
             definition = powerUpDefinition;
             fallSpeed = Mathf.Max(0.1f, speed);
             missThresholdY = missY;
+            currentRotationDegrees = startingRotationDegrees;
+            rotationDegreesPerSecond = spinDegreesPerSecond;
+            targetVisualScale = transform.localScale;
             spriteRenderer = GetComponent<SpriteRenderer>();
             glowRenderer = GetComponent<BreakoutGlowRenderer>();
             pickupBody = GetComponent<Rigidbody2D>();
@@ -36,10 +49,15 @@ namespace GetBricked.Gameplay
             {
                 pickupBody.bodyType = RigidbodyType2D.Kinematic;
                 pickupBody.gravityScale = 0f;
-                pickupBody.freezeRotation = true;
+                pickupBody.freezeRotation = false;
                 pickupBody.interpolation = RigidbodyInterpolation2D.Interpolate;
                 pickupBody.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
                 pickupBody.linearVelocity = Vector2.zero;
+                pickupBody.rotation = currentRotationDegrees;
+            }
+            else
+            {
+                transform.rotation = Quaternion.Euler(0f, 0f, currentRotationDegrees);
             }
 
             if (pickupCollider != null)
@@ -60,6 +78,7 @@ namespace GetBricked.Gameplay
             }
 
             spriteRenderer.sprite = visualStyle.Sprite;
+            NormalizeVisualScale();
             var resolvedColor = visualStyle.PrimaryColor;
             resolvedColor.a *= visibilityMultiplier;
             spriteRenderer.color = resolvedColor;
@@ -96,6 +115,20 @@ namespace GetBricked.Gameplay
             else
             {
                 transform.position = nextPosition;
+            }
+
+            if (Mathf.Abs(rotationDegreesPerSecond) > 0.01f)
+            {
+                currentRotationDegrees = Mathf.Repeat(currentRotationDegrees + (rotationDegreesPerSecond * Time.fixedDeltaTime), 360f);
+
+                if (pickupBody != null)
+                {
+                    pickupBody.rotation = currentRotationDegrees;
+                }
+                else
+                {
+                    transform.rotation = Quaternion.Euler(0f, 0f, currentRotationDegrees);
+                }
             }
 
             if (IsOverlappingPaddle())
@@ -142,6 +175,27 @@ namespace GetBricked.Gameplay
 
             var paddleCollider = gameController.PaddleCollider;
             return paddleCollider != null && pickupCollider.bounds.Intersects(paddleCollider.bounds);
+        }
+
+        private void NormalizeVisualScale()
+        {
+            if (spriteRenderer == null)
+            {
+                return;
+            }
+
+            var sprite = spriteRenderer.sprite;
+
+            if (sprite == null)
+            {
+                transform.localScale = targetVisualScale;
+                return;
+            }
+
+            var spriteSize = sprite.bounds.size;
+            var scaleX = spriteSize.x > 0.0001f ? targetVisualScale.x / spriteSize.x : targetVisualScale.x;
+            var scaleY = spriteSize.y > 0.0001f ? targetVisualScale.y / spriteSize.y : targetVisualScale.y;
+            transform.localScale = new Vector3(scaleX, scaleY, targetVisualScale.z);
         }
 
     }

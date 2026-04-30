@@ -15,7 +15,7 @@ MonoBehaviour:
   displayName: Slow Ball
   hudLabel: SLOW
   powerUpId: slow_ball
-  iconResourcePath: 
+  iconResourcePath: Sprites/slow-ball
   effectType: 1
   beneficial: 1
   durationSeconds: 10
