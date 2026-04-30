@@ -190,47 +190,95 @@ namespace GetBricked.Gameplay
         {
             EnsureStyles();
 
-            var boxRect = new Rect((Screen.width * 0.5f) - 460f, (Screen.height * 0.5f) - 232f, 920f, 464f);
-            var leftRect = new Rect(boxRect.x + 34f, boxRect.y + 104f, 292f, 236f);
-            var rightRect = new Rect(boxRect.x + 350f, boxRect.y + 104f, 536f, 236f);
+            var boxWidth = Mathf.Min(1040f, Screen.width - 56f);
+            var boxHeight = Mathf.Min(548f, Screen.height - 150f);
+
+            if (boxWidth < 920f)
+            {
+                boxWidth = Screen.width - 32f;
+            }
+
+            if (boxHeight < 500f)
+            {
+                boxHeight = Screen.height - 104f;
+            }
+
+            var boxRect = new Rect((Screen.width - boxWidth) * 0.5f, (Screen.height - boxHeight) * 0.5f, boxWidth, boxHeight);
+            var outerPadding = 34f;
+            var contentGap = 24f;
+            var headerTop = boxRect.y + 28f;
+            var contentTop = boxRect.y + 112f;
+            var hintHeight = 42f;
+            var footerHeight = 54f;
+            var hintY = boxRect.yMax - hintHeight - 18f;
+            var footerY = hintY - footerHeight - 14f;
+            var contentBottom = footerY - 18f;
+            var contentHeight = Mathf.Max(252f, contentBottom - contentTop);
+            var leftWidth = Mathf.Clamp(boxRect.width * 0.31f, 292f, 328f);
+            var rightWidth = boxRect.width - (outerPadding * 2f) - contentGap - leftWidth;
+            var leftRect = new Rect(boxRect.x + outerPadding, contentTop, leftWidth, contentHeight);
+            var rightRect = new Rect(leftRect.xMax + contentGap, contentTop, rightWidth, contentHeight);
             DrawPanel(boxRect, palette.AccentSecondary, palette.AccentPrimary, true);
             DrawPanel(leftRect, palette.AccentSecondary, palette.AccentWarm, false);
             DrawPanel(rightRect, palette.AccentPrimary, palette.AccentWarm, false);
 
-            DrawTextWithShadow(new Rect(boxRect.x + 34f, boxRect.y + 28f, boxRect.width - 68f, 40f), view.Title, overlayTitleStyle, palette.TextPrimary);
-            DrawTextWithShadow(new Rect(boxRect.x + 34f, boxRect.y + 66f, boxRect.width - 68f, 24f), view.Subtitle, setupHintStyle, palette.TextMuted, 0.45f);
+            DrawTextWithShadow(new Rect(boxRect.x + outerPadding, headerTop, boxRect.width - (outerPadding * 2f), 40f), view.Title, overlayTitleStyle, palette.TextPrimary);
+            DrawTextWithShadow(new Rect(boxRect.x + outerPadding, headerTop + 38f, boxRect.width - (outerPadding * 2f), 36f), view.Subtitle, setupHintStyle, palette.TextMuted, 0.45f);
             DrawSectionLabel(new Rect(leftRect.x + 18f, leftRect.y + 14f, leftRect.width - 36f, 22f), view.SectionTitle, palette.AccentWarm);
             DrawSectionLabel(new Rect(rightRect.x + 18f, rightRect.y + 14f, rightRect.width - 36f, 22f), view.PreviewTitle, palette.AccentPrimary);
 
-            DrawActionList(view.ActionLabels, view.SelectedActionIndex, leftRect.x + 18f, leftRect.y + 52f, leftRect.width - 36f, 42f, onActionClicked);
+            DrawActionList(view.ActionLabels, view.SelectedActionIndex, leftRect.x + 18f, leftRect.y + 52f, leftRect.width - 36f, 44f, onActionClicked);
 
             for (var index = 0; index < view.PreviewLines.Length; index++)
             {
                 DrawTextWithShadow(
-                    new Rect(rightRect.x + 20f, rightRect.y + 52f + (index * 34f), rightRect.width - 40f, 28f),
+                    new Rect(rightRect.x + 20f, rightRect.y + 50f + (index * 34f), rightRect.width - 40f, 28f),
                     view.PreviewLines[index],
                     hudStyle,
                     palette.TextPrimary,
                     0.35f);
             }
 
-            DrawTextWithShadow(new Rect(rightRect.x + 18f, rightRect.y + 188f, rightRect.width - 36f, 42f), view.ValidationText, setupHintStyle, palette.TextMuted, 0.35f);
-            DrawTextWithShadow(new Rect(boxRect.x + 34f, boxRect.y + 362f, boxRect.width - 68f, 42f), view.FooterText, setupHintStyle, palette.TextMuted, 0.35f);
-            DrawHintBand(new Rect(boxRect.x + 28f, boxRect.y + 412f, boxRect.width - 56f, 28f), view.HintText);
+            var validationY = rightRect.y + 54f + (view.PreviewLines.Length * 34f);
+            var validationHeight = Mathf.Max(46f, rightRect.yMax - validationY - 16f);
+            DrawTextWithShadow(new Rect(rightRect.x + 18f, validationY, rightRect.width - 36f, validationHeight), view.ValidationText, setupHintStyle, palette.TextMuted, 0.35f);
+            DrawTextWithShadow(new Rect(boxRect.x + outerPadding, footerY, boxRect.width - (outerPadding * 2f), footerHeight), view.FooterText, setupHintStyle, palette.TextMuted, 0.35f);
+            DrawHintBand(new Rect(boxRect.x + 28f, hintY, boxRect.width - 56f, hintHeight), view.HintText);
         }
 
         public void DrawRunSetup(BreakoutUiRunSetupView view)
         {
             EnsureStyles();
 
-            var boxRect = new Rect((Screen.width * 0.5f) - 428f, (Screen.height * 0.5f) - 246f, 856f, 492f);
+            var boxWidth = Mathf.Min(1040f, Screen.width - 56f);
+            var boxHeight = Mathf.Min(620f, Screen.height - 140f);
+
+            if (boxWidth < 900f)
+            {
+                boxWidth = Screen.width - 32f;
+            }
+
+            if (boxHeight < 548f)
+            {
+                boxHeight = Screen.height - 96f;
+            }
+
+            var boxRect = new Rect((Screen.width - boxWidth) * 0.5f, (Screen.height - boxHeight) * 0.5f, boxWidth, boxHeight);
+            var outerPadding = 34f;
+            var contentGap = 28f;
+            var headerTop = boxRect.y + 26f;
+            var contentTop = boxRect.y + 116f;
+            var hintHeight = 58f;
+            var contentHeight = Mathf.Max(314f, boxRect.height - 212f);
+            var listWidth = Mathf.Clamp(boxRect.width * 0.56f, 458f, 562f);
+            var previewWidth = boxRect.width - (outerPadding * 2f) - contentGap - listWidth;
+            var listRect = new Rect(boxRect.x + outerPadding, contentTop, listWidth, contentHeight);
+            var previewRect = new Rect(listRect.xMax + contentGap, contentTop, previewWidth, contentHeight);
+            var hintY = boxRect.yMax - hintHeight - 24f;
             DrawPanel(boxRect, palette.AccentPrimary, palette.AccentSecondary, true);
 
-            DrawTextWithShadow(new Rect(boxRect.x + 30f, boxRect.y + 26f, boxRect.width - 60f, 40f), view.Title, setupTitleStyle, palette.TextPrimary);
-            DrawTextWithShadow(new Rect(boxRect.x + 30f, boxRect.y + 66f, boxRect.width - 60f, 24f), view.Subtitle, setupHintStyle, palette.TextMuted, 0.4f);
-
-            var listRect = new Rect(boxRect.x + 34f, boxRect.y + 106f, 458f, 242f);
-            var previewRect = new Rect(boxRect.x + 520f, boxRect.y + 106f, 302f, 242f);
+            DrawTextWithShadow(new Rect(boxRect.x + 30f, headerTop, boxRect.width - 60f, 40f), view.Title, setupTitleStyle, palette.TextPrimary);
+            DrawTextWithShadow(new Rect(boxRect.x + 30f, headerTop + 40f, boxRect.width - 60f, 36f), view.Subtitle, setupHintStyle, palette.TextMuted, 0.4f);
             DrawPanel(listRect, palette.AccentSecondary, palette.AccentPrimary, false);
             DrawPanel(previewRect, palette.AccentWarm, palette.AccentPrimary, false);
             DrawSectionLabel(new Rect(listRect.x + 16f, listRect.y + 12f, listRect.width - 32f, 20f), "CONFIG", palette.AccentWarm);
@@ -238,13 +286,13 @@ namespace GetBricked.Gameplay
 
             var fieldX = listRect.x + 16f;
             var fieldWidth = listRect.width - 32f;
-            var lineHeight = 34f;
+            var lineHeight = Mathf.Clamp((listRect.height - 56f) / Mathf.Max(1, view.FieldLines.Length), 30f, 38f);
             var startY = listRect.y + 44f;
 
             for (var index = 0; index < view.FieldLines.Length; index++)
             {
                 var isSelected = index == Mathf.Clamp(view.SelectedFieldIndex, 0, Math.Max(0, view.FieldLines.Length - 1));
-                var lineRect = new Rect(fieldX, startY + (lineHeight * index), fieldWidth, 28f);
+                var lineRect = new Rect(fieldX, startY + (lineHeight * index), fieldWidth, lineHeight - 4f);
 
                 if (isSelected)
                 {
@@ -259,9 +307,12 @@ namespace GetBricked.Gameplay
                     0.3f);
             }
 
-            DrawTextWithShadow(new Rect(previewRect.x + 16f, previewRect.y + 50f, previewRect.width - 32f, 110f), view.PreviewLine, overlayBodyStyle, palette.TextPrimary, 0.3f);
-            DrawTextWithShadow(new Rect(previewRect.x + 16f, previewRect.y + 162f, previewRect.width - 32f, 54f), view.ValidationText, setupHintStyle, palette.TextMuted, 0.3f);
-            DrawHintBand(new Rect(boxRect.x + 30f, boxRect.y + 392f, boxRect.width - 60f, 54f), view.HintText);
+            var previewBodyHeight = Mathf.Max(116f, previewRect.height * 0.48f);
+            var previewBodyRect = new Rect(previewRect.x + 16f, previewRect.y + 50f, previewRect.width - 32f, previewBodyHeight);
+            var validationRect = new Rect(previewRect.x + 16f, previewBodyRect.yMax + 14f, previewRect.width - 32f, previewRect.yMax - previewBodyRect.yMax - 26f);
+            DrawTextWithShadow(previewBodyRect, view.PreviewLine, overlayBodyStyle, palette.TextPrimary, 0.3f);
+            DrawTextWithShadow(validationRect, view.ValidationText, setupHintStyle, palette.TextMuted, 0.3f);
+            DrawHintBand(new Rect(boxRect.x + 30f, hintY, boxRect.width - 60f, hintHeight), view.HintText);
         }
 
         public void DrawGameplayHud(BreakoutUiHudView view, Action onToggleDiagnostics, Action onToggleMenu)
@@ -271,7 +322,7 @@ namespace GetBricked.Gameplay
             var statusRect = new Rect(18f, 18f, Mathf.Max(320f, Screen.width - 320f), 72f);
             var buttonsX = Screen.width - 258f;
             var buttonsY = 20f;
-            var diagnosticsLabel = view.IsDiagnosticsVisible ? "HIDE DIAGNOSTICS" : "DIAGNOSTICS";
+            var diagnosticsLabel = view.IsDiagnosticsVisible ? "DBG ON" : "DBG";
             var menuLabel = view.IsPaused ? "RESUME" : "MENU";
 
             DrawPanel(statusRect, palette.AccentPrimary, palette.AccentSecondary, false);
@@ -294,16 +345,34 @@ namespace GetBricked.Gameplay
         {
             EnsureStyles();
 
-            var boxRect = view.IsCompact
-                ? new Rect((Screen.width * 0.5f) - 350f, (Screen.height * 0.5f) - 196f, 700f, 392f)
-                : new Rect((Screen.width * 0.5f) - 360f, (Screen.height * 0.5f) - 188f, 720f, 376f);
+            var boxWidth = view.IsCompact ? 780f : 760f;
+            var minBoxHeight = view.IsCompact ? 470f : 404f;
+            var boxHeight = Mathf.Max(
+                minBoxHeight,
+                164f + (view.SummaryLines.Length * 30f) + (view.ActionLabels.Length * 44f) + (view.FooterLines.Length * 38f));
+            boxWidth = Mathf.Min(boxWidth, Screen.width - 56f);
+            boxHeight = Mathf.Min(boxHeight, Screen.height - 132f);
+
+            if (boxWidth < 680f)
+            {
+                boxWidth = Screen.width - 32f;
+            }
+
+            var boxRect = new Rect((Screen.width - boxWidth) * 0.5f, (Screen.height - boxHeight) * 0.5f, boxWidth, boxHeight);
+            var outerPadding = 30f;
+            var titleY = boxRect.y + 24f;
+            var summaryY = boxRect.y + 72f;
+            var summarySpacing = 28f;
+            var actionStartY = summaryY + (view.SummaryLines.Length * summarySpacing) + 18f;
+            var actionLineHeight = 44f;
+            var footerStartY = actionStartY + (view.ActionLabels.Length * actionLineHeight) + 18f;
             DrawPanel(boxRect, palette.AccentSecondary, palette.AccentPrimary, true);
-            DrawTextWithShadow(new Rect(boxRect.x + 30f, boxRect.y + 24f, boxRect.width - 60f, 40f), view.Title, overlayTitleStyle, palette.TextPrimary);
+            DrawTextWithShadow(new Rect(boxRect.x + outerPadding, titleY, boxRect.width - (outerPadding * 2f), 40f), view.Title, overlayTitleStyle, palette.TextPrimary);
 
             for (var index = 0; index < view.SummaryLines.Length; index++)
             {
                 DrawTextWithShadow(
-                    new Rect(boxRect.x + 36f, boxRect.y + 72f + (index * 28f), boxRect.width - 72f, 24f),
+                    new Rect(boxRect.x + 36f, summaryY + (index * summarySpacing), boxRect.width - 72f, 24f),
                     view.SummaryLines[index],
                     overlayBodyStyle,
                     index == 0 ? palette.TextPrimary : palette.TextMuted,
@@ -314,15 +383,15 @@ namespace GetBricked.Gameplay
                 view.ActionLabels,
                 view.SelectedActionIndex,
                 boxRect.x + 88f,
-                view.IsCompact ? boxRect.y + 134f : boxRect.y + 146f,
+                actionStartY,
                 boxRect.width - 176f,
-                40f,
+                actionLineHeight,
                 onActionClicked);
 
             for (var index = 0; index < view.FooterLines.Length; index++)
             {
                 DrawTextWithShadow(
-                    new Rect(boxRect.x + 34f, boxRect.y + 286f + (index * 34f), boxRect.width - 68f, 30f),
+                    new Rect(boxRect.x + 34f, footerStartY + (index * 34f), boxRect.width - 68f, 34f),
                     view.FooterLines[index],
                     setupHintStyle,
                     palette.TextMuted,

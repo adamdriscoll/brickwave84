@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
+  <title id="title">Chain Lightning</title>
+  <desc id="desc">A monochrome neon icon showing a ball chaining lightning between bricks.</desc>
+
+  <defs>
+    <filter id="softGlow" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="2.25" result="blur"/>
+      <feColorMatrix in="blur" type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 .8 0" result="glow"/>
+      <feMerge>
+        <feMergeNode in="glow"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <style><![CDATA[
+      .icon { fill: none; stroke: #fff; stroke-linecap: round; stroke-linejoin: round; filter: url(#softGlow); }
+      .main { stroke-width: 7; }
+      .mid { stroke-width: 5; opacity: .9; }
+      .thin { stroke-width: 3.25; opacity: .72; }
+      .faint { stroke-width: 3; opacity: .42; }
+      .fill { fill: #fff; stroke: none; opacity: .92; filter: url(#softGlow); }
+      .fill-soft { fill: #fff; stroke: none; opacity: .28; filter: url(#softGlow); }
+      .dash { stroke-dasharray: 10 9; }
+      .pixel { fill: #fff; opacity: .88; filter: url(#softGlow); }
+    ]]></style>
+  </defs>
+
+  <g class="icon">
+
+
+    <rect class="mid" x="102" y="42" width="52" height="24" rx="5"/>
+    <line class="thin" x1="102" y1="54.0" x2="154" y2="54.0"/>
+    <line class="thin" x1="128.0" y1="54.0" x2="128.0" y2="66"/>
+
+    <rect class="mid" x="36" y="108" width="48" height="24" rx="5"/>
+    <line class="thin" x1="36" y1="120.0" x2="84" y2="120.0"/>
+    <line class="thin" x1="60.0" y1="120.0" x2="60.0" y2="132"/>
+
+    <rect class="mid" x="172" y="108" width="48" height="24" rx="5"/>
+    <line class="thin" x1="172" y1="120.0" x2="220" y2="120.0"/>
+    <line class="thin" x1="196.0" y1="120.0" x2="196.0" y2="132"/>
+
+    <circle class="main" cx="128" cy="188" r="20"/>
+    <path class="thin" d="M 119.0 182.0 Q 124.4 175.6 133.0 175.6"/>
+    <circle class="fill" cx="118.4" cy="188.8" r="2.4"/>
+    <path class="main" d="M 128 168 L 123 150 L 132 142 L 126 128 L 139 116 L 130 102 L 138 89 L 128 68"/>
+    <path class="main" d="M 128 143 L 105 128 L 92 132 L 78 121"/>
+    <path class="main" d="M 128 143 L 151 128 L 164 132 L 178 121"/>
+    <path class="thin" d="M 111 139 l-7 8 M145 139 l7 8 M121 82 l-10 -7 M136 82 l10 -7"/>
+    <line class="thin" x1="109" y1="196" x2="93" y2="212"/><line class="thin" x1="119" y1="202" x2="109" y2="219"/>
+
+  </g>
+</svg>

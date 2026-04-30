@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
+  <title id="title">Lag Spike</title>
+  <desc id="desc">A monochrome neon icon showing a glitching paddle and signal spike.</desc>
+
+  <defs>
+    <filter id="softGlow" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="2.25" result="blur"/>
+      <feColorMatrix in="blur" type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 .8 0" result="glow"/>
+      <feMerge>
+        <feMergeNode in="glow"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <style><![CDATA[
+      .icon { fill: none; stroke: #fff; stroke-linecap: round; stroke-linejoin: round; filter: url(#softGlow); }
+      .main { stroke-width: 7; }
+      .mid { stroke-width: 5; opacity: .9; }
+      .thin { stroke-width: 3.25; opacity: .72; }
+      .faint { stroke-width: 3; opacity: .42; }
+      .fill { fill: #fff; stroke: none; opacity: .92; filter: url(#softGlow); }
+      .fill-soft { fill: #fff; stroke: none; opacity: .28; filter: url(#softGlow); }
+      .dash { stroke-dasharray: 10 9; }
+      .pixel { fill: #fff; opacity: .88; filter: url(#softGlow); }
+    ]]></style>
+  </defs>
+
+  <g class="icon">
+
+    <rect class="main" x="54" y="130" width="148" height="36" rx="18"/>
+    <path class="mid" d="M 77 130 h47 v-10 h18 v10 h37"/>
+    <path class="mid" d="M 86 166 h42 v11 h19 v-11 h31"/>
+    <path class="thin" d="M 98 104 h30 l13 -31 l18 55 l13 -24 h17"/>
+    <circle class="fill" cx="200" cy="104" r="2.6"/><circle class="fill" cx="212" cy="104" r="2.6"/><circle class="fill" cx="224" cy="104" r="2.6"/>
+    <rect class="pixel" x="70" y="96" width="9" height="9" rx="1.5"/>
+    <rect class="pixel" x="88" y="84" width="7" height="7" rx="1.3"/>
+    <rect class="pixel" x="178" y="103" width="8" height="8" rx="1.4"/>
+    <rect class="pixel" x="191" y="177" width="10" height="10" rx="1.5"/>
+    <line class="thin" x1="33" y1="141" x2="66" y2="141"/>
+    <line class="thin" x1="42" y1="159" x2="82" y2="159"/>
+    <line class="thin" x1="197" y1="139" x2="228" y2="139"/>
+    <line class="thin" x1="207" y1="161" x2="235" y2="161"/>
+
+  </g>
+</svg>

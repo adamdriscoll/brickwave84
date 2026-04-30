@@ -10,15 +10,16 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 3f8f1a7db0b0418ca0b20bd91ff3c1c2, type: 3}
-  m_Name: SlowBall
+  m_Name: SplitPaddle
   m_EditorClassIdentifier: 
-  displayName: Slow Ball
-  hudLabel: SLOW
-  powerUpId: slow_ball
+  displayName: Split Paddle
+  hudLabel: SPLIT
+  powerUpId: split_paddle
   iconResourcePath: 
-  effectType: 1
-  beneficial: 1
-  durationSeconds: 10
-  scalar: 0.78
+  effectType: 10
+  beneficial: 0
+  durationSeconds: 12
+  scalar: 1
   extraBallCount: 0
-  pickupColor: {r: 0.37, g: 0.75, b: 1, a: 1}
+  pickupColor: {r: 1, g: 0.41, b: 0.41, a: 1}
+  themeSlot: 0

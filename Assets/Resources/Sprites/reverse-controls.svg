@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
+  <title id="title">Reverse Controls</title>
+  <desc id="desc">A monochrome neon icon showing crossed left and right arrows over a paddle.</desc>
+
+  <defs>
+    <filter id="softGlow" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="2.25" result="blur"/>
+      <feColorMatrix in="blur" type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 .8 0" result="glow"/>
+      <feMerge>
+        <feMergeNode in="glow"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <style><![CDATA[
+      .icon { fill: none; stroke: #fff; stroke-linecap: round; stroke-linejoin: round; filter: url(#softGlow); }
+      .main { stroke-width: 7; }
+      .mid { stroke-width: 5; opacity: .9; }
+      .thin { stroke-width: 3.25; opacity: .72; }
+      .faint { stroke-width: 3; opacity: .42; }
+      .fill { fill: #fff; stroke: none; opacity: .92; filter: url(#softGlow); }
+      .fill-soft { fill: #fff; stroke: none; opacity: .28; filter: url(#softGlow); }
+      .dash { stroke-dasharray: 10 9; }
+      .pixel { fill: #fff; opacity: .88; filter: url(#softGlow); }
+    ]]></style>
+  </defs>
+
+  <g class="icon">
+
+
+    <rect class="main" x="44" y="190" width="168" height="26" rx="13"/>
+    <line class="thin" x1="69" y1="194" x2="69" y2="212"/>
+    <line class="thin" x1="187" y1="194" x2="187" y2="212"/>
+    <path class="main" d="M 73 108 H 43 L 72 79 V 94 H 101 C 119 94, 130 112, 137 129"/>
+    <path class="main" d="M 183 108 H 213 L 184 79 V 94 H 155 C 137 94, 126 112, 119 129"/>
+    <path class="thin" d="M 101 143 C 116 130, 139 118, 155 94"/>
+    <path class="thin" d="M 155 143 C 140 130, 117 118, 101 94"/>
+
+  </g>
+</svg>

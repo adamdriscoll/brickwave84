@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using GetBricked.Gameplay.Data;
 using UnityEngine;
@@ -16,6 +17,8 @@ namespace GetBricked.Gameplay
         private readonly Sprite ballFallbackSprite;
         private readonly Sprite brickFallbackSprite;
         private readonly Sprite powerUpFallbackSprite;
+        private readonly IDictionary<string, Sprite> powerUpSpriteOverrides;
+        private readonly Dictionary<string, Sprite> powerUpSpriteCache;
 
         public BreakoutThemeService(
             Color backgroundFallback,
@@ -27,7 +30,8 @@ namespace GetBricked.Gameplay
             Sprite paddleFallbackSprite,
             Sprite ballFallbackSprite,
             Sprite brickFallbackSprite,
-            Sprite powerUpFallbackSprite)
+            Sprite powerUpFallbackSprite,
+            IDictionary<string, Sprite> powerUpSpriteOverrides = null)
         {
             this.backgroundFallback = backgroundFallback;
             this.wallFallback = wallFallback;
@@ -39,6 +43,8 @@ namespace GetBricked.Gameplay
             this.ballFallbackSprite = ballFallbackSprite;
             this.brickFallbackSprite = brickFallbackSprite;
             this.powerUpFallbackSprite = powerUpFallbackSprite;
+            this.powerUpSpriteOverrides = powerUpSpriteOverrides;
+            powerUpSpriteCache = new Dictionary<string, Sprite>(StringComparer.OrdinalIgnoreCase);
         }
 
         public ThemeDefinition AppliedTheme { get; private set; }
@@ -94,7 +100,11 @@ namespace GetBricked.Gameplay
                 return new ThemeVisualStyle(Color.white, Color.white, powerUpFallbackSprite);
             }
 
-            return ResolveThemeStyle(definition.ResolveThemeSlot(), definition.PickupColor, definition.PickupColor, powerUpFallbackSprite);
+            return ResolveThemeStyle(
+                definition.ResolveThemeSlot(),
+                definition.PickupColor,
+                definition.PickupColor,
+                ResolvePowerUpSprite(definition));
         }
 
         public ThemeVisualStyle ResolveThemeStyle(ThemeVisualSlot slot, Color fallbackPrimary, Color fallbackSecondary, Sprite fallbackSprite)
@@ -235,6 +245,36 @@ namespace GetBricked.Gameplay
 
                 pickup.ApplyTheme(ResolvePowerUpStyle(pickup.Definition));
             }
+        }
+
+        private Sprite ResolvePowerUpSprite(PowerUpDefinition definition)
+        {
+            if (definition == null)
+            {
+                return powerUpFallbackSprite;
+            }
+
+            var resourcePath = definition.ResolvePickupSpriteResourcePath();
+
+            if (string.IsNullOrWhiteSpace(resourcePath))
+            {
+                return powerUpFallbackSprite;
+            }
+
+            if (powerUpSpriteOverrides != null
+                && powerUpSpriteOverrides.TryGetValue(resourcePath, out var overrideSprite)
+                && overrideSprite != null)
+            {
+                return overrideSprite;
+            }
+
+            if (!powerUpSpriteCache.TryGetValue(resourcePath, out var cachedSprite))
+            {
+                cachedSprite = Resources.Load<Sprite>(resourcePath);
+                powerUpSpriteCache[resourcePath] = cachedSprite;
+            }
+
+            return cachedSprite != null ? cachedSprite : powerUpFallbackSprite;
         }
 
         private static void NormalizeSpriteRendererScale(SpriteRenderer spriteRenderer)

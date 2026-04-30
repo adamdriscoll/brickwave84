@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
+  <title id="title">Fog of War</title>
+  <desc id="desc">A monochrome neon icon showing the ball and paddle obscured by fog scanlines.</desc>
+
+  <defs>
+    <filter id="softGlow" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="2.25" result="blur"/>
+      <feColorMatrix in="blur" type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 .8 0" result="glow"/>
+      <feMerge>
+        <feMergeNode in="glow"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <style><![CDATA[
+      .icon { fill: none; stroke: #fff; stroke-linecap: round; stroke-linejoin: round; filter: url(#softGlow); }
+      .main { stroke-width: 7; }
+      .mid { stroke-width: 5; opacity: .9; }
+      .thin { stroke-width: 3.25; opacity: .72; }
+      .faint { stroke-width: 3; opacity: .42; }
+      .fill { fill: #fff; stroke: none; opacity: .92; filter: url(#softGlow); }
+      .fill-soft { fill: #fff; stroke: none; opacity: .28; filter: url(#softGlow); }
+      .dash { stroke-dasharray: 10 9; }
+      .pixel { fill: #fff; opacity: .88; filter: url(#softGlow); }
+    ]]></style>
+  </defs>
+
+  <g class="icon">
+
+
+    <rect class="main" x="44" y="195" width="168" height="26" rx="13"/>
+    <line class="thin" x1="69" y1="199" x2="69" y2="217"/>
+    <line class="thin" x1="187" y1="199" x2="187" y2="217"/>
+    <path class="main" d="M 48 122 C 55 97, 82 88, 104 99 C 116 75, 152 73, 166 100 C 187 90, 213 101, 216 124"/>
+
+    <circle class="main" cx="128" cy="139" r="22"/>
+    <path class="thin" d="M 118.1 132.4 Q 124.0 125.4 133.5 125.4"/>
+    <circle class="fill" cx="117.4" cy="139.9" r="2.4"/>
+    <line class="mid" x1="45" y1="134" x2="105" y2="134"/>
+    <line class="mid" x1="151" y1="134" x2="211" y2="134"/>
+    <line class="thin" x1="63" y1="153" x2="118" y2="153"/>
+    <line class="thin" x1="141" y1="153" x2="196" y2="153"/>
+    <line class="thin" x1="34" y1="169" x2="91" y2="169"/>
+    <line class="thin" x1="164" y1="169" x2="222" y2="169"/>
+    <line class="faint" x1="76" y1="112" x2="124" y2="112"/>
+    <line class="faint" x1="144" y1="106" x2="184" y2="106"/>
+
+  </g>
+</svg>

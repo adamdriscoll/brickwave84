@@ -57,7 +57,6 @@ public sealed class BreakoutGameControllerPowerUpTests
 
         Assert.That(paddle.transform.localScale.x, Is.EqualTo(2.1f * 1.45f).Within(0.0001f));
     }
-
     private BreakoutGameController CreateControllerHarness(out PaddleController paddle)
     {
         controllerObject = new GameObject("BreakoutGameController Test");
@@ -75,7 +74,7 @@ public sealed class BreakoutGameControllerPowerUpTests
         SetPrivateField(
             controller,
             "activeRunSettings",
-            new RunSettings(1234, RunDifficultyPreset.Standard, 3, 1, 1f, 1f, 1f, 1f, DropPoolMode.Mixed, null));
+            new RunSettings(1234, RunDifficultyPreset.Standard, 3, 1, 1f, 1f, 1f, 1f, DropPoolMode.Mixed, false, null));
         SetPrivateField(controller, "currentLevelPaddleSpeed", 12f);
         SetPrivateField(controller, "currentLevelBallSpeed", 8f);
         return controller;

@@ -2342,7 +2342,7 @@ namespace GetBricked.Gameplay
                     $"Difficulty: {pendingRunSetup.DifficultyPreset} | Balls/Serve: {pendingRunSetup.BallsPerServe}",
                     $"Theme: {previewSettings.ThemeLabel} | Paddle x{previewSettings.PaddleWidthMultiplier:0.00}",
                     $"Ball x{previewSettings.BallSpeedMultiplier:0.00} | Brick durability x{previewSettings.BrickDurabilityMultiplier:0.00}",
-                    $"Drops: {previewSettings.DropPoolLabel}",
+                    $"Drops: {BuildDropSummaryLabel(previewSettings)}",
                 },
                 ValidationText = previewValidation,
                 FooterText = "Run setup selections persist automatically, so quick start reuses the last cabinet tuning across sessions.",
@@ -2366,10 +2366,11 @@ namespace GetBricked.Gameplay
                     $"Ball Speed Bias: {FormatSignedStep(pendingRunSetup.BallSpeedStep)}",
                     $"Brick Durability Bias: {FormatSignedStep(pendingRunSetup.BrickDurabilityStep)}",
                     $"Drop Pool: {previewSettings.DropPoolLabel}",
+                    $"Capsule Party: {(previewSettings.ForcePickupDropsOnBreak ? "On" : "Off")}",
                     $"Theme: {previewSettings.ThemeLabel}",
                 },
                 SelectedFieldIndex = (int)selectedRunSetupField,
-                PreviewLine = $"Preview: Lives {previewSettings.StartingLives} | Paddle x{previewSettings.PaddleWidthMultiplier:0.00} | Ball speed x{previewSettings.BallSpeedMultiplier:0.00} | Brick durability x{previewSettings.BrickDurabilityMultiplier:0.00}",
+                PreviewLine = $"Preview: Lives {previewSettings.StartingLives} | Paddle x{previewSettings.PaddleWidthMultiplier:0.00} | Ball speed x{previewSettings.BallSpeedMultiplier:0.00} | Brick durability x{previewSettings.BrickDurabilityMultiplier:0.00} | Drops {BuildDropSummaryLabel(previewSettings)}",
                 ValidationText = previewValidation,
                 HintText = "Up/Down selects. Left/Right adjusts. Type digits for the seed. Backspace edits. T randomizes. N resets defaults. Esc returns to menu. Space launches.",
             };
@@ -2701,7 +2702,19 @@ namespace GetBricked.Gameplay
 
             return
                 $"Run Seed: {activeRunSettings.Seed} | {activeRunSettings.DifficultyLabel} | Balls/Serve {GetEffectiveBallsPerServe()} | " +
-                $"Theme: {activeRunSettings.ThemeLabel} | Drops: {activeRunSettings.DropPoolLabel} | Paddle x{activeRunSettings.PaddleWidthMultiplier:0.00} | Ball x{activeRunSettings.BallSpeedMultiplier:0.00} | Build {GetChosenUpgradeCount():00}";
+                $"Theme: {activeRunSettings.ThemeLabel} | Drops: {BuildDropSummaryLabel(activeRunSettings)} | Paddle x{activeRunSettings.PaddleWidthMultiplier:0.00} | Ball x{activeRunSettings.BallSpeedMultiplier:0.00} | Build {GetChosenUpgradeCount():00}";
+        }
+
+        private static string BuildDropSummaryLabel(RunSettings settings)
+        {
+            if (settings == null)
+            {
+                return "Offline";
+            }
+
+            return settings.ForcePickupDropsOnBreak
+                ? $"{settings.DropPoolLabel} | {settings.DropCadenceLabel}"
+                : settings.DropPoolLabel;
         }
 
         private void ToggleHudMenuOverlay()

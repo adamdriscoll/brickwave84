@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
+  <title id="title">Sticky Paddle</title>
+  <desc id="desc">A monochrome neon icon showing a ball glued to a breakout paddle.</desc>
+
+  <defs>
+    <filter id="softGlow" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="2.25" result="blur"/>
+      <feColorMatrix in="blur" type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 .8 0" result="glow"/>
+      <feMerge>
+        <feMergeNode in="glow"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <style><![CDATA[
+      .icon { fill: none; stroke: #fff; stroke-linecap: round; stroke-linejoin: round; filter: url(#softGlow); }
+      .main { stroke-width: 7; }
+      .mid { stroke-width: 5; opacity: .9; }
+      .thin { stroke-width: 3.25; opacity: .72; }
+      .faint { stroke-width: 3; opacity: .42; }
+      .fill { fill: #fff; stroke: none; opacity: .92; filter: url(#softGlow); }
+      .fill-soft { fill: #fff; stroke: none; opacity: .28; filter: url(#softGlow); }
+      .dash { stroke-dasharray: 10 9; }
+      .pixel { fill: #fff; opacity: .88; filter: url(#softGlow); }
+    ]]></style>
+  </defs>
+
+  <g class="icon">
+
+
+    <rect class="main" x="44" y="188" width="168" height="26" rx="13"/>
+    <line class="thin" x1="69" y1="192" x2="69" y2="210"/>
+    <line class="thin" x1="187" y1="192" x2="187" y2="210"/>
+    <circle class="main" cx="128" cy="73" r="28"/>
+    <path class="thin" d="M 116 58 Q 121 50 135 48"/>
+    <circle class="fill" cx="114" cy="73" r="2.5"/>
+    <path class="main" d="M 112 97 C 103 119, 104 151, 113 180"/>
+    <path class="main" d="M 144 97 C 153 119, 152 151, 143 180"/>
+    <path class="mid" d="M 118 178 C 124 190, 132 190, 138 178"/>
+    <path class="thin" d="M 122 111 C 119 132, 121 157, 126 175"/>
+    <path class="thin" d="M 134 111 C 137 132, 135 157, 130 175"/>
+    <path class="mid" d="M 128 219 C 121 208, 128 200, 128 200 C 128 200, 135 208, 128 219 Z"/>
+    <path class="mid" d="M 176 102 L 181 113 L 193 118 L 181 123 L 176 134 L 171 123 L 159 118 L 171 113 Z"/>
+    <line class="thin" x1="156" y1="133" x2="166" y2="133"/><line class="thin" x1="161" y1="128" x2="161" y2="138"/>
+
+  </g>
+</svg>

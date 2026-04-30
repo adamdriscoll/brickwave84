@@ -29,6 +29,7 @@ namespace GetBricked.Gameplay.Data
             float brickDurabilityMultiplier,
             float dropChanceMultiplier,
             DropPoolMode dropPoolMode,
+            bool forcePickupDropsOnBreak,
             ThemeDefinition themeDefinition)
         {
             Seed = seed == int.MinValue ? int.MaxValue : Mathf.Abs(seed);
@@ -40,6 +41,7 @@ namespace GetBricked.Gameplay.Data
             BrickDurabilityMultiplier = Mathf.Clamp(brickDurabilityMultiplier, 0.75f, 2.5f);
             DropChanceMultiplier = Mathf.Clamp(dropChanceMultiplier, 0f, 2f);
             DropPoolMode = dropPoolMode;
+            ForcePickupDropsOnBreak = forcePickupDropsOnBreak;
             ThemeDefinition = themeDefinition;
         }
 
@@ -61,6 +63,8 @@ namespace GetBricked.Gameplay.Data
 
         public DropPoolMode DropPoolMode { get; }
 
+        public bool ForcePickupDropsOnBreak { get; }
+
         public ThemeDefinition ThemeDefinition { get; }
 
         public string DifficultyLabel => DifficultyPreset.ToString();
@@ -72,6 +76,8 @@ namespace GetBricked.Gameplay.Data
             DropPoolMode.Disabled => "Disabled",
             _ => "Mixed",
         };
+
+        public string DropCadenceLabel => ForcePickupDropsOnBreak ? "Capsule Party" : "Standard";
 
         public string ThemeLabel => ThemeDefinition != null ? ThemeDefinition.DisplayName : "Fallback";
     }

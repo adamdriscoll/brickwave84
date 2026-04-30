@@ -7,7 +7,7 @@ namespace GetBricked.Gameplay
     internal static class BreakoutRunSetupPersistence
     {
         private const string PersistedRunSetupKey = "GetBricked.RunSetup";
-        private const int PersistedRunSetupVersion = 1;
+        private const int PersistedRunSetupVersion = 2;
 
         [Serializable]
         private sealed class PersistedRunSetup
@@ -21,6 +21,7 @@ namespace GetBricked.Gameplay
             public int BallSpeedStep;
             public int BrickDurabilityStep;
             public int DropPoolModeValue = (int)DropPoolMode.Mixed;
+            public bool IsCapsulePartyEnabled;
             public string ThemeId = string.Empty;
         }
 
@@ -45,7 +46,7 @@ namespace GetBricked.Gameplay
             {
                 var persistedRunSetup = JsonUtility.FromJson<PersistedRunSetup>(json);
 
-                if (persistedRunSetup == null || persistedRunSetup.Version != PersistedRunSetupVersion)
+                if (persistedRunSetup == null || (persistedRunSetup.Version != 1 && persistedRunSetup.Version != PersistedRunSetupVersion))
                 {
                     return;
                 }
@@ -65,6 +66,7 @@ namespace GetBricked.Gameplay
                         persistedRunSetup.DropPoolModeValue,
                         (int)DropPoolMode.Mixed,
                         (int)DropPoolMode.Disabled),
+                    persistedRunSetup.Version >= 2 && persistedRunSetup.IsCapsulePartyEnabled,
                     resolveThemeIdOrDefault != null
                         ? resolveThemeIdOrDefault(persistedRunSetup.ThemeId)
                         : persistedRunSetup.ThemeId);
@@ -95,6 +97,7 @@ namespace GetBricked.Gameplay
                 BallSpeedStep = runSetupState.BallSpeedStep,
                 BrickDurabilityStep = runSetupState.BrickDurabilityStep,
                 DropPoolModeValue = (int)runSetupState.DropPoolMode,
+                IsCapsulePartyEnabled = runSetupState.IsCapsulePartyEnabled,
                 ThemeId = resolveThemeIdOrDefault != null
                     ? resolveThemeIdOrDefault(runSetupState.ThemeId)
                     : runSetupState.ThemeId,

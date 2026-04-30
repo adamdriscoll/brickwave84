@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
+  <title id="title">Phase Ball</title>
+  <desc id="desc">A monochrome neon icon showing a ghosted ball phasing through cracked bricks.</desc>
+
+  <defs>
+    <filter id="softGlow" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="2.25" result="blur"/>
+      <feColorMatrix in="blur" type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 .8 0" result="glow"/>
+      <feMerge>
+        <feMergeNode in="glow"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <style><![CDATA[
+      .icon { fill: none; stroke: #fff; stroke-linecap: round; stroke-linejoin: round; filter: url(#softGlow); }
+      .main { stroke-width: 7; }
+      .mid { stroke-width: 5; opacity: .9; }
+      .thin { stroke-width: 3.25; opacity: .72; }
+      .faint { stroke-width: 3; opacity: .42; }
+      .fill { fill: #fff; stroke: none; opacity: .92; filter: url(#softGlow); }
+      .fill-soft { fill: #fff; stroke: none; opacity: .28; filter: url(#softGlow); }
+      .dash { stroke-dasharray: 10 9; }
+      .pixel { fill: #fff; opacity: .88; filter: url(#softGlow); }
+    ]]></style>
+  </defs>
+
+  <g class="icon">
+
+    <rect class="mid" x="37" y="92" width="47" height="25" rx="5"/>
+    <path class="mid" d="M 96 92 H 122 L 116 104 L 124 113 L 116 117 H 96 Z"/>
+    <path class="mid" d="M 134 92 H 160 L 160 117 H 140 L 146 108 L 137 101 Z"/>
+    <rect class="mid" x="172" y="92" width="47" height="25" rx="5"/>
+    <path class="thin dash" d="M 89 187 C 111 158, 114 132, 128 108 C 143 83, 163 72, 185 63"/>
+    <circle class="faint dash" cx="154" cy="76" r="20"/>
+    <circle class="faint dash" cx="136" cy="102" r="22"/>
+    <circle class="faint dash" cx="116" cy="132" r="24"/>
+
+    <circle class="main" cx="83" cy="188" r="22"/>
+    <path class="thin" d="M 73.1 181.4 Q 79.0 174.4 88.5 174.4"/>
+    <circle class="fill" cx="72.4" cy="188.9" r="2.4"/>
+    <rect class="pixel" x="87" y="83" width="7" height="7" rx="1.5"/>
+    <rect class="pixel" x="153" y="126" width="7" height="7" rx="1.5"/>
+    <rect class="pixel" x="128" y="126" width="5" height="5" rx="1"/>
+
+  </g>
+</svg>

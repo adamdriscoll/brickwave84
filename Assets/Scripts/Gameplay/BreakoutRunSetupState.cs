@@ -16,7 +16,8 @@ namespace GetBricked.Gameplay
         BallSpeed = 4,
         BrickDurability = 5,
         DropPool = 6,
-        Theme = 7,
+        CapsuleParty = 7,
+        Theme = 8,
     }
 
     internal sealed class BreakoutRunSetupState
@@ -40,6 +41,8 @@ namespace GetBricked.Gameplay
 
         public DropPoolMode DropPoolMode { get; private set; } = DropPoolMode.Mixed;
 
+        public bool IsCapsulePartyEnabled { get; private set; }
+
         public string ThemeId { get; private set; } = string.Empty;
 
         public string PendingSeedText { get; private set; } = string.Empty;
@@ -52,6 +55,7 @@ namespace GetBricked.Gameplay
             BallSpeedStep = 0;
             BrickDurabilityStep = 0;
             DropPoolMode = DropPoolMode.Mixed;
+            IsCapsulePartyEnabled = false;
             ThemeId = defaultThemeId ?? string.Empty;
             Seed = generateNewSeed ? GenerateSeed(seedGenerator) : Seed;
             PendingSeedText = Seed.ToString(CultureInfo.InvariantCulture);
@@ -66,6 +70,7 @@ namespace GetBricked.Gameplay
             int ballSpeedStep,
             int brickDurabilityStep,
             DropPoolMode dropPoolMode,
+            bool isCapsulePartyEnabled,
             string themeId)
         {
             Seed = Mathf.Max(0, seed);
@@ -76,6 +81,7 @@ namespace GetBricked.Gameplay
             BallSpeedStep = Mathf.Clamp(ballSpeedStep, -2, 2);
             BrickDurabilityStep = Mathf.Clamp(brickDurabilityStep, -2, 2);
             DropPoolMode = dropPoolMode;
+            IsCapsulePartyEnabled = isCapsulePartyEnabled;
             ThemeId = themeId ?? string.Empty;
         }
 
@@ -115,6 +121,9 @@ namespace GetBricked.Gameplay
                         (int)DropPoolMode + direction,
                         (int)Gameplay.Data.DropPoolMode.Mixed,
                         (int)Gameplay.Data.DropPoolMode.Disabled);
+                    break;
+                case BreakoutRunSetupField.CapsuleParty:
+                    IsCapsulePartyEnabled = !IsCapsulePartyEnabled;
                     break;
                 case BreakoutRunSetupField.Theme:
                     ThemeId = shiftThemeId != null ? shiftThemeId(ThemeId, direction) : ThemeId;
@@ -218,6 +227,10 @@ namespace GetBricked.Gameplay
             {
                 warnings.Add("Drops disabled for this run.");
             }
+            else if (IsCapsulePartyEnabled)
+            {
+                warnings.Add("Capsule Party live: every eligible brick drops a capsule.");
+            }
 
             validationMessage = warnings.Count > 0
                 ? string.Join(" ", warnings)
@@ -233,6 +246,7 @@ namespace GetBricked.Gameplay
                 brickDurabilityMultiplier,
                 dropChanceMultiplier,
                 DropPoolMode,
+                IsCapsulePartyEnabled,
                 selectedTheme);
         }
 

@@ -123,13 +123,16 @@ namespace GetBricked.Gameplay
 
             var brickDefinition = brick.Definition;
             var dropTable = brickDefinition.DropTable;
-            var effectiveDropChance = Mathf.Clamp01(brickDefinition.DropChance * Mathf.Max(0f, effectiveDropChanceMultiplier));
+            var forcePickupDrops = activeRunSettings?.ForcePickupDropsOnBreak == true;
+            var effectiveDropChance = forcePickupDrops
+                ? 1f
+                : Mathf.Clamp01(brickDefinition.DropChance * Mathf.Max(0f, effectiveDropChanceMultiplier));
 
             if (dropTable.Length == 0
                 || effectiveDropChance <= 0f
                 || activeRunSettings?.DropPoolMode == DropPoolMode.Disabled
                 || nextGameplayRandomFloat == null
-                || nextGameplayRandomFloat(0f, 1f) > effectiveDropChance)
+                || (!forcePickupDrops && nextGameplayRandomFloat(0f, 1f) > effectiveDropChance))
             {
                 return;
             }
