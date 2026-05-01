@@ -278,7 +278,7 @@ public sealed class BreakoutGameControllerPowerUpTests
         Assert.That(GetPrivateField<int>(controller, "score"), Is.EqualTo(220));
         Assert.That(popups.Count, Is.EqualTo(1));
         Assert.That(GetFieldValue<string>(popups[0], "PrimaryText"), Is.EqualTo("+20"));
-        Assert.That(GetFieldValue<string>(popups[0], "SecondaryText"), Does.Contain("SLAM CHAIN"));
+        Assert.That(GetFieldValue<string>(popups[0], "SecondaryText"), Is.EqualTo("COMBO BONUS: SLAM CHAIN!"));
     }
 
     [Test]
@@ -298,7 +298,7 @@ public sealed class BreakoutGameControllerPowerUpTests
         Assert.That(GetPrivateField<int>(controller, "score"), Is.EqualTo(142));
         Assert.That(GetPrivateField<int>(scoringBall, "ricochetCountSinceLastBrick"), Is.EqualTo(0));
         Assert.That(popups.Count, Is.EqualTo(1));
-        Assert.That(GetFieldValue<string>(popups[0], "SecondaryText"), Does.Contain("BANK SHOT"));
+        Assert.That(GetFieldValue<string>(popups[0], "SecondaryText"), Is.EqualTo("COMBO BONUS: BANK SHOT!"));
     }
 
     [Test]
@@ -324,8 +324,7 @@ public sealed class BreakoutGameControllerPowerUpTests
         Assert.That(GetPrivateField<int>(controller, "score"), Is.EqualTo(245));
         Assert.That(popups.Count, Is.EqualTo(1));
         Assert.That(GetFieldValue<string>(popups[0], "PrimaryText"), Is.EqualTo("+45"));
-        Assert.That(GetFieldValue<string>(popups[0], "SecondaryText"), Does.Contain("SLAM CHAIN"));
-        Assert.That(GetFieldValue<string>(popups[0], "SecondaryText"), Does.Contain("PARTY SPLIT"));
+        Assert.That(GetFieldValue<string>(popups[0], "SecondaryText"), Is.EqualTo("COMBO BONUS: SLAM CHAIN + PARTY SPLIT!"));
     }
 
     private BreakoutGameController CreateControllerHarness(out PaddleController paddle)

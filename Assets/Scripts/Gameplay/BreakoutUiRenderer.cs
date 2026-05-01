@@ -584,7 +584,7 @@ namespace GetBricked.Gameplay
 
                 var position = view.ScreenPosition;
                 var primaryRect = new Rect(position.x - 96f, position.y - 18f, 192f, 30f);
-                var secondaryRect = new Rect(position.x - 128f, position.y + 10f, 256f, 20f);
+                var secondaryRect = new Rect(position.x - 176f, position.y + 10f, 352f, 22f);
                 var scoreColor = WithAlpha(view.Color, view.Alpha);
                 var tagColor = WithAlpha(Color.Lerp(palette.AccentSecondary, palette.AccentPrimary, 0.45f), view.Alpha * 0.92f);
 
@@ -688,7 +688,7 @@ namespace GetBricked.Gameplay
             floatingScoreTagStyle ??= new GUIStyle(hudStyle)
             {
                 alignment = TextAnchor.MiddleCenter,
-                fontSize = 11,
+                fontSize = 12,
                 fontStyle = FontStyle.Bold,
             };
 

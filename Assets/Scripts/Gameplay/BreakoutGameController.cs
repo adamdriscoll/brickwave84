@@ -3271,7 +3271,7 @@ namespace GetBricked.Gameplay
                 bonusPoints += comboBonuses[index].Points;
                 bonusLabels = string.IsNullOrEmpty(bonusLabels)
                     ? comboBonuses[index].Label
-                    : $"{bonusLabels}  |  {comboBonuses[index].Label}";
+                    : $"{bonusLabels} + {comboBonuses[index].Label}";
             }
 
             return new BrickScoreAward(awardedBasePoints, bonusPoints, bonusLabels);
@@ -3392,11 +3392,18 @@ namespace GetBricked.Gameplay
             {
                 WorldPosition = worldPosition,
                 PrimaryText = $"+{bonusPoints}",
-                SecondaryText = bonusLabel ?? string.Empty,
+                SecondaryText = BuildComboPopupText(bonusLabel),
                 Color = popupColor,
                 Age = 0f,
                 Lifetime = FloatingScoreLifetimeSeconds,
             });
+        }
+
+        private static string BuildComboPopupText(string bonusLabel)
+        {
+            return string.IsNullOrWhiteSpace(bonusLabel)
+                ? "COMBO BONUS!"
+                : $"COMBO BONUS: {bonusLabel}!";
         }
 
         private void UpdateFloatingScorePopups()
