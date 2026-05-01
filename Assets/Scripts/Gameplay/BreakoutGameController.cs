@@ -153,6 +153,7 @@ namespace GetBricked.Gameplay
         private readonly List<Sprite> runtimeGeneratedBackgroundSprites = new List<Sprite>();
         private readonly List<SpriteRenderer> wallRenderers = new List<SpriteRenderer>();
         private readonly List<FloatingScorePopup> floatingScorePopups = new List<FloatingScorePopup>();
+        private readonly BreakoutBrickEffectResolver brickEffectResolver = new BreakoutBrickEffectResolver();
 
         private Camera activeCamera;
         private Transform runtimeRoot;
@@ -3661,72 +3662,30 @@ namespace GetBricked.Gameplay
                 return false;
             }
 
-            var targets = new List<Brick>(2);
-            var excluded = new HashSet<Brick>();
-            var leftEmitterX = paddle.transform.position.x - (paddle.HalfWidthWorld * 0.55f);
-            var rightEmitterX = paddle.transform.position.x + (paddle.HalfWidthWorld * 0.55f);
-            var leftTarget = FindLaserTarget(leftEmitterX, excluded);
-
-            if (leftTarget != null)
-            {
-                targets.Add(leftTarget);
-                excluded.Add(leftTarget);
-            }
-
-            var rightTarget = FindLaserTarget(rightEmitterX, excluded);
-
-            if (rightTarget != null)
-            {
-                targets.Add(rightTarget);
-            }
-
-            if (targets.Count == 0)
+            if (!brickEffectResolver.TryResolveLaserTargets(
+                    bricks,
+                    paddle.transform.position,
+                    paddle.HalfWidthWorld,
+                    out var leftTarget,
+                    out var rightTarget))
             {
                 return false;
             }
 
             var scoringBall = ResolvePrimaryScoringBall();
 
-            for (var index = 0; index < targets.Count; index++)
+            if (leftTarget != null)
             {
-                targets[index]?.ApplyEffectHit(scoringBall, BrickDestructionCause.Laser, 1);
+                leftTarget.ApplyEffectHit(scoringBall, BrickDestructionCause.Laser, 1);
+            }
+
+            if (rightTarget != null)
+            {
+                rightTarget.ApplyEffectHit(scoringBall, BrickDestructionCause.Laser, 1);
             }
 
             laserShotCooldownTimer = LaserShotCooldownSeconds;
             return true;
-        }
-
-        private Brick FindLaserTarget(float beamOriginX, ISet<Brick> excluded)
-        {
-            Brick bestCandidate = null;
-            var bestScore = float.MaxValue;
-
-            for (var index = 0; index < bricks.Count; index++)
-            {
-                var candidate = bricks[index];
-
-                if (candidate == null
-                    || (excluded != null && excluded.Contains(candidate))
-                    || candidate.Definition == null
-                    || !candidate.Definition.IsBreakable
-                    || candidate.transform.position.y <= paddle.transform.position.y + 0.2f)
-                {
-                    continue;
-                }
-
-                var score = Mathf.Abs(candidate.transform.position.x - beamOriginX)
-                    + Mathf.Abs(candidate.transform.position.y - paddle.transform.position.y) * 0.08f;
-
-                if (score >= bestScore)
-                {
-                    continue;
-                }
-
-                bestScore = score;
-                bestCandidate = candidate;
-            }
-
-            return bestCandidate;
         }
 
         private BallController ResolvePrimaryScoringBall()
@@ -3749,48 +3708,15 @@ namespace GetBricked.Gameplay
                 return;
             }
 
-            var chainRadius = Mathf.Lerp(1.8f, 3.25f, Mathf.Clamp01(activeEffectModifiers.ChainLightningStrength));
-            var chainRadiusSquared = chainRadius * chainRadius;
-            var maxTargets = Mathf.Clamp(1 + Mathf.RoundToInt(activeEffectModifiers.ChainLightningStrength * 4f), 1, 3);
-            var candidates = new List<Brick>();
+            var chainTargets = brickEffectResolver.ResolveChainLightningTargets(
+                bricks,
+                origin,
+                sourceBrick,
+                activeEffectModifiers.ChainLightningStrength);
 
-            for (var index = 0; index < bricks.Count; index++)
+            for (var index = 0; index < chainTargets.Count; index++)
             {
-                var candidate = bricks[index];
-
-                if (candidate == null
-                    || candidate == sourceBrick
-                    || candidate.Definition == null
-                    || !candidate.Definition.IsBreakable)
-                {
-                    continue;
-                }
-
-                var offset = (Vector2)candidate.transform.position - origin;
-
-                if (offset.sqrMagnitude > chainRadiusSquared)
-                {
-                    continue;
-                }
-
-                candidates.Add(candidate);
-            }
-
-            if (candidates.Count == 0)
-            {
-                return;
-            }
-
-            candidates.Sort((left, right) =>
-            {
-                var leftDistance = ((Vector2)left.transform.position - origin).sqrMagnitude;
-                var rightDistance = ((Vector2)right.transform.position - origin).sqrMagnitude;
-                return leftDistance.CompareTo(rightDistance);
-            });
-
-            for (var index = 0; index < candidates.Count && index < maxTargets; index++)
-            {
-                candidates[index]?.ApplyEffectHit(scoringBall, BrickDestructionCause.ChainLightning, 1);
+                chainTargets[index]?.ApplyEffectHit(scoringBall, BrickDestructionCause.ChainLightning, 1);
             }
         }
 
