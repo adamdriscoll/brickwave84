@@ -24,7 +24,9 @@ namespace GetBricked.Gameplay
         private int hitPointsRemaining;
         private float movementSpeed;
         private Vector2 lastMovementDirection;
+        private Rect movementBounds;
         private bool hasMotion;
+        private bool hasMovementBounds;
         private bool isPendingRemoval;
         private bool canSpin;
         private Color themedBaseColor;
@@ -82,6 +84,18 @@ namespace GetBricked.Gameplay
             RefreshVisual();
         }
 
+        public void SetMovementBounds(Rect bounds)
+        {
+            if (bounds.width <= 0.01f || bounds.height <= 0.01f)
+            {
+                hasMovementBounds = false;
+                return;
+            }
+
+            movementBounds = bounds;
+            hasMovementBounds = true;
+        }
+
         private void FixedUpdate()
         {
             if (!hasMotion || brickBody == null)
@@ -105,6 +119,7 @@ namespace GetBricked.Gameplay
                     lastMovementDirection = Vector2.right;
                 }
 
+                KeepMovingBrickInsideBounds();
                 brickBody.linearVelocity = lastMovementDirection * movementSpeed;
             }
 
@@ -302,6 +317,54 @@ namespace GetBricked.Gameplay
             brickBody.linearVelocity = hasMotion
                 ? lastMovementDirection * movementSpeed
                 : Vector2.zero;
+        }
+
+        private void KeepMovingBrickInsideBounds()
+        {
+            if (!hasMovementBounds || brickBody == null || lastMovementDirection.sqrMagnitude <= 0.0001f)
+            {
+                return;
+            }
+
+            var halfSize = new Vector2(
+                Mathf.Abs(transform.lossyScale.x) * 0.5f,
+                Mathf.Abs(transform.lossyScale.y) * 0.5f);
+            var minX = movementBounds.xMin + halfSize.x;
+            var maxX = movementBounds.xMax - halfSize.x;
+            var minY = movementBounds.yMin + halfSize.y;
+            var maxY = movementBounds.yMax - halfSize.y;
+
+            if (minX > maxX || minY > maxY)
+            {
+                return;
+            }
+
+            var position = brickBody.position;
+            var clampedPosition = new Vector2(
+                Mathf.Clamp(position.x, minX, maxX),
+                Mathf.Clamp(position.y, minY, maxY));
+            var projectedPosition = clampedPosition + (lastMovementDirection.normalized * movementSpeed * Time.fixedDeltaTime);
+            var direction = lastMovementDirection;
+
+            if ((projectedPosition.x <= minX && direction.x < 0f) || (projectedPosition.x >= maxX && direction.x > 0f))
+            {
+                direction.x = -direction.x;
+            }
+
+            if ((projectedPosition.y <= minY && direction.y < 0f) || (projectedPosition.y >= maxY && direction.y > 0f))
+            {
+                direction.y = -direction.y;
+            }
+
+            if ((clampedPosition - position).sqrMagnitude > 0.000001f)
+            {
+                brickBody.position = clampedPosition;
+            }
+
+            if (direction.sqrMagnitude > 0.0001f)
+            {
+                lastMovementDirection = direction.normalized;
+            }
         }
 
         private void UpdateMotionDirectionFromCollision(Collision2D collision)

@@ -105,6 +105,30 @@ public sealed class BreakoutGameControllerPowerUpTests
     }
 
     [Test]
+    public void MovingBricksReflectAtBottomArenaBound()
+    {
+        var controller = CreateControllerHarness(out _);
+        var definition = CreateBrickDefinition("Moving Brick", 1, 100);
+        var motionConfig = Activator.CreateInstance(
+            GetGameplayType("GetBricked.Gameplay.BreakoutBrickMotionConfig"),
+            2f,
+            Vector2.down);
+        var brickService = GetPrivateField<object>(controller, "brickService");
+        var createBrick = brickService.GetType().GetMethod("CreateBrick", InstanceFlags);
+        Assert.That(createBrick, Is.Not.Null);
+
+        var brick = (Brick)createBrick.Invoke(
+            brickService,
+            new object[] { new Vector2(0f, -4.95f), definition, 0, 0, motionConfig });
+        var brickBody = brick.GetComponent<Rigidbody2D>();
+
+        InvokePrivateMethod(brick, "FixedUpdate");
+
+        Assert.That(brickBody.position.y, Is.GreaterThanOrEqualTo(-4.711f));
+        Assert.That(brickBody.linearVelocity.y, Is.GreaterThan(0f));
+    }
+
+    [Test]
     public void ApplyingSameShrinkPowerUpTwiceStacksPaddleScale()
     {
         var controller = CreateControllerHarness(out var paddle);
@@ -466,6 +490,8 @@ public sealed class BreakoutGameControllerPowerUpTests
             new RunSettings(1234, RunDifficultyPreset.Standard, RunScoringMode.Classic, 3, 500, 1, 1f, 1f, 1f, 1f, DropPoolMode.Mixed, false, null));
         SetPrivateField(controller, "currentLevelPaddleSpeed", 12f);
         SetPrivateField(controller, "currentLevelBallSpeed", 8f);
+        SetPrivateField(controller, "arenaLeft", -8f);
+        SetPrivateField(controller, "arenaRight", 8f);
         SetPrivateField(controller, "arenaTop", 5f);
         SetPrivateField(controller, "arenaBottom", -5f);
         InvokePrivateMethod(controller, "CreateBrickService");
@@ -490,17 +516,24 @@ public sealed class BreakoutGameControllerPowerUpTests
         brickObject.transform.position = worldPosition;
         brickObject.AddComponent<BoxCollider2D>();
         var brick = brickObject.AddComponent<Brick>();
+        var definition = CreateBrickDefinition(displayName, 1, scoreValue);
+        SetPrivateField(brick, "gameController", controller);
+        SetPrivateField(brick, "definition", definition);
+        return brick;
+    }
+
+    private BrickDefinition CreateBrickDefinition(string displayName, int hitPoints, int scoreValue)
+    {
         var definition = ScriptableObject.CreateInstance<BrickDefinition>();
         runtimeObjects.Add(definition);
         SetPrivateField(definition, "displayName", displayName);
+        SetPrivateField(definition, "hitPoints", hitPoints);
         SetPrivateField(definition, "scoreValue", scoreValue);
         SetPrivateField(definition, "indestructible", false);
         SetPrivateField(definition, "countsTowardLevelCompletion", true);
         SetPrivateField(definition, "dropChance", 0f);
         SetPrivateField(definition, "dropTable", Array.Empty<BrickPowerUpDropEntry>());
-        SetPrivateField(brick, "gameController", controller);
-        SetPrivateField(brick, "definition", definition);
-        return brick;
+        return definition;
     }
 
     private static object CreatePowerUpService()

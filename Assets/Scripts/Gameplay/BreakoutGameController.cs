@@ -1375,8 +1375,14 @@ namespace GetBricked.Gameplay
                 spriteUnlitMaterial,
                 bounceMaterial,
                 () => activeRunSettings,
+                ResolveBrickMovementBounds,
                 ResolveBrickVisualStyle,
                 DestroyRuntimeObject);
+        }
+
+        private Rect ResolveBrickMovementBounds()
+        {
+            return Rect.MinMaxRect(arenaLeft, arenaBottom, arenaRight, arenaTop);
         }
 
         private void CreateActorSpawnServices()

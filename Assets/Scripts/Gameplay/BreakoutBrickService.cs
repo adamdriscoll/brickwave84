@@ -18,6 +18,7 @@ namespace GetBricked.Gameplay
         private readonly Material spriteMaterial;
         private readonly PhysicsMaterial2D physicsMaterial;
         private readonly Func<RunSettings> runSettingsResolver;
+        private readonly Func<Rect> movementBoundsResolver;
         private readonly Func<BrickDefinition, ThemeVisualStyle> styleResolver;
         private readonly Action<GameObject> destroyRuntimeObject;
 
@@ -31,6 +32,7 @@ namespace GetBricked.Gameplay
             Material spriteMaterial,
             PhysicsMaterial2D physicsMaterial,
             Func<RunSettings> runSettingsResolver,
+            Func<Rect> movementBoundsResolver,
             Func<BrickDefinition, ThemeVisualStyle> styleResolver,
             Action<GameObject> destroyRuntimeObject)
         {
@@ -43,6 +45,7 @@ namespace GetBricked.Gameplay
             this.spriteMaterial = spriteMaterial;
             this.physicsMaterial = physicsMaterial;
             this.runSettingsResolver = runSettingsResolver ?? throw new ArgumentNullException(nameof(runSettingsResolver));
+            this.movementBoundsResolver = movementBoundsResolver ?? throw new ArgumentNullException(nameof(movementBoundsResolver));
             this.styleResolver = styleResolver ?? throw new ArgumentNullException(nameof(styleResolver));
             this.destroyRuntimeObject = destroyRuntimeObject ?? throw new ArgumentNullException(nameof(destroyRuntimeObject));
         }
@@ -128,6 +131,7 @@ namespace GetBricked.Gameplay
                 styleResolver(definition),
                 motionConfig.Speed,
                 motionConfig.InitialDirection);
+            brick.SetMovementBounds(movementBoundsResolver());
             bricks.Add(brick);
             return brick;
         }
