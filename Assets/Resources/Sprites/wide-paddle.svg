@@ -1,36 +1,39 @@
-<?xml version="1.0" standalone="no"?>
-<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 20010904//EN"
- "http://www.w3.org/TR/2001/REC-SVG-20010904/DTD/svg10.dtd">
-<svg version="1.0" xmlns="http://www.w3.org/2000/svg"
- width="1254.000000pt" height="1254.000000pt" viewBox="0 0 1254.000000 1254.000000"
- preserveAspectRatio="xMidYMid meet">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
+  <title id="title">Wide Paddle</title>
+  <desc id="desc">A monochrome neon icon showing a paddle stretching wider with outward expansion arrows.</desc>
 
-<g transform="translate(0.000000,1254.000000) scale(0.100000,-0.100000)"
- fill="#ffffff" stroke="none">
-<path d="M1620 7415 l0 -55 -77 0 c-119 0 -123 -2 -123 -66 l0 -54 -60 0 -59
-0 -3 -56 -3 -57 -55 -1 -55 -1 -3 -117 -3 -118 -54 0 -55 0 0 -555 0 -555 40
--1 c22 -1 46 -2 53 -3 8 -1 13 -35 17 -121 l5 -120 58 -3 57 -3 0 -59 0 -60
-60 0 60 0 0 -55 0 -54 103 -3 102 -3 3 -52 3 -53 4640 0 4639 0 0 55 0 54 103
-3 102 3 3 52 3 52 57 3 57 3 3 57 3 57 57 3 57 3 3 116 3 117 54 7 55 6 0 550
-0 549 -55 0 -54 0 -3 118 -3 117 -57 3 c-56 3 -58 4 -58 31 0 16 -3 41 -6 57
--5 27 -8 29 -52 28 -26 -1 -53 3 -59 8 -7 6 -13 32 -13 60 l0 50 -67 -3 c-125
--5 -122 -6 -125 54 l-3 52 -1065 6 c-586 3 -2677 7 -4647 8 l-3583 1 0 -55z
-m5105 -104 l4120 -6 3 -52 3 -53 105 0 104 0 0 -50 0 -50 60 0 59 0 3 -122 3
--123 63 -3 62 -3 0 -332 c0 -183 -3 -360 -7 -394 l-6 -63 -58 0 -58 0 -3 -132
--3 -132 -55 0 -55 -1 -3 -62 -3 -63 -79 0 -80 0 0 -65 0 -65 -4607 2 -4608 3
-0 60 0 60 -98 3 -97 3 0 58 c0 58 -1 59 -31 65 -17 3 -47 6 -65 6 l-34 0 0
-130 0 130 -59 0 -59 0 -5 48 c-2 26 -4 207 -3 402 l1 355 57 3 57 3 3 117 3
-117 63 3 62 3 0 54 0 54 103 3 102 3 3 53 3 53 457 -7 c251 -4 2311 -9 4577
--13z"/>
-<path d="M2920 6950 l0 -60 -70 0 -69 0 -3 -62 -3 -63 -72 -3 -73 -3 0 -69 0
--70 -75 0 -75 0 0 -85 0 -85 40 0 40 0 0 -54 0 -55 38 -3 37 -3 3 -57 3 -58
-54 -1 c30 -1 61 -2 68 -3 8 -1 13 -23 15 -63 l3 -63 69 0 69 0 3 -62 3 -61 65
--1 65 -1 3 188 2 187 510 0 510 0 0 146 0 146 -277 -3 c-153 -1 -383 -2 -510
--1 l-233 2 0 190 0 190 -70 0 -70 0 0 -60z"/>
-<path d="M9470 6815 l0 -195 -510 0 -510 0 0 -140 0 -140 510 0 510 0 0 -185
-0 -186 73 3 c55 2 72 6 73 18 1 8 2 34 2 57 l2 42 68 3 c51 2 67 7 68 18 1 8
-2 36 2 63 l2 47 70 0 70 0 0 60 0 60 35 0 35 0 0 55 0 55 40 0 40 0 0 85 0 85
--75 0 -75 0 0 70 0 70 -70 0 -70 0 0 65 0 64 -72 3 -72 3 -1 30 c-3 92 3 85
--75 85 l-70 0 0 -195z"/>
-</g>
+  <defs>
+    <filter id="softGlow" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="2.25" result="blur"/>
+      <feColorMatrix in="blur" type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 .8 0" result="glow"/>
+      <feMerge>
+        <feMergeNode in="glow"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <style><![CDATA[
+      .icon { fill: none; stroke: #fff; stroke-linecap: round; stroke-linejoin: round; filter: url(#softGlow); }
+      .main { stroke-width: 7; }
+      .mid { stroke-width: 5; opacity: .9; }
+      .thin { stroke-width: 3.25; opacity: .72; }
+      .faint { stroke-width: 3; opacity: .42; }
+      .fill { fill: #fff; stroke: none; opacity: .92; filter: url(#softGlow); }
+      .fill-soft { fill: #fff; stroke: none; opacity: .28; filter: url(#softGlow); }
+      .dash { stroke-dasharray: 9 9; }
+    ]]></style>
+  </defs>
+
+  <g class="icon">
+    <rect class="faint dash" x="82" y="123" width="92" height="20" rx="10"/>
+
+    <path class="main" d="M 108 76 H 58"/>
+    <path class="main" d="M 58 76 L 76 58"/>
+    <path class="main" d="M 58 76 L 76 94"/>
+    <path class="main" d="M 148 76 H 198"/>
+    <path class="main" d="M 198 76 L 180 58"/>
+    <path class="main" d="M 198 76 L 180 94"/>
+
+    <rect class="main" x="28" y="181" width="200" height="30" rx="15"/>
+    <path class="thin" d="M 52 190 H 204"/>
+  </g>
 </svg>

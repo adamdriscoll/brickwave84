@@ -32,8 +32,9 @@
 
 ### Power-up
 
-- Diamond or badge-like silhouette reads well while falling
-- Use a bright center and restrained accent ring so bloom stays controlled
+- Use crisp glowing linework for authored upgrade and special-mechanic icons when it reads better than a badge
+- Reduce the icon to the core mechanic mark; for example, a split mechanic can be just a Y path plus three ball rings
+- Use a bright center, clean stroked rings/paths, and restrained echo rings so bloom stays controlled
 - Color meaning still comes from the theme slot
 
 ## Theme Hookups
@@ -48,5 +49,7 @@
 - Keep SVG markup hand-editable.
 - Prefer white-base art for gameplay sprites because the current runtime theme system tints the imported SVG through `SpriteRenderer.color`.
 - Avoid blur filters and other SVG effects that rely on browser-style filter support; build glow through shape language and let bloom handle the halo.
+- Exception: when matching existing authored upgrade icons such as `phase-ball.svg`, a restrained `softGlow` filter on white strokes/fills is acceptable if the mark remains legible without the glow.
+- Preview icon sprites on a dark project background at both `256px` and `64px`; the small preview should still read as one clean symbol.
 - Name new files predictably and keep them in `Assets/Resources/Sprites/` unless the request calls for a new content path.
 - If you change the default file names, update the resource loader in `BreakoutGameController`.

@@ -18,7 +18,7 @@ MonoBehaviour:
   iconResourcePath: 
   effectType: 4
   beneficial: 1
-  durationSeconds: 15
+  durationSeconds: 10
   scalar: 1
   extraBallCount: 0
   pickupColor: {r: 0.45, g: 0.96, b: 0.78, a: 1}

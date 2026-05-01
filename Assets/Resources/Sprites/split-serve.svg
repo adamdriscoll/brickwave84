@@ -1,10 +1,32 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
-  <path fill="#ffffff" fill-opacity="0.16" d="M18 98h92v12H18z"/>
-  <circle fill="#ffffff" cx="64" cy="88" r="13"/>
-  <circle fill="#ffffff" fill-opacity="0.9" cx="38" cy="36" r="13"/>
-  <circle fill="#ffffff" fill-opacity="0.9" cx="90" cy="36" r="13"/>
-  <path fill="#ffffff" d="M58 75V55H45l19-24 19 24H70v20z"/>
-  <path fill="#ffffff" fill-opacity="0.82" d="M50 54L32 72l-7-7 20-20zm28 0l18 18 7-7-20-20z"/>
-  <path fill="#120914" fill-opacity="0.7" d="M58 88a6 6 0 1 0 12 0 6 6 0 0 0-12 0zm-26-52a6 6 0 1 0 12 0 6 6 0 0 0-12 0zm52 0a6 6 0 1 0 12 0 6 6 0 0 0-12 0z"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
+  <title id="title">Split Serve</title>
+  <desc id="desc">A monochrome neon icon showing one served ball splitting into two glowing ball paths.</desc>
+
+  <defs>
+    <filter id="softGlow" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="2.25" result="blur"/>
+      <feColorMatrix in="blur" type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 .8 0" result="glow"/>
+      <feMerge>
+        <feMergeNode in="glow"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <style><![CDATA[
+      .icon { fill: none; stroke: #fff; stroke-linecap: round; stroke-linejoin: round; filter: url(#softGlow); }
+      .split { stroke-width: 12; opacity: .9; }
+      .ball { stroke-width: 9; opacity: .96; }
+      .echo { stroke-width: 4; opacity: .32; }
+    ]]></style>
+  </defs>
+
+  <g class="icon">
+    <path class="split" d="M128 178V118L78 74M128 118l50-44"/>
+    <circle class="ball" cx="128" cy="178" r="25"/>
+    <circle class="ball" cx="78" cy="74" r="25"/>
+    <circle class="ball" cx="178" cy="74" r="25"/>
+    <circle class="echo" cx="128" cy="178" r="36"/>
+    <circle class="echo" cx="78" cy="74" r="36"/>
+    <circle class="echo" cx="178" cy="74" r="36"/>
+  </g>
 </svg>
