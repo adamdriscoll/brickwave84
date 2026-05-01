@@ -33,6 +33,8 @@ MonoBehaviour:
     weight: 1
   - powerUpDefinition: {fileID: 11400000, guid: da6206496837499caed0779d2ca9b41e, type: 2}
     weight: 1
+  - powerUpDefinition: {fileID: 11400000, guid: 69824acd6a1240c0831ffc2c9b365931, type: 2}
+    weight: 1
   baseColor: {r: 0.95, g: 0.28, b: 0.18, a: 1}
   damagedColor: {r: 0.52, g: 0.08, b: 0.05, a: 1}
   spriteResourcePath: Sprites/explosive-brick

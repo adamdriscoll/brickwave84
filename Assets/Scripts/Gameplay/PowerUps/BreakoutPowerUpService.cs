@@ -12,6 +12,7 @@ namespace GetBricked.Gameplay
             Definition = definition;
             RemainingDuration = remainingDuration;
             StackCount = 1;
+            EffectMultiplier = 1f;
         }
 
         public PowerUpDefinition Definition { get; }
@@ -20,19 +21,34 @@ namespace GetBricked.Gameplay
 
         public int StackCount { get; private set; }
 
+        public float EffectMultiplier { get; private set; }
+
+        public float EffectStrength => Mathf.Max(1, StackCount) * Mathf.Max(1f, EffectMultiplier);
+
         public void AddStack(float durationSeconds)
         {
             StackCount += 1;
             RemainingDuration += Mathf.Max(0f, durationSeconds);
         }
+
+        public void MultiplyEffect(float multiplier)
+        {
+            EffectMultiplier *= Mathf.Max(1f, multiplier);
+        }
     }
 
     internal sealed class BreakoutTimedEffectStackSummary
     {
-        public BreakoutTimedEffectStackSummary(PowerUpDefinition definition, int stackCount, float remainingDuration, float durationRatio)
+        public BreakoutTimedEffectStackSummary(
+            PowerUpDefinition definition,
+            int stackCount,
+            float effectMultiplier,
+            float remainingDuration,
+            float durationRatio)
         {
             Definition = definition;
             StackCount = Mathf.Max(1, stackCount);
+            EffectMultiplier = Mathf.Max(1f, effectMultiplier);
             RemainingDuration = remainingDuration;
             DurationRatio = durationRatio;
         }
@@ -40,6 +56,10 @@ namespace GetBricked.Gameplay
         public PowerUpDefinition Definition { get; }
 
         public int StackCount { get; }
+
+        public float EffectMultiplier { get; }
+
+        public float DisplayMultiplier => StackCount * EffectMultiplier;
 
         public float RemainingDuration { get; private set; }
 
@@ -154,16 +174,18 @@ namespace GetBricked.Gameplay
                 return;
             }
 
+            var effectStrength = activeEffect.EffectStrength;
+
             switch (powerUpDefinition.EffectType)
             {
                 case PowerUpEffectType.PaddleWidthMultiplier:
-                    paddleWidthMultiplier *= Mathf.Pow(powerUpDefinition.Scalar, Mathf.Max(1, activeEffect.StackCount));
+                    paddleWidthMultiplier *= Mathf.Pow(powerUpDefinition.Scalar, effectStrength);
                     break;
                 case PowerUpEffectType.BallSpeedMultiplier:
-                    timedBallSpeedMultiplier *= Mathf.Pow(powerUpDefinition.Scalar, Mathf.Max(1, activeEffect.StackCount));
+                    timedBallSpeedMultiplier *= Mathf.Pow(powerUpDefinition.Scalar, effectStrength);
                     break;
                 case PowerUpEffectType.WavyPaddle:
-                    wavyPaddleStrength = Mathf.Max(wavyPaddleStrength, powerUpDefinition.Scalar);
+                    wavyPaddleStrength = Mathf.Max(wavyPaddleStrength, Mathf.Clamp01(powerUpDefinition.Scalar * effectStrength));
                     break;
                 case PowerUpEffectType.StickyPaddle:
                     stickyPaddleEnabled = true;
@@ -175,22 +197,22 @@ namespace GetBricked.Gameplay
                     phaseBallEnabled = true;
                     break;
                 case PowerUpEffectType.ChainLightning:
-                    chainLightningStrength = Mathf.Max(chainLightningStrength, powerUpDefinition.Scalar);
+                    chainLightningStrength = Mathf.Max(chainLightningStrength, Mathf.Clamp01(powerUpDefinition.Scalar * effectStrength));
                     break;
                 case PowerUpEffectType.ReverseControls:
                     reverseControlsEnabled = true;
                     break;
                 case PowerUpEffectType.SplitPaddle:
-                    splitPaddleGapNormalized = Mathf.Max(splitPaddleGapNormalized, Mathf.Clamp(powerUpDefinition.Scalar * 0.34f, 0.18f, 0.42f));
+                    splitPaddleGapNormalized = Mathf.Max(splitPaddleGapNormalized, Mathf.Clamp(powerUpDefinition.Scalar * effectStrength * 0.34f, 0.18f, 0.42f));
                     break;
                 case PowerUpEffectType.GravityWell:
-                    gravityWellStrength = Mathf.Max(gravityWellStrength, Mathf.Clamp01(powerUpDefinition.Scalar));
+                    gravityWellStrength = Mathf.Max(gravityWellStrength, Mathf.Clamp01(powerUpDefinition.Scalar * effectStrength));
                     break;
                 case PowerUpEffectType.FogOfWar:
-                    fogVisibilityMultiplier = Mathf.Min(fogVisibilityMultiplier, Mathf.Clamp(powerUpDefinition.Scalar, 0.2f, 1f));
+                    fogVisibilityMultiplier = Mathf.Min(fogVisibilityMultiplier, Mathf.Clamp(Mathf.Pow(powerUpDefinition.Scalar, effectStrength), 0.2f, 1f));
                     break;
                 case PowerUpEffectType.LagSpike:
-                    lagSpikeStrength = Mathf.Max(lagSpikeStrength, Mathf.Clamp01(powerUpDefinition.Scalar));
+                    lagSpikeStrength = Mathf.Max(lagSpikeStrength, Mathf.Clamp01(powerUpDefinition.Scalar * effectStrength));
                     break;
             }
         }
@@ -378,6 +400,14 @@ namespace GetBricked.Gameplay
                 return default;
             }
 
+            if (powerUpDefinition.EffectType == PowerUpEffectType.ActiveDropMultiplier)
+            {
+                MultiplyActiveTimedEffects(powerUpDefinition.Scalar);
+                ShowPickupBanner(powerUpDefinition, themeService, 1);
+
+                return default;
+            }
+
             ShowPickupBanner(powerUpDefinition, themeService, 1);
 
             return powerUpDefinition.EffectType switch
@@ -480,10 +510,12 @@ namespace GetBricked.Gameplay
 
                 builder.Append(summary.Definition.HudLabel);
 
-                if (summary.StackCount > 1)
+                var displayMultiplier = summary.DisplayMultiplier;
+
+                if (displayMultiplier > 1.001f)
                 {
                     builder.Append(" x");
-                    builder.Append(summary.StackCount);
+                    builder.Append(FormatMultiplier(displayMultiplier));
                 }
 
                 builder.Append(' ');
@@ -515,6 +547,7 @@ namespace GetBricked.Gameplay
                 summaries.Add(new BreakoutTimedEffectStackSummary(
                     definition,
                     activeEffect.StackCount,
+                    activeEffect.EffectMultiplier,
                     activeEffect.RemainingDuration,
                     durationRatio));
             }
@@ -595,6 +628,31 @@ namespace GetBricked.Gameplay
             return 1;
         }
 
+        private int MultiplyActiveTimedEffects(float effectMultiplier)
+        {
+            if (ActiveTimedEffects.Count == 0)
+            {
+                return 0;
+            }
+
+            var multipliedCount = 0;
+
+            for (var index = 0; index < ActiveTimedEffects.Count; index++)
+            {
+                var activeEffect = ActiveTimedEffects[index];
+
+                if (activeEffect?.Definition == null)
+                {
+                    continue;
+                }
+
+                activeEffect.MultiplyEffect(effectMultiplier);
+                multipliedCount++;
+            }
+
+            return multipliedCount;
+        }
+
         private void ShowPickupBanner(PowerUpDefinition powerUpDefinition, BreakoutThemeService themeService, int stackCount)
         {
             PickupBannerText = powerUpDefinition.IsBeneficial
@@ -610,6 +668,18 @@ namespace GetBricked.Gameplay
                 ? themeService.ResolvePowerUpStyle(powerUpDefinition).PrimaryColor
                 : Color.white;
             PickupBannerTimer = 1.6f;
+        }
+
+        internal static string FormatMultiplier(float multiplier)
+        {
+            var clampedMultiplier = Mathf.Max(1f, multiplier);
+
+            if (Mathf.Abs(clampedMultiplier - Mathf.Round(clampedMultiplier)) < 0.001f)
+            {
+                return Mathf.RoundToInt(clampedMultiplier).ToString();
+            }
+
+            return clampedMultiplier.ToString("0.##");
         }
 
         private static float ResolvePickupStartingRotation(PowerUpDefinition powerUpDefinition)

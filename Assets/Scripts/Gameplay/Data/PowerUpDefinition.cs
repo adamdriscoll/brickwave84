@@ -20,6 +20,7 @@ namespace GetBricked.Gameplay.Data
         GravityWell = 11,
         FogOfWar = 12,
         LagSpike = 13,
+        ActiveDropMultiplier = 14,
     }
 
     [CreateAssetMenu(menuName = "Get Bricked/Power-Up Definition", fileName = "PowerUpDefinition")]
@@ -55,7 +56,9 @@ namespace GetBricked.Gameplay.Data
 
         public Color PickupColor => pickupColor;
 
-        public bool IsTimed => effectType != PowerUpEffectType.MultiBallBurst && DurationSeconds > 0f;
+        public bool IsTimed => effectType != PowerUpEffectType.MultiBallBurst
+            && effectType != PowerUpEffectType.ActiveDropMultiplier
+            && DurationSeconds > 0f;
 
         public string ResolvePickupSpriteResourcePath()
         {
@@ -80,7 +83,8 @@ namespace GetBricked.Gameplay.Data
                 return themeSlot;
             }
 
-            if (effectType == PowerUpEffectType.MultiBallBurst)
+            if (effectType == PowerUpEffectType.MultiBallBurst
+                || effectType == PowerUpEffectType.ActiveDropMultiplier)
             {
                 return ThemeVisualSlot.PickupBurst;
             }

@@ -108,15 +108,47 @@ public sealed class BreakoutPowerUpServiceTests
         var service = CreateService();
         var multiBall = CreatePowerUp("Multi-Ball", PowerUpEffectType.MultiBallBurst, true, 0f, 1f);
         var shield = CreatePowerUp("Shield Wall", PowerUpEffectType.ShieldWall, true, 0f, 2.6f);
+        var multiplier = CreatePowerUp("Mondo Multi", PowerUpEffectType.ActiveDropMultiplier, true, 0f, 2f);
 
         var multiBallResult = service.ApplyPowerUp(multiBall, null);
         var shieldResult = service.ApplyPowerUp(shield, null);
+        service.ApplyPowerUp(multiplier, null);
 
         Assert.That(multiBallResult.ShouldSpawnMultiBall, Is.True);
         Assert.That(multiBallResult.ShieldWallChargesGranted, Is.Zero);
         Assert.That(shieldResult.ShouldSpawnMultiBall, Is.False);
         Assert.That(shieldResult.ShieldWallChargesGranted, Is.EqualTo(3));
         Assert.That(service.ActiveTimedEffects, Is.Empty);
+    }
+
+    [Test]
+    public void ActiveDropMultiplierDoublesActiveEffectsWithoutExtendingDurations()
+    {
+        var service = CreateService();
+        var wide = CreatePowerUp("Wide Paddle", PowerUpEffectType.PaddleWidthMultiplier, true, 12f, 1.2f);
+        var slowBall = CreatePowerUp("Slow Ball", PowerUpEffectType.BallSpeedMultiplier, true, 10f, 0.8f);
+        var fog = CreatePowerUp("Fog", PowerUpEffectType.FogOfWar, false, 10f, 0.45f);
+        var multiplier = CreatePowerUp("Mondo Multi", PowerUpEffectType.ActiveDropMultiplier, true, 0f, 2f);
+
+        service.ApplyPowerUp(wide, null);
+        service.ApplyPowerUp(slowBall, null);
+        service.ApplyPowerUp(fog, null);
+
+        service.ApplyPowerUp(multiplier, null);
+        var modifiers = service.CalculateEffectModifiers(1f, 0f);
+        var summaries = service.BuildTimedEffectStackSummaries();
+
+        Assert.That(service.ActiveTimedEffects, Has.Count.EqualTo(3));
+        Assert.That(service.ActiveTimedEffects[0].StackCount, Is.EqualTo(1));
+        Assert.That(service.ActiveTimedEffects[0].EffectMultiplier, Is.EqualTo(2f).Within(0.0001f));
+        Assert.That(service.ActiveTimedEffects[0].RemainingDuration, Is.EqualTo(12f).Within(0.0001f));
+        Assert.That(modifiers.PaddleWidthMultiplier, Is.EqualTo(1.2f * 1.2f).Within(0.0001f));
+        Assert.That(modifiers.TimedBallSpeedMultiplier, Is.EqualTo(0.8f * 0.8f).Within(0.0001f));
+        Assert.That(modifiers.FogVisibilityMultiplier, Is.EqualTo(0.45f * 0.45f).Within(0.0001f));
+        Assert.That(summaries[0].DisplayMultiplier, Is.EqualTo(2f).Within(0.0001f));
+        Assert.That(summaries[0].RemainingDuration, Is.EqualTo(12f).Within(0.0001f));
+        Assert.That(summaries[0].DurationRatio, Is.EqualTo(1f).Within(0.0001f));
+        Assert.That(service.BuildActiveEffectsLabel(), Does.Contain("WIDE PADDLE x2 12.0s"));
     }
 
     [Test]

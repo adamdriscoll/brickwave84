@@ -171,6 +171,44 @@ public sealed class BreakoutGameControllerPowerUpTests
     }
 
     [Test]
+    public void ApplyingActiveDropMultiplierDoublesEffectsWithoutExtendingTimers()
+    {
+        var controller = CreateControllerHarness(out var paddle);
+        var widePowerUp = CreatePowerUp(
+            "Wide Paddle",
+            PowerUpEffectType.PaddleWidthMultiplier,
+            beneficial: true,
+            durationSeconds: 12f,
+            scalar: 1.45f);
+        var multiplierPowerUp = CreatePowerUp(
+            "Mondo Multi",
+            PowerUpEffectType.ActiveDropMultiplier,
+            beneficial: true,
+            durationSeconds: 0f,
+            scalar: 2f);
+
+        InvokePrivateMethod(controller, "ApplyPowerUp", widePowerUp);
+        InvokePrivateMethod(controller, "ApplyPowerUp", multiplierPowerUp);
+
+        var powerUpService = GetPrivateField<object>(controller, "powerUpService");
+        var activeTimedEffects = GetPropertyValue<System.Collections.IList>(powerUpService, "ActiveTimedEffects");
+        var activeEffectsLabel = (string)InvokePrivateMethodWithResult(controller, "BuildActiveEffectsLabel");
+        var modifierViews = (Array)InvokePrivateMethodWithResult(controller, "BuildModifierViews");
+
+        Assert.That(activeTimedEffects.Count, Is.EqualTo(1));
+        Assert.That(GetPropertyValue<int>(activeTimedEffects[0], "StackCount"), Is.EqualTo(1));
+        Assert.That(GetPropertyValue<float>(activeTimedEffects[0], "EffectMultiplier"), Is.EqualTo(2f).Within(0.0001f));
+        Assert.That(GetPropertyValue<float>(activeTimedEffects[0], "RemainingDuration"), Is.EqualTo(12f).Within(0.0001f));
+        Assert.That(paddle.transform.localScale.x, Is.EqualTo(2.1f * 1.45f * 1.45f).Within(0.0001f));
+        Assert.That(activeEffectsLabel, Does.Contain("x2"));
+        Assert.That(activeEffectsLabel, Does.Contain("12.0s"));
+        Assert.That(modifierViews.Length, Is.EqualTo(1));
+        Assert.That(GetFieldValue<string>(modifierViews.GetValue(0), "Label"), Does.Contain("x2"));
+        Assert.That(GetFieldValue<float>(modifierViews.GetValue(0), "RemainingDuration"), Is.EqualTo(12f).Within(0.0001f));
+        Assert.That(GetFieldValue<float>(modifierViews.GetValue(0), "DurationRatio"), Is.EqualTo(1f).Within(0.0001f));
+    }
+
+    [Test]
     public void ApplyingSameTimedPowerUpTwiceExtendsTimerAcrossTimedDropTypes()
     {
         var timedPowerUps = new[]

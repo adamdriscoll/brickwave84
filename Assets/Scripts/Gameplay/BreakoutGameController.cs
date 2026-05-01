@@ -2150,8 +2150,8 @@ namespace GetBricked.Gameplay
                     : new ThemeVisualStyle(Color.white, Color.white, squareSprite);
                 views.Add(new BreakoutUiModifierView
                 {
-                    Label = summary.StackCount > 1
-                        ? $"{summary.Definition.HudLabel} x{summary.StackCount}"
+                    Label = summary.DisplayMultiplier > 1.001f
+                        ? $"{summary.Definition.HudLabel} x{BreakoutPowerUpService.FormatMultiplier(summary.DisplayMultiplier)}"
                         : summary.Definition.HudLabel,
                     RemainingDuration = summary.RemainingDuration,
                     DurationRatio = summary.DurationRatio,
