@@ -10,7 +10,7 @@
 - Scene structure: the playable board is runtime-generated, not prefab-driven yet
 - Current content counts:
   - `4` authored level profiles
-  - `6` brick definitions
+  - `7` brick definitions
   - `16` pickup definitions
   - `6` permanent run upgrades
   - `3` themes
@@ -25,6 +25,7 @@
 - Pause, restart, return-to-setup, and return-to-menu flows
 - One paddle, one or more active balls, lives, serve/reset flow, and game-over handling
 - Timed power-ups and power-downs from brick drops
+- Tiny high-value bricks that read as precision targets instead of standard filler
 - Falling capsules now spin as they drop for a little more arcade energy
 - Spinning breakable bricks that wake up on impact, ricochet the ball at odd angles, and can have their rotation restricted by neighboring bricks
 - Deterministic `pick 1 of 3` permanent upgrade drafts between cleared stages
@@ -151,6 +152,7 @@ Difficulty presets already change more than labels:
 | `Basic Brick` | `1` | `100` | Standard breakable starter brick | `Wide Paddle`, `Slow Ball`, `Multi-Ball`, `Narrow Paddle`, `Wavy Paddle`, `Sticky Paddle`, `Shield Wall` |
 | `Reinforced Brick` | `2` | `175` | Tougher breakable mid-tier brick | `Wide Paddle`, `Slow Ball`, `Fast Ball`, `Multi-Ball`, `Narrow Paddle`, `Wavy Paddle`, `Reverse Controls`, `Split Paddle`, `Lag Spike` |
 | `Fortified Brick` | `3` | `250` | High-durability breakable brick | `Fast Ball`, `Multi-Ball`, `Wide Paddle`, `Narrow Paddle`, `Slow Ball`, `Wavy Paddle`, `Phase Ball`, `Gravity Well`, `Fog of War` |
+| `Tiny Brick` | `1` | `325` | Quarter-scale breakable precision brick that is rarer in procedural mixes and pays out extra score for the smaller hitbox | `Wide Paddle`, `Slow Ball`, `Multi-Ball`, `Narrow Paddle`, `Wavy Paddle`, `Sticky Paddle`, `Shield Wall` |
 | `Spinner Brick` | `2` | `225` | Breakable rotor brick that starts spinning when hit, is rotation-anchored at its center, and kicks the ball into stranger ricochet angles while nearby bricks can physically limit its spin | `Wide Paddle`, `Slow Ball`, `Fast Ball`, `Reverse Controls`, `Split Paddle` |
 | `Explosive Brick` | `1` | `250` | Breakable brick with an explosion burst and temporary speed boost on direct impact kills | `Narrow Paddle`, `Slow Ball`, `Wavy Paddle`, `Chain Lightning`, `Laser Paddle` |
 | `Steel Brick` | Indestructible | `0` | Obstacle brick that does not count toward completion | None |

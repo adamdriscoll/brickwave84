@@ -1,0 +1,49 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7d65dbb95ba8457a9f726f66cc80214d, type: 3}
+  m_Name: TinyBrick
+  m_EditorClassIdentifier: 
+  displayName: Tiny Brick
+  hitPoints: 1
+  scoreValue: 325
+  sizeMultiplier: 0.5
+  indestructible: 0
+  countsTowardLevelCompletion: 1
+  explosive: 0
+  explosionRadius: 1.5
+  explosionSpeedMultiplier: 2.2
+  explosionSpeedDuration: 2.75
+  spinsOnHit: 0
+  spinTorqueImpulse: 140
+  spinMaxAngularVelocity: 360
+  spinAngularDamping: 2.4
+  spinBounceStrength: 0.75
+  dropChance: 0.12
+  dropTable:
+  - powerUpDefinition: {fileID: 11400000, guid: 1d335df901634d569e07a6c16d8d0a39, type: 2}
+    weight: 3
+  - powerUpDefinition: {fileID: 11400000, guid: fd4d25758f024fb1af03cb9e4a3a2f95, type: 2}
+    weight: 2
+  - powerUpDefinition: {fileID: 11400000, guid: e2ee17d131c74b4ca9ed3f3c6c1aa71d, type: 2}
+    weight: 1
+  - powerUpDefinition: {fileID: 11400000, guid: 82893256589a4f2ab26f2af834844f51, type: 2}
+    weight: 1
+  - powerUpDefinition: {fileID: 11400000, guid: f5c2e01a8d0447d1b6ac0e8b7a93d4cf, type: 2}
+    weight: 1
+  - powerUpDefinition: {fileID: 11400000, guid: 76c0cdae8a5d4df4b6119a53951b583e, type: 2}
+    weight: 1
+  - powerUpDefinition: {fileID: 11400000, guid: 4b41f04b75744ce4bbfdcfd96c4a9844, type: 2}
+    weight: 1
+  baseColor: {r: 0.45, g: 0.98, b: 0.95, a: 1}
+  damagedColor: {r: 0.18, g: 0.64, b: 0.67, a: 1}
+  spriteResourcePath: 
+  themeSlot: 7

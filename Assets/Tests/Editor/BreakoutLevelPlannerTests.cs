@@ -64,6 +64,24 @@ public sealed class BreakoutLevelPlannerTests
         Assert.That(GetFieldValue<int>(plan, "AvailableDropTypeCount"), Is.EqualTo(5));
     }
 
+    [Test]
+    public void TinyBricksRemainRarerThanFullSizeBasicBricksWhenAvailable()
+    {
+        var tinyBrick = CreateBrickDefinition("Tiny Brick", hitPoints: 1, isBreakable: true, null);
+        var basicBrick = CreateBrickDefinition("Basic Brick", hitPoints: 1, isBreakable: true, null);
+        SetPrivateField(tinyBrick, "sizeMultiplier", 0.5f);
+
+        var weightMethod = GetGameplayType("GetBricked.Gameplay.BreakoutLevelPlanner")
+            .GetMethod("GetProceduralBrickWeight", BindingFlags.Static | InstanceFlags);
+        Assert.That(weightMethod, Is.Not.Null);
+
+        var tinyWeight = (float)weightMethod.Invoke(null, new object[] { tinyBrick, 1, 4, 5, 8, 2, false });
+        var basicWeight = (float)weightMethod.Invoke(null, new object[] { basicBrick, 1, 4, 5, 8, 2, false });
+
+        Assert.That(tinyWeight, Is.GreaterThan(0f));
+        Assert.That(tinyWeight, Is.LessThan(basicWeight));
+    }
+
     private object CreateLevelPlanner(List<LevelDefinition> levels, List<BrickDefinition> bricks)
     {
         var plannerType = typeof(BreakoutGameController).Assembly.GetType("GetBricked.Gameplay.BreakoutLevelPlanner", throwOnError: false);
@@ -131,6 +149,14 @@ public sealed class BreakoutLevelPlannerTests
         SetPrivateField(powerUp, "displayName", displayName);
         SetPrivateField(powerUp, "hudLabel", displayName.ToUpperInvariant());
         return powerUp;
+    }
+
+    private static Type GetGameplayType(string fullName)
+    {
+        var assembly = typeof(BreakoutGameController).Assembly;
+        var resolvedType = assembly.GetType(fullName, throwOnError: false);
+        Assert.That(resolvedType, Is.Not.Null, $"Could not resolve gameplay type '{fullName}'.");
+        return resolvedType;
     }
 
     private static T GetFieldValue<T>(object instance, string fieldName)

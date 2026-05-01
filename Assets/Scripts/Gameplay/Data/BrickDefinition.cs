@@ -20,6 +20,7 @@ namespace GetBricked.Gameplay.Data
         [SerializeField] private string displayName = "Brick";
         [SerializeField, Min(1)] private int hitPoints = 1;
         [SerializeField, Min(0)] private int scoreValue = 100;
+        [SerializeField, Range(0.25f, 2f)] private float sizeMultiplier = 1f;
         [SerializeField] private bool indestructible;
         [SerializeField] private bool countsTowardLevelCompletion = true;
         [SerializeField] private bool explosive;
@@ -43,6 +44,8 @@ namespace GetBricked.Gameplay.Data
         public int HitPoints => indestructible ? 0 : Mathf.Max(1, hitPoints);
 
         public int ScoreValue => Mathf.Max(0, scoreValue);
+
+        public float SizeMultiplier => Mathf.Clamp(sizeMultiplier, 0.25f, 2f);
 
         public bool IsBreakable => !indestructible;
 

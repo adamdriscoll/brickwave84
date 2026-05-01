@@ -1588,7 +1588,11 @@ namespace GetBricked.Gameplay
             var brickObject = new GameObject($"{definition.DisplayName} {row + 1}-{column + 1}");
             brickObject.transform.SetParent(bricksRoot, false);
             brickObject.transform.position = position;
-            brickObject.transform.localScale = new Vector3(brickSize.x, brickSize.y, 1f);
+            var sizeMultiplier = definition != null ? definition.SizeMultiplier : 1f;
+            brickObject.transform.localScale = new Vector3(
+                brickSize.x * sizeMultiplier,
+                brickSize.y * sizeMultiplier,
+                1f);
 
             var visualObject = new GameObject("Visual");
             visualObject.transform.SetParent(brickObject.transform, false);

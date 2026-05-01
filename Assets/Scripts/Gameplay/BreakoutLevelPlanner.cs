@@ -330,6 +330,7 @@ namespace GetBricked.Gameplay
             var normalizedColumn = totalColumns <= 1 ? 0.5f : (float)column / (totalColumns - 1f);
             var centerBias = 1f - Mathf.Abs((normalizedColumn * 2f) - 1f);
             var hotspot = topBias > 0.45f && centerBias > 0.4f;
+            var isTinyBrick = definition.SizeMultiplier <= 0.55f;
 
             if (!definition.IsBreakable)
             {
@@ -341,6 +342,8 @@ namespace GetBricked.Gameplay
                 return hotspot ? 0.2f + (Mathf.Min(4, levelIndex) * 0.03f) : 0.08f + (Mathf.Min(4, levelIndex) * 0.02f);
             }
 
+            float weight;
+
             if (definition.IsExplosive)
             {
                 if (!isBrutalRun && levelIndex < 4)
@@ -348,40 +351,55 @@ namespace GetBricked.Gameplay
                     return 0f;
                 }
 
-                return 0.22f + (topBias * 0.18f) + (hotspot ? 0.16f : 0f) + ((levelIndex - 4) * 0.05f);
+                weight = 0.22f + (topBias * 0.18f) + (hotspot ? 0.16f : 0f) + ((levelIndex - 4) * 0.05f);
             }
-
-            if (definition.SpinsOnHit)
+            else if (definition.SpinsOnHit)
             {
                 if (!isBrutalRun && levelIndex < 2)
                 {
                     return 0f;
                 }
 
-                return 0.42f + (topBias * 0.3f) + (centerBias * 0.16f) + (hotspot ? 0.18f : 0f) + ((levelIndex - 2) * 0.045f);
+                weight = 0.42f + (topBias * 0.3f) + (centerBias * 0.16f) + (hotspot ? 0.18f : 0f) + ((levelIndex - 2) * 0.045f);
             }
-
-            if (definition.HitPoints >= 3)
+            else if (definition.HitPoints >= 3)
             {
                 if (!isBrutalRun && levelIndex < 3)
                 {
                     return 0f;
                 }
 
-                return 0.55f + (topBias * 0.45f) + (hotspot ? 0.2f : 0f) + ((levelIndex - 3) * 0.04f);
+                weight = 0.55f + (topBias * 0.45f) + (hotspot ? 0.2f : 0f) + ((levelIndex - 3) * 0.04f);
             }
-
-            if (definition.HitPoints == 2)
+            else if (definition.HitPoints == 2)
             {
                 if (!isBrutalRun && levelIndex < 1)
                 {
                     return 0f;
                 }
 
-                return 1.2f + (topBias * 0.55f) + (centerBias * 0.15f) + ((levelIndex - 1) * 0.06f);
+                weight = 1.2f + (topBias * 0.55f) + (centerBias * 0.15f) + ((levelIndex - 1) * 0.06f);
+            }
+            else
+            {
+                weight = 4f + ((1f - topBias) * 0.75f);
             }
 
-            return 4f + ((1f - topBias) * 0.75f);
+            if (!isTinyBrick)
+            {
+                return Mathf.Max(0f, weight);
+            }
+
+            if (!isBrutalRun && levelIndex < 1)
+            {
+                return 0f;
+            }
+
+            weight = (weight * 0.18f)
+                + (centerBias * 0.22f)
+                + (hotspot ? 0.16f : 0f)
+                + Mathf.Min(0.14f, levelIndex * 0.025f);
+            return Mathf.Max(0f, weight);
         }
 
         private BrickDefinition FindFallbackBasicBrick()
@@ -390,7 +408,11 @@ namespace GetBricked.Gameplay
             {
                 var definition = loadedBrickDefinitions[index];
 
-                if (definition != null && definition.IsBreakable && !definition.IsExplosive && definition.HitPoints <= 1)
+                if (definition != null
+                    && definition.IsBreakable
+                    && !definition.IsExplosive
+                    && definition.HitPoints <= 1
+                    && definition.SizeMultiplier >= 0.95f)
                 {
                     return definition;
                 }

@@ -71,6 +71,44 @@ public sealed class BreakoutGameControllerPowerUpTests
     }
 
     [Test]
+    public void CreateBrickUsesDefinitionSizeMultiplier()
+    {
+        var controller = CreateControllerHarness(out _);
+        var bricksRootObject = new GameObject("Bricks Root");
+        runtimeObjects.Add(bricksRootObject);
+        SetPrivateField(controller, "bricksRoot", bricksRootObject.transform);
+        SetPrivateField(controller, "squareSprite", CreateSquareSprite());
+
+        var tinyDefinition = ScriptableObject.CreateInstance<BrickDefinition>();
+        runtimeObjects.Add(tinyDefinition);
+        SetPrivateField(tinyDefinition, "displayName", "Tiny Brick");
+        SetPrivateField(tinyDefinition, "hitPoints", 1);
+        SetPrivateField(tinyDefinition, "scoreValue", 325);
+        SetPrivateField(tinyDefinition, "sizeMultiplier", 0.5f);
+        SetPrivateField(tinyDefinition, "indestructible", false);
+        SetPrivateField(tinyDefinition, "countsTowardLevelCompletion", true);
+        SetPrivateField(tinyDefinition, "dropChance", 0f);
+        SetPrivateField(tinyDefinition, "dropTable", Array.Empty<BrickPowerUpDropEntry>());
+        var motionConfig = Activator.CreateInstance(GetGameplayType("GetBricked.Gameplay.BreakoutBrickMotionConfig"));
+
+        InvokePrivateMethod(
+            controller,
+            "CreateBrick",
+            new Vector2(1f, 2f),
+            tinyDefinition,
+            0,
+            0,
+            1,
+            motionConfig);
+
+        var bricks = GetPrivateField<List<Brick>>(controller, "bricks");
+
+        Assert.That(bricks, Has.Count.EqualTo(1));
+        Assert.That(bricks[0].transform.localScale.x, Is.EqualTo(1.15f * 0.5f).Within(0.0001f));
+        Assert.That(bricks[0].transform.localScale.y, Is.EqualTo(0.58f * 0.5f).Within(0.0001f));
+    }
+
+    [Test]
     public void ApplyingSameShrinkPowerUpTwiceStacksPaddleScale()
     {
         var controller = CreateControllerHarness(out var paddle);
@@ -387,6 +425,15 @@ public sealed class BreakoutGameControllerPowerUpTests
     {
         var serviceType = GetGameplayType("GetBricked.Gameplay.BreakoutPowerUpService");
         return Activator.CreateInstance(serviceType, new Vector2(0.55f, 0.55f), 3.2f, 22f, null);
+    }
+
+    private Sprite CreateSquareSprite()
+    {
+        var texture = new Texture2D(8, 8);
+        runtimeObjects.Add(texture);
+        var sprite = Sprite.Create(texture, new Rect(0f, 0f, 8f, 8f), new Vector2(0.5f, 0.5f), 8f);
+        runtimeObjects.Add(sprite);
+        return sprite;
     }
 
     private static PowerUpDefinition CreatePowerUp(
