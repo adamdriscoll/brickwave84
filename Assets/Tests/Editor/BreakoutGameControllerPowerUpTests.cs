@@ -203,7 +203,6 @@ public sealed class BreakoutGameControllerPowerUpTests
 
         InvokePrivateMethod(powerUpService, "EvaluateCapsuleMadnessActivation");
         SetPrivateField(controller, "score", 100);
-        SetPrivateField(controller, "levelScore", 40);
         SetPrivateEnumField(controller, "roundState", "Playing");
 
         controller.HandlePickupCaught(pickup);
@@ -211,7 +210,6 @@ public sealed class BreakoutGameControllerPowerUpTests
         var popups = GetFloatingScorePopups(controller);
 
         Assert.That(GetPrivateField<int>(controller, "score"), Is.EqualTo(100 + BreakoutPowerUpService.CapsuleMadnessPickupBonusPoints));
-        Assert.That(GetPrivateField<int>(controller, "levelScore"), Is.EqualTo(40 + BreakoutPowerUpService.CapsuleMadnessPickupBonusPoints));
         Assert.That(popups.Count, Is.EqualTo(1));
         Assert.That(GetFieldValue<string>(popups[0], "PrimaryText"), Is.EqualTo($"+{BreakoutPowerUpService.CapsuleMadnessPickupBonusPoints}"));
         Assert.That(GetFieldValue<string>(popups[0], "SecondaryText"), Is.EqualTo("COMBO BONUS: CAPSULE MADNESS!"));

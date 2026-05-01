@@ -1,4 +1,5 @@
 using System;
+using System.Text;
 using UnityEngine;
 
 namespace GetBricked.Gameplay.Data
@@ -9,6 +10,7 @@ namespace GetBricked.Gameplay.Data
         [SerializeField] private string upgradeId = "run-upgrade";
         [SerializeField] private string displayName = "Run Upgrade";
         [SerializeField] private string hudLabel = "MOD";
+        [SerializeField] private string iconResourcePath = string.Empty;
         [SerializeField, TextArea(2, 4)] private string description = "Permanent upgrade for the rest of the run.";
         [SerializeField, Min(0.05f)] private float draftWeight = 1f;
         [SerializeField, Min(1)] private int maxStacks = 3;
@@ -53,5 +55,67 @@ namespace GetBricked.Gameplay.Data
         public int ExtraBallsPerServe => Mathf.Max(0, extraBallsPerServe);
 
         public int BonusLives => Mathf.Max(0, bonusLives);
+
+        public string ResolveIconSpriteResourcePath()
+        {
+            if (!string.IsNullOrWhiteSpace(iconResourcePath))
+            {
+                return NormalizeResourcePath(iconResourcePath);
+            }
+
+            var normalizedId = NormalizeIconName(UpgradeId);
+            return string.IsNullOrWhiteSpace(normalizedId) ? string.Empty : $"Sprites/{normalizedId}";
+        }
+
+        private static string NormalizeResourcePath(string resourcePath)
+        {
+            var normalizedPath = resourcePath.Trim().Replace('\\', '/');
+
+            if (normalizedPath.StartsWith("Assets/Resources/", StringComparison.OrdinalIgnoreCase))
+            {
+                normalizedPath = normalizedPath.Substring("Assets/Resources/".Length);
+            }
+
+            var extensionIndex = normalizedPath.LastIndexOf('.');
+
+            if (extensionIndex > normalizedPath.LastIndexOf('/'))
+            {
+                normalizedPath = normalizedPath.Substring(0, extensionIndex);
+            }
+
+            return normalizedPath;
+        }
+
+        private static string NormalizeIconName(string rawValue)
+        {
+            if (string.IsNullOrWhiteSpace(rawValue))
+            {
+                return string.Empty;
+            }
+
+            var builder = new StringBuilder(rawValue.Length);
+            var needsSeparator = false;
+
+            for (var index = 0; index < rawValue.Length; index++)
+            {
+                var current = rawValue[index];
+
+                if (char.IsLetterOrDigit(current))
+                {
+                    if (needsSeparator && builder.Length > 0 && builder[builder.Length - 1] != '-')
+                    {
+                        builder.Append('-');
+                    }
+
+                    builder.Append(char.ToLowerInvariant(current));
+                    needsSeparator = false;
+                    continue;
+                }
+
+                needsSeparator = builder.Length > 0;
+            }
+
+            return builder.ToString().Trim('-');
+        }
     }
 }

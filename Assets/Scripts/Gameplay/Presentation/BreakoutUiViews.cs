@@ -93,6 +93,7 @@ namespace GetBricked.Gameplay
         public string Title = string.Empty;
         public string Description = string.Empty;
         public string Detail = string.Empty;
+        public Sprite Icon;
         public Color Accent = Color.white;
     }
 
@@ -112,6 +113,23 @@ namespace GetBricked.Gameplay
         public float RemainingDuration;
         public float DurationRatio = 1f;
         public Color Color = Color.white;
+    }
+
+    internal sealed class BreakoutUiRunUpgradePanelItemView
+    {
+        public string Label = string.Empty;
+        public string Title = string.Empty;
+        public string Description = string.Empty;
+        public string Detail = string.Empty;
+        public int StackCount = 1;
+        public Sprite Icon;
+        public Color Accent = Color.white;
+    }
+
+    internal sealed class BreakoutUiRunUpgradePanelView
+    {
+        public BreakoutUiRunUpgradePanelItemView[] Items = Array.Empty<BreakoutUiRunUpgradePanelItemView>();
+        public bool IsDiagnosticsVisible;
     }
 
     internal sealed class BreakoutUiDiagnosticsView

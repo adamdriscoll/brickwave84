@@ -25,6 +25,9 @@ namespace GetBricked.Gameplay
         private GUIStyle modifierPanelTitleStyle;
         private GUIStyle modifierPanelLabelStyle;
         private GUIStyle modifierPanelTimerStyle;
+        private GUIStyle upgradePanelStackStyle;
+        private GUIStyle upgradeTooltipTitleStyle;
+        private GUIStyle upgradeTooltipBodyStyle;
         private GUIStyle floatingScoreStyle;
         private GUIStyle floatingScoreTagStyle;
         private GUIStyle capsuleMadnessStyle;
@@ -331,8 +334,10 @@ namespace GetBricked.Gameplay
                     onOptionClicked?.Invoke(index);
                 }
 
+                var iconRect = new Rect(optionRect.x + 18f, optionRect.y + 42f, 58f, 58f);
                 DrawSectionLabel(new Rect(optionRect.x + 16f, optionRect.y + 14f, optionRect.width - 32f, 18f), $"PICK {index + 1}", accent);
-                DrawTextWithShadow(new Rect(optionRect.x + 16f, optionRect.y + 42f, optionRect.width - 32f, 52f), option.Title, overlayActionStyle, palette.TextPrimary, 0.3f);
+                DrawIconTile(iconRect, option.Icon, accent, isSelected);
+                DrawTextWithShadow(new Rect(optionRect.x + 86f, optionRect.y + 42f, optionRect.width - 102f, 52f), option.Title, overlayActionStyle, palette.TextPrimary, 0.3f);
                 DrawTextWithShadow(new Rect(optionRect.x + 16f, optionRect.y + 100f, optionRect.width - 32f, 92f), option.Description, overlayBodyStyle, palette.TextMuted, 0.22f);
                 DrawTextWithShadow(new Rect(optionRect.x + 16f, optionRect.y + 200f, optionRect.width - 32f, 28f), option.Detail, setupHintStyle, palette.TextPrimary, 0.25f);
             }
@@ -536,6 +541,63 @@ namespace GetBricked.Gameplay
             }
         }
 
+        public void DrawRunUpgradePanel(BreakoutUiRunUpgradePanelView view)
+        {
+            EnsureStyles();
+
+            if (view == null || view.Items == null || view.Items.Length == 0)
+            {
+                return;
+            }
+
+            var iconSize = 42f;
+            var iconSpacing = 8f;
+            var visibleCount = Mathf.Min(view.Items.Length, Mathf.Max(1, Mathf.FloorToInt((Screen.width - 76f) / (iconSize + iconSpacing))));
+            var panelWidth = Mathf.Clamp(34f + visibleCount * iconSize + Mathf.Max(0, visibleCount - 1) * iconSpacing, 112f, Screen.width - 36f);
+            var panelHeight = 76f;
+            var bottomMargin = view.IsDiagnosticsVisible ? 198f : 22f;
+            var panelRect = new Rect(18f, Mathf.Max(104f, Screen.height - panelHeight - bottomMargin), panelWidth, panelHeight);
+            BreakoutUiRunUpgradePanelItemView hoveredItem = null;
+
+            DrawPanel(panelRect, palette.AccentSecondary, palette.AccentPrimary, false, 1.5f);
+            DrawSectionLabel(new Rect(panelRect.x + 12f, panelRect.y + 8f, panelRect.width - 24f, 14f), "BUILD", palette.AccentWarm);
+
+            var iconX = panelRect.x + 14f;
+            var iconY = panelRect.y + 26f;
+
+            for (var index = 0; index < visibleCount; index++)
+            {
+                var item = view.Items[index];
+                var iconRect = new Rect(iconX + index * (iconSize + iconSpacing), iconY, iconSize, iconSize);
+                var isHovered = iconRect.Contains(Event.current.mousePosition);
+
+                DrawIconTile(iconRect, item.Icon, item.Accent, isHovered);
+                DrawTextWithShadow(new Rect(iconRect.x, iconRect.yMax - 13f, iconRect.width, 12f), item.Label, modifierPanelLabelStyle, palette.TextPrimary, 0.2f);
+
+                if (item.StackCount > 1)
+                {
+                    DrawSolidRect(new Rect(iconRect.xMax - 18f, iconRect.y - 1f, 20f, 16f), WithAlpha(palette.BezelDark, 0.92f));
+                    DrawOutline(new Rect(iconRect.xMax - 18f, iconRect.y - 1f, 20f, 16f), item.Accent, 1f);
+                    DrawTextWithShadow(new Rect(iconRect.xMax - 18f, iconRect.y - 1f, 20f, 16f), $"x{item.StackCount}", upgradePanelStackStyle, palette.TextPrimary, 0.18f);
+                }
+
+                if (isHovered)
+                {
+                    hoveredItem = item;
+                }
+            }
+
+            if (view.Items.Length > visibleCount)
+            {
+                DrawTextWithShadow(new Rect(panelRect.xMax - 32f, panelRect.y + 8f, 24f, 14f), $"+{view.Items.Length - visibleCount}", speedMeterValueStyle, palette.TextMuted, 0.2f);
+            }
+
+            if (hoveredItem != null)
+            {
+                DrawUpgradeTooltip(hoveredItem, panelRect);
+            }
+        }
+
         private void EnsureStyles()
         {
             retroUiFont ??= Font.CreateDynamicFontFromOSFont(RetroUiFontNames, RetroUiFontSize);
@@ -625,6 +687,24 @@ namespace GetBricked.Gameplay
                 alignment = TextAnchor.MiddleCenter,
                 fontSize = 10,
             };
+            upgradePanelStackStyle ??= new GUIStyle(hudStyle)
+            {
+                alignment = TextAnchor.MiddleCenter,
+                fontSize = 9,
+                fontStyle = FontStyle.Bold,
+            };
+            upgradeTooltipTitleStyle ??= new GUIStyle(hudStyle)
+            {
+                alignment = TextAnchor.MiddleLeft,
+                fontSize = 15,
+                fontStyle = FontStyle.Bold,
+            };
+            upgradeTooltipBodyStyle ??= new GUIStyle(setupHintStyle)
+            {
+                alignment = TextAnchor.UpperLeft,
+                fontSize = 13,
+                wordWrap = true,
+            };
             floatingScoreStyle ??= new GUIStyle(pickupStyle)
             {
                 fontSize = 30,
@@ -662,6 +742,9 @@ namespace GetBricked.Gameplay
             modifierPanelTitleStyle.normal.textColor = palette.TextMuted;
             modifierPanelLabelStyle.normal.textColor = palette.TextPrimary;
             modifierPanelTimerStyle.normal.textColor = palette.TextMuted;
+            upgradePanelStackStyle.normal.textColor = palette.TextPrimary;
+            upgradeTooltipTitleStyle.normal.textColor = palette.TextPrimary;
+            upgradeTooltipBodyStyle.normal.textColor = palette.TextMuted;
             floatingScoreStyle.normal.textColor = palette.AccentWarm;
             floatingScoreTagStyle.normal.textColor = palette.AccentPrimary;
             capsuleMadnessStyle.normal.textColor = palette.AccentWarm;
@@ -691,6 +774,9 @@ namespace GetBricked.Gameplay
             modifierPanelTitleStyle.font = retroUiFont;
             modifierPanelLabelStyle.font = retroUiFont;
             modifierPanelTimerStyle.font = retroUiFont;
+            upgradePanelStackStyle.font = retroUiFont;
+            upgradeTooltipTitleStyle.font = retroUiFont;
+            upgradeTooltipBodyStyle.font = retroUiFont;
             floatingScoreStyle.font = retroUiFont;
             floatingScoreTagStyle.font = retroUiFont;
             capsuleMadnessStyle.font = retroUiFont;
@@ -764,6 +850,39 @@ namespace GetBricked.Gameplay
                 isSelected ? palette.TextPrimary : palette.TextMuted,
                 0.25f);
             return GUI.Button(rect, GUIContent.none, GUIStyle.none);
+        }
+
+        private void DrawIconTile(Rect rect, Sprite icon, Color accent, bool emphasize)
+        {
+            DrawSolidRect(Inflate(rect, emphasize ? 5f : 3f), WithAlpha(accent, emphasize ? 0.16f : 0.07f));
+            DrawSolidRect(rect, WithAlpha(palette.BezelDark, 0.72f));
+            DrawOutline(rect, WithAlpha(accent, emphasize ? 0.75f : 0.42f), emphasize ? 2f : 1f);
+
+            if (icon == null || icon.texture == null)
+            {
+                DrawSolidRect(new Rect(rect.x + 13f, rect.y + 13f, rect.width - 26f, rect.height - 26f), WithAlpha(accent, 0.86f));
+                return;
+            }
+
+            var previousGuiColor = GUI.color;
+            GUI.color = accent;
+            GUI.DrawTextureWithTexCoords(new Rect(rect.x + 7f, rect.y + 7f, rect.width - 14f, rect.height - 14f), icon.texture, GetSpriteTexCoords(icon), true);
+            GUI.color = previousGuiColor;
+        }
+
+        private void DrawUpgradeTooltip(BreakoutUiRunUpgradePanelItemView item, Rect panelRect)
+        {
+            var tooltipWidth = Mathf.Min(392f, Screen.width - 36f);
+            var tooltipHeight = 124f;
+            var tooltipX = Mathf.Clamp(panelRect.x, 18f, Mathf.Max(18f, Screen.width - tooltipWidth - 18f));
+            var tooltipY = Mathf.Max(18f, panelRect.y - tooltipHeight - 10f);
+            var tooltipRect = new Rect(tooltipX, tooltipY, tooltipWidth, tooltipHeight);
+            var title = item.StackCount > 1 ? $"{item.Title} x{item.StackCount}" : item.Title;
+
+            DrawPanel(tooltipRect, item.Accent, palette.AccentPrimary, false, 1.5f);
+            DrawTextWithShadow(new Rect(tooltipRect.x + 16f, tooltipRect.y + 12f, tooltipRect.width - 32f, 20f), title, upgradeTooltipTitleStyle, palette.TextPrimary, 0.25f);
+            DrawTextWithShadow(new Rect(tooltipRect.x + 16f, tooltipRect.y + 38f, tooltipRect.width - 32f, 48f), item.Description, upgradeTooltipBodyStyle, palette.TextMuted, 0.18f);
+            DrawTextWithShadow(new Rect(tooltipRect.x + 16f, tooltipRect.yMax - 30f, tooltipRect.width - 32f, 18f), item.Detail, modifierPanelTimerStyle, item.Accent, 0.18f);
         }
 
         private void DrawPanel(Rect rect, Color leftAccent, Color rightAccent, bool emphasize, float borderThickness = 2f)
@@ -858,6 +977,21 @@ namespace GetBricked.Gameplay
         private static Rect Inflate(Rect rect, float amount)
         {
             return new Rect(rect.x - amount, rect.y - amount, rect.width + (amount * 2f), rect.height + (amount * 2f));
+        }
+
+        private static Rect GetSpriteTexCoords(Sprite sprite)
+        {
+            if (sprite == null || sprite.texture == null)
+            {
+                return new Rect(0f, 0f, 1f, 1f);
+            }
+
+            var textureRect = sprite.textureRect;
+            return new Rect(
+                textureRect.x / sprite.texture.width,
+                textureRect.y / sprite.texture.height,
+                textureRect.width / sprite.texture.width,
+                textureRect.height / sprite.texture.height);
         }
 
         private static Color WithAlpha(Color color, float alpha)

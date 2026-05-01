@@ -104,6 +104,7 @@ namespace GetBricked.Gameplay
         private readonly List<RunUpgradeDefinition> loadedRunUpgradeDefinitions = new List<RunUpgradeDefinition>();
         private readonly List<BallController> activeBalls = new List<BallController>();
         private readonly List<SpriteRenderer> wallRenderers = new List<SpriteRenderer>();
+        private readonly Dictionary<string, Sprite> runUpgradeSpriteCache = new Dictionary<string, Sprite>(StringComparer.OrdinalIgnoreCase);
         private readonly BreakoutBrickEffectResolver brickEffectResolver = new BreakoutBrickEffectResolver();
 
         private Camera activeCamera;
@@ -1881,6 +1882,7 @@ namespace GetBricked.Gameplay
             uiRenderer.DrawCabinetBackdrop(gameplayChromeView);
             uiRenderer.DrawGameplayHud(BuildHudView(), ToggleDiagnosticsOverlay, ToggleHudMenuOverlay);
             uiRenderer.DrawModifierIndicator(BuildModifierViews(), isDiagnosticsOverlayVisible);
+            uiRenderer.DrawRunUpgradePanel(BuildRunUpgradePanelView());
             uiRenderer.DrawCapsuleMadness(BuildCapsuleMadnessView(gameplayChromeView.PlayfieldRect));
             uiRenderer.DrawFloatingScorePopups(scoreService?.BuildFloatingScoreViews(activeCamera, Screen.height) ?? Array.Empty<BreakoutUiFloatingScoreView>());
 
@@ -2069,6 +2071,7 @@ namespace GetBricked.Gameplay
                     Detail = upgrade != null
                         ? $"Stacks {currentStacks}/{upgrade.MaxStacks}   |   {BuildUpgradeMechanicalSummary(upgrade)}"
                         : "Unavailable",
+                    Icon = ResolveRunUpgradeIcon(upgrade),
                     Accent = ResolveRunUpgradeAccentColor(upgrade),
                 };
             }
@@ -2152,6 +2155,50 @@ namespace GetBricked.Gameplay
             }
 
             return views.ToArray();
+        }
+
+        private BreakoutUiRunUpgradePanelView BuildRunUpgradePanelView()
+        {
+            var chosenUpgrades = activeRunState?.ChosenUpgrades;
+
+            if (chosenUpgrades == null || chosenUpgrades.Count == 0)
+            {
+                return new BreakoutUiRunUpgradePanelView
+                {
+                    IsDiagnosticsVisible = isDiagnosticsOverlayVisible,
+                };
+            }
+
+            var items = new List<BreakoutUiRunUpgradePanelItemView>();
+            var addedIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            for (var index = 0; index < chosenUpgrades.Count; index++)
+            {
+                var upgrade = chosenUpgrades[index];
+
+                if (upgrade == null || !addedIds.Add(upgrade.UpgradeId))
+                {
+                    continue;
+                }
+
+                var stackCount = activeRunState.GetStackCount(upgrade);
+                items.Add(new BreakoutUiRunUpgradePanelItemView
+                {
+                    Label = upgrade.HudLabel,
+                    Title = upgrade.DisplayName,
+                    Description = upgrade.Description,
+                    Detail = $"{BuildUpgradeMechanicalSummary(upgrade)} | Stacks {stackCount}/{upgrade.MaxStacks}",
+                    StackCount = stackCount,
+                    Icon = ResolveRunUpgradeIcon(upgrade),
+                    Accent = ResolveRunUpgradeAccentColor(upgrade),
+                });
+            }
+
+            return new BreakoutUiRunUpgradePanelView
+            {
+                Items = items.ToArray(),
+                IsDiagnosticsVisible = isDiagnosticsOverlayVisible,
+            };
         }
 
         private BreakoutUiDiagnosticsView BuildDiagnosticsView()
@@ -2855,6 +2902,29 @@ namespace GetBricked.Gameplay
             return themeService != null
                 ? themeService.ResolveThemeStyle(upgrade.ThemeSlot, upgrade.AccentColor, upgrade.AccentColor, squareSprite).PrimaryColor
                 : upgrade.AccentColor;
+        }
+
+        private Sprite ResolveRunUpgradeIcon(RunUpgradeDefinition upgrade)
+        {
+            if (upgrade == null)
+            {
+                return squareSprite;
+            }
+
+            var resourcePath = upgrade.ResolveIconSpriteResourcePath();
+
+            if (string.IsNullOrWhiteSpace(resourcePath))
+            {
+                return squareSprite;
+            }
+
+            if (!runUpgradeSpriteCache.TryGetValue(resourcePath, out var cachedSprite))
+            {
+                cachedSprite = Resources.Load<Sprite>(resourcePath);
+                runUpgradeSpriteCache[resourcePath] = cachedSprite;
+            }
+
+            return cachedSprite != null ? cachedSprite : squareSprite;
         }
 
         private void ShowRunUpgradeBanner(RunUpgradeDefinition upgrade)
