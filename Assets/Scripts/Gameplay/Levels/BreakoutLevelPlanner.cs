@@ -96,13 +96,22 @@ namespace GetBricked.Gameplay
             var templateCount = Mathf.Max(1, loadedLevels.Count);
             var profileIndex = Mathf.Abs(levelIndex % templateCount);
             var cycleIndex = levelIndex / templateCount;
+            var levelProgress = BreakoutRunProgression.GetLevelProgress(levelIndex);
             var isBrutalRun = activeRunSettings != null && activeRunSettings.DifficultyPreset == RunDifficultyPreset.Brutal;
             var planner = gameplayRandom != null
                 ? gameplayRandom.Fork((levelIndex + 1) * 7919)
                 : new DeterministicRandomService(seedGenerator());
             var pattern = (ProceduralPatternType)planner.Range(0, Enum.GetValues(typeof(ProceduralPatternType)).Length);
-            var rowCount = Mathf.Clamp(Mathf.Max(3, level.LayoutRows.Length) + Mathf.Min(2, cycleIndex) + (profileIndex >= 2 ? 1 : 0), 3, 7);
-            var columnCount = Mathf.Clamp(GetTemplateColumnCount(level) + Mathf.Min(2, cycleIndex) + (profileIndex >= templateCount - 1 ? 1 : 0), 8, 11);
+            var minimumRowsForProgress = 3 + Mathf.FloorToInt(levelProgress * 4.01f);
+            var minimumColumnsForProgress = 8 + Mathf.FloorToInt(levelProgress * 3.01f);
+            var rowCount = Mathf.Clamp(
+                Mathf.Max(minimumRowsForProgress, Mathf.Max(3, level.LayoutRows.Length) + (profileIndex >= 2 ? 1 : 0)),
+                3,
+                7);
+            var columnCount = Mathf.Clamp(
+                Mathf.Max(minimumColumnsForProgress, GetTemplateColumnCount(level) + (profileIndex >= templateCount - 1 ? 1 : 0)),
+                8,
+                11);
 
             plan.DisplayName = BuildProceduralLevelDisplayName(level, pattern, cycleIndex);
             plan.LayoutRows = new string[rowCount];
@@ -110,9 +119,11 @@ namespace GetBricked.Gameplay
             plan.RowShifts = new int[rowCount];
             plan.PatternLabel = GetProceduralPatternLabel(pattern);
             plan.MirrorLayout = planner.NextFloat() < 0.82f;
-            plan.TopInset = Mathf.Max(1f, level.TopInset - (cycleIndex * 0.08f));
-            plan.PaddleSpeedMultiplier = level.PaddleSpeedMultiplier * (1f + (cycleIndex * 0.035f));
-            plan.BallSpeedMultiplier = level.BallSpeedMultiplier * (1f + (cycleIndex * 0.06f));
+            plan.TopInset = Mathf.Max(1f, level.TopInset - (levelProgress * 0.22f));
+            plan.PaddleSpeedMultiplier = Mathf.Lerp(1f, 1.12f, levelProgress)
+                + (Mathf.Max(0f, level.PaddleSpeedMultiplier - 1f) * 0.2f);
+            plan.BallSpeedMultiplier = Mathf.Lerp(1f, 1.26f, levelProgress)
+                + (Mathf.Max(0f, level.BallSpeedMultiplier - 1f) * 0.1f);
 
             for (var rowIndex = 0; rowIndex < rowCount; rowIndex++)
             {
@@ -334,42 +345,44 @@ namespace GetBricked.Gameplay
 
             if (!definition.IsBreakable)
             {
-                if (!isBrutalRun && levelIndex < 2)
+                if (!isBrutalRun && levelIndex < 3)
                 {
                     return 0f;
                 }
 
-                return hotspot ? 0.2f + (Mathf.Min(4, levelIndex) * 0.03f) : 0.08f + (Mathf.Min(4, levelIndex) * 0.02f);
+                return hotspot
+                    ? 0.2f + (Mathf.Min(6, levelIndex) * 0.025f)
+                    : 0.08f + (Mathf.Min(6, levelIndex) * 0.018f);
             }
 
             float weight;
 
             if (definition.IsExplosive)
             {
-                if (!isBrutalRun && levelIndex < 4)
+                if (!isBrutalRun && levelIndex < 5)
                 {
                     return 0f;
                 }
 
-                weight = 0.22f + (topBias * 0.18f) + (hotspot ? 0.16f : 0f) + ((levelIndex - 4) * 0.05f);
+                weight = 0.2f + (topBias * 0.16f) + (hotspot ? 0.14f : 0f) + ((levelIndex - 5) * 0.055f);
             }
             else if (definition.SpinsOnHit)
-            {
-                if (!isBrutalRun && levelIndex < 2)
-                {
-                    return 0f;
-                }
-
-                weight = 0.42f + (topBias * 0.3f) + (centerBias * 0.16f) + (hotspot ? 0.18f : 0f) + ((levelIndex - 2) * 0.045f);
-            }
-            else if (definition.HitPoints >= 3)
             {
                 if (!isBrutalRun && levelIndex < 3)
                 {
                     return 0f;
                 }
 
-                weight = 0.55f + (topBias * 0.45f) + (hotspot ? 0.2f : 0f) + ((levelIndex - 3) * 0.04f);
+                weight = 0.36f + (topBias * 0.26f) + (centerBias * 0.14f) + (hotspot ? 0.16f : 0f) + ((levelIndex - 3) * 0.05f);
+            }
+            else if (definition.HitPoints >= 3)
+            {
+                if (!isBrutalRun && levelIndex < 4)
+                {
+                    return 0f;
+                }
+
+                weight = 0.48f + (topBias * 0.38f) + (hotspot ? 0.18f : 0f) + ((levelIndex - 4) * 0.045f);
             }
             else if (definition.HitPoints == 2)
             {
@@ -378,7 +391,7 @@ namespace GetBricked.Gameplay
                     return 0f;
                 }
 
-                weight = 1.2f + (topBias * 0.55f) + (centerBias * 0.15f) + ((levelIndex - 1) * 0.06f);
+                weight = 1.15f + (topBias * 0.5f) + (centerBias * 0.14f) + ((levelIndex - 1) * 0.055f);
             }
             else
             {
@@ -390,7 +403,7 @@ namespace GetBricked.Gameplay
                 return Mathf.Max(0f, weight);
             }
 
-            if (!isBrutalRun && levelIndex < 1)
+            if (!isBrutalRun && levelIndex < 2)
             {
                 return 0f;
             }
@@ -398,7 +411,7 @@ namespace GetBricked.Gameplay
             weight = (weight * 0.18f)
                 + (centerBias * 0.22f)
                 + (hotspot ? 0.16f : 0f)
-                + Mathf.Min(0.14f, levelIndex * 0.025f);
+                + Mathf.Min(0.14f, levelIndex * 0.022f);
             return Mathf.Max(0f, weight);
         }
 
@@ -441,12 +454,19 @@ namespace GetBricked.Gameplay
             int totalRows,
             int totalColumns)
         {
-            if (definition == null || !definition.IsBreakable || profileIndex <= 0 || definition.SpinsOnHit)
+            if (definition == null || !definition.IsBreakable || definition.SpinsOnHit)
             {
                 return default;
             }
 
-            var motionChance = profileIndex switch
+            var motionProfileIndex = Mathf.Max(profileIndex, Mathf.Min(3, cycleIndex));
+
+            if (motionProfileIndex <= 0)
+            {
+                return default;
+            }
+
+            var motionChance = motionProfileIndex switch
             {
                 1 => definition.HitPoints >= 2 ? 0.14f : 0.05f,
                 2 => definition.HitPoints >= 2 || definition.IsExplosive ? 0.24f : 0.1f,
@@ -460,10 +480,10 @@ namespace GetBricked.Gameplay
                 return default;
             }
 
-            var speed = 1.55f + (profileIndex * 0.22f) + (cycleIndex * 0.14f);
+            var speed = 1.55f + (motionProfileIndex * 0.22f) + (cycleIndex * 0.14f);
             Vector2 direction;
 
-            switch (profileIndex)
+            switch (motionProfileIndex)
             {
                 case 1:
                     direction = (row & 1) == 0 ? Vector2.right : Vector2.left;

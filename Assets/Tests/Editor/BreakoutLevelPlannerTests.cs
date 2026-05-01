@@ -82,6 +82,67 @@ public sealed class BreakoutLevelPlannerTests
         Assert.That(tinyWeight, Is.LessThan(basicWeight));
     }
 
+    [Test]
+    public void RunProgressionStopsAfterTenthLevel()
+    {
+        var level = CreateLevelDefinition();
+        var progressionType = GetGameplayType("GetBricked.Gameplay.BreakoutRunProgression");
+        var hasNextLevel = progressionType.GetMethod("HasNextLevel", BindingFlags.Static | InstanceFlags);
+        Assert.That(hasNextLevel, Is.Not.Null);
+
+        Assert.That((bool)hasNextLevel.Invoke(null, new object[] { level, 8, 4 }), Is.True);
+        Assert.That((bool)hasNextLevel.Invoke(null, new object[] { level, 9, 4 }), Is.False);
+    }
+
+    [Test]
+    public void ExplosiveBricksWaitUntilMidRunInStandardDifficulty()
+    {
+        var explosiveBrick = CreateBrickDefinition(
+            "Explosive Brick",
+            hitPoints: 1,
+            isBreakable: true,
+            null,
+            isExplosive: true);
+        var weightMethod = GetGameplayType("GetBricked.Gameplay.BreakoutLevelPlanner")
+            .GetMethod("GetProceduralBrickWeight", BindingFlags.Static | InstanceFlags);
+        Assert.That(weightMethod, Is.Not.Null);
+
+        var stageFiveWeight = (float)weightMethod.Invoke(
+            null,
+            new object[] { explosiveBrick, 1, 4, 5, 8, 4, false });
+        var stageSixWeight = (float)weightMethod.Invoke(
+            null,
+            new object[] { explosiveBrick, 1, 4, 5, 8, 5, false });
+
+        Assert.That(stageFiveWeight, Is.EqualTo(0f));
+        Assert.That(stageSixWeight, Is.GreaterThan(0f));
+    }
+
+    [Test]
+    public void LaterLoopsCanAddMovementToOpeningTemplate()
+    {
+        var basicBrick = CreateBrickDefinition("Basic Brick", hitPoints: 1, isBreakable: true, null);
+        var motionMethod = GetGameplayType("GetBricked.Gameplay.BreakoutLevelPlanner")
+            .GetMethod("ResolveProceduralBrickMotion", BindingFlags.Static | InstanceFlags);
+        Assert.That(motionMethod, Is.Not.Null);
+
+        var motion = motionMethod.Invoke(
+            null,
+            new object[]
+            {
+                new DeterministicRandomService(14),
+                basicBrick,
+                0,
+                2,
+                1,
+                4,
+                5,
+                9,
+            });
+
+        Assert.That(GetPropertyValue<bool>(motion, "IsEnabled"), Is.True);
+    }
+
     private object CreateLevelPlanner(List<LevelDefinition> levels, List<BrickDefinition> bricks)
     {
         var plannerType = typeof(BreakoutGameController).Assembly.GetType("GetBricked.Gameplay.BreakoutLevelPlanner", throwOnError: false);
@@ -164,6 +225,13 @@ public sealed class BreakoutLevelPlannerTests
         var field = instance.GetType().GetField(fieldName, InstanceFlags);
         Assert.That(field, Is.Not.Null, $"Missing field '{fieldName}' on {instance.GetType().Name}.");
         return (T)field.GetValue(instance);
+    }
+
+    private static T GetPropertyValue<T>(object instance, string propertyName)
+    {
+        var property = instance.GetType().GetProperty(propertyName, InstanceFlags);
+        Assert.That(property, Is.Not.Null, $"Missing property '{propertyName}' on {instance.GetType().Name}.");
+        return (T)property.GetValue(instance);
     }
 
     private static void SetPrivateField(object instance, string fieldName, object value)

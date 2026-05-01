@@ -1675,7 +1675,7 @@ namespace GetBricked.Gameplay
             StopAllBalls();
             stickyCaughtBall = null;
 
-            if (TryOpenUpgradeDraft())
+            if (HasNextLevel() && TryOpenUpgradeDraft())
             {
                 return;
             }
@@ -1706,7 +1706,7 @@ namespace GetBricked.Gameplay
 
         private bool HasNextLevel()
         {
-            return currentLevel != null && loadedLevels.Count > 0;
+            return BreakoutRunProgression.HasNextLevel(currentLevel, currentLevelIndex, loadedLevels.Count);
         }
 
         private static int CompareLevels(LevelDefinition left, LevelDefinition right)
@@ -2264,8 +2264,8 @@ namespace GetBricked.Gameplay
             var footer = isGameOver
                 ? "Restart the run, jump back to setup, or return to the main menu."
                 : HasNextLevel()
-                    ? "Advance to the next authored layout, restart the run, or return to the menu."
-                    : "The authored run is complete. Restart, tune a new setup, or head back to the menu.";
+                    ? "Advance to the next stage, restart the run, or return to the menu."
+                    : "The 10-stage run is complete. Restart, tune a new setup, or head back to the menu.";
             return new BreakoutUiOverlayView
             {
                 Title = title,
