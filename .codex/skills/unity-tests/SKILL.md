@@ -26,6 +26,8 @@ python .codex/skills/unity-tests/scripts/run_unity_tests.py --platform editmode 
 
 4. Read the summary first, then inspect the generated XML or log only when the summary is not enough.
 
+Important: this project's Unity 6 batchmode test command must not pass `-quit`. When `-quit` is present with `-runTests`, Unity imports/compiles the project and exits with code `0` before the Test Runner writes the XML results file. Let `-runTests` control editor shutdown.
+
 ## Workflow
 
 ### 1. Pick The Right Test Type
@@ -45,6 +47,7 @@ python .codex/skills/unity-tests/scripts/run_unity_tests.py --platform editmode 
 - Start with a filtered run for the touched fixture when possible.
 - Run the broader platform suite when the change affects shared systems or when a focused run passes but confidence is still low.
 - Pair test execution with `python .codex/skills/unity-compile/scripts/run_unity_compile.py` for script changes.
+- If Unity exits successfully but no XML file is produced, check the command and log for an accidental `-quit` argument before debugging tests.
 
 ## Resources
 

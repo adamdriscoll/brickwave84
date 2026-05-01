@@ -123,7 +123,8 @@ namespace GetBricked.Gameplay
 
                 if (pickupBody != null)
                 {
-                    pickupBody.rotation = currentRotationDegrees;
+                    pickupBody.MoveRotation(currentRotationDegrees);
+                    transform.rotation = Quaternion.Euler(0f, 0f, currentRotationDegrees);
                 }
                 else
                 {

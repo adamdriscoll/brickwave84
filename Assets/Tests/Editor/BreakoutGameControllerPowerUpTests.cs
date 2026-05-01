@@ -311,11 +311,11 @@ public sealed class BreakoutGameControllerPowerUpTests
         controller.HandleBrickDestroyed(firstBrick, scoringBall, BrickDestructionCause.Impact);
         controller.HandleBrickDestroyed(secondBrick, scoringBall, BrickDestructionCause.Impact);
 
-        var popups = GetPrivateField<System.Collections.IList>(controller, "floatingScorePopups");
+        var popups = GetFloatingScorePopups(controller);
 
-        Assert.That(GetPrivateField<int>(controller, "score"), Is.EqualTo(220));
+        Assert.That(GetPrivateField<int>(controller, "score"), Is.EqualTo(235));
         Assert.That(popups.Count, Is.EqualTo(1));
-        Assert.That(GetFieldValue<string>(popups[0], "PrimaryText"), Is.EqualTo("+20"));
+        Assert.That(GetFieldValue<string>(popups[0], "PrimaryText"), Is.EqualTo("+21"));
         Assert.That(GetFieldValue<string>(popups[0], "SecondaryText"), Is.EqualTo("COMBO BONUS: SLAM CHAIN!"));
     }
 
@@ -331,11 +331,12 @@ public sealed class BreakoutGameControllerPowerUpTests
 
         controller.HandleBrickDestroyed(brick, scoringBall, BrickDestructionCause.Impact);
 
-        var popups = GetPrivateField<System.Collections.IList>(controller, "floatingScorePopups");
+        var popups = GetFloatingScorePopups(controller);
 
-        Assert.That(GetPrivateField<int>(controller, "score"), Is.EqualTo(142));
+        Assert.That(GetPrivateField<int>(controller, "score"), Is.EqualTo(152));
         Assert.That(GetPrivateField<int>(scoringBall, "ricochetCountSinceLastBrick"), Is.EqualTo(0));
         Assert.That(popups.Count, Is.EqualTo(1));
+        Assert.That(GetFieldValue<string>(popups[0], "PrimaryText"), Is.EqualTo("+45"));
         Assert.That(GetFieldValue<string>(popups[0], "SecondaryText"), Is.EqualTo("COMBO BONUS: BANK SHOT!"));
     }
 
@@ -357,11 +358,11 @@ public sealed class BreakoutGameControllerPowerUpTests
         controller.HandleBrickDestroyed(firstBrick, firstBall, BrickDestructionCause.Impact);
         controller.HandleBrickDestroyed(secondBrick, secondBall, BrickDestructionCause.Impact);
 
-        var popups = GetPrivateField<System.Collections.IList>(controller, "floatingScorePopups");
+        var popups = GetFloatingScorePopups(controller);
 
-        Assert.That(GetPrivateField<int>(controller, "score"), Is.EqualTo(245));
+        Assert.That(GetPrivateField<int>(controller, "score"), Is.EqualTo(262));
         Assert.That(popups.Count, Is.EqualTo(1));
-        Assert.That(GetFieldValue<string>(popups[0], "PrimaryText"), Is.EqualTo("+45"));
+        Assert.That(GetFieldValue<string>(popups[0], "PrimaryText"), Is.EqualTo("+48"));
         Assert.That(GetFieldValue<string>(popups[0], "SecondaryText"), Is.EqualTo("COMBO BONUS: SLAM CHAIN + PARTY SPLIT!"));
     }
 
@@ -379,6 +380,7 @@ public sealed class BreakoutGameControllerPowerUpTests
 
         SetPrivateField(controller, "paddle", paddle);
         SetPrivateField(controller, "powerUpService", CreatePowerUpService());
+        SetPrivateField(controller, "scoreService", new BreakoutScoreService());
         SetPrivateField(
             controller,
             "activeRunSettings",
@@ -450,6 +452,7 @@ public sealed class BreakoutGameControllerPowerUpTests
         SetPrivateField(powerUp, "beneficial", beneficial);
         SetPrivateField(powerUp, "durationSeconds", durationSeconds);
         SetPrivateField(powerUp, "scalar", scalar);
+        SetPrivateField(powerUp, "extraBallCount", 0);
         return powerUp;
     }
 
@@ -497,6 +500,12 @@ public sealed class BreakoutGameControllerPowerUpTests
         var field = instance.GetType().GetField(fieldName, InstanceFlags);
         Assert.That(field, Is.Not.Null, $"Missing field '{fieldName}' on {instance.GetType().Name}.");
         return (T)field.GetValue(instance);
+    }
+
+    private static System.Collections.IList GetFloatingScorePopups(BreakoutGameController controller)
+    {
+        var scoreService = GetPrivateField<object>(controller, "scoreService");
+        return GetPrivateField<System.Collections.IList>(scoreService, "floatingScorePopups");
     }
 
     private static T GetPropertyValue<T>(object instance, string propertyName)

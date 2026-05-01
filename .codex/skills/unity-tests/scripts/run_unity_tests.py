@@ -101,11 +101,13 @@ def run_platform_tests(
     log_path = logs_dir / f"{platform}-tests.log"
     results_path = logs_dir / f"{platform}-test-results.xml"
 
+    if results_path.exists():
+        results_path.unlink()
+
     unity_platform = "EditMode" if platform == "editmode" else "PlayMode"
     command = [
         str(unity_executable),
         "-batchmode",
-        "-quit",
         "-projectPath",
         str(project_root),
         "-runTests",

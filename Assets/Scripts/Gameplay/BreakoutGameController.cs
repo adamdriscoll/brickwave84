@@ -103,9 +103,6 @@ namespace GetBricked.Gameplay
         private readonly List<ThemeDefinition> loadedThemes = new List<ThemeDefinition>();
         private readonly List<RunUpgradeDefinition> loadedRunUpgradeDefinitions = new List<RunUpgradeDefinition>();
         private readonly List<BallController> activeBalls = new List<BallController>();
-        private readonly List<Sprite> loadedBackgroundSprites = new List<Sprite>();
-        private readonly List<Texture2D> loadedBackgroundTextures = new List<Texture2D>();
-        private readonly List<Sprite> runtimeGeneratedBackgroundSprites = new List<Sprite>();
         private readonly List<SpriteRenderer> wallRenderers = new List<SpriteRenderer>();
         private readonly BreakoutBrickEffectResolver brickEffectResolver = new BreakoutBrickEffectResolver();
 
@@ -116,9 +113,6 @@ namespace GetBricked.Gameplay
         private Transform ballsRoot;
         private Transform bricksRoot;
         private Transform pickupsRoot;
-        private SpriteRenderer backgroundSpriteRenderer;
-        private SpriteRenderer backgroundHazeRenderer;
-        private SpriteRenderer backgroundScanlineRenderer;
         private PaddleController paddle;
         private Collider2D paddleCollider;
         private SpriteRenderer paddleSpriteRenderer;
@@ -139,6 +133,8 @@ namespace GetBricked.Gameplay
         private BreakoutPowerUpService powerUpService;
         private BreakoutUiRenderer uiRenderer;
         private IBreakoutScoreService scoreService;
+        private BreakoutBackgroundLibrary backgroundLibrary;
+        private BreakoutBackgroundPresenter backgroundPresenter;
         private BreakoutRunState activeRunState;
         private BreakoutUpgradeDraftService upgradeDraftService;
         private RoundState roundState;
@@ -243,13 +239,7 @@ namespace GetBricked.Gameplay
                 Destroy(backgroundScanlineSprite);
             }
 
-            for (var index = runtimeGeneratedBackgroundSprites.Count - 1; index >= 0; index--)
-            {
-                if (runtimeGeneratedBackgroundSprites[index] != null)
-                {
-                    Destroy(runtimeGeneratedBackgroundSprites[index]);
-                }
-            }
+            backgroundLibrary?.DestroyRuntimeSprites();
 
             if (bounceMaterial != null)
             {
@@ -395,7 +385,7 @@ namespace GetBricked.Gameplay
             }
 
             brick.gameObject.SetActive(false);
-            Destroy(brick.gameObject);
+            DestroyRuntimeObject(brick.gameObject);
 
             if (shouldExplode)
             {
@@ -430,7 +420,7 @@ namespace GetBricked.Gameplay
                 }
                 else
                 {
-                    Destroy(lostBall.gameObject);
+                    DestroyRuntimeObject(lostBall.gameObject);
                 }
 
                 return;
@@ -443,7 +433,7 @@ namespace GetBricked.Gameplay
 
                 if (!isServeBall)
                 {
-                    Destroy(lostBall.gameObject);
+                    DestroyRuntimeObject(lostBall.gameObject);
                 }
 
                 PrepareServe(RoundState.LifeLost);
@@ -461,7 +451,7 @@ namespace GetBricked.Gameplay
                 ClearPickups();
                 if (!isServeBall)
                 {
-                    Destroy(lostBall.gameObject);
+                    DestroyRuntimeObject(lostBall.gameObject);
                 }
 
                 return;
@@ -469,7 +459,7 @@ namespace GetBricked.Gameplay
 
             if (!isServeBall)
             {
-                Destroy(lostBall.gameObject);
+                DestroyRuntimeObject(lostBall.gameObject);
             }
 
             PrepareServe(RoundState.LifeLost);
@@ -534,7 +524,7 @@ namespace GetBricked.Gameplay
             powerUpService.RemovePickup(pickup);
             ApplyPowerUp(pickup.Definition);
             pickup.gameObject.SetActive(false);
-            Destroy(pickup.gameObject);
+            DestroyRuntimeObject(pickup.gameObject);
         }
 
         public void HandlePickupMissed(PowerUpPickup pickup)
@@ -546,7 +536,7 @@ namespace GetBricked.Gameplay
 
             powerUpService.RemovePickup(pickup);
             pickup.gameObject.SetActive(false);
-            Destroy(pickup.gameObject);
+            DestroyRuntimeObject(pickup.gameObject);
         }
 
         private void StartNewRun()
@@ -937,6 +927,22 @@ namespace GetBricked.Gameplay
             Time.timeScale = isPaused ? 0f : 1f;
         }
 
+        private static void DestroyRuntimeObject(UnityEngine.Object target)
+        {
+            if (target == null)
+            {
+                return;
+            }
+
+            if (Application.isPlaying)
+            {
+                Destroy(target);
+                return;
+            }
+
+            DestroyImmediate(target);
+        }
+
         private void AdjustSelectedSetupField(int direction)
         {
             if (pendingRunSetup == null)
@@ -1252,17 +1258,18 @@ namespace GetBricked.Gameplay
 
         private void CreateRuntimeAssets()
         {
-            squareSprite = CreateSquareSprite();
-            circleSprite = CreateCircleSprite();
-            backgroundHazeSprite = CreateBackgroundHazeSprite();
-            backgroundScanlineSprite = CreateBackgroundScanlineSprite();
-            LoadBackgroundLibrary();
-            ballSprite = LoadSpriteResource(BallSpriteResourcePath, circleSprite);
-            brickSprite = LoadSpriteResource(BrickSpriteResourcePath, squareSprite);
-            paddleSprite = LoadSpriteResource(PaddleSpriteResourcePath, squareSprite);
-            powerUpSprite = LoadSpriteResource(PowerUpSpriteResourcePath, squareSprite);
-            spriteUnlitMaterial = CreateSpriteUnlitMaterial();
-            additiveSpriteMaterial = CreateAdditiveSpriteMaterial();
+            squareSprite = BreakoutRuntimeVisualFactory.CreateSquareSprite();
+            circleSprite = BreakoutRuntimeVisualFactory.CreateCircleSprite();
+            backgroundHazeSprite = BreakoutRuntimeVisualFactory.CreateBackgroundHazeSprite();
+            backgroundScanlineSprite = BreakoutRuntimeVisualFactory.CreateBackgroundScanlineSprite();
+            backgroundLibrary = new BreakoutBackgroundLibrary();
+            backgroundLibrary.LoadFromResources();
+            ballSprite = BreakoutRuntimeVisualFactory.LoadSpriteResource(BallSpriteResourcePath, circleSprite);
+            brickSprite = BreakoutRuntimeVisualFactory.LoadSpriteResource(BrickSpriteResourcePath, squareSprite);
+            paddleSprite = BreakoutRuntimeVisualFactory.LoadSpriteResource(PaddleSpriteResourcePath, squareSprite);
+            powerUpSprite = BreakoutRuntimeVisualFactory.LoadSpriteResource(PowerUpSpriteResourcePath, squareSprite);
+            spriteUnlitMaterial = BreakoutRuntimeVisualFactory.CreateSpriteUnlitMaterial();
+            additiveSpriteMaterial = BreakoutRuntimeVisualFactory.CreateAdditiveSpriteMaterial();
             bounceMaterial = new PhysicsMaterial2D("PrototypeBounce")
             {
                 bounciness = 1f,
@@ -1324,28 +1331,18 @@ namespace GetBricked.Gameplay
 
         private void CreateBackground()
         {
-            var backgroundObject = new GameObject("Backdrop");
-            backgroundObject.transform.SetParent(backgroundRoot, false);
-            backgroundObject.transform.position = new Vector3(0f, 0f, 0f);
-
-            backgroundSpriteRenderer = backgroundObject.AddComponent<SpriteRenderer>();
-            backgroundSpriteRenderer.sortingOrder = -100;
-            backgroundSpriteRenderer.sharedMaterial = spriteUnlitMaterial;
-
-            var hazeObject = new GameObject("Backdrop Haze");
-            hazeObject.transform.SetParent(backgroundRoot, false);
-            backgroundHazeRenderer = hazeObject.AddComponent<SpriteRenderer>();
-            backgroundHazeRenderer.sprite = backgroundHazeSprite;
-            backgroundHazeRenderer.sortingOrder = -99;
-            backgroundHazeRenderer.sharedMaterial = spriteUnlitMaterial;
-
-            var scanlineObject = new GameObject("Backdrop Scanlines");
-            scanlineObject.transform.SetParent(backgroundRoot, false);
-            backgroundScanlineRenderer = scanlineObject.AddComponent<SpriteRenderer>();
-            backgroundScanlineRenderer.sprite = backgroundScanlineSprite;
-            backgroundScanlineRenderer.sortingOrder = -98;
-            backgroundScanlineRenderer.sharedMaterial = spriteUnlitMaterial;
-
+            backgroundPresenter = new BreakoutBackgroundPresenter(
+                activeCamera,
+                cameraHalfHeight,
+                backgroundColor,
+                wallColor,
+                backgroundImageTintStrength,
+                backgroundImageAlpha,
+                backgroundHazeAlpha,
+                scanlineAlpha,
+                backgroundHazeSprite,
+                backgroundScanlineSprite);
+            backgroundPresenter.Create(backgroundRoot, spriteUnlitMaterial);
             UpdateBackgroundVisuals();
         }
 
@@ -1416,7 +1413,7 @@ namespace GetBricked.Gameplay
             paddleSpriteRenderer.color = paddleColor;
             paddleSpriteRenderer.sortingOrder = 10;
             paddleSpriteRenderer.sharedMaterial = spriteUnlitMaterial;
-            NormalizeSpriteRendererScale(paddleSpriteRenderer);
+            BreakoutSpriteRendererUtility.NormalizeScale(paddleSpriteRenderer);
 
             paddleCollider = paddleObject.AddComponent<BoxCollider2D>();
             paddleCollider.sharedMaterial = bounceMaterial;
@@ -1557,7 +1554,7 @@ namespace GetBricked.Gameplay
             spriteRenderer.sprite = squareSprite;
             spriteRenderer.sortingOrder = 5;
             spriteRenderer.sharedMaterial = spriteUnlitMaterial;
-            NormalizeSpriteRendererScale(spriteRenderer);
+            BreakoutSpriteRendererUtility.NormalizeScale(spriteRenderer);
 
             var collider = brickObject.AddComponent<BoxCollider2D>();
             collider.sharedMaterial = bounceMaterial;
@@ -1576,27 +1573,6 @@ namespace GetBricked.Gameplay
             {
                 requiredBricksRemaining++;
             }
-        }
-
-        private static void NormalizeSpriteRendererScale(SpriteRenderer spriteRenderer)
-        {
-            if (spriteRenderer == null)
-            {
-                return;
-            }
-
-            var sprite = spriteRenderer.sprite;
-
-            if (sprite == null)
-            {
-                spriteRenderer.transform.localScale = Vector3.one;
-                return;
-            }
-
-            var spriteSize = sprite.bounds.size;
-            var scaleX = spriteSize.x > 0.0001f ? 1f / spriteSize.x : 1f;
-            var scaleY = spriteSize.y > 0.0001f ? 1f / spriteSize.y : 1f;
-            spriteRenderer.transform.localScale = new Vector3(scaleX, scaleY, 1f);
         }
 
         private int GetEffectiveBrickHitPoints(BrickDefinition definition)
@@ -1620,7 +1596,7 @@ namespace GetBricked.Gameplay
                 }
 
                 bricks[index].gameObject.SetActive(false);
-                Destroy(bricks[index].gameObject);
+                DestroyRuntimeObject(bricks[index].gameObject);
             }
 
             bricks.Clear();
@@ -2024,382 +2000,16 @@ namespace GetBricked.Gameplay
             };
         }
 
-        private Sprite LoadSpriteResource(string resourcePath, Sprite fallbackSprite)
-        {
-            if (string.IsNullOrWhiteSpace(resourcePath))
-            {
-                return fallbackSprite;
-            }
-
-            var loadedSprite = Resources.Load<Sprite>(resourcePath);
-            return loadedSprite != null ? loadedSprite : fallbackSprite;
-        }
-
-        private void LoadBackgroundLibrary()
-        {
-            loadedBackgroundSprites.Clear();
-            loadedBackgroundTextures.Clear();
-
-            var spriteAssets = Resources.LoadAll<Sprite>("Backgrounds");
-
-            for (var index = 0; index < spriteAssets.Length; index++)
-            {
-                if (spriteAssets[index] != null)
-                {
-                    loadedBackgroundSprites.Add(spriteAssets[index]);
-                }
-            }
-
-            loadedBackgroundSprites.Sort(CompareNamedObjects);
-
-            var textureAssets = Resources.LoadAll<Texture2D>("Backgrounds");
-
-            for (var index = 0; index < textureAssets.Length; index++)
-            {
-                var texture = textureAssets[index];
-
-                if (texture == null)
-                {
-                    continue;
-                }
-
-                if (ContainsNamedObject(loadedBackgroundSprites, texture.name))
-                {
-                    continue;
-                }
-
-                loadedBackgroundTextures.Add(texture);
-            }
-
-            loadedBackgroundTextures.Sort(CompareNamedObjects);
-        }
-
-        private Material CreateSpriteUnlitMaterial()
-        {
-            var shader = Shader.Find("Universal Render Pipeline/2D/Sprite-Unlit-Default");
-
-            if (shader == null)
-            {
-                Debug.LogWarning("Could not find the URP sprite unlit shader. Runtime sprites will use Unity's default material.");
-                return null;
-            }
-
-            return new Material(shader)
-            {
-                name = "RuntimeSpriteUnlit",
-                hideFlags = HideFlags.DontSave,
-            };
-        }
-
-        private Material CreateAdditiveSpriteMaterial()
-        {
-            var shader = Shader.Find("Get Bricked/Sprite Additive");
-
-            if (shader == null)
-            {
-                shader = Shader.Find("Universal Render Pipeline/Particles/Unlit");
-            }
-
-            if (shader == null)
-            {
-                Debug.LogWarning("Could not find an additive sprite shader. Falling back to a duplicate unlit material.");
-                return CreateSpriteUnlitMaterial();
-            }
-
-            var material = new Material(shader)
-            {
-                name = "RuntimeSpriteAdditive",
-                hideFlags = HideFlags.DontSave,
-                renderQueue = 3000,
-            };
-
-            if (shader.name == "Universal Render Pipeline/Particles/Unlit")
-            {
-                material.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
-                material.SetFloat("_Surface", 1f);
-                material.SetFloat("_Blend", 2f);
-                material.SetFloat("_SrcBlend", 5f);
-                material.SetFloat("_DstBlend", 1f);
-                material.SetFloat("_SrcBlendAlpha", 1f);
-                material.SetFloat("_DstBlendAlpha", 1f);
-                material.SetFloat("_ZWrite", 0f);
-                material.SetColor("_BaseColor", Color.white);
-                material.SetColor("_EmissionColor", Color.white * 2f);
-            }
-
-            return material;
-        }
-
         private void UpdateBackgroundVisuals()
         {
-            if (backgroundSpriteRenderer == null || activeCamera == null)
-            {
-                return;
-            }
-
-            var backgroundStyle = themeService != null
-                ? themeService.ResolveBackgroundStyle(ResolveBackgroundSpriteForCurrentLevel())
-                : new ThemeVisualStyle(backgroundColor, backgroundColor, ResolveBackgroundSpriteForCurrentLevel());
-
-            var sprite = backgroundStyle.Sprite;
-            backgroundSpriteRenderer.sprite = sprite;
-            backgroundSpriteRenderer.enabled = sprite != null;
-
-            var tint = Color.Lerp(Color.white, backgroundStyle.PrimaryColor, backgroundImageTintStrength);
-            tint.a = backgroundImageAlpha;
-            backgroundSpriteRenderer.color = tint;
-            backgroundSpriteRenderer.transform.position = Vector3.zero;
-            var overlayScale = CalculateFullscreenScale(sprite != null ? sprite : backgroundHazeSprite);
-            backgroundSpriteRenderer.transform.localScale = sprite != null ? CalculateFullscreenScale(sprite) : overlayScale;
-
-            if (backgroundHazeRenderer != null)
-            {
-                var hazeColor = Color.Lerp(backgroundStyle.PrimaryColor, wallColor, 0.58f);
-                hazeColor.a = backgroundHazeAlpha;
-                backgroundHazeRenderer.enabled = backgroundHazeSprite != null;
-                backgroundHazeRenderer.color = hazeColor;
-                backgroundHazeRenderer.transform.position = Vector3.zero;
-                backgroundHazeRenderer.transform.localScale = overlayScale;
-            }
-
-            if (backgroundScanlineRenderer != null)
-            {
-                var scanlineColor = Color.Lerp(Color.white, backgroundStyle.PrimaryColor, 0.3f);
-                scanlineColor.a = scanlineAlpha;
-                backgroundScanlineRenderer.enabled = backgroundScanlineSprite != null;
-                backgroundScanlineRenderer.color = scanlineColor;
-                backgroundScanlineRenderer.transform.position = Vector3.zero;
-                backgroundScanlineRenderer.transform.localScale = overlayScale;
-            }
-        }
-
-        private Vector3 CalculateFullscreenScale(Sprite sprite)
-        {
-            if (sprite == null || activeCamera == null)
-            {
-                return Vector3.one;
-            }
-
-            var spriteSize = sprite.bounds.size;
-
-            if (spriteSize.x <= 0.001f || spriteSize.y <= 0.001f)
-            {
-                return Vector3.one;
-            }
-
-            var visibleHeight = cameraHalfHeight * 2f;
-            var visibleWidth = visibleHeight * activeCamera.aspect;
-            var scale = Mathf.Max(visibleWidth / spriteSize.x, visibleHeight / spriteSize.y);
-            return new Vector3(scale, scale, 1f);
+            backgroundPresenter?.UpdateVisuals(themeService, ResolveBackgroundSpriteForCurrentLevel());
         }
 
         private Sprite ResolveBackgroundSpriteForCurrentLevel()
         {
-            if (loadedBackgroundSprites.Count > 0)
-            {
-                var spriteIndex = Mathf.Abs(currentLevelIndex) % loadedBackgroundSprites.Count;
-                return loadedBackgroundSprites[spriteIndex];
-            }
-
-            if (loadedBackgroundTextures.Count == 0)
-            {
-                return null;
-            }
-
-            var textureIndex = Mathf.Abs(currentLevelIndex) % loadedBackgroundTextures.Count;
-            return CreateRuntimeBackgroundSprite(loadedBackgroundTextures[textureIndex]);
-        }
-
-        private Sprite CreateRuntimeBackgroundSprite(Texture2D texture)
-        {
-            if (texture == null)
-            {
-                return null;
-            }
-
-            for (var index = 0; index < runtimeGeneratedBackgroundSprites.Count; index++)
-            {
-                var existingSprite = runtimeGeneratedBackgroundSprites[index];
-
-                if (existingSprite != null && string.Equals(existingSprite.name, texture.name, StringComparison.Ordinal))
-                {
-                    return existingSprite;
-                }
-            }
-
-            var sprite = Sprite.Create(
-                texture,
-                new Rect(0f, 0f, texture.width, texture.height),
-                new Vector2(0.5f, 0.5f),
-                100f);
-            sprite.name = texture.name;
-            runtimeGeneratedBackgroundSprites.Add(sprite);
-            return sprite;
-        }
-
-        private static bool ContainsNamedObject<T>(List<T> objects, string candidateName)
-            where T : UnityEngine.Object
-        {
-            for (var index = 0; index < objects.Count; index++)
-            {
-                if (objects[index] != null && string.Equals(objects[index].name, candidateName, StringComparison.Ordinal))
-                {
-                    return true;
-                }
-            }
-
-            return false;
-        }
-
-        private static int CompareNamedObjects<T>(T left, T right)
-            where T : UnityEngine.Object
-        {
-            if (ReferenceEquals(left, right))
-            {
-                return 0;
-            }
-
-            if (left == null)
-            {
-                return 1;
-            }
-
-            if (right == null)
-            {
-                return -1;
-            }
-
-            return string.Compare(left.name, right.name, StringComparison.OrdinalIgnoreCase);
-        }
-
-        private Sprite CreateSquareSprite()
-        {
-            var texture = Texture2D.whiteTexture;
-            return Sprite.Create(
-                texture,
-                new Rect(0f, 0f, texture.width, texture.height),
-                new Vector2(0.5f, 0.5f),
-                texture.width);
-        }
-
-        private Sprite CreateBackgroundHazeSprite()
-        {
-            const int textureSize = 256;
-            var texture = new Texture2D(textureSize, textureSize, TextureFormat.RGBA32, false)
-            {
-                filterMode = FilterMode.Bilinear,
-                wrapMode = TextureWrapMode.Clamp,
-                name = "RuntimeBackgroundHazeTexture",
-            };
-
-            var pixels = new Color[textureSize * textureSize];
-            var center = new Vector2((textureSize - 1) * 0.5f, (textureSize - 1) * 0.5f);
-            var radius = textureSize * 0.72f;
-
-            for (var y = 0; y < textureSize; y++)
-            {
-                for (var x = 0; x < textureSize; x++)
-                {
-                    var index = x + (y * textureSize);
-                    var radial = Mathf.Clamp01(Vector2.Distance(new Vector2(x, y), center) / radius);
-                    var vertical = Mathf.InverseLerp(0f, textureSize - 1f, y);
-                    var alpha = Mathf.Lerp(0.04f, 0.92f, Mathf.Pow(radial, 1.45f));
-                    alpha = Mathf.Max(alpha, Mathf.Lerp(0.08f, 0.42f, vertical * 0.85f));
-                    pixels[index] = new Color(1f, 1f, 1f, Mathf.Clamp01(alpha));
-                }
-            }
-
-            texture.SetPixels(pixels);
-            texture.Apply();
-
-            return Sprite.Create(
-                texture,
-                new Rect(0f, 0f, texture.width, texture.height),
-                new Vector2(0.5f, 0.5f),
-                texture.width);
-        }
-
-        private Sprite CreateBackgroundScanlineSprite()
-        {
-            const int textureWidth = 8;
-            const int textureHeight = 1024;
-            var texture = new Texture2D(textureWidth, textureHeight, TextureFormat.RGBA32, false)
-            {
-                filterMode = FilterMode.Point,
-                wrapMode = TextureWrapMode.Clamp,
-                name = "RuntimeBackgroundScanlineTexture",
-            };
-
-            var pixels = new Color[textureWidth * textureHeight];
-
-            for (var y = 0; y < textureHeight; y++)
-            {
-                var stripeCycle = y % 4;
-                var alpha = stripeCycle == 0
-                    ? 0.92f
-                    : stripeCycle == 2
-                        ? 0.28f
-                        : 0.05f;
-
-                for (var x = 0; x < textureWidth; x++)
-                {
-                    pixels[x + (y * textureWidth)] = new Color(1f, 1f, 1f, alpha);
-                }
-            }
-
-            texture.SetPixels(pixels);
-            texture.Apply();
-
-            return Sprite.Create(
-                texture,
-                new Rect(0f, 0f, texture.width, texture.height),
-                new Vector2(0.5f, 0.5f),
-                texture.width);
-        }
-
-        private Sprite CreateCircleSprite()
-        {
-            const int textureSize = 64;
-            var texture = new Texture2D(textureSize, textureSize, TextureFormat.RGBA32, false)
-            {
-                filterMode = FilterMode.Bilinear,
-                wrapMode = TextureWrapMode.Clamp,
-                name = "RuntimeCircleTexture",
-            };
-
-            var pixels = new Color[textureSize * textureSize];
-            var radius = textureSize * 0.5f;
-            var center = new Vector2(radius - 0.5f, radius - 0.5f);
-
-            for (var y = 0; y < textureSize; y++)
-            {
-                for (var x = 0; x < textureSize; x++)
-                {
-                    var index = x + (y * textureSize);
-                    var distance = Vector2.Distance(new Vector2(x, y), center);
-                    var normalizedDistance = distance / radius;
-
-                    if (normalizedDistance >= 1f)
-                    {
-                        pixels[index] = Color.clear;
-                        continue;
-                    }
-
-                    var alpha = normalizedDistance <= 0.68f
-                        ? 1f
-                        : Mathf.SmoothStep(1f, 0f, Mathf.InverseLerp(0.68f, 1f, normalizedDistance));
-                    pixels[index] = new Color(1f, 1f, 1f, alpha);
-                }
-            }
-
-            texture.SetPixels(pixels);
-            texture.Apply();
-
-            return Sprite.Create(
-                texture,
-                new Rect(0f, 0f, texture.width, texture.height),
-                new Vector2(0.5f, 0.5f),
-                texture.width);
+            return backgroundLibrary != null
+                ? backgroundLibrary.ResolveSpriteForLevel(currentLevelIndex)
+                : null;
         }
 
         private void OnGUI()
@@ -3153,7 +2763,7 @@ namespace GetBricked.Gameplay
                     continue;
                 }
 
-                Destroy(activeBall.gameObject);
+                DestroyRuntimeObject(activeBall.gameObject);
             }
         }
 
@@ -3519,12 +3129,7 @@ namespace GetBricked.Gameplay
                 }
             }
 
-            if (backgroundHazeRenderer != null)
-            {
-                var hazeColor = backgroundHazeRenderer.color;
-                hazeColor.a = Mathf.Clamp01(backgroundHazeAlpha + ((1f - visibilityMultiplier) * 0.32f));
-                backgroundHazeRenderer.color = hazeColor;
-            }
+            backgroundPresenter?.ApplyVisibilityMultiplier(visibilityMultiplier);
         }
 
         private void UpdateShieldWallVisual()
