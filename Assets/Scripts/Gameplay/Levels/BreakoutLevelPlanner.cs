@@ -366,6 +366,15 @@ namespace GetBricked.Gameplay
 
                 weight = 0.2f + (topBias * 0.16f) + (hotspot ? 0.14f : 0f) + ((levelIndex - 5) * 0.055f);
             }
+            else if (definition.SplitsOnBreak)
+            {
+                if (!isBrutalRun && levelIndex < 2)
+                {
+                    return 0f;
+                }
+
+                weight = 0.42f + (topBias * 0.2f) + (centerBias * 0.18f) + (hotspot ? 0.12f : 0f) + ((levelIndex - 2) * 0.04f);
+            }
             else if (definition.SpinsOnHit)
             {
                 if (!isBrutalRun && levelIndex < 3)
@@ -824,6 +833,11 @@ namespace GetBricked.Gameplay
             if (definition.IsExplosive)
             {
                 return 'E';
+            }
+
+            if (definition.SplitsOnBreak)
+            {
+                return 'X';
             }
 
             if (definition.SpinsOnHit)

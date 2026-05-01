@@ -131,6 +131,9 @@ namespace GetBricked.Gameplay
         private VolumeProfile runtimeVolumeProfile;
         private BreakoutThemeService themeService;
         private BreakoutPowerUpService powerUpService;
+        private BreakoutBrickService brickService;
+        private BreakoutPaddleSpawnService paddleSpawnService;
+        private BreakoutBallSpawnService ballSpawnService;
         private BreakoutUiRenderer uiRenderer;
         private IBreakoutScoreService scoreService;
         private BreakoutBackgroundLibrary backgroundLibrary;
@@ -154,7 +157,6 @@ namespace GetBricked.Gameplay
         private int levelScore;
         private float currentLevelBallSpeed;
         private float currentLevelPaddleSpeed;
-        private int ballInstanceCounter;
         private BreakoutLevelPlanner levelPlanner;
         private BreakoutRunSetupState pendingRunSetup;
         private RunSettings activeRunSettings;
@@ -204,6 +206,8 @@ namespace GetBricked.Gameplay
             activeRunState = new BreakoutRunState();
             upgradeDraftService = new BreakoutUpgradeDraftService(loadedRunUpgradeDefinitions);
             CreateRuntimeRoots();
+            CreateActorSpawnServices();
+            CreateBrickService();
             CreateBackground();
             CreateBounds();
             CreateShieldWallVisual();
@@ -351,7 +355,7 @@ namespace GetBricked.Gameplay
             var shouldExplode = brickDefinition != null && brickDefinition.IsExplosive;
             var explosionCenter = (Vector2)brick.transform.position;
 
-            if (!bricks.Remove(brick))
+            if (brickService == null || !brickService.RemoveBrick(brick))
             {
                 return;
             }
@@ -384,15 +388,15 @@ namespace GetBricked.Gameplay
                 requiredBricksRemaining = Mathf.Max(0, requiredBricksRemaining - 1);
             }
 
-            brick.gameObject.SetActive(false);
-            DestroyRuntimeObject(brick.gameObject);
+            brickService.DisableAndDestroyBrick(brick);
 
             if (shouldExplode)
             {
-                DestroyBricksInExplosionRadius(explosionCenter, brickDefinition.ExplosionRadius, brick, scoringBall);
+                brickService.DestroyBricksInExplosionRadius(explosionCenter, brickDefinition.ExplosionRadius, brick, scoringBall);
             }
 
             TryTriggerChainLightning(explosionCenter, brick, scoringBall, destructionCause);
+            requiredBricksRemaining += brickService.SpawnSplitBricks(brickDefinition, explosionCenter);
 
             EvaluateLevelCompletion();
         }
@@ -620,7 +624,7 @@ namespace GetBricked.Gameplay
         {
             SetSimulationPaused(false);
             manualBallSpeedMultiplier = 1f;
-            ClearBricks();
+            brickService?.ClearBricks();
             ClearPickups();
             ClearTimedEffects();
             StopAllBalls();
@@ -1155,7 +1159,7 @@ namespace GetBricked.Gameplay
 
         private void LoadLevel(int levelIndex, RoundState serveState)
         {
-            ClearBricks();
+            brickService?.ClearBricks();
             ClearPickups();
             stickyCaughtBall = null;
             ClearTimedEffects();
@@ -1329,6 +1333,71 @@ namespace GetBricked.Gameplay
             pickupsRoot.SetParent(runtimeRoot, false);
         }
 
+        private void CreateBrickService()
+        {
+            brickService = new BreakoutBrickService(
+                this,
+                bricks,
+                bricksRoot,
+                brickSize,
+                brickSpacing,
+                squareSprite,
+                spriteUnlitMaterial,
+                bounceMaterial,
+                () => activeRunSettings,
+                ResolveBrickVisualStyle,
+                DestroyRuntimeObject);
+        }
+
+        private void CreateActorSpawnServices()
+        {
+            paddleSpawnService = new BreakoutPaddleSpawnService(
+                this,
+                runtimeRoot,
+                paddleSize,
+                paddleColor,
+                paddleSprite,
+                spriteUnlitMaterial,
+                bounceMaterial);
+            ballSpawnService = new BreakoutBallSpawnService(
+                this,
+                ballsRoot,
+                ballRadius,
+                paddleSize,
+                minimumVerticalDirection,
+                additiveSpriteMaterial,
+                bounceMaterial,
+                () => paddle,
+                GetCurrentBallSpeed,
+                ResolveBallVisualStyle,
+                ResolveBallGravityWellCenter,
+                () => activeEffectModifiers);
+        }
+
+        private ThemeVisualStyle ResolveBrickVisualStyle(BrickDefinition definition)
+        {
+            if (definition == null)
+            {
+                return new ThemeVisualStyle(Color.white, Color.gray, squareSprite);
+            }
+
+            return themeService != null
+                ? themeService.ResolveBrickStyle(definition)
+                : new ThemeVisualStyle(definition.BaseColor, definition.DamagedColor, squareSprite);
+        }
+
+        private ThemeVisualStyle ResolveBallVisualStyle()
+        {
+            return themeService != null
+                ? themeService.ResolveBallStyle()
+                : new ThemeVisualStyle(ballColor, ballColor, circleSprite);
+        }
+
+        private Vector2 ResolveBallGravityWellCenter()
+        {
+            return new Vector2(0f, (arenaTop + arenaBottom) * 0.5f);
+        }
+
         private void CreateBackground()
         {
             backgroundPresenter = new BreakoutBackgroundPresenter(
@@ -1401,79 +1470,19 @@ namespace GetBricked.Gameplay
 
         private void CreatePaddle()
         {
-            var paddleObject = new GameObject("Paddle");
-            paddleObject.transform.SetParent(runtimeRoot, false);
-            paddleObject.transform.localScale = new Vector3(paddleSize.x, paddleSize.y, 1f);
-
-            var paddleVisual = new GameObject("Visual");
-            paddleVisual.transform.SetParent(paddleObject.transform, false);
-
-            paddleSpriteRenderer = paddleVisual.AddComponent<SpriteRenderer>();
-            paddleSpriteRenderer.sprite = paddleSprite;
-            paddleSpriteRenderer.color = paddleColor;
-            paddleSpriteRenderer.sortingOrder = 10;
-            paddleSpriteRenderer.sharedMaterial = spriteUnlitMaterial;
-            BreakoutSpriteRendererUtility.NormalizeScale(paddleSpriteRenderer);
-
-            paddleCollider = paddleObject.AddComponent<BoxCollider2D>();
-            paddleCollider.sharedMaterial = bounceMaterial;
-
-            var rigidbody = paddleObject.AddComponent<Rigidbody2D>();
-            rigidbody.bodyType = RigidbodyType2D.Kinematic;
-            rigidbody.gravityScale = 0f;
-            rigidbody.interpolation = RigidbodyInterpolation2D.Interpolate;
-            rigidbody.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
-
-            paddle = paddleObject.AddComponent<PaddleController>();
-            paddle.Configure(
-                this,
+            var paddleSpawn = paddleSpawnService.CreatePaddle(
                 paddleSpeed,
                 arenaLeft,
                 arenaRight,
                 arenaBottom + paddleFloorOffset);
+            paddle = paddleSpawn.Paddle;
+            paddleCollider = paddleSpawn.Collider;
+            paddleSpriteRenderer = paddleSpawn.SpriteRenderer;
         }
 
         private BallController CreateBall(bool followsPaddleWhenIdle)
         {
-            ballInstanceCounter++;
-
-            var ballName = followsPaddleWhenIdle ? "Ball" : $"Ball {ballInstanceCounter}";
-            var ballObject = new GameObject(ballName);
-            ballObject.transform.SetParent(ballsRoot, false);
-            ballObject.transform.localScale = Vector3.one * (ballRadius * 2f);
-
-            var ballStyle = themeService != null
-                ? themeService.ResolveBallStyle()
-                : new ThemeVisualStyle(ballColor, ballColor, circleSprite);
-            var spriteRenderer = ballObject.AddComponent<SpriteRenderer>();
-            spriteRenderer.sprite = ballStyle.Sprite;
-            spriteRenderer.color = ballStyle.PrimaryColor;
-            spriteRenderer.sortingOrder = 20;
-            spriteRenderer.sharedMaterial = additiveSpriteMaterial;
-
-            var collider = ballObject.AddComponent<CircleCollider2D>();
-            collider.sharedMaterial = bounceMaterial;
-
-            var rigidbody = ballObject.AddComponent<Rigidbody2D>();
-            rigidbody.gravityScale = 0f;
-            rigidbody.freezeRotation = true;
-            rigidbody.interpolation = RigidbodyInterpolation2D.Interpolate;
-            rigidbody.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
-            rigidbody.linearDamping = 0f;
-
-            var ball = ballObject.AddComponent<BallController>();
-            ball.Configure(
-                this,
-                paddle,
-                GetCurrentBallSpeed(),
-                minimumVerticalDirection,
-                arenaBottom - 1f,
-                ballRadius + (paddleSize.y * 0.5f) + 0.05f,
-                followsPaddleWhenIdle);
-            ball.SetPhaseThroughBricks(activeEffectModifiers.PhaseBallEnabled);
-            ball.SetGravityWell(new Vector2(0f, (arenaTop + arenaBottom) * 0.5f), activeEffectModifiers.GravityWellStrength);
-
-            return ball;
+            return ballSpawnService.CreateBall(followsPaddleWhenIdle, arenaBottom - 1f);
         }
 
         private BreakoutLevelLayoutPlan BuildLevelLayoutPlan(LevelDefinition level)
@@ -1486,38 +1495,9 @@ namespace GetBricked.Gameplay
 
         private void BuildBrickWall(BreakoutLevelLayoutPlan layoutPlan)
         {
-            requiredBricksRemaining = 0;
-
-            if (layoutPlan == null || layoutPlan.BrickRows.Length == 0)
-            {
-                return;
-            }
-
-            var layoutRows = layoutPlan.BrickRows;
-            var startY = arenaTop - layoutPlan.TopInset;
-
-            for (var row = 0; row < layoutRows.Length; row++)
-            {
-                var rowCells = layoutRows[row] ?? Array.Empty<BreakoutProceduralBrickCell>();
-                var totalWidth = (rowCells.Length * brickSize.x) + (Mathf.Max(0, rowCells.Length - 1) * brickSpacing.x);
-                var startX = (-totalWidth * 0.5f) + (brickSize.x * 0.5f);
-
-                for (var column = 0; column < rowCells.Length; column++)
-                {
-                    var cell = rowCells[column];
-
-                    if (cell == null || cell.Definition == null)
-                    {
-                        continue;
-                    }
-
-                    var position = new Vector2(
-                        startX + (column * (brickSize.x + brickSpacing.x)),
-                        startY - (row * (brickSize.y + brickSpacing.y)));
-
-                    CreateBrick(position, cell.Definition, row, column, GetEffectiveBrickHitPoints(cell.Definition), cell.MotionConfig);
-                }
-            }
+            requiredBricksRemaining = brickService != null
+                ? brickService.BuildBrickWall(layoutPlan, arenaTop)
+                : 0;
         }
 
         private LevelDefinition ResolveLevelTemplate(int levelIndex)
@@ -1530,127 +1510,6 @@ namespace GetBricked.Gameplay
             return loadedLevels[levelIndex % loadedLevels.Count];
         }
 
-        private void CreateBrick(
-            Vector2 position,
-            BrickDefinition definition,
-            int row,
-            int column,
-            int effectiveHitPoints,
-            BreakoutBrickMotionConfig motionConfig)
-        {
-            var brickObject = new GameObject($"{definition.DisplayName} {row + 1}-{column + 1}");
-            brickObject.transform.SetParent(bricksRoot, false);
-            brickObject.transform.position = position;
-            var sizeMultiplier = definition != null ? definition.SizeMultiplier : 1f;
-            brickObject.transform.localScale = new Vector3(
-                brickSize.x * sizeMultiplier,
-                brickSize.y * sizeMultiplier,
-                1f);
-
-            var visualObject = new GameObject("Visual");
-            visualObject.transform.SetParent(brickObject.transform, false);
-
-            var spriteRenderer = visualObject.AddComponent<SpriteRenderer>();
-            spriteRenderer.sprite = squareSprite;
-            spriteRenderer.sortingOrder = 5;
-            spriteRenderer.sharedMaterial = spriteUnlitMaterial;
-            BreakoutSpriteRendererUtility.NormalizeScale(spriteRenderer);
-
-            var collider = brickObject.AddComponent<BoxCollider2D>();
-            collider.sharedMaterial = bounceMaterial;
-
-            var brick = brickObject.AddComponent<Brick>();
-            brick.Initialize(
-                this,
-                definition,
-                effectiveHitPoints,
-                themeService != null ? themeService.ResolveBrickStyle(definition) : new ThemeVisualStyle(definition.BaseColor, definition.DamagedColor, squareSprite),
-                motionConfig.Speed,
-                motionConfig.InitialDirection);
-            bricks.Add(brick);
-
-            if (brick.CountsTowardLevelCompletion)
-            {
-                requiredBricksRemaining++;
-            }
-        }
-
-        private int GetEffectiveBrickHitPoints(BrickDefinition definition)
-        {
-            if (definition == null || !definition.IsBreakable)
-            {
-                return 0;
-            }
-
-            var durabilityMultiplier = activeRunSettings?.BrickDurabilityMultiplier ?? 1f;
-            return Mathf.Max(1, Mathf.RoundToInt(definition.HitPoints * durabilityMultiplier));
-        }
-
-        private void ClearBricks()
-        {
-            for (var index = bricks.Count - 1; index >= 0; index--)
-            {
-                if (bricks[index] == null)
-                {
-                    continue;
-                }
-
-                bricks[index].gameObject.SetActive(false);
-                DestroyRuntimeObject(bricks[index].gameObject);
-            }
-
-            bricks.Clear();
-        }
-
-        private void DestroyBricksInExplosionRadius(
-            Vector2 explosionCenter,
-            float explosionRadius,
-            Brick sourceBrick,
-            BallController scoringBall)
-        {
-            if (explosionRadius <= 0.01f || bricks.Count == 0)
-            {
-                return;
-            }
-
-            var impactedBricks = new List<Brick>();
-            var explosionRadiusSquared = explosionRadius * explosionRadius;
-
-            for (var index = 0; index < bricks.Count; index++)
-            {
-                var candidate = bricks[index];
-
-                if (candidate == null
-                    || candidate == sourceBrick
-                    || candidate.Definition == null
-                    || !candidate.Definition.IsBreakable)
-                {
-                    continue;
-                }
-
-                var offset = (Vector2)candidate.transform.position - explosionCenter;
-
-                if (offset.sqrMagnitude > explosionRadiusSquared)
-                {
-                    continue;
-                }
-
-                impactedBricks.Add(candidate);
-            }
-
-            for (var index = 0; index < impactedBricks.Count; index++)
-            {
-                var impactedBrick = impactedBricks[index];
-
-                if (impactedBrick == null)
-                {
-                    continue;
-                }
-
-                impactedBrick.DestroyByExplosion(scoringBall);
-            }
-        }
-
         private void EvaluateLevelCompletion()
         {
             if (currentLevel == null)
@@ -1658,7 +1517,7 @@ namespace GetBricked.Gameplay
                 return;
             }
 
-            var levelCleared = !HasBreakableBricksRemaining() || currentLevelCompletionRule switch
+            var levelCleared = (brickService == null || !brickService.HasBreakableBricksRemaining()) || currentLevelCompletionRule switch
             {
                 LevelCompletionRule.ClearRequiredBricks => requiredBricksRemaining <= 0,
                 LevelCompletionRule.ReachTargetScore => levelScore >= currentLevelTargetScore,
@@ -1682,26 +1541,6 @@ namespace GetBricked.Gameplay
 
             roundState = RoundState.LevelComplete;
             selectedOverlayActionIndex = 0;
-        }
-
-        private bool HasBreakableBricksRemaining()
-        {
-            for (var index = 0; index < bricks.Count; index++)
-            {
-                var brick = bricks[index];
-
-                if (brick == null || brick.Definition == null)
-                {
-                    continue;
-                }
-
-                if (brick.Definition.IsBreakable)
-                {
-                    return true;
-                }
-            }
-
-            return false;
         }
 
         private bool HasNextLevel()
@@ -1778,6 +1617,11 @@ namespace GetBricked.Gameplay
             if (definition.IsExplosive)
             {
                 return 3;
+            }
+
+            if (definition.SplitsOnBreak)
+            {
+                return 2;
             }
 
             return definition.HitPoints switch
@@ -3098,18 +2942,7 @@ namespace GetBricked.Gameplay
                 ? activeEffectModifiers.FogVisibilityMultiplier
                 : 1f;
 
-            for (var index = bricks.Count - 1; index >= 0; index--)
-            {
-                var brick = bricks[index];
-
-                if (brick == null)
-                {
-                    bricks.RemoveAt(index);
-                    continue;
-                }
-
-                brick.SetVisibilityMultiplier(visibilityMultiplier);
-            }
+            brickService?.ApplyVisibilityMultiplier(visibilityMultiplier);
 
             var activePickups = powerUpService?.ActivePickups;
 

@@ -119,6 +119,33 @@ public sealed class BreakoutLevelPlannerTests
     }
 
     [Test]
+    public void SplitBricksJoinProceduralPoolAfterOpeningStages()
+    {
+        var tinyBrick = CreateBrickDefinition("Tiny Brick", hitPoints: 1, isBreakable: true, null);
+        var splitBrick = CreateBrickDefinition("Split Brick", hitPoints: 2, isBreakable: true, null);
+        SetPrivateField(tinyBrick, "sizeMultiplier", 0.5f);
+        SetPrivateField(splitBrick, "splitsOnBreak", true);
+        SetPrivateField(splitBrick, "splitBrickDefinition", tinyBrick);
+
+        var plannerType = GetGameplayType("GetBricked.Gameplay.BreakoutLevelPlanner");
+        var weightMethod = plannerType.GetMethod("GetProceduralBrickWeight", BindingFlags.Static | InstanceFlags);
+        var symbolMethod = plannerType.GetMethod("BuildProceduralBrickSymbol", BindingFlags.Static | InstanceFlags);
+        Assert.That(weightMethod, Is.Not.Null);
+        Assert.That(symbolMethod, Is.Not.Null);
+
+        var stageTwoWeight = (float)weightMethod.Invoke(
+            null,
+            new object[] { splitBrick, 1, 4, 5, 8, 1, false });
+        var stageThreeWeight = (float)weightMethod.Invoke(
+            null,
+            new object[] { splitBrick, 1, 4, 5, 8, 2, false });
+
+        Assert.That(stageTwoWeight, Is.EqualTo(0f));
+        Assert.That(stageThreeWeight, Is.GreaterThan(0f));
+        Assert.That((char)symbolMethod.Invoke(null, new object[] { splitBrick }), Is.EqualTo('X'));
+    }
+
+    [Test]
     public void LaterLoopsCanAddMovementToOpeningTemplate()
     {
         var basicBrick = CreateBrickDefinition("Basic Brick", hitPoints: 1, isBreakable: true, null);

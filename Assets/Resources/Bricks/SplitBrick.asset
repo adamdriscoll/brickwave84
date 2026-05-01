@@ -1,0 +1,45 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7d65dbb95ba8457a9f726f66cc80214d, type: 3}
+  m_Name: SplitBrick
+  m_EditorClassIdentifier: 
+  displayName: Split Brick
+  hitPoints: 2
+  scoreValue: 175
+  sizeMultiplier: 1
+  indestructible: 0
+  countsTowardLevelCompletion: 1
+  explosive: 0
+  explosionRadius: 1.5
+  explosionSpeedMultiplier: 2.2
+  explosionSpeedDuration: 2.75
+  spinsOnHit: 0
+  spinTorqueImpulse: 140
+  spinMaxAngularVelocity: 360
+  spinAngularDamping: 2.4
+  spinBounceStrength: 0.75
+  splitsOnBreak: 1
+  splitBrickDefinition: {fileID: 11400000, guid: dc0bc05c9eb14cb29f7f5eb80472e720, type: 2}
+  dropChance: 0.18
+  dropTable:
+  - powerUpDefinition: {fileID: 11400000, guid: 1d335df901634d569e07a6c16d8d0a39, type: 2}
+    weight: 2
+  - powerUpDefinition: {fileID: 11400000, guid: fd4d25758f024fb1af03cb9e4a3a2f95, type: 2}
+    weight: 2
+  - powerUpDefinition: {fileID: 11400000, guid: b7e8c7f7cd7a4c13909c319157f06420, type: 2}
+    weight: 1
+  - powerUpDefinition: {fileID: 11400000, guid: e2ee17d131c74b4ca9ed3f3c6c1aa71d, type: 2}
+    weight: 1
+  baseColor: {r: 0.72, g: 0.36, b: 1, a: 1}
+  damagedColor: {r: 0.3, g: 0.16, b: 0.68, a: 1}
+  spriteResourcePath: Sprites/split-brick
+  themeSlot: 6

@@ -71,7 +71,7 @@ public sealed class BreakoutGameControllerPowerUpTests
     }
 
     [Test]
-    public void CreateBrickUsesDefinitionSizeMultiplier()
+    public void BrickServiceUsesDefinitionSizeMultiplier()
     {
         var controller = CreateControllerHarness(out _);
         var bricksRootObject = new GameObject("Bricks Root");
@@ -90,16 +90,12 @@ public sealed class BreakoutGameControllerPowerUpTests
         SetPrivateField(tinyDefinition, "dropChance", 0f);
         SetPrivateField(tinyDefinition, "dropTable", Array.Empty<BrickPowerUpDropEntry>());
         var motionConfig = Activator.CreateInstance(GetGameplayType("GetBricked.Gameplay.BreakoutBrickMotionConfig"));
+        InvokePrivateMethod(controller, "CreateBrickService");
+        var brickService = GetPrivateField<object>(controller, "brickService");
+        var createBrick = brickService.GetType().GetMethod("CreateBrick", InstanceFlags);
+        Assert.That(createBrick, Is.Not.Null);
 
-        InvokePrivateMethod(
-            controller,
-            "CreateBrick",
-            new Vector2(1f, 2f),
-            tinyDefinition,
-            0,
-            0,
-            1,
-            motionConfig);
+        createBrick.Invoke(brickService, new object[] { new Vector2(1f, 2f), tinyDefinition, 0, 0, motionConfig });
 
         var bricks = GetPrivateField<List<Brick>>(controller, "bricks");
 
@@ -389,6 +385,7 @@ public sealed class BreakoutGameControllerPowerUpTests
         SetPrivateField(controller, "currentLevelBallSpeed", 8f);
         SetPrivateField(controller, "arenaTop", 5f);
         SetPrivateField(controller, "arenaBottom", -5f);
+        InvokePrivateMethod(controller, "CreateBrickService");
         return controller;
     }
 

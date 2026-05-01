@@ -32,6 +32,8 @@ namespace GetBricked.Gameplay.Data
         [SerializeField, Min(0f)] private float spinMaxAngularVelocity = 360f;
         [SerializeField, Min(0f)] private float spinAngularDamping = 2.4f;
         [SerializeField, Range(0f, 2f)] private float spinBounceStrength = 0.75f;
+        [SerializeField] private bool splitsOnBreak;
+        [SerializeField] private BrickDefinition splitBrickDefinition;
         [SerializeField, Range(0f, 1f)] private float dropChance = 0.15f;
         [SerializeField] private BrickPowerUpDropEntry[] dropTable = Array.Empty<BrickPowerUpDropEntry>();
         [SerializeField] private Color baseColor = Color.white;
@@ -68,6 +70,13 @@ namespace GetBricked.Gameplay.Data
         public float SpinAngularDamping => SpinsOnHit ? Mathf.Max(0f, spinAngularDamping) : 0f;
 
         public float SpinBounceStrength => SpinsOnHit ? Mathf.Clamp(spinBounceStrength, 0f, 2f) : 0f;
+
+        public bool SplitsOnBreak => IsBreakable
+            && splitsOnBreak
+            && splitBrickDefinition != null
+            && splitBrickDefinition != this;
+
+        public BrickDefinition SplitBrickDefinition => SplitsOnBreak ? splitBrickDefinition : null;
 
         public float DropChance => Mathf.Clamp01(dropChance);
 
