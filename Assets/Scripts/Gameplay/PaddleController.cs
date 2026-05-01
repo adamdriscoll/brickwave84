@@ -59,8 +59,7 @@ namespace GetBricked.Gameplay
 
         public void SetWidthMultiplier(float multiplier)
         {
-            var clampedMultiplier = Mathf.Clamp(multiplier, 0.55f, 1.85f);
-            var width = baseScale.x * clampedMultiplier;
+            var width = baseScale.x * multiplier;
             transform.localScale = new Vector3(width, baseScale.y, baseScale.z);
             HalfWidthWorld = width * 0.5f;
             ClampToBounds();

@@ -2641,28 +2641,29 @@ namespace GetBricked.Gameplay
                 return Array.Empty<BreakoutUiModifierView>();
             }
 
+            var summaries = powerUpService.BuildTimedEffectStackSummaries();
+
+            if (summaries.Count == 0)
+            {
+                return Array.Empty<BreakoutUiModifierView>();
+            }
+
             var views = new List<BreakoutUiModifierView>();
 
-            for (var index = 0; index < powerUpService.ActiveTimedEffects.Count; index++)
+            for (var index = 0; index < summaries.Count; index++)
             {
-                var activeEffect = powerUpService.ActiveTimedEffects[index];
-
-                if (activeEffect.Definition == null)
-                {
-                    continue;
-                }
+                var summary = summaries[index];
 
                 var effectStyle = themeService != null
-                    ? themeService.ResolvePowerUpStyle(activeEffect.Definition)
+                    ? themeService.ResolvePowerUpStyle(summary.Definition)
                     : new ThemeVisualStyle(Color.white, Color.white, squareSprite);
-                var timeRatio = activeEffect.Definition.DurationSeconds > 0f
-                    ? Mathf.Clamp01(activeEffect.RemainingDuration / activeEffect.Definition.DurationSeconds)
-                    : 1f;
                 views.Add(new BreakoutUiModifierView
                 {
-                    Label = activeEffect.Definition.HudLabel,
-                    RemainingDuration = activeEffect.RemainingDuration,
-                    DurationRatio = timeRatio,
+                    Label = summary.StackCount > 1
+                        ? $"{summary.Definition.HudLabel} x{summary.StackCount}"
+                        : summary.Definition.HudLabel,
+                    RemainingDuration = summary.RemainingDuration,
+                    DurationRatio = summary.DurationRatio,
                     Color = effectStyle.PrimaryColor,
                 });
             }
@@ -3011,7 +3012,7 @@ namespace GetBricked.Gameplay
                     1f,
                     0f);
             paddle.SetMoveSpeed(currentLevelPaddleSpeed);
-            paddle.SetWidthMultiplier(Mathf.Clamp(activeEffectModifiers.PaddleWidthMultiplier, 0.6f, 1.8f));
+            paddle.SetWidthMultiplier(activeEffectModifiers.PaddleWidthMultiplier);
             paddle.SetWavyStrength(activeEffectModifiers.WavyPaddleStrength);
             paddle.SetControlsReversed(activeEffectModifiers.ReverseControlsEnabled);
             paddle.SetSplitGapWidthNormalized(activeEffectModifiers.SplitPaddleGapNormalized);

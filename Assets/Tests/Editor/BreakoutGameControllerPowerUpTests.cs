@@ -71,6 +71,120 @@ public sealed class BreakoutGameControllerPowerUpTests
     }
 
     [Test]
+    public void ApplyingSameShrinkPowerUpTwiceStacksPaddleScale()
+    {
+        var controller = CreateControllerHarness(out var paddle);
+        var shrinkPowerUp = CreatePowerUp(
+            "Narrow Paddle",
+            PowerUpEffectType.PaddleWidthMultiplier,
+            beneficial: false,
+            durationSeconds: 10f,
+            scalar: 0.72f);
+
+        InvokePrivateMethod(controller, "ApplyPowerUp", shrinkPowerUp);
+        InvokePrivateMethod(controller, "ApplyPowerUp", shrinkPowerUp);
+
+        Assert.That(paddle.transform.localScale.x, Is.EqualTo(2.1f * 0.72f * 0.72f).Within(0.0001f));
+    }
+
+    [Test]
+    public void ApplyingSameWidePowerUpTwiceStacksPaddleScaleWithoutClamp()
+    {
+        var controller = CreateControllerHarness(out var paddle);
+        var widePowerUp = CreatePowerUp(
+            "Wide Paddle",
+            PowerUpEffectType.PaddleWidthMultiplier,
+            beneficial: true,
+            durationSeconds: 12f,
+            scalar: 1.45f);
+
+        InvokePrivateMethod(controller, "ApplyPowerUp", widePowerUp);
+        InvokePrivateMethod(controller, "ApplyPowerUp", widePowerUp);
+
+        Assert.That(paddle.transform.localScale.x, Is.EqualTo(2.1f * 1.45f * 1.45f).Within(0.0001f));
+    }
+
+    [Test]
+    public void ApplyingSameTimedPowerUpTwiceShowsStackCountInUiLabels()
+    {
+        var controller = CreateControllerHarness(out _);
+        var shrinkPowerUp = CreatePowerUp(
+            "Narrow Paddle",
+            PowerUpEffectType.PaddleWidthMultiplier,
+            beneficial: false,
+            durationSeconds: 10f,
+            scalar: 0.72f);
+
+        InvokePrivateMethod(controller, "ApplyPowerUp", shrinkPowerUp);
+        InvokePrivateMethod(controller, "ApplyPowerUp", shrinkPowerUp);
+
+        var powerUpService = GetPrivateField<object>(controller, "powerUpService");
+        var activeTimedEffects = GetPropertyValue<System.Collections.IList>(powerUpService, "ActiveTimedEffects");
+        var activeEffectsLabel = (string)InvokePrivateMethodWithResult(controller, "BuildActiveEffectsLabel");
+        var pickupBannerView = InvokePrivateMethodWithResult(controller, "BuildPickupBannerView");
+        var modifierViews = (Array)InvokePrivateMethodWithResult(controller, "BuildModifierViews");
+
+        Assert.That(activeTimedEffects.Count, Is.EqualTo(1));
+        Assert.That(GetPropertyValue<int>(activeTimedEffects[0], "StackCount"), Is.EqualTo(2));
+        Assert.That(GetPropertyValue<float>(activeTimedEffects[0], "RemainingDuration"), Is.EqualTo(20f).Within(0.0001f));
+        Assert.That(activeEffectsLabel, Does.Contain("x2"));
+        Assert.That(activeEffectsLabel, Does.Contain("20.0s"));
+        Assert.That(GetFieldValue<string>(pickupBannerView, "Text"), Does.Contain("x2"));
+        Assert.That(modifierViews.Length, Is.EqualTo(1));
+        Assert.That(GetFieldValue<string>(modifierViews.GetValue(0), "Label"), Does.Contain("x2"));
+        Assert.That(GetFieldValue<float>(modifierViews.GetValue(0), "RemainingDuration"), Is.EqualTo(20f).Within(0.0001f));
+        Assert.That(GetFieldValue<float>(modifierViews.GetValue(0), "DurationRatio"), Is.EqualTo(1f).Within(0.0001f));
+    }
+
+    [Test]
+    public void ApplyingSameTimedPowerUpTwiceExtendsTimerAcrossTimedDropTypes()
+    {
+        var timedPowerUps = new[]
+        {
+            CreateTimedPowerUpCase("Narrow Paddle", PowerUpEffectType.PaddleWidthMultiplier, false, 10f, 0.72f),
+            CreateTimedPowerUpCase("Slow Ball", PowerUpEffectType.BallSpeedMultiplier, true, 10f, 0.78f),
+            CreateTimedPowerUpCase("Wavy Paddle", PowerUpEffectType.WavyPaddle, false, 12f, 1f),
+            CreateTimedPowerUpCase("Sticky Paddle", PowerUpEffectType.StickyPaddle, true, 15f, 1f),
+            CreateTimedPowerUpCase("Laser Paddle", PowerUpEffectType.LaserPaddle, true, 15f, 1f),
+            CreateTimedPowerUpCase("Phase Ball", PowerUpEffectType.PhaseBall, true, 12f, 1f),
+            CreateTimedPowerUpCase("Chain Lightning", PowerUpEffectType.ChainLightning, true, 14f, 0.35f),
+            CreateTimedPowerUpCase("Reverse Controls", PowerUpEffectType.ReverseControls, false, 8f, 1f),
+            CreateTimedPowerUpCase("Split Paddle", PowerUpEffectType.SplitPaddle, false, 12f, 1f),
+            CreateTimedPowerUpCase("Gravity Well", PowerUpEffectType.GravityWell, false, 12f, 0.35f),
+            CreateTimedPowerUpCase("Fog of War", PowerUpEffectType.FogOfWar, false, 10f, 0.55f),
+            CreateTimedPowerUpCase("Lag Spike", PowerUpEffectType.LagSpike, false, 8f, 0.5f),
+        };
+
+        for (var index = 0; index < timedPowerUps.Length; index++)
+        {
+            var controller = CreateControllerHarness(out _);
+            var powerUpCase = timedPowerUps[index];
+            var powerUp = CreatePowerUp(
+                powerUpCase.DisplayName,
+                powerUpCase.EffectType,
+                powerUpCase.Beneficial,
+                powerUpCase.DurationSeconds,
+                powerUpCase.Scalar);
+
+            InvokePrivateMethod(controller, "ApplyPowerUp", powerUp);
+            InvokePrivateMethod(controller, "ApplyPowerUp", powerUp);
+
+            var powerUpService = GetPrivateField<object>(controller, "powerUpService");
+            var activeTimedEffects = GetPropertyValue<System.Collections.IList>(powerUpService, "ActiveTimedEffects");
+
+            Assert.That(activeTimedEffects.Count, Is.EqualTo(1), $"Expected a single stacked timed effect entry for {powerUpCase.DisplayName}.");
+            Assert.That(GetPropertyValue<int>(activeTimedEffects[0], "StackCount"), Is.EqualTo(2), $"Expected stack count 2 for {powerUpCase.DisplayName}.");
+            Assert.That(
+                GetPropertyValue<float>(activeTimedEffects[0], "RemainingDuration"),
+                Is.EqualTo(powerUpCase.DurationSeconds * 2f).Within(0.0001f),
+                $"Expected doubled duration for {powerUpCase.DisplayName}.");
+
+            UnityEngine.Object.DestroyImmediate(controller.gameObject);
+            controllerObject = null;
+        }
+    }
+
+    [Test]
     public void ApplyingAdvancedTimedPowerUpsUpdatesControllerAndBallState()
     {
         var controller = CreateControllerHarness(out var paddle);
@@ -203,6 +317,16 @@ public sealed class BreakoutGameControllerPowerUpTests
         return powerUp;
     }
 
+    private static TimedPowerUpCase CreateTimedPowerUpCase(
+        string displayName,
+        PowerUpEffectType effectType,
+        bool beneficial,
+        float durationSeconds,
+        float scalar)
+    {
+        return new TimedPowerUpCase(displayName, effectType, beneficial, durationSeconds, scalar);
+    }
+
     private static Type GetGameplayType(string fullName)
     {
         var assembly = typeof(BreakoutGameController).Assembly;
@@ -218,7 +342,21 @@ public sealed class BreakoutGameControllerPowerUpTests
         method.Invoke(instance, args);
     }
 
+    private static object InvokePrivateMethodWithResult(object instance, string methodName, params object[] args)
+    {
+        var method = instance.GetType().GetMethod(methodName, InstanceFlags);
+        Assert.That(method, Is.Not.Null, $"Missing method '{methodName}' on {instance.GetType().Name}.");
+        return method.Invoke(instance, args);
+    }
+
     private static T GetPrivateField<T>(object instance, string fieldName)
+    {
+        var field = instance.GetType().GetField(fieldName, InstanceFlags);
+        Assert.That(field, Is.Not.Null, $"Missing field '{fieldName}' on {instance.GetType().Name}.");
+        return (T)field.GetValue(instance);
+    }
+
+    private static T GetFieldValue<T>(object instance, string fieldName)
     {
         var field = instance.GetType().GetField(fieldName, InstanceFlags);
         Assert.That(field, Is.Not.Null, $"Missing field '{fieldName}' on {instance.GetType().Name}.");
@@ -245,5 +383,27 @@ public sealed class BreakoutGameControllerPowerUpTests
         Assert.That(field, Is.Not.Null, $"Missing field '{fieldName}' on {instance.GetType().Name}.");
         var resolvedEnumValue = Enum.Parse(field.FieldType, enumValue);
         field.SetValue(instance, resolvedEnumValue);
+    }
+
+    private readonly struct TimedPowerUpCase
+    {
+        public TimedPowerUpCase(string displayName, PowerUpEffectType effectType, bool beneficial, float durationSeconds, float scalar)
+        {
+            DisplayName = displayName;
+            EffectType = effectType;
+            Beneficial = beneficial;
+            DurationSeconds = durationSeconds;
+            Scalar = scalar;
+        }
+
+        public string DisplayName { get; }
+
+        public PowerUpEffectType EffectType { get; }
+
+        public bool Beneficial { get; }
+
+        public float DurationSeconds { get; }
+
+        public float Scalar { get; }
     }
 }

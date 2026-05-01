@@ -107,7 +107,7 @@ Difficulty presets already change more than labels:
 
 - Brick drops are data-driven per brick definition.
 - The drop pool can be filtered to helpful-only, harmful-only, mixed, or fully disabled.
-- Re-catching the same timed effect extends its timer instead of replacing it.
+- Re-catching the same timed effect now increases that effect's stack count and adds another full base duration onto its timer, while the HUD/banner mark duplicate stacks with `xN`.
 - Opposing timed modifiers can coexist and combine multiplicatively where it makes sense.
 - Special-case effects already work in gameplay:
   - sticky catches and manual relaunch

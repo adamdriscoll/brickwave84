@@ -11,11 +11,39 @@ namespace GetBricked.Gameplay
         {
             Definition = definition;
             RemainingDuration = remainingDuration;
+            StackCount = 1;
         }
 
         public PowerUpDefinition Definition { get; }
 
         public float RemainingDuration { get; set; }
+
+        public int StackCount { get; private set; }
+
+        public void AddStack(float durationSeconds)
+        {
+            StackCount += 1;
+            RemainingDuration += Mathf.Max(0f, durationSeconds);
+        }
+    }
+
+    internal sealed class BreakoutTimedEffectStackSummary
+    {
+        public BreakoutTimedEffectStackSummary(PowerUpDefinition definition, int stackCount, float remainingDuration, float durationRatio)
+        {
+            Definition = definition;
+            StackCount = Mathf.Max(1, stackCount);
+            RemainingDuration = remainingDuration;
+            DurationRatio = durationRatio;
+        }
+
+        public PowerUpDefinition Definition { get; }
+
+        public int StackCount { get; }
+
+        public float RemainingDuration { get; private set; }
+
+        public float DurationRatio { get; private set; }
     }
 
     internal readonly struct BreakoutEffectModifiers
@@ -244,13 +272,14 @@ namespace GetBricked.Gameplay
                 return default;
             }
 
-            ShowPickupBanner(powerUpDefinition, themeService);
-
             if (powerUpDefinition.IsTimed)
             {
-                AddOrExtendTimedEffect(powerUpDefinition);
+                var stackCount = AddTimedEffect(powerUpDefinition);
+                ShowPickupBanner(powerUpDefinition, themeService, stackCount);
                 return default;
             }
+
+            ShowPickupBanner(powerUpDefinition, themeService, 1);
 
             return powerUpDefinition.EffectType switch
             {
@@ -286,13 +315,13 @@ namespace GetBricked.Gameplay
 
                 if (powerUpDefinition.EffectType == PowerUpEffectType.PaddleWidthMultiplier)
                 {
-                    paddleWidthMultiplier *= powerUpDefinition.Scalar;
+                    paddleWidthMultiplier *= Mathf.Pow(powerUpDefinition.Scalar, Mathf.Max(1, ActiveTimedEffects[index].StackCount));
                     continue;
                 }
 
                 if (powerUpDefinition.EffectType == PowerUpEffectType.BallSpeedMultiplier)
                 {
-                    timedBallSpeedMultiplier *= powerUpDefinition.Scalar;
+                    timedBallSpeedMultiplier *= Mathf.Pow(powerUpDefinition.Scalar, Mathf.Max(1, ActiveTimedEffects[index].StackCount));
                     continue;
                 }
 
@@ -397,13 +426,13 @@ namespace GetBricked.Gameplay
 
                 if (powerUpDefinition.EffectType == PowerUpEffectType.PaddleWidthMultiplier)
                 {
-                    paddleWidthMultiplier *= powerUpDefinition.Scalar;
+                    paddleWidthMultiplier *= Mathf.Pow(powerUpDefinition.Scalar, Mathf.Max(1, ActiveTimedEffects[index].StackCount));
                     continue;
                 }
 
                 if (powerUpDefinition.EffectType == PowerUpEffectType.BallSpeedMultiplier)
                 {
-                    timedBallSpeedMultiplier *= powerUpDefinition.Scalar;
+                    timedBallSpeedMultiplier *= Mathf.Pow(powerUpDefinition.Scalar, Mathf.Max(1, ActiveTimedEffects[index].StackCount));
                     continue;
                 }
 
@@ -537,34 +566,66 @@ namespace GetBricked.Gameplay
 
         public string BuildActiveEffectsLabel()
         {
-            if (ActiveTimedEffects.Count == 0)
+            var summaries = BuildTimedEffectStackSummaries();
+
+            if (summaries.Count == 0)
             {
                 return "Active Effects: none";
             }
 
             var builder = new StringBuilder("Active Effects: ");
 
-            for (var index = 0; index < ActiveTimedEffects.Count; index++)
+            for (var index = 0; index < summaries.Count; index++)
             {
-                var activeEffect = ActiveTimedEffects[index];
-
-                if (activeEffect.Definition == null)
-                {
-                    continue;
-                }
+                var summary = summaries[index];
 
                 if (builder.Length > 16)
                 {
                     builder.Append(" | ");
                 }
 
-                builder.Append(activeEffect.Definition.HudLabel);
+                builder.Append(summary.Definition.HudLabel);
+
+                if (summary.StackCount > 1)
+                {
+                    builder.Append(" x");
+                    builder.Append(summary.StackCount);
+                }
+
                 builder.Append(' ');
-                builder.Append(activeEffect.RemainingDuration.ToString("0.0"));
+                builder.Append(summary.RemainingDuration.ToString("0.0"));
                 builder.Append('s');
             }
 
             return builder.ToString();
+        }
+
+        public List<BreakoutTimedEffectStackSummary> BuildTimedEffectStackSummaries()
+        {
+            var summaries = new List<BreakoutTimedEffectStackSummary>();
+
+            for (var index = 0; index < ActiveTimedEffects.Count; index++)
+            {
+                var activeEffect = ActiveTimedEffects[index];
+                var definition = activeEffect.Definition;
+
+                if (definition == null)
+                {
+                    continue;
+                }
+
+                var totalDuration = definition.DurationSeconds * Mathf.Max(1, activeEffect.StackCount);
+                var durationRatio = totalDuration > 0f
+                    ? Mathf.Clamp01(activeEffect.RemainingDuration / totalDuration)
+                    : 1f;
+                summaries.Add(new BreakoutTimedEffectStackSummary(
+                    definition,
+                    activeEffect.StackCount,
+                    activeEffect.RemainingDuration,
+                    durationRatio));
+            }
+
+            return summaries;
         }
 
         private static bool IsDropAllowed(RunSettings activeRunSettings, PowerUpDefinition powerUpDefinition)
@@ -621,7 +682,7 @@ namespace GetBricked.Gameplay
             ActivePickups.Add(pickup);
         }
 
-        private void AddOrExtendTimedEffect(PowerUpDefinition powerUpDefinition)
+        private int AddTimedEffect(PowerUpDefinition powerUpDefinition)
         {
             for (var index = 0; index < ActiveTimedEffects.Count; index++)
             {
@@ -632,18 +693,25 @@ namespace GetBricked.Gameplay
                     continue;
                 }
 
-                activeEffect.RemainingDuration += powerUpDefinition.DurationSeconds;
-                return;
+                activeEffect.AddStack(powerUpDefinition.DurationSeconds);
+                return activeEffect.StackCount;
             }
 
             ActiveTimedEffects.Add(new BreakoutActiveTimedEffect(powerUpDefinition, powerUpDefinition.DurationSeconds));
+            return 1;
         }
 
-        private void ShowPickupBanner(PowerUpDefinition powerUpDefinition, BreakoutThemeService themeService)
+        private void ShowPickupBanner(PowerUpDefinition powerUpDefinition, BreakoutThemeService themeService, int stackCount)
         {
             PickupBannerText = powerUpDefinition.IsBeneficial
                 ? $"+ {powerUpDefinition.DisplayName}"
                 : $"- {powerUpDefinition.DisplayName}";
+
+            if (stackCount > 1)
+            {
+                PickupBannerText = $"{PickupBannerText} x{stackCount}";
+            }
+
             PickupBannerColor = themeService != null
                 ? themeService.ResolvePowerUpStyle(powerUpDefinition).PrimaryColor
                 : Color.white;
