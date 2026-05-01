@@ -31,6 +31,7 @@
 - Data-driven brick, level, pickup, upgrade, and theme content through ScriptableObjects
 - SVG-backed gameplay sprites plus rotating background art from `Resources/Backgrounds`, including dedicated pickup silhouettes for the active capsule set
 - Bloom-backed glow on balls and pickups, with crisp unlit paddle and brick rendering
+- Dynamic playfield scanlines that roll across the game area while the cabinet chrome and backdrop stay subtle
 - A first layer of Unity Edit Mode coverage around gameplay modifier behavior
 
 ## Core Loop

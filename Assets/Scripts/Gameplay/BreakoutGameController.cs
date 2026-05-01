@@ -55,6 +55,12 @@ namespace GetBricked.Gameplay
         [SerializeField, Min(0f)] private float bloomIntensity = 0.8f;
         [SerializeField, Range(0f, 1f)] private float bloomScatter = 0.72f;
 
+        [Header("Screen FX")]
+        [SerializeField, Range(0f, 0.1f)] private float playfieldScanlineOverlayAlpha = 0.026f;
+        [SerializeField, Range(0f, 0.15f)] private float playfieldScanlineSweepAlpha = 0.045f;
+        [SerializeField, Range(2f, 8f)] private float playfieldScanlineSpacing = 4f;
+        [SerializeField, Range(4f, 48f)] private float playfieldScanlineTravelSpeed = 18f;
+
         [Header("Playfield")]
         [SerializeField] private float playfieldPadding = 0.6f;
         [SerializeField] private float wallThickness = 0.45f;
@@ -1983,6 +1989,11 @@ namespace GetBricked.Gameplay
                 PlayfieldRect = playfieldRect,
                 ShowPlayfieldFrame = true,
                 IsMenuLike = isMenuLike,
+                UseDynamicPlayfieldScanlines = !isMenuLike,
+                DynamicScanlineSpacing = playfieldScanlineSpacing,
+                DynamicScanlineTravelSpeed = playfieldScanlineTravelSpeed,
+                DynamicScanlineAlpha = playfieldScanlineOverlayAlpha,
+                DynamicSweepAlpha = playfieldScanlineSweepAlpha,
                 MarqueeTitle = marqueeTitle,
                 MarqueeSubtitle = marqueeSubtitle,
             };

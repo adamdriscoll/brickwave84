@@ -26,6 +26,11 @@ namespace GetBricked.Gameplay
         public Rect PlayfieldRect;
         public bool ShowPlayfieldFrame = true;
         public bool IsMenuLike;
+        public bool UseDynamicPlayfieldScanlines;
+        public float DynamicScanlineSpacing = 4f;
+        public float DynamicScanlineTravelSpeed = 20f;
+        public float DynamicScanlineAlpha = 0.026f;
+        public float DynamicSweepAlpha = 0.045f;
         public string MarqueeTitle = string.Empty;
         public string MarqueeSubtitle = string.Empty;
     }
@@ -176,6 +181,7 @@ namespace GetBricked.Gameplay
                 DrawOutsidePlayfieldShade(view.PlayfieldRect, view.IsMenuLike);
                 DrawPerspectiveGrid(view.PlayfieldRect);
                 DrawPlayfieldFrame(view.PlayfieldRect);
+                DrawDynamicPlayfieldScanlines(view);
             }
 
             if (!string.IsNullOrWhiteSpace(view.MarqueeTitle))
@@ -904,6 +910,63 @@ namespace GetBricked.Gameplay
             for (var y = rect.y; y < rect.yMax; y += spacing)
             {
                 DrawSolidRect(new Rect(rect.x, y, rect.width, 1f), color);
+            }
+        }
+
+        private void DrawDynamicPlayfieldScanlines(BreakoutUiChromeView view)
+        {
+            if (view == null || !view.UseDynamicPlayfieldScanlines)
+            {
+                return;
+            }
+
+            var spacing = Mathf.Max(2f, view.DynamicScanlineSpacing);
+            var rect = new Rect(
+                view.PlayfieldRect.x + 3f,
+                view.PlayfieldRect.y + 3f,
+                Mathf.Max(0f, view.PlayfieldRect.width - 6f),
+                Mathf.Max(0f, view.PlayfieldRect.height - 6f));
+
+            if (rect.width < 2f || rect.height < 2f)
+            {
+                return;
+            }
+
+            var time = Time.unscaledTime;
+            var phaseOffset = Mathf.Repeat(time * view.DynamicScanlineTravelSpeed, spacing);
+            var baseColor = WithAlpha(palette.Scanline, view.DynamicScanlineAlpha);
+            var sweepColor = WithAlpha(palette.AccentPrimary, view.DynamicSweepAlpha);
+
+            for (var y = rect.y - spacing + phaseOffset; y < rect.yMax + spacing; y += spacing)
+            {
+                var normalized = Mathf.InverseLerp(rect.y, rect.yMax, y);
+                var shimmer = 0.6f + (0.4f * Mathf.Sin((normalized * 17f) - (time * 7.5f)));
+                var color = WithAlpha(baseColor, baseColor.a * shimmer);
+                DrawSolidRect(new Rect(rect.x, y, rect.width, 1f), color);
+            }
+
+            DrawScanlineSweep(rect, time, view.DynamicScanlineTravelSpeed, sweepColor);
+        }
+
+        private void DrawScanlineSweep(Rect rect, float time, float travelSpeed, Color color)
+        {
+            var sweepHeight = Mathf.Clamp(rect.height * 0.14f, 28f, 72f);
+            var travel = rect.height + (sweepHeight * 2f);
+            var sweepTop = rect.y - sweepHeight + Mathf.Repeat(time * (travelSpeed * 2.4f), travel);
+            var bandCount = Mathf.CeilToInt(sweepHeight);
+
+            for (var index = 0; index < bandCount; index++)
+            {
+                var y = sweepTop + index;
+
+                if (y < rect.y || y >= rect.yMax)
+                {
+                    continue;
+                }
+
+                var distance = Mathf.Abs(index - (bandCount * 0.5f)) / Mathf.Max(1f, bandCount * 0.5f);
+                var falloff = 1f - Mathf.Clamp01(distance);
+                DrawSolidRect(new Rect(rect.x, y, rect.width, 1f), WithAlpha(color, color.a * falloff));
             }
         }
 
