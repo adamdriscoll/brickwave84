@@ -109,10 +109,12 @@ public sealed class BreakoutPowerUpServiceTests
         var multiBall = CreatePowerUp("Multi-Ball", PowerUpEffectType.MultiBallBurst, true, 0f, 1f);
         var shield = CreatePowerUp("Shield Wall", PowerUpEffectType.ShieldWall, true, 0f, 2.6f);
         var multiplier = CreatePowerUp("Mondo Multi", PowerUpEffectType.ActiveDropMultiplier, true, 0f, 2f);
+        var divider = CreatePowerUp("Bogus Multi", PowerUpEffectType.ActiveDropMultiplier, false, 0f, 0.5f);
 
         var multiBallResult = service.ApplyPowerUp(multiBall, null);
         var shieldResult = service.ApplyPowerUp(shield, null);
         service.ApplyPowerUp(multiplier, null);
+        service.ApplyPowerUp(divider, null);
 
         Assert.That(multiBallResult.ShouldSpawnMultiBall, Is.True);
         Assert.That(multiBallResult.ShieldWallChargesGranted, Is.Zero);
@@ -149,6 +151,29 @@ public sealed class BreakoutPowerUpServiceTests
         Assert.That(summaries[0].RemainingDuration, Is.EqualTo(12f).Within(0.0001f));
         Assert.That(summaries[0].DurationRatio, Is.EqualTo(1f).Within(0.0001f));
         Assert.That(service.BuildActiveEffectsLabel(), Does.Contain("WIDE PADDLE x2 12.0s"));
+    }
+
+    [Test]
+    public void ActiveDropMultiplierCanHalveActiveEffectsWithoutExtendingDurations()
+    {
+        var service = CreateService();
+        var wide = CreatePowerUp("Wide Paddle", PowerUpEffectType.PaddleWidthMultiplier, true, 12f, 1.2f);
+        var divider = CreatePowerUp("Bogus Multi", PowerUpEffectType.ActiveDropMultiplier, false, 0f, 0.5f);
+
+        service.ApplyPowerUp(wide, null);
+        service.ApplyPowerUp(divider, null);
+        var modifiers = service.CalculateEffectModifiers(1f, 0f);
+        var summaries = service.BuildTimedEffectStackSummaries();
+
+        Assert.That(service.ActiveTimedEffects, Has.Count.EqualTo(1));
+        Assert.That(service.ActiveTimedEffects[0].StackCount, Is.EqualTo(1));
+        Assert.That(service.ActiveTimedEffects[0].EffectMultiplier, Is.EqualTo(0.5f).Within(0.0001f));
+        Assert.That(service.ActiveTimedEffects[0].RemainingDuration, Is.EqualTo(12f).Within(0.0001f));
+        Assert.That(modifiers.PaddleWidthMultiplier, Is.EqualTo(Mathf.Pow(1.2f, 0.5f)).Within(0.0001f));
+        Assert.That(summaries[0].DisplayMultiplier, Is.EqualTo(0.5f).Within(0.0001f));
+        Assert.That(summaries[0].RemainingDuration, Is.EqualTo(12f).Within(0.0001f));
+        Assert.That(summaries[0].DurationRatio, Is.EqualTo(1f).Within(0.0001f));
+        Assert.That(service.BuildActiveEffectsLabel(), Does.Contain("WIDE PADDLE x0.5 12.0s"));
     }
 
     [Test]

@@ -40,6 +40,8 @@ MonoBehaviour:
     weight: 1
   - powerUpDefinition: {fileID: 11400000, guid: 69824acd6a1240c0831ffc2c9b365931, type: 2}
     weight: 1
+  - powerUpDefinition: {fileID: 11400000, guid: d0216686791749ce808398feb3012c7a, type: 2}
+    weight: 1
   baseColor: {r: 0.98, g: 0.78, b: 0.28, a: 1}
   damagedColor: {r: 0.74, g: 0.48, b: 0.12, a: 1}
   spriteResourcePath: Sprites/spinning-brick

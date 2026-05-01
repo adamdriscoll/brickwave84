@@ -23,7 +23,7 @@ namespace GetBricked.Gameplay
 
         public float EffectMultiplier { get; private set; }
 
-        public float EffectStrength => Mathf.Max(1, StackCount) * Mathf.Max(1f, EffectMultiplier);
+        public float EffectStrength => Mathf.Max(1, StackCount) * Mathf.Max(0.1f, EffectMultiplier);
 
         public void AddStack(float durationSeconds)
         {
@@ -33,7 +33,7 @@ namespace GetBricked.Gameplay
 
         public void MultiplyEffect(float multiplier)
         {
-            EffectMultiplier *= Mathf.Max(1f, multiplier);
+            EffectMultiplier *= Mathf.Max(0.1f, multiplier);
         }
     }
 
@@ -48,7 +48,7 @@ namespace GetBricked.Gameplay
         {
             Definition = definition;
             StackCount = Mathf.Max(1, stackCount);
-            EffectMultiplier = Mathf.Max(1f, effectMultiplier);
+            EffectMultiplier = Mathf.Max(0.1f, effectMultiplier);
             RemainingDuration = remainingDuration;
             DurationRatio = durationRatio;
         }
@@ -512,7 +512,7 @@ namespace GetBricked.Gameplay
 
                 var displayMultiplier = summary.DisplayMultiplier;
 
-                if (displayMultiplier > 1.001f)
+                if (Mathf.Abs(displayMultiplier - 1f) > 0.001f)
                 {
                     builder.Append(" x");
                     builder.Append(FormatMultiplier(displayMultiplier));
@@ -672,7 +672,7 @@ namespace GetBricked.Gameplay
 
         internal static string FormatMultiplier(float multiplier)
         {
-            var clampedMultiplier = Mathf.Max(1f, multiplier);
+            var clampedMultiplier = Mathf.Max(0.1f, multiplier);
 
             if (Mathf.Abs(clampedMultiplier - Mathf.Round(clampedMultiplier)) < 0.001f)
             {
