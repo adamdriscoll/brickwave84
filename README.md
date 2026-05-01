@@ -102,6 +102,7 @@ Difficulty presets already change more than labels:
 - `Balls Per Serve` applies on every fresh serve, not just the opening launch.
 - `Shield Wall` can rescue a falling ball before it becomes a life loss.
 - Ball speed is not only feel tuning; brick score payout scales with current ball speed.
+- Combo score hooks now reward `Slam Chain` rapid breaks, `Bank Shot` ricochet finishes, and `Party Split` back-to-back multi-ball kills, with bonus point popups floating up from the broken brick.
 - Manual speed tuning exists during gameplay through `Up/Down`, and the HUD includes a speed meter.
 
 ### Drop And Effect Rules

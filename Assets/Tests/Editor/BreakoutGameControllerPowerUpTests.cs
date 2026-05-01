@@ -12,7 +12,7 @@ public sealed class BreakoutGameControllerPowerUpTests
 
     private GameObject controllerObject;
     private GameObject paddleObject;
-    private readonly List<GameObject> runtimeObjects = new List<GameObject>();
+    private readonly List<UnityEngine.Object> runtimeObjects = new List<UnityEngine.Object>();
 
     [TearDown]
     public void TearDown()
@@ -258,6 +258,76 @@ public sealed class BreakoutGameControllerPowerUpTests
         Assert.That(GetPrivateField<List<BallController>>(controller, "activeBalls").Count, Is.EqualTo(1));
     }
 
+    [Test]
+    public void RapidBrickBreaksAwardSlamChainBonusAndCreatePopup()
+    {
+        var controller = CreateControllerHarness(out var paddle);
+        var scoringBall = CreateBallHarness(controller, paddle);
+        var bricks = GetPrivateField<List<Brick>>(controller, "bricks");
+        GetPrivateField<List<BallController>>(controller, "activeBalls").Add(scoringBall);
+        var firstBrick = CreateBrickHarness(controller, "Brick A", 100, new Vector2(-1f, 1f));
+        var secondBrick = CreateBrickHarness(controller, "Brick B", 100, new Vector2(1f, 1f));
+        bricks.Add(firstBrick);
+        bricks.Add(secondBrick);
+
+        controller.HandleBrickDestroyed(firstBrick, scoringBall, BrickDestructionCause.Impact);
+        controller.HandleBrickDestroyed(secondBrick, scoringBall, BrickDestructionCause.Impact);
+
+        var popups = GetPrivateField<System.Collections.IList>(controller, "floatingScorePopups");
+
+        Assert.That(GetPrivateField<int>(controller, "score"), Is.EqualTo(220));
+        Assert.That(popups.Count, Is.EqualTo(1));
+        Assert.That(GetFieldValue<string>(popups[0], "PrimaryText"), Is.EqualTo("+20"));
+        Assert.That(GetFieldValue<string>(popups[0], "SecondaryText"), Does.Contain("SLAM CHAIN"));
+    }
+
+    [Test]
+    public void RicochetKillsAwardBankShotBonusAndResetBallChain()
+    {
+        var controller = CreateControllerHarness(out var paddle);
+        var scoringBall = CreateBallHarness(controller, paddle);
+        var brick = CreateBrickHarness(controller, "Ricochet Brick", 100, new Vector2(0f, 2f));
+        SetPrivateField(scoringBall, "ricochetCountSinceLastBrick", 3);
+        GetPrivateField<List<BallController>>(controller, "activeBalls").Add(scoringBall);
+        GetPrivateField<List<Brick>>(controller, "bricks").Add(brick);
+
+        controller.HandleBrickDestroyed(brick, scoringBall, BrickDestructionCause.Impact);
+
+        var popups = GetPrivateField<System.Collections.IList>(controller, "floatingScorePopups");
+
+        Assert.That(GetPrivateField<int>(controller, "score"), Is.EqualTo(142));
+        Assert.That(GetPrivateField<int>(scoringBall, "ricochetCountSinceLastBrick"), Is.EqualTo(0));
+        Assert.That(popups.Count, Is.EqualTo(1));
+        Assert.That(GetFieldValue<string>(popups[0], "SecondaryText"), Does.Contain("BANK SHOT"));
+    }
+
+    [Test]
+    public void DifferentBallsScoringBackToBackAwardPartySplitBonus()
+    {
+        var controller = CreateControllerHarness(out var paddle);
+        var firstBall = CreateBallHarness(controller, paddle);
+        var secondBall = CreateBallHarness(controller, paddle);
+        var firstBrick = CreateBrickHarness(controller, "First Brick", 100, new Vector2(-1f, 1f));
+        var secondBrick = CreateBrickHarness(controller, "Second Brick", 100, new Vector2(1f, 1f));
+        var bricks = GetPrivateField<List<Brick>>(controller, "bricks");
+        var balls = GetPrivateField<List<BallController>>(controller, "activeBalls");
+        balls.Add(firstBall);
+        balls.Add(secondBall);
+        bricks.Add(firstBrick);
+        bricks.Add(secondBrick);
+
+        controller.HandleBrickDestroyed(firstBrick, firstBall, BrickDestructionCause.Impact);
+        controller.HandleBrickDestroyed(secondBrick, secondBall, BrickDestructionCause.Impact);
+
+        var popups = GetPrivateField<System.Collections.IList>(controller, "floatingScorePopups");
+
+        Assert.That(GetPrivateField<int>(controller, "score"), Is.EqualTo(245));
+        Assert.That(popups.Count, Is.EqualTo(1));
+        Assert.That(GetFieldValue<string>(popups[0], "PrimaryText"), Is.EqualTo("+45"));
+        Assert.That(GetFieldValue<string>(popups[0], "SecondaryText"), Does.Contain("SLAM CHAIN"));
+        Assert.That(GetFieldValue<string>(popups[0], "SecondaryText"), Does.Contain("PARTY SPLIT"));
+    }
+
     private BreakoutGameController CreateControllerHarness(out PaddleController paddle)
     {
         controllerObject = new GameObject("BreakoutGameController Test");
@@ -292,6 +362,26 @@ public sealed class BreakoutGameControllerPowerUpTests
         var ball = ballObject.AddComponent<BallController>();
         ball.Configure(controller, paddle, 8f, 0.35f, -6f, 0.5f, false);
         return ball;
+    }
+
+    private Brick CreateBrickHarness(BreakoutGameController controller, string displayName, int scoreValue, Vector2 worldPosition)
+    {
+        var brickObject = new GameObject(displayName);
+        runtimeObjects.Add(brickObject);
+        brickObject.transform.position = worldPosition;
+        brickObject.AddComponent<BoxCollider2D>();
+        var brick = brickObject.AddComponent<Brick>();
+        var definition = ScriptableObject.CreateInstance<BrickDefinition>();
+        runtimeObjects.Add(definition);
+        SetPrivateField(definition, "displayName", displayName);
+        SetPrivateField(definition, "scoreValue", scoreValue);
+        SetPrivateField(definition, "indestructible", false);
+        SetPrivateField(definition, "countsTowardLevelCompletion", true);
+        SetPrivateField(definition, "dropChance", 0f);
+        SetPrivateField(definition, "dropTable", Array.Empty<BrickPowerUpDropEntry>());
+        SetPrivateField(brick, "gameController", controller);
+        SetPrivateField(brick, "definition", definition);
+        return brick;
     }
 
     private static object CreatePowerUpService()

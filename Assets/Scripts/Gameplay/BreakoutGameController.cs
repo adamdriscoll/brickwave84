@@ -17,6 +17,10 @@ namespace GetBricked.Gameplay
         private const string PowerUpSpriteResourcePath = "Sprites/powerup";
         private const float LaserShotCooldownSeconds = 0.3f;
         private const float ShieldWallYOffset = 0.38f;
+        private const float SlamChainWindowSeconds = 1.1f;
+        private const float PartySplitWindowSeconds = 0.75f;
+        private const float FloatingScoreLifetimeSeconds = 0.9f;
+        private const float FloatingScoreTravelDistance = 0.55f;
 
         private enum RoundState
         {
@@ -42,6 +46,47 @@ namespace GetBricked.Gameplay
             ReturnToRunSetup,
             ReturnToMainMenu,
             QuitGame,
+        }
+
+        private sealed class FloatingScorePopup
+        {
+            public Vector2 WorldPosition;
+            public string PrimaryText = string.Empty;
+            public string SecondaryText = string.Empty;
+            public Color Color = Color.white;
+            public float Age;
+            public float Lifetime = FloatingScoreLifetimeSeconds;
+        }
+
+        private readonly struct ScoreComboBonus
+        {
+            public ScoreComboBonus(string label, int points)
+            {
+                Label = label;
+                Points = points;
+            }
+
+            public string Label { get; }
+
+            public int Points { get; }
+        }
+
+        private readonly struct BrickScoreAward
+        {
+            public BrickScoreAward(int basePoints, int bonusPoints, string bonusLabel)
+            {
+                BasePoints = basePoints;
+                BonusPoints = bonusPoints;
+                BonusLabel = bonusLabel ?? string.Empty;
+            }
+
+            public int BasePoints { get; }
+
+            public int BonusPoints { get; }
+
+            public int TotalPoints => BasePoints + BonusPoints;
+
+            public string BonusLabel { get; }
         }
 
         [Header("Camera")]
@@ -107,6 +152,7 @@ namespace GetBricked.Gameplay
         private readonly List<Texture2D> loadedBackgroundTextures = new List<Texture2D>();
         private readonly List<Sprite> runtimeGeneratedBackgroundSprites = new List<Sprite>();
         private readonly List<SpriteRenderer> wallRenderers = new List<SpriteRenderer>();
+        private readonly List<FloatingScorePopup> floatingScorePopups = new List<FloatingScorePopup>();
 
         private Camera activeCamera;
         private Transform runtimeRoot;
@@ -176,6 +222,9 @@ namespace GetBricked.Gameplay
         private SpriteRenderer shieldWallRenderer;
         private int shieldWallCharges;
         private float laserShotCooldownTimer;
+        private float lastScoredBrickTime = float.NegativeInfinity;
+        private int slamChainCount;
+        private BallController lastScoringBall;
 
         public Collider2D PaddleCollider => paddleCollider;
 
@@ -273,6 +322,7 @@ namespace GetBricked.Gameplay
         {
             UpdateTimedEffects();
             UpdatePickupBanner();
+            UpdateFloatingScorePopups();
             laserShotCooldownTimer = Mathf.Max(0f, laserShotCooldownTimer - Time.deltaTime);
 
             var keyboard = Keyboard.current;
@@ -367,9 +417,20 @@ namespace GetBricked.Gameplay
                 scoringBall.ApplySpeedBurst(brickDefinition.ExplosionSpeedMultiplier, brickDefinition.ExplosionSpeedDuration);
             }
 
-            var awardedScore = CalculateBrickScore(brick, scoringBall);
-            score += awardedScore;
-            levelScore += awardedScore;
+            var scoreAward = BuildBrickScoreAward(brick, scoringBall, destructionCause);
+            score += scoreAward.TotalPoints;
+            levelScore += scoreAward.TotalPoints;
+
+            if (scoreAward.BonusPoints > 0)
+            {
+                CreateFloatingScorePopup(
+                    explosionCenter,
+                    scoreAward.BonusPoints,
+                    scoreAward.BonusLabel,
+                    ResolveComboPopupColor());
+            }
+
+            RegisterBrickScoreEvent(scoringBall, scoreAward.BasePoints > 0);
             TrySpawnPickup(brick);
 
             if (brick.CountsTowardLevelCompletion)
@@ -553,6 +614,7 @@ namespace GetBricked.Gameplay
             shieldWallCharges = 0;
             laserShotCooldownTimer = 0f;
             stickyCaughtBall = null;
+            ResetComboTracking(clearPopups: true);
             activeRunState?.Reset();
             ClearTimedEffects();
             ClearPickups();
@@ -623,6 +685,7 @@ namespace GetBricked.Gameplay
             stickyCaughtBall = null;
             shieldWallCharges = 0;
             laserShotCooldownTimer = 0f;
+            ResetComboTracking(clearPopups: true);
             UpdateShieldWallVisual();
 
             if (serveBall != null)
@@ -1077,6 +1140,7 @@ namespace GetBricked.Gameplay
             serveBall.SetMovementSpeed(GetCurrentBallSpeed());
             serveBall.ResetToPaddle();
             activeBalls.Add(serveBall);
+            ResetComboTracking(clearPopups: false);
         }
 
         private void LoadLevelDefinitions()
@@ -1133,6 +1197,7 @@ namespace GetBricked.Gameplay
             ClearPickups();
             stickyCaughtBall = null;
             ClearTimedEffects();
+            ResetComboTracking(clearPopups: true);
 
             if (loadedLevels.Count == 0 || levelIndex < 0)
             {
@@ -2411,6 +2476,7 @@ namespace GetBricked.Gameplay
             uiRenderer.DrawCabinetBackdrop(BuildChromeView(string.Empty, string.Empty, false));
             uiRenderer.DrawGameplayHud(BuildHudView(), ToggleDiagnosticsOverlay, ToggleHudMenuOverlay);
             uiRenderer.DrawModifierIndicator(BuildModifierViews(), isDiagnosticsOverlayVisible);
+            uiRenderer.DrawFloatingScorePopups(BuildFloatingScoreViews());
 
             if (isDiagnosticsOverlayVisible)
             {
@@ -3174,24 +3240,41 @@ namespace GetBricked.Gameplay
             score -= penalty;
         }
 
-        private int CalculateBrickScore(Brick brick, BallController scoringBall)
+        private BrickScoreAward BuildBrickScoreAward(Brick brick, BallController scoringBall, BrickDestructionCause destructionCause)
         {
             if (brick == null)
             {
-                return 0;
+                return default;
             }
 
             var baseScore = brick.ScoreValue;
 
             if (baseScore <= 0)
             {
-                return 0;
+                return default;
             }
 
             var scoringSpeed = scoringBall != null && scoringBall.CurrentSpeed > 0.01f
                 ? scoringBall.CurrentSpeed
                 : GetDisplayedBallSpeed();
-            return Mathf.Max(1, Mathf.RoundToInt(baseScore * GetScoreMultiplierForSpeed(scoringSpeed)));
+            var awardedBasePoints = Mathf.Max(1, Mathf.RoundToInt(baseScore * GetScoreMultiplierForSpeed(scoringSpeed)));
+            var comboBonuses = new List<ScoreComboBonus>(3);
+            TryAddSlamChainBonus(awardedBasePoints, comboBonuses);
+            TryAddBankShotBonus(awardedBasePoints, scoringBall, destructionCause, comboBonuses);
+            TryAddPartySplitBonus(awardedBasePoints, scoringBall, comboBonuses);
+
+            var bonusPoints = 0;
+            var bonusLabels = string.Empty;
+
+            for (var index = 0; index < comboBonuses.Count; index++)
+            {
+                bonusPoints += comboBonuses[index].Points;
+                bonusLabels = string.IsNullOrEmpty(bonusLabels)
+                    ? comboBonuses[index].Label
+                    : $"{bonusLabels}  |  {comboBonuses[index].Label}";
+            }
+
+            return new BrickScoreAward(awardedBasePoints, bonusPoints, bonusLabels);
         }
 
         private float GetDisplayedBallSpeed()
@@ -3222,6 +3305,162 @@ namespace GetBricked.Gameplay
         private float GetScoreMultiplierForSpeed(float speed)
         {
             return Mathf.Max(0.1f, speed / Mathf.Max(0.1f, ballSpeed));
+        }
+
+        private void TryAddSlamChainBonus(int awardedBasePoints, List<ScoreComboBonus> comboBonuses)
+        {
+            var projectedChainCount = GetProjectedSlamChainCount();
+
+            if (projectedChainCount < 2)
+            {
+                return;
+            }
+
+            var bonusMultiplier = Mathf.Min(0.2f * (projectedChainCount - 1), 0.8f);
+            var bonusPoints = Mathf.Max(1, Mathf.RoundToInt(awardedBasePoints * bonusMultiplier));
+            comboBonuses.Add(new ScoreComboBonus("SLAM CHAIN", bonusPoints));
+        }
+
+        private void TryAddBankShotBonus(
+            int awardedBasePoints,
+            BallController scoringBall,
+            BrickDestructionCause destructionCause,
+            List<ScoreComboBonus> comboBonuses)
+        {
+            if (destructionCause != BrickDestructionCause.Impact
+                || scoringBall == null
+                || scoringBall.RicochetCountSinceLastBrick < 2)
+            {
+                return;
+            }
+
+            var bonusMultiplier = Mathf.Min(0.14f * scoringBall.RicochetCountSinceLastBrick, 0.56f);
+            var bonusPoints = Mathf.Max(1, Mathf.RoundToInt(awardedBasePoints * bonusMultiplier));
+            comboBonuses.Add(new ScoreComboBonus("BANK SHOT", bonusPoints));
+        }
+
+        private void TryAddPartySplitBonus(int awardedBasePoints, BallController scoringBall, List<ScoreComboBonus> comboBonuses)
+        {
+            if (scoringBall == null
+                || activeBalls.Count <= 1
+                || lastScoringBall == null
+                || lastScoringBall == scoringBall
+                || Time.time - lastScoredBrickTime > PartySplitWindowSeconds)
+            {
+                return;
+            }
+
+            var bonusPoints = Mathf.Max(1, Mathf.RoundToInt(awardedBasePoints * 0.25f));
+            comboBonuses.Add(new ScoreComboBonus("PARTY SPLIT", bonusPoints));
+        }
+
+        private int GetProjectedSlamChainCount()
+        {
+            return Time.time - lastScoredBrickTime <= SlamChainWindowSeconds
+                ? slamChainCount + 1
+                : 1;
+        }
+
+        private void RegisterBrickScoreEvent(BallController scoringBall, bool awardedPoints)
+        {
+            if (!awardedPoints)
+            {
+                return;
+            }
+
+            slamChainCount = GetProjectedSlamChainCount();
+            lastScoredBrickTime = Time.time;
+            lastScoringBall = scoringBall;
+            scoringBall?.RegisterBrickScore();
+        }
+
+        private void ResetComboTracking(bool clearPopups)
+        {
+            lastScoredBrickTime = float.NegativeInfinity;
+            slamChainCount = 0;
+            lastScoringBall = null;
+
+            if (clearPopups)
+            {
+                floatingScorePopups.Clear();
+            }
+        }
+
+        private void CreateFloatingScorePopup(Vector2 worldPosition, int bonusPoints, string bonusLabel, Color popupColor)
+        {
+            floatingScorePopups.Add(new FloatingScorePopup
+            {
+                WorldPosition = worldPosition,
+                PrimaryText = $"+{bonusPoints}",
+                SecondaryText = bonusLabel ?? string.Empty,
+                Color = popupColor,
+                Age = 0f,
+                Lifetime = FloatingScoreLifetimeSeconds,
+            });
+        }
+
+        private void UpdateFloatingScorePopups()
+        {
+            if (floatingScorePopups.Count == 0)
+            {
+                return;
+            }
+
+            var deltaTime = Time.unscaledDeltaTime;
+
+            for (var index = floatingScorePopups.Count - 1; index >= 0; index--)
+            {
+                floatingScorePopups[index].Age += deltaTime;
+
+                if (floatingScorePopups[index].Age >= floatingScorePopups[index].Lifetime)
+                {
+                    floatingScorePopups.RemoveAt(index);
+                }
+            }
+        }
+
+        private BreakoutUiFloatingScoreView[] BuildFloatingScoreViews()
+        {
+            if (activeCamera == null || floatingScorePopups.Count == 0)
+            {
+                return Array.Empty<BreakoutUiFloatingScoreView>();
+            }
+
+            var views = new List<BreakoutUiFloatingScoreView>(floatingScorePopups.Count);
+
+            for (var index = 0; index < floatingScorePopups.Count; index++)
+            {
+                var popup = floatingScorePopups[index];
+                var lifeRatio = popup.Lifetime > 0.001f ? Mathf.Clamp01(popup.Age / popup.Lifetime) : 1f;
+                var alpha = lifeRatio < 0.22f
+                    ? Mathf.InverseLerp(0f, 0.22f, lifeRatio)
+                    : 1f - Mathf.InverseLerp(0.22f, 1f, lifeRatio);
+                var worldPosition = popup.WorldPosition + (Vector2.up * (FloatingScoreTravelDistance * lifeRatio));
+                var screenPosition = activeCamera.WorldToScreenPoint(worldPosition);
+
+                if (screenPosition.z < 0f)
+                {
+                    continue;
+                }
+
+                views.Add(new BreakoutUiFloatingScoreView
+                {
+                    ScreenPosition = new Vector2(screenPosition.x, Screen.height - screenPosition.y),
+                    PrimaryText = popup.PrimaryText,
+                    SecondaryText = popup.SecondaryText,
+                    Color = popup.Color,
+                    Alpha = Mathf.Clamp01(alpha),
+                });
+            }
+
+            return views.ToArray();
+        }
+
+        private Color ResolveComboPopupColor()
+        {
+            return themeService != null
+                ? themeService.ResolveBallStyle().PrimaryColor
+                : new Color(1f, 0.87f, 0.36f, 1f);
         }
 
         private float GetMaximumBallSpeed()

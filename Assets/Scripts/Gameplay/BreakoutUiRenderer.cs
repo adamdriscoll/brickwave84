@@ -126,6 +126,15 @@ namespace GetBricked.Gameplay
         public Color Color = Color.white;
     }
 
+    internal sealed class BreakoutUiFloatingScoreView
+    {
+        public Vector2 ScreenPosition;
+        public string PrimaryText = string.Empty;
+        public string SecondaryText = string.Empty;
+        public Color Color = Color.white;
+        public float Alpha = 1f;
+    }
+
     internal sealed class BreakoutUiRenderer
     {
         private GUIStyle hudStyle;
@@ -145,6 +154,8 @@ namespace GetBricked.Gameplay
         private GUIStyle modifierPanelTitleStyle;
         private GUIStyle modifierPanelLabelStyle;
         private GUIStyle modifierPanelTimerStyle;
+        private GUIStyle floatingScoreStyle;
+        private GUIStyle floatingScoreTagStyle;
         private BreakoutUiThemePalette palette = new BreakoutUiThemePalette();
 
         public void ConfigureTheme(BreakoutUiThemePalette themePalette)
@@ -553,6 +564,39 @@ namespace GetBricked.Gameplay
             DrawTextWithShadow(rect, view.Text, pickupStyle, view.Color, 0.3f);
         }
 
+        public void DrawFloatingScorePopups(BreakoutUiFloatingScoreView[] views)
+        {
+            EnsureStyles();
+
+            if (views == null || views.Length == 0)
+            {
+                return;
+            }
+
+            for (var index = 0; index < views.Length; index++)
+            {
+                var view = views[index];
+
+                if (view == null || view.Alpha <= 0.001f || string.IsNullOrWhiteSpace(view.PrimaryText))
+                {
+                    continue;
+                }
+
+                var position = view.ScreenPosition;
+                var primaryRect = new Rect(position.x - 96f, position.y - 18f, 192f, 30f);
+                var secondaryRect = new Rect(position.x - 128f, position.y + 10f, 256f, 20f);
+                var scoreColor = WithAlpha(view.Color, view.Alpha);
+                var tagColor = WithAlpha(Color.Lerp(palette.AccentSecondary, palette.AccentPrimary, 0.45f), view.Alpha * 0.92f);
+
+                DrawTextWithShadow(primaryRect, view.PrimaryText, floatingScoreStyle, scoreColor, 0.22f * view.Alpha);
+
+                if (!string.IsNullOrWhiteSpace(view.SecondaryText))
+                {
+                    DrawTextWithShadow(secondaryRect, view.SecondaryText, floatingScoreTagStyle, tagColor, 0.18f * view.Alpha);
+                }
+            }
+        }
+
         private void EnsureStyles()
         {
             hudStyle ??= new GUIStyle(GUI.skin.label)
@@ -637,6 +681,16 @@ namespace GetBricked.Gameplay
                 alignment = TextAnchor.MiddleCenter,
                 fontSize = 10,
             };
+            floatingScoreStyle ??= new GUIStyle(pickupStyle)
+            {
+                fontSize = 26,
+            };
+            floatingScoreTagStyle ??= new GUIStyle(hudStyle)
+            {
+                alignment = TextAnchor.MiddleCenter,
+                fontSize = 11,
+                fontStyle = FontStyle.Bold,
+            };
 
             hudStyle.normal.textColor = palette.TextPrimary;
             messageStyle.normal.textColor = palette.TextPrimary;
@@ -655,6 +709,8 @@ namespace GetBricked.Gameplay
             modifierPanelTitleStyle.normal.textColor = palette.TextMuted;
             modifierPanelLabelStyle.normal.textColor = palette.TextPrimary;
             modifierPanelTimerStyle.normal.textColor = palette.TextMuted;
+            floatingScoreStyle.normal.textColor = palette.AccentWarm;
+            floatingScoreTagStyle.normal.textColor = palette.AccentPrimary;
         }
 
         private void DrawBallSpeedMeter(BreakoutUiSpeedMeterView view)

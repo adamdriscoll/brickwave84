@@ -24,12 +24,15 @@ namespace GetBricked.Gameplay
         private float gravityWellStrength;
         private Vector2 gravityWellPoint;
         private Vector2 lastTravelDirection = Vector2.up;
+        private int ricochetCountSinceLastBrick;
 
         public float CurrentSpeed => ballBody != null ? ballBody.linearVelocity.magnitude : 0f;
 
         public Vector2 CurrentVelocity => ballBody != null ? ballBody.linearVelocity : Vector2.zero;
 
         public bool IsAttachedToPaddle => attachedToPaddle;
+
+        public int RicochetCountSinceLastBrick => ricochetCountSinceLastBrick;
 
         public void Configure(
             BreakoutGameController controller,
@@ -55,6 +58,7 @@ namespace GetBricked.Gameplay
             hasLaunched = false;
             attachedToPaddle = false;
             ClearSpeedBurst();
+            ricochetCountSinceLastBrick = 0;
 
             if (ballBody == null)
             {
@@ -88,6 +92,7 @@ namespace GetBricked.Gameplay
 
             attachedToPaddle = false;
             hasLaunched = true;
+            ricochetCountSinceLastBrick = 0;
 
             var launchDirection = direction.sqrMagnitude > 0.001f
                 ? direction.normalized
@@ -135,6 +140,7 @@ namespace GetBricked.Gameplay
             attachedToPaddle = true;
             hasLaunched = false;
             ClearSpeedBurst();
+            ricochetCountSinceLastBrick = 0;
 
             if (ballBody != null)
             {
@@ -221,11 +227,17 @@ namespace GetBricked.Gameplay
             hasLaunched = false;
             attachedToPaddle = false;
             ClearSpeedBurst();
+            ricochetCountSinceLastBrick = 0;
 
             if (ballBody != null)
             {
                 ballBody.linearVelocity = Vector2.zero;
             }
+        }
+
+        public void RegisterBrickScore()
+        {
+            ricochetCountSinceLastBrick = 0;
         }
 
         public void ApplyCollisionResponse(Vector2 direction, float minimumVerticalFraction = -1f)
@@ -300,6 +312,7 @@ namespace GetBricked.Gameplay
                     return;
                 }
 
+                RegisterRicochet();
                 RedirectFromPaddle(hitPaddle, collision);
                 return;
             }
@@ -311,6 +324,18 @@ namespace GetBricked.Gameplay
             {
                 ContinueThroughBrickImpact();
                 return;
+            }
+
+            if (collision.collider.TryGetComponent<Brick>(out var collidedBrick))
+            {
+                if (collidedBrick.Definition == null || !collidedBrick.Definition.IsBreakable)
+                {
+                    RegisterRicochet();
+                }
+            }
+            else
+            {
+                RegisterRicochet();
             }
 
             if (collision.collider.TryGetComponent<Brick>(out var spinningBrick)
@@ -443,6 +468,11 @@ namespace GetBricked.Gameplay
         {
             speedBurstMultiplier = 1f;
             speedBurstTimeRemaining = 0f;
+        }
+
+        private void RegisterRicochet()
+        {
+            ricochetCountSinceLastBrick = Mathf.Max(0, ricochetCountSinceLastBrick + 1);
         }
 
         private Vector2 NormalizeDirection(Vector2 direction, float minimumVerticalFraction)

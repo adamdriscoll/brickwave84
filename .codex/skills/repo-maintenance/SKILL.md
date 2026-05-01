@@ -51,6 +51,7 @@ Add or revise facts that will still help a future agent after the current task i
 - Current Unity/editor version
 - Repo status assumptions that changed, such as git now existing
 - New gameplay systems, runtime folders, prefabs, scenes, input assets, asmdefs, tests, or tooling
+- New architecture guidance, extraction boundaries, or folder conventions that future agents should follow when extending large runtime classes or services
 - New conventions that future agents should follow
 - Validation steps that became important because the project structure changed
 - Good-first-read files that are now central to understanding the repo
@@ -96,6 +97,7 @@ For this repository, pay extra attention to:
 - Matching `.meta` files for manually added Unity assets
 - Scene/build-setting changes in `ProjectSettings/EditorBuildSettings.asset`
 - New C# scripts, `.asmdef` files, prefabs, ScriptableObjects, and tests
+- Whether large Unity entry points such as bootstrap/controller classes gained new responsibilities that should instead be documented as extraction candidates or collaborator boundaries in `AGENTS.md`
 - Input System asset changes in `Assets/*.inputactions`
 - Package changes in `Packages/manifest.json`
 - Any new validation requirement that should be called out for future agents

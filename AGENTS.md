@@ -135,11 +135,18 @@
 ## Working Rules For Future Agents
 
 - Prefer adding gameplay code under `Assets/Scripts/` unless the user asks for a different layout.
+- Treat `Assets/Scripts/Gameplay/BreakoutGameController.cs` as an orchestration root, not the default home for every new gameplay feature. If a task adds a distinct responsibility such as score rules, serve flow, overlay input, upgrade resolution, background presentation, or pickup effect coordination, prefer extracting that touched slice into a focused collaborator instead of growing the controller again.
 - Preserve Unity `.meta` pairings for every manually added script and folder under `Assets/Scripts/`.
 - After substantial project work, use `.codex/skills/repo-maintenance/` to refresh `AGENTS.md` and repo-local skills with durable new repo knowledge.
 - Keep `README.md` up to date when implemented gameplay systems, controls, content pools, setup/build options, themes, or other player-visible features change.
 - When behavior changes or a bug is fixed, add or update the closest relevant automated test when practical instead of leaving coverage behind.
 - After code or behavior changes, run the relevant automated tests plus the Unity compile check before closing the task whenever the environment allows it.
+- Refactor incrementally. When work touches an overcrowded class or service, improve only that local responsibility, keep behavior stable, and avoid repo-wide architecture rewrites unless the user explicitly asks for one.
+- In Unity terms, keep `MonoBehaviour` classes focused on engine callbacks, serialized references, scene wiring, and `GameObject` lifetime. Prefer plain C# classes for gameplay rules, calculations, state transitions, deterministic selection logic, timers, and other behavior that does not need direct Unity API ownership.
+- Use `ScriptableObject` assets for authored configuration and reusable content definitions. Keep mutable run/session state in runtime models or services rather than writing transient state back into assets.
+- Add interfaces or abstract/base classes only when they create a real seam for multiple behaviors, strategy swapping, or easier testing around Unity-dependent code. Prefer composition over inheritance by default, and avoid one-interface-per-class ceremony.
+- When extracting logic from a large runtime class, prefer narrow dependencies and adapters over handing the entire controller to helpers. New collaborators should have a short, single-purpose API and clear ownership.
+- If a task naturally exposes a cleanup opportunity, leave the touched area slightly better structured than you found it, but stop once the local code is readable, testable, and appropriately scoped for the current task.
 - Before touching visual style, read `Plan/STYLE.md` and keep the synthwave arcade direction consistent across gameplay, HUD, menus, and future theme assets.
 - Before touching UI copy, naming, event callouts, or flavor text, read `Plan/VOICE.md` and keep the arcade-cabinet tone plus labeling rules consistent across gameplay, menus, pickups, stages, and result screens.
 - Keep Unity `.meta` files intact. If you add an asset or script manually, ensure the matching `.meta` file exists and stays paired with it.
@@ -161,11 +168,15 @@
   - `Assets/Scripts/Input/`
   - `Assets/Scripts/UI/`
   - `Assets/Scripts/Core/`
+- If a feature slice keeps growing, prefer focused subfolders by responsibility such as `Assets/Scripts/Gameplay/RunFlow/`, `Assets/Scripts/Gameplay/Scoring/`, `Assets/Scripts/Gameplay/Presentation/`, or `Assets/Scripts/Gameplay/PowerUps/` instead of keeping every runtime class in one flat folder forever.
+- Prefer small, responsibility-revealing collaborator names such as `*Service`, `*Coordinator`, `*Resolver`, `*Factory`, `*Presenter`, or `*Builder` over catch-all names like `Utils`, `Helpers`, or `Manager` when the role is more specific.
+- Favor Edit Mode testable plain C# logic behind narrow seams, then let `MonoBehaviour` wrappers translate Unity callbacks and scene state into those services.
 - Keep first-pass gameplay tuning values serialized on the controlling MonoBehaviour so feel can be adjusted quickly in the Inspector during playtesting.
 - Add prefabs under `Assets/Prefabs/`, art under `Assets/Art/`, and audio under `Assets/Audio/` if those areas are created later.
 - Prefer Unity Test Framework with clear separation between Edit Mode and Play Mode tests.
 - Keep test code under `Assets/Tests/`, using `Editor/` for Edit Mode coverage and `PlayMode/` for runtime integration coverage if that folder is introduced later.
 - Prefer narrow regression tests for gameplay bugs first, then broaden coverage when shared systems or runtime integration is at risk.
+- Do not introduce `.asmdef` files casually. When the project is ready for assemblies, move a coherent folder slice and its corresponding test references together so compile boundaries remain intentional and easy to reason about.
 - If you add more authored gameplay content, keep using `.asset` plus `.meta` pairings under `Assets/Resources/Bricks/`, `Assets/Resources/Levels/`, `Assets/Resources/PowerUps/`, and `Assets/Resources/Upgrades/` unless the project deliberately migrates to a different content-loading path.
 - If you add or replace gameplay SVGs, keep them under `Assets/Resources/Sprites/` unless a request explicitly introduces a new content path, and let Unity generate or refresh the paired `.meta` files after import.
 - If you add or change vector art workflow guidance, prefer updating `.codex/skills/breakout-svg-art/` instead of repeating the same SVG hookup instructions in task-specific notes.
