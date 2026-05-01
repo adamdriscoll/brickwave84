@@ -6,15 +6,15 @@ namespace GetBricked.Core
     public static class BreakoutBootstrap
     {
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
-        private static void EnsurePrototypeController()
+        private static void EnsureGameController()
         {
             if (Object.FindFirstObjectByType<BreakoutGameController>() != null)
             {
                 return;
             }
 
-            var prototypeRoot = new GameObject("Breakout Prototype");
-            prototypeRoot.AddComponent<BreakoutGameController>();
+            var gameRoot = new GameObject("Breakout Game");
+            gameRoot.AddComponent<BreakoutGameController>();
         }
     }
 }

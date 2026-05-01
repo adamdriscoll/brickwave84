@@ -2,7 +2,7 @@
 
 ## Product Reframe
 
-`Get Bricked` should no longer be planned as a straight brick-breaker that gradually adds more levels, more bricks, and eventually multiplayer. The current prototype has already moved past that starting line.
+`Get Bricked` should no longer be planned as a straight brick-breaker that gradually adds more levels, more bricks, and eventually multiplayer. The current game has already moved past that starting line.
 
 The stronger direction is:
 
@@ -19,7 +19,7 @@ to:
 
 `What kind of broken, risky, or stylish build can I assemble this run?`
 
-## What The Current Prototype Already Proves
+## What The Current Game Already Proves
 
 The current build already gives us a real foundation for this direction:
 
@@ -30,7 +30,7 @@ The current build already gives us a real foundation for this direction:
 - temporary modifier effects and drop logic
 - a playable life-loss, serve, pause, restart, and game-over loop
 
-That means the roadmap should stop treating the game as a blank-slate prototype and instead focus on `run identity`, `build depth`, and `replay structure`.
+That means the roadmap should stop treating the game as a blank slate and instead focus on `run identity`, `build depth`, and `replay structure`.
 
 ## Core Experience
 

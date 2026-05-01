@@ -46,7 +46,7 @@ The run layer needs content worth building around. New modifiers are strongest w
 - At least `3` new brick behavior types beyond basic durability and unbreakable obstacles
 - At least `2` meaningful ball behavior variants that can be granted by upgrades or encounters
 - At least `1` environment-level rule modifier that changes how a board is played
-- The new content hooks into the same data-driven authoring path as the rest of the prototype where practical
+- The new content hooks into the same data-driven authoring path as the rest of the game where practical
 - The team can combine a board behavior and a player build without bespoke per-pair scripting every time
 
 ## Implementation Notes

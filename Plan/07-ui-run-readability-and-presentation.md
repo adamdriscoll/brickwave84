@@ -43,7 +43,7 @@ The roadmap is moving toward richer builds, score rules, and escalation states. 
 ## Done When
 
 - A new player can understand the state of a run without reading design notes
-- The game feels closer to a product and less like a debug prototype
+- The game feels closer to a polished release and less like an internal debug build
 - The upgraded UX can support more content without collapsing into clutter
 
 ## Explicitly Deferred

@@ -6,7 +6,7 @@ Turn the current seed-driven level flow into a real `run` structure with post-le
 
 ## Why This Comes First
 
-The current prototype already proves that a seeded run can start, progress through levels, and end cleanly. The next identity-defining step is to make every cleared board feed into buildcraft instead of only into another harder board.
+The current game already proves that a seeded run can start, progress through levels, and end cleanly. The next identity-defining step is to make every cleared board feed into buildcraft instead of only into another harder board.
 
 ## Systems In Scope
 

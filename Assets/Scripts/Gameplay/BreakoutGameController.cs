@@ -1270,7 +1270,7 @@ namespace GetBricked.Gameplay
             powerUpSprite = BreakoutRuntimeVisualFactory.LoadSpriteResource(PowerUpSpriteResourcePath, squareSprite);
             spriteUnlitMaterial = BreakoutRuntimeVisualFactory.CreateSpriteUnlitMaterial();
             additiveSpriteMaterial = BreakoutRuntimeVisualFactory.CreateAdditiveSpriteMaterial();
-            bounceMaterial = new PhysicsMaterial2D("PrototypeBounce")
+            bounceMaterial = new PhysicsMaterial2D("BreakoutBounce")
             {
                 bounciness = 1f,
                 friction = 0f,
@@ -1310,7 +1310,7 @@ namespace GetBricked.Gameplay
 
         private void CreateRuntimeRoots()
         {
-            runtimeRoot = new GameObject("Runtime Prototype").transform;
+            runtimeRoot = new GameObject("Runtime Game").transform;
             runtimeRoot.SetParent(transform, false);
 
             backgroundRoot = new GameObject("Background").transform;
@@ -2023,7 +2023,7 @@ namespace GetBricked.Gameplay
 
             if (roundState == RoundState.MainMenu)
             {
-                uiRenderer.DrawCabinetBackdrop(BuildChromeView("Get Bricked", "Synthwave Cabinet Prototype", true));
+                uiRenderer.DrawCabinetBackdrop(BuildChromeView("Get Bricked", "Synthwave Cabinet", true));
                 uiRenderer.DrawMainMenu(BuildMainMenuView(), HandleOverlayActionClick);
                 return;
             }

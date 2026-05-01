@@ -1,6 +1,6 @@
 # Get Bricked
 
-`Get Bricked` is an early Unity 6 prototype for a synthwave arcade brick-breaker with run-based roguelite structure. The current build is already playable end to end: you can launch from a main menu, tune a seeded run, clear procedural stages, catch helpful or harmful capsules, draft permanent upgrades between stages, and play until game over.
+`Get Bricked` is a work-in-progress Unity 6 game: a synthwave arcade brick-breaker with run-based roguelite structure. The current build is playable end to end: you can launch from a main menu, tune a seeded run, clear procedural stages, catch helpful or harmful capsules, draft permanent upgrades between stages, and play until game over.
 
 ## At A Glance
 

@@ -2,11 +2,11 @@
 
 ## Project Snapshot
 
-- `Get Bricked` is an early-stage Unity 6 brick-breaker / arcade roguelite prototype.
+- `Get Bricked` is a functioning Unity 6 brick-breaker / arcade roguelite game in active development.
 - Unity editor version: `6000.3.6f1`.
 - Render pipeline: URP with 2D renderer assets.
 - One enabled build scene: `Assets/Scenes/SampleScene.unity`.
-- The scene stays intentionally light: `Assets/Scripts/Core/BreakoutBootstrap.cs` injects the playable runtime prototype on load.
+- The scene stays intentionally light: `Assets/Scripts/Core/BreakoutBootstrap.cs` injects the playable runtime game systems on load.
 - The project is tracked in git. Do not rewrite history or revert unrelated user changes.
 - There are no `.asmdef` files and no prefabs yet; runtime objects are currently created from code.
 
@@ -113,6 +113,6 @@ python .codex/skills/unity-tests/scripts/run_unity_tests.py --platform editmode
 
 ## Current Reality Check
 
-- This is a playable runtime prototype, not a blank Unity template anymore.
+- This is a functioning playable game in active development, not a blank Unity template.
 - Test coverage exists but is still sparse; add focused regression coverage when changing bug-prone gameplay logic.
-- Most near-term work should extend the current runtime prototype and extract responsibilities incrementally, then promote runtime-generated pieces into authored scene objects or prefabs only when the project is ready.
+- Most near-term work should extend the current runtime game and extract responsibilities incrementally, then promote runtime-generated pieces into authored scene objects or prefabs only when the project is ready.

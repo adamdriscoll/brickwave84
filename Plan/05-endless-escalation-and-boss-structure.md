@@ -31,7 +31,7 @@ A roguelite run needs shape. The player should feel a run opening up, becoming u
 
 - A reusable framework for encounter phases or tiers
 - At least `3` escalation rules that meaningfully change how later encounters feel
-- At least `1` boss prototype with:
+- At least `1` boss implementation with:
   - a clear gimmick
   - readable attack windows or weak points
   - a reason to exist besides being a larger wall of health

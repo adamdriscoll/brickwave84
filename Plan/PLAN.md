@@ -4,7 +4,7 @@
 
 This plan replaces the earlier roadmap that assumed the project still needed its first vertical slice. That is no longer true.
 
-`Get Bricked` already has a real playable runtime prototype with seeded run setup, procedural level progression, lives, drops, themes, temporary UI flow, and data-driven content hooks. The new plan starts from that baseline and pushes the game toward a stronger identity:
+`Get Bricked` already has a real playable runtime with seeded run setup, procedural level progression, lives, drops, themes, temporary UI flow, and data-driven content hooks. The new plan starts from that baseline and pushes the game toward a stronger identity:
 
 `a run-based arcade roguelite built on brick-breaker feel`
 
@@ -12,7 +12,7 @@ Read [OVERVIEW.md](./OVERVIEW.md) first for the product reframe.
 
 ## Current Baseline
 
-The existing prototype already covers:
+The existing game already covers:
 
 - one-paddle breakout gameplay with one or more balls
 - seeded run setup and deterministic gameplay rolls
@@ -98,4 +98,4 @@ The new order is intentional:
 
 If only one chunk is tackled next, it should be [Chunk 01](./01-run-architecture-and-upgrade-draft.md).
 
-The current prototype already supports seeded progression and modifiers. The biggest missing step is the `between-level upgrade draft`, because it changes the game from a prototype with randomization into a run-builder with identity.
+The current game already supports seeded progression and modifiers. The biggest missing step is the `between-level upgrade draft`, because it deepens the game from randomization into a run-builder with identity.

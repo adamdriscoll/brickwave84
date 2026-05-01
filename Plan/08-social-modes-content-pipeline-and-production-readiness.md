@@ -27,7 +27,7 @@ The overview includes strong social ideas, but they will land better once the co
 
 ## Deliverables
 
-- A clear post-prototype social mode order of operations
+- A clear social mode order of operations for continued production
 - Design rules for how upgrade drafts and pickups behave with more than one player
 - A content pipeline that cleanly supports additive upgrades, bricks, bosses, themes, and challenge presets
 - A production checklist for validating:
