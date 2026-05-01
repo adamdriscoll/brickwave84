@@ -326,7 +326,7 @@ namespace GetBricked.Gameplay
             PickupBannerTimer = Mathf.Max(0f, PickupBannerTimer - deltaTime);
         }
 
-        public void TrySpawnPickup(
+        public PowerUpPickup TrySpawnPickup(
             Brick brick,
             RunSettings activeRunSettings,
             float effectiveDropChanceMultiplier,
@@ -338,7 +338,7 @@ namespace GetBricked.Gameplay
         {
             if (brick == null || brick.Definition == null)
             {
-                return;
+                return null;
             }
 
             var brickDefinition = brick.Definition;
@@ -354,7 +354,7 @@ namespace GetBricked.Gameplay
                 || nextGameplayRandomFloat == null
                 || (!forcePickupDrops && nextGameplayRandomFloat(0f, 1f) > effectiveDropChance))
             {
-                return;
+                return null;
             }
 
             var totalWeight = 0f;
@@ -371,7 +371,7 @@ namespace GetBricked.Gameplay
 
             if (totalWeight <= 0f)
             {
-                return;
+                return null;
             }
 
             var roll = nextGameplayRandomFloat(0f, totalWeight);
@@ -399,10 +399,10 @@ namespace GetBricked.Gameplay
 
             if (selectedPowerUp == null)
             {
-                return;
+                return null;
             }
 
-            CreatePickup((Vector2)brick.transform.position, selectedPowerUp, pickupsRoot, arenaBottom, themeService, controller);
+            return CreatePickup((Vector2)brick.transform.position, selectedPowerUp, pickupsRoot, arenaBottom, themeService, controller);
         }
 
         public BreakoutPowerUpApplicationResult ApplyPowerUp(PowerUpDefinition powerUpDefinition, BreakoutThemeService themeService)
@@ -614,7 +614,7 @@ namespace GetBricked.Gameplay
             };
         }
 
-        private void CreatePickup(
+        private PowerUpPickup CreatePickup(
             Vector2 position,
             PowerUpDefinition powerUpDefinition,
             Transform pickupsRoot,
@@ -649,6 +649,7 @@ namespace GetBricked.Gameplay
                 pickupStyle);
             ActivePickups.Add(pickup);
             EvaluateCapsuleMadnessActivation();
+            return pickup;
         }
 
         private void UpdateCapsuleMadnessThresholdArming()

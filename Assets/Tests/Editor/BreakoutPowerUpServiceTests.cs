@@ -229,9 +229,84 @@ public sealed class BreakoutPowerUpServiceTests
         Assert.That(service.IsCapsuleMadnessActive, Is.True);
     }
 
+    [Test]
+    public void TrySpawnPickupReturnsSpawnedPickupWhenDropIsCreated()
+    {
+        var service = CreateService();
+        var powerUp = CreatePowerUp("Wide Paddle", PowerUpEffectType.PaddleWidthMultiplier, true, 10f, 1.2f);
+        var brick = CreateBrick(CreateBrickDefinition(dropChance: 1f, powerUp));
+        var pickupsRoot = CreateRuntimeRoot("Pickups");
+
+        var pickup = service.TrySpawnPickup(
+            brick,
+            activeRunSettings: null,
+            effectiveDropChanceMultiplier: 1f,
+            nextGameplayRandomFloat: (_, _) => 0f,
+            pickupsRoot,
+            arenaBottom: -4f,
+            themeService: null,
+            controller: null);
+
+        Assert.That(pickup, Is.Not.Null);
+        Assert.That(service.ActivePickups, Does.Contain(pickup));
+        Assert.That(pickup.Definition, Is.SameAs(powerUp));
+        Assert.That(pickup.transform.parent, Is.SameAs(pickupsRoot));
+    }
+
+    [Test]
+    public void TrySpawnPickupReturnsNullWhenDropDoesNotPassChance()
+    {
+        var service = CreateService();
+        var powerUp = CreatePowerUp("Wide Paddle", PowerUpEffectType.PaddleWidthMultiplier, true, 10f, 1.2f);
+        var brick = CreateBrick(CreateBrickDefinition(dropChance: 0.5f, powerUp));
+        var pickupsRoot = CreateRuntimeRoot("Pickups");
+
+        var pickup = service.TrySpawnPickup(
+            brick,
+            activeRunSettings: null,
+            effectiveDropChanceMultiplier: 1f,
+            nextGameplayRandomFloat: (_, _) => 1f,
+            pickupsRoot,
+            arenaBottom: -4f,
+            themeService: null,
+            controller: null);
+
+        Assert.That(pickup, Is.Null);
+        Assert.That(service.ActivePickups, Is.Empty);
+    }
+
     private BreakoutPowerUpService CreateService(float multiBallSpreadAngle = 18f)
     {
         return new BreakoutPowerUpService(new Vector2(0.55f, 0.55f), 3.2f, multiBallSpreadAngle, null);
+    }
+
+    private Transform CreateRuntimeRoot(string name)
+    {
+        var rootObject = new GameObject(name);
+        runtimeObjects.Add(rootObject);
+        return rootObject.transform;
+    }
+
+    private Brick CreateBrick(BrickDefinition definition)
+    {
+        var brickObject = new GameObject("Brick");
+        runtimeObjects.Add(brickObject);
+        brickObject.AddComponent<BoxCollider2D>();
+
+        var visualObject = new GameObject("Visual");
+        runtimeObjects.Add(visualObject);
+        visualObject.transform.SetParent(brickObject.transform, false);
+        visualObject.AddComponent<SpriteRenderer>();
+
+        var brick = brickObject.AddComponent<Brick>();
+        brick.Initialize(
+            null,
+            definition,
+            effectiveHitPoints: definition.HitPoints,
+            new ThemeVisualStyle(Color.white, Color.gray, null),
+            motionSpeed: 0f,
+            motionDirection: Vector2.zero);
+        return brick;
     }
 
     private PowerUpPickup CreatePickup()
@@ -261,6 +336,25 @@ public sealed class BreakoutPowerUpServiceTests
         SetPrivateField(powerUp, "scalar", scalar);
         SetPrivateField(powerUp, "extraBallCount", 0);
         return powerUp;
+    }
+
+    private BrickDefinition CreateBrickDefinition(float dropChance, PowerUpDefinition powerUp)
+    {
+        var definition = ScriptableObject.CreateInstance<BrickDefinition>();
+        runtimeObjects.Add(definition);
+        SetPrivateField(definition, "displayName", "Drop Brick");
+        SetPrivateField(definition, "hitPoints", 1);
+        SetPrivateField(definition, "dropChance", dropChance);
+        SetPrivateField(definition, "dropTable", new[] { CreateDropEntry(powerUp, 1f) });
+        return definition;
+    }
+
+    private static BrickPowerUpDropEntry CreateDropEntry(PowerUpDefinition powerUp, float weight)
+    {
+        object entry = new BrickPowerUpDropEntry();
+        SetPrivateField(entry, "powerUpDefinition", powerUp);
+        SetPrivateField(entry, "weight", weight);
+        return (BrickPowerUpDropEntry)entry;
     }
 
     private static void SetPrivateField(object instance, string fieldName, object value)

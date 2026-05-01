@@ -307,6 +307,8 @@ namespace GetBricked.Gameplay
 
             if (collision.collider.TryGetComponent<PaddleController>(out var hitPaddle))
             {
+                gameController?.HandleBallHitPaddle();
+
                 if (gameController != null && gameController.TryHandleBallPaddleCollision(this, hitPaddle, collision))
                 {
                     return;
@@ -336,6 +338,7 @@ namespace GetBricked.Gameplay
             else
             {
                 RegisterRicochet();
+                gameController?.HandleBallHitWall();
             }
 
             if (collision.collider.TryGetComponent<Brick>(out var spinningBrick)

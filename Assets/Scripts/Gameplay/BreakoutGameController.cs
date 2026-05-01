@@ -132,6 +132,7 @@ namespace GetBricked.Gameplay
         private VolumeProfile runtimeVolumeProfile;
         private BreakoutThemeService themeService;
         private BreakoutPowerUpService powerUpService;
+        private BreakoutAudioService audioService;
         private BreakoutBrickService brickService;
         private BreakoutPaddleSpawnService paddleSpawnService;
         private BreakoutBallSpawnService ballSpawnService;
@@ -204,6 +205,7 @@ namespace GetBricked.Gameplay
             activeRunState = new BreakoutRunState();
             upgradeDraftService = new BreakoutUpgradeDraftService(loadedRunUpgradeDefinitions);
             CreateRuntimeRoots();
+            CreateAudioService();
             CreateActorSpawnServices();
             CreateBrickService();
             CreateBackground();
@@ -268,6 +270,7 @@ namespace GetBricked.Gameplay
         {
             UpdateTimedEffects();
             UpdatePickupBanner();
+            audioService?.Update(Time.unscaledDeltaTime);
             scoreService?.UpdateFloatingScorePopups(Time.unscaledDeltaTime);
             laserShotCooldownTimer = Mathf.Max(0f, laserShotCooldownTimer - Time.deltaTime);
 
@@ -358,6 +361,8 @@ namespace GetBricked.Gameplay
                 return;
             }
 
+            audioService?.PlayBrickDestroyed(brickDefinition);
+
             if (shouldExplode && destructionCause == BrickDestructionCause.Impact && scoringBall != null)
             {
                 scoringBall.ApplySpeedBurst(brickDefinition.ExplosionSpeedMultiplier, brickDefinition.ExplosionSpeedDuration);
@@ -370,6 +375,7 @@ namespace GetBricked.Gameplay
 
             if (scoreAward.BonusPoints > 0)
             {
+                audioService?.PlayBonusScore();
                 scoreService?.CreateFloatingScorePopup(
                     explosionCenter,
                     scoreAward.BonusPoints,
@@ -415,6 +421,8 @@ namespace GetBricked.Gameplay
 
             if (activeBalls.Count > 0)
             {
+                audioService?.PlayBallLost(hasOtherActiveBalls: true);
+
                 if (isServeBall)
                 {
                     lostBall.gameObject.SetActive(false);
@@ -440,6 +448,8 @@ namespace GetBricked.Gameplay
                 PrepareServe(RoundState.LifeLost);
                 return;
             }
+
+            audioService?.PlayBallLost(hasOtherActiveBalls: false);
 
             livesRemaining = Mathf.Max(0, livesRemaining - 1);
             ApplyLifeLossScorePenalty();
@@ -515,6 +525,21 @@ namespace GetBricked.Gameplay
             return false;
         }
 
+        public void HandleBallHitPaddle()
+        {
+            audioService?.PlayBallHitPaddle();
+        }
+
+        public void HandleBallHitWall()
+        {
+            audioService?.PlayBallHitWall();
+        }
+
+        public void HandleBrickHit(Brick brick)
+        {
+            audioService?.PlayBrickHit(brick?.Definition);
+        }
+
         public void HandlePickupCaught(PowerUpPickup pickup)
         {
             if (roundState != RoundState.Playing || pickup == null)
@@ -525,6 +550,7 @@ namespace GetBricked.Gameplay
             var pickupPosition = (Vector2)pickup.transform.position;
             var awardCapsuleMadnessBonus = powerUpService != null && powerUpService.IsCapsuleMadnessActive;
             powerUpService.RemovePickup(pickup);
+            audioService?.PlayPickupCollected(pickup.Definition);
 
             if (awardCapsuleMadnessBonus)
             {
@@ -594,6 +620,7 @@ namespace GetBricked.Gameplay
             activeRunState?.Reset();
             ResetRuntimeForMetaFlow();
             ApplyPendingThemePreview();
+            audioService?.PlayMusic(BreakoutMusicTrack.Menu);
         }
 
         public float NextGameplayRandomFloat(float minInclusive, float maxInclusive)
@@ -623,6 +650,7 @@ namespace GetBricked.Gameplay
             activeRunState?.Reset();
             ResetRuntimeForMetaFlow();
             ApplyPendingThemePreview();
+            audioService?.PlayMusic(BreakoutMusicTrack.Menu);
         }
 
         private void ResetRuntimeForMetaFlow()
@@ -1201,6 +1229,7 @@ namespace GetBricked.Gameplay
             }
 
             UpdateBackgroundVisuals();
+            PlayMusicForCurrentLevel();
             var levelPlan = BuildLevelLayoutPlan(currentLevel);
             currentLevelDisplayName = string.IsNullOrWhiteSpace(levelPlan.DisplayName)
                 ? currentLevel.DisplayName
@@ -1327,6 +1356,11 @@ namespace GetBricked.Gameplay
 
             pickupsRoot = new GameObject("Pickups").transform;
             pickupsRoot.SetParent(runtimeRoot, false);
+        }
+
+        private void CreateAudioService()
+        {
+            audioService = BreakoutAudioService.Create(runtimeRoot);
         }
 
         private void CreateBrickService()
@@ -1524,6 +1558,7 @@ namespace GetBricked.Gameplay
             ClearPickups();
             StopAllBalls();
             stickyCaughtBall = null;
+            audioService?.PlayLevelComplete();
 
             if (HasNextLevel() && TryOpenUpgradeDraft())
             {
@@ -1537,6 +1572,22 @@ namespace GetBricked.Gameplay
         private bool HasNextLevel()
         {
             return BreakoutRunProgression.HasNextLevel(currentLevel, currentLevelIndex, loadedLevels.Count);
+        }
+
+        private void PlayMusicForCurrentLevel()
+        {
+            if (currentLevel == null)
+            {
+                audioService?.PlayMusic(BreakoutMusicTrack.Menu);
+                return;
+            }
+
+            var isIntenseLevel = currentLevelIndex >= 2
+                || currentLevel.BallSpeedMultiplier >= 1.2f
+                || (activeRunSettings != null
+                    && activeRunSettings.ScoringMode == RunScoringMode.HighScore
+                    && currentLevelIndex > 0);
+            audioService?.PlayMusic(isIntenseLevel ? BreakoutMusicTrack.Intense : BreakoutMusicTrack.Gameplay);
         }
 
         private static int CompareLevels(LevelDefinition left, LevelDefinition right)
@@ -2493,7 +2544,7 @@ namespace GetBricked.Gameplay
 
         private void TrySpawnPickup(Brick brick)
         {
-            powerUpService?.TrySpawnPickup(
+            var spawnedPickup = powerUpService?.TrySpawnPickup(
                 brick,
                 activeRunSettings,
                 GetEffectiveDropChanceMultiplier(),
@@ -2502,6 +2553,12 @@ namespace GetBricked.Gameplay
                 arenaBottom,
                 themeService,
                 this);
+
+            if (spawnedPickup != null)
+            {
+                audioService?.PlayPickupDropped();
+            }
+
             ApplyVisualEffectState();
         }
 
