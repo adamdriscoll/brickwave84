@@ -114,6 +114,105 @@ namespace GetBricked.Gameplay
         public int ShieldWallChargesGranted { get; }
     }
 
+    internal struct BreakoutEffectModifierAccumulator
+    {
+        private float paddleWidthMultiplier;
+        private float wavyPaddleStrength;
+        private float timedBallSpeedMultiplier;
+        private bool stickyPaddleEnabled;
+        private bool laserPaddleEnabled;
+        private bool phaseBallEnabled;
+        private float chainLightningStrength;
+        private bool reverseControlsEnabled;
+        private float splitPaddleGapNormalized;
+        private float gravityWellStrength;
+        private float fogVisibilityMultiplier;
+        private float lagSpikeStrength;
+
+        public BreakoutEffectModifierAccumulator(float basePaddleWidthMultiplier, float baseWavyPaddleStrength)
+        {
+            paddleWidthMultiplier = Mathf.Max(0.1f, basePaddleWidthMultiplier);
+            wavyPaddleStrength = Mathf.Clamp01(baseWavyPaddleStrength);
+            timedBallSpeedMultiplier = 1f;
+            stickyPaddleEnabled = false;
+            laserPaddleEnabled = false;
+            phaseBallEnabled = false;
+            chainLightningStrength = 0f;
+            reverseControlsEnabled = false;
+            splitPaddleGapNormalized = 0f;
+            gravityWellStrength = 0f;
+            fogVisibilityMultiplier = 1f;
+            lagSpikeStrength = 0f;
+        }
+
+        public void Apply(BreakoutActiveTimedEffect activeEffect)
+        {
+            var powerUpDefinition = activeEffect?.Definition;
+
+            if (powerUpDefinition == null)
+            {
+                return;
+            }
+
+            switch (powerUpDefinition.EffectType)
+            {
+                case PowerUpEffectType.PaddleWidthMultiplier:
+                    paddleWidthMultiplier *= Mathf.Pow(powerUpDefinition.Scalar, Mathf.Max(1, activeEffect.StackCount));
+                    break;
+                case PowerUpEffectType.BallSpeedMultiplier:
+                    timedBallSpeedMultiplier *= Mathf.Pow(powerUpDefinition.Scalar, Mathf.Max(1, activeEffect.StackCount));
+                    break;
+                case PowerUpEffectType.WavyPaddle:
+                    wavyPaddleStrength = Mathf.Max(wavyPaddleStrength, powerUpDefinition.Scalar);
+                    break;
+                case PowerUpEffectType.StickyPaddle:
+                    stickyPaddleEnabled = true;
+                    break;
+                case PowerUpEffectType.LaserPaddle:
+                    laserPaddleEnabled = true;
+                    break;
+                case PowerUpEffectType.PhaseBall:
+                    phaseBallEnabled = true;
+                    break;
+                case PowerUpEffectType.ChainLightning:
+                    chainLightningStrength = Mathf.Max(chainLightningStrength, powerUpDefinition.Scalar);
+                    break;
+                case PowerUpEffectType.ReverseControls:
+                    reverseControlsEnabled = true;
+                    break;
+                case PowerUpEffectType.SplitPaddle:
+                    splitPaddleGapNormalized = Mathf.Max(splitPaddleGapNormalized, Mathf.Clamp(powerUpDefinition.Scalar * 0.34f, 0.18f, 0.42f));
+                    break;
+                case PowerUpEffectType.GravityWell:
+                    gravityWellStrength = Mathf.Max(gravityWellStrength, Mathf.Clamp01(powerUpDefinition.Scalar));
+                    break;
+                case PowerUpEffectType.FogOfWar:
+                    fogVisibilityMultiplier = Mathf.Min(fogVisibilityMultiplier, Mathf.Clamp(powerUpDefinition.Scalar, 0.2f, 1f));
+                    break;
+                case PowerUpEffectType.LagSpike:
+                    lagSpikeStrength = Mathf.Max(lagSpikeStrength, Mathf.Clamp01(powerUpDefinition.Scalar));
+                    break;
+            }
+        }
+
+        public BreakoutEffectModifiers ToModifiers()
+        {
+            return new BreakoutEffectModifiers(
+                paddleWidthMultiplier,
+                wavyPaddleStrength,
+                timedBallSpeedMultiplier,
+                stickyPaddleEnabled,
+                laserPaddleEnabled,
+                phaseBallEnabled,
+                chainLightningStrength,
+                reverseControlsEnabled,
+                splitPaddleGapNormalized,
+                gravityWellStrength,
+                fogVisibilityMultiplier,
+                lagSpikeStrength);
+        }
+    }
+
     internal sealed class BreakoutPowerUpService
     {
         private readonly Vector2 pickupSize;
@@ -291,224 +390,19 @@ namespace GetBricked.Gameplay
 
         public BreakoutEffectModifiers CalculateEffectModifiers(RunSettings activeRunSettings)
         {
-            var paddleWidthMultiplier = activeRunSettings?.PaddleWidthMultiplier ?? 1f;
-            var wavyPaddleStrength = 0f;
-            var timedBallSpeedMultiplier = 1f;
-            var stickyPaddleEnabled = false;
-            var laserPaddleEnabled = false;
-            var phaseBallEnabled = false;
-            var chainLightningStrength = 0f;
-            var reverseControlsEnabled = false;
-            var splitPaddleGapNormalized = 0f;
-            var gravityWellStrength = 0f;
-            var fogVisibilityMultiplier = 1f;
-            var lagSpikeStrength = 0f;
-
-            for (var index = 0; index < ActiveTimedEffects.Count; index++)
-            {
-                var powerUpDefinition = ActiveTimedEffects[index].Definition;
-
-                if (powerUpDefinition == null)
-                {
-                    continue;
-                }
-
-                if (powerUpDefinition.EffectType == PowerUpEffectType.PaddleWidthMultiplier)
-                {
-                    paddleWidthMultiplier *= Mathf.Pow(powerUpDefinition.Scalar, Mathf.Max(1, ActiveTimedEffects[index].StackCount));
-                    continue;
-                }
-
-                if (powerUpDefinition.EffectType == PowerUpEffectType.BallSpeedMultiplier)
-                {
-                    timedBallSpeedMultiplier *= Mathf.Pow(powerUpDefinition.Scalar, Mathf.Max(1, ActiveTimedEffects[index].StackCount));
-                    continue;
-                }
-
-                if (powerUpDefinition.EffectType == PowerUpEffectType.WavyPaddle)
-                {
-                    wavyPaddleStrength = Mathf.Max(wavyPaddleStrength, powerUpDefinition.Scalar);
-                    continue;
-                }
-
-                if (powerUpDefinition.EffectType == PowerUpEffectType.StickyPaddle)
-                {
-                    stickyPaddleEnabled = true;
-                    continue;
-                }
-
-                if (powerUpDefinition.EffectType == PowerUpEffectType.LaserPaddle)
-                {
-                    laserPaddleEnabled = true;
-                    continue;
-                }
-
-                if (powerUpDefinition.EffectType == PowerUpEffectType.PhaseBall)
-                {
-                    phaseBallEnabled = true;
-                    continue;
-                }
-
-                if (powerUpDefinition.EffectType == PowerUpEffectType.ChainLightning)
-                {
-                    chainLightningStrength = Mathf.Max(chainLightningStrength, powerUpDefinition.Scalar);
-                    continue;
-                }
-
-                if (powerUpDefinition.EffectType == PowerUpEffectType.ReverseControls)
-                {
-                    reverseControlsEnabled = true;
-                    continue;
-                }
-
-                if (powerUpDefinition.EffectType == PowerUpEffectType.SplitPaddle)
-                {
-                    splitPaddleGapNormalized = Mathf.Max(splitPaddleGapNormalized, Mathf.Clamp(powerUpDefinition.Scalar * 0.34f, 0.18f, 0.42f));
-                    continue;
-                }
-
-                if (powerUpDefinition.EffectType == PowerUpEffectType.GravityWell)
-                {
-                    gravityWellStrength = Mathf.Max(gravityWellStrength, Mathf.Clamp01(powerUpDefinition.Scalar));
-                    continue;
-                }
-
-                if (powerUpDefinition.EffectType == PowerUpEffectType.FogOfWar)
-                {
-                    fogVisibilityMultiplier = Mathf.Min(fogVisibilityMultiplier, Mathf.Clamp(powerUpDefinition.Scalar, 0.2f, 1f));
-                    continue;
-                }
-
-                if (powerUpDefinition.EffectType == PowerUpEffectType.LagSpike)
-                {
-                    lagSpikeStrength = Mathf.Max(lagSpikeStrength, Mathf.Clamp01(powerUpDefinition.Scalar));
-                }
-            }
-
-            return new BreakoutEffectModifiers(
-                paddleWidthMultiplier,
-                wavyPaddleStrength,
-                timedBallSpeedMultiplier,
-                stickyPaddleEnabled,
-                laserPaddleEnabled,
-                phaseBallEnabled,
-                chainLightningStrength,
-                reverseControlsEnabled,
-                splitPaddleGapNormalized,
-                gravityWellStrength,
-                fogVisibilityMultiplier,
-                lagSpikeStrength);
+            return CalculateEffectModifiers(activeRunSettings?.PaddleWidthMultiplier ?? 1f, baseWavyPaddleStrength: 0f);
         }
 
         public BreakoutEffectModifiers CalculateEffectModifiers(float basePaddleWidthMultiplier, float baseWavyPaddleStrength)
         {
-            var paddleWidthMultiplier = Mathf.Max(0.1f, basePaddleWidthMultiplier);
-            var wavyPaddleStrength = Mathf.Clamp01(baseWavyPaddleStrength);
-            var timedBallSpeedMultiplier = 1f;
-            var stickyPaddleEnabled = false;
-            var laserPaddleEnabled = false;
-            var phaseBallEnabled = false;
-            var chainLightningStrength = 0f;
-            var reverseControlsEnabled = false;
-            var splitPaddleGapNormalized = 0f;
-            var gravityWellStrength = 0f;
-            var fogVisibilityMultiplier = 1f;
-            var lagSpikeStrength = 0f;
+            var accumulator = new BreakoutEffectModifierAccumulator(basePaddleWidthMultiplier, baseWavyPaddleStrength);
 
             for (var index = 0; index < ActiveTimedEffects.Count; index++)
             {
-                var powerUpDefinition = ActiveTimedEffects[index].Definition;
-
-                if (powerUpDefinition == null)
-                {
-                    continue;
-                }
-
-                if (powerUpDefinition.EffectType == PowerUpEffectType.PaddleWidthMultiplier)
-                {
-                    paddleWidthMultiplier *= Mathf.Pow(powerUpDefinition.Scalar, Mathf.Max(1, ActiveTimedEffects[index].StackCount));
-                    continue;
-                }
-
-                if (powerUpDefinition.EffectType == PowerUpEffectType.BallSpeedMultiplier)
-                {
-                    timedBallSpeedMultiplier *= Mathf.Pow(powerUpDefinition.Scalar, Mathf.Max(1, ActiveTimedEffects[index].StackCount));
-                    continue;
-                }
-
-                if (powerUpDefinition.EffectType == PowerUpEffectType.WavyPaddle)
-                {
-                    wavyPaddleStrength = Mathf.Max(wavyPaddleStrength, powerUpDefinition.Scalar);
-                    continue;
-                }
-
-                if (powerUpDefinition.EffectType == PowerUpEffectType.StickyPaddle)
-                {
-                    stickyPaddleEnabled = true;
-                    continue;
-                }
-
-                if (powerUpDefinition.EffectType == PowerUpEffectType.LaserPaddle)
-                {
-                    laserPaddleEnabled = true;
-                    continue;
-                }
-
-                if (powerUpDefinition.EffectType == PowerUpEffectType.PhaseBall)
-                {
-                    phaseBallEnabled = true;
-                    continue;
-                }
-
-                if (powerUpDefinition.EffectType == PowerUpEffectType.ChainLightning)
-                {
-                    chainLightningStrength = Mathf.Max(chainLightningStrength, powerUpDefinition.Scalar);
-                    continue;
-                }
-
-                if (powerUpDefinition.EffectType == PowerUpEffectType.ReverseControls)
-                {
-                    reverseControlsEnabled = true;
-                    continue;
-                }
-
-                if (powerUpDefinition.EffectType == PowerUpEffectType.SplitPaddle)
-                {
-                    splitPaddleGapNormalized = Mathf.Max(splitPaddleGapNormalized, Mathf.Clamp(powerUpDefinition.Scalar * 0.34f, 0.18f, 0.42f));
-                    continue;
-                }
-
-                if (powerUpDefinition.EffectType == PowerUpEffectType.GravityWell)
-                {
-                    gravityWellStrength = Mathf.Max(gravityWellStrength, Mathf.Clamp01(powerUpDefinition.Scalar));
-                    continue;
-                }
-
-                if (powerUpDefinition.EffectType == PowerUpEffectType.FogOfWar)
-                {
-                    fogVisibilityMultiplier = Mathf.Min(fogVisibilityMultiplier, Mathf.Clamp(powerUpDefinition.Scalar, 0.2f, 1f));
-                    continue;
-                }
-
-                if (powerUpDefinition.EffectType == PowerUpEffectType.LagSpike)
-                {
-                    lagSpikeStrength = Mathf.Max(lagSpikeStrength, Mathf.Clamp01(powerUpDefinition.Scalar));
-                }
+                accumulator.Apply(ActiveTimedEffects[index]);
             }
 
-            return new BreakoutEffectModifiers(
-                paddleWidthMultiplier,
-                wavyPaddleStrength,
-                timedBallSpeedMultiplier,
-                stickyPaddleEnabled,
-                laserPaddleEnabled,
-                phaseBallEnabled,
-                chainLightningStrength,
-                reverseControlsEnabled,
-                splitPaddleGapNormalized,
-                gravityWellStrength,
-                fogVisibilityMultiplier,
-                lagSpikeStrength);
+            return accumulator.ToModifiers();
         }
 
         public Vector2[] BuildMultiBallDirections(Vector2 sourceDirection, int extraBallCount)
