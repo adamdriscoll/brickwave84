@@ -5,6 +5,9 @@ namespace GetBricked.Gameplay
 {
     internal sealed class BreakoutUiRenderer
     {
+        private const int RetroUiFontSize = 18;
+        private static readonly string[] RetroUiFontNames = { "Consolas", "Courier New", "monospace" };
+
         private GUIStyle hudStyle;
         private GUIStyle messageStyle;
         private GUIStyle pickupStyle;
@@ -24,6 +27,7 @@ namespace GetBricked.Gameplay
         private GUIStyle modifierPanelTimerStyle;
         private GUIStyle floatingScoreStyle;
         private GUIStyle floatingScoreTagStyle;
+        private Font retroUiFont;
         private BreakoutUiThemePalette palette = new BreakoutUiThemePalette();
 
         public void ConfigureTheme(BreakoutUiThemePalette themePalette)
@@ -467,13 +471,17 @@ namespace GetBricked.Gameplay
 
         private void EnsureStyles()
         {
+            retroUiFont ??= Font.CreateDynamicFontFromOSFont(RetroUiFontNames, RetroUiFontSize);
+
             hudStyle ??= new GUIStyle(GUI.skin.label)
             {
+                font = retroUiFont,
                 fontSize = 18,
             };
             messageStyle ??= new GUIStyle(GUI.skin.label)
             {
                 alignment = TextAnchor.MiddleCenter,
+                font = retroUiFont,
                 fontSize = 22,
                 fontStyle = FontStyle.Bold,
                 wordWrap = true,
@@ -481,6 +489,7 @@ namespace GetBricked.Gameplay
             pickupStyle ??= new GUIStyle(GUI.skin.label)
             {
                 alignment = TextAnchor.MiddleCenter,
+                font = retroUiFont,
                 fontSize = 24,
                 fontStyle = FontStyle.Bold,
             };
@@ -560,6 +569,8 @@ namespace GetBricked.Gameplay
                 fontStyle = FontStyle.Bold,
             };
 
+            ApplyRetroFont();
+
             hudStyle.normal.textColor = palette.TextPrimary;
             messageStyle.normal.textColor = palette.TextPrimary;
             pickupStyle.normal.textColor = palette.TextPrimary;
@@ -579,6 +590,34 @@ namespace GetBricked.Gameplay
             modifierPanelTimerStyle.normal.textColor = palette.TextMuted;
             floatingScoreStyle.normal.textColor = palette.AccentWarm;
             floatingScoreTagStyle.normal.textColor = palette.AccentPrimary;
+        }
+
+        private void ApplyRetroFont()
+        {
+            if (retroUiFont == null)
+            {
+                return;
+            }
+
+            hudStyle.font = retroUiFont;
+            messageStyle.font = retroUiFont;
+            pickupStyle.font = retroUiFont;
+            setupTitleStyle.font = retroUiFont;
+            setupSelectedStyle.font = retroUiFont;
+            setupHintStyle.font = retroUiFont;
+            overlayTitleStyle.font = retroUiFont;
+            overlayBodyStyle.font = retroUiFont;
+            overlayActionStyle.font = retroUiFont;
+            overlaySelectedActionStyle.font = retroUiFont;
+            hudButtonStyle.font = retroUiFont;
+            hudActiveButtonStyle.font = retroUiFont;
+            speedMeterCaptionStyle.font = retroUiFont;
+            speedMeterValueStyle.font = retroUiFont;
+            modifierPanelTitleStyle.font = retroUiFont;
+            modifierPanelLabelStyle.font = retroUiFont;
+            modifierPanelTimerStyle.font = retroUiFont;
+            floatingScoreStyle.font = retroUiFont;
+            floatingScoreTagStyle.font = retroUiFont;
         }
 
         private void DrawBallSpeedMeter(BreakoutUiSpeedMeterView view)
