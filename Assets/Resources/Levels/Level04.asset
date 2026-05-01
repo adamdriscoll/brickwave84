@@ -17,8 +17,8 @@ MonoBehaviour:
   ballSpeedMultiplier: 1.2
   paddleSpeedMultiplier: 1.08
   topInset: 1.25
-  completionRule: 1
-  targetScore: 2200
+  completionRule: 0
+  targetScore: 0
   layoutRows:
   - CABCABCAC
   - SS.BBB.SS

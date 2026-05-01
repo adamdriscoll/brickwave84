@@ -184,11 +184,9 @@ namespace GetBricked.Gameplay
                 EnsureOpeningBrutalVariety(plan, planner, profileIndex, cycleIndex, rowCount, columnCount);
             }
 
-            var totalBreakableScore = RecalculatePlanStats(plan);
-            plan.CompletionRule = ResolveProceduralCompletionRule(level, cycleIndex);
-            plan.TargetScore = plan.CompletionRule == LevelCompletionRule.ReachTargetScore
-                ? Mathf.Clamp(Mathf.RoundToInt(totalBreakableScore * Mathf.Lerp(0.58f, 0.72f, Mathf.Clamp01(cycleIndex * 0.18f))), 350, Mathf.Max(350, totalBreakableScore))
-                : 0;
+            RecalculatePlanStats(plan);
+            plan.CompletionRule = LevelCompletionRule.ClearRequiredBricks;
+            plan.TargetScore = 0;
             plan.VariationSummary = BuildVariationSummary(plan);
 
             Debug.Log(
@@ -851,21 +849,6 @@ namespace GetBricked.Gameplay
                 2 => 'B',
                 _ => 'C',
             };
-        }
-
-        private static LevelCompletionRule ResolveProceduralCompletionRule(LevelDefinition level, int cycleIndex)
-        {
-            if (level == null)
-            {
-                return LevelCompletionRule.ClearRequiredBricks;
-            }
-
-            if (level.CompletionRule == LevelCompletionRule.ReachTargetScore || cycleIndex > 0 && (cycleIndex % 2) == 1)
-            {
-                return LevelCompletionRule.ReachTargetScore;
-            }
-
-            return LevelCompletionRule.ClearRequiredBricks;
         }
 
         private static Vector2 ResolveCenterRelativeMovementDirection(

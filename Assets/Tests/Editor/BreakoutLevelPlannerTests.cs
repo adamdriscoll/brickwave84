@@ -170,6 +170,35 @@ public sealed class BreakoutLevelPlannerTests
         Assert.That(GetPropertyValue<bool>(motion, "IsEnabled"), Is.True);
     }
 
+    [Test]
+    public void ProceduralPlansAlwaysRequireClearingBricks()
+    {
+        var level = CreateLevelDefinition();
+        SetPrivateField(level, "completionRule", LevelCompletionRule.ReachTargetScore);
+        SetPrivateField(level, "targetScore", 500);
+
+        var bricks = new List<BrickDefinition>
+        {
+            CreateBrickDefinition("Basic Brick", hitPoints: 1, isBreakable: true, null),
+        };
+        var planner = CreateLevelPlanner(new List<LevelDefinition> { level }, bricks);
+        var buildPlan = planner.GetType().GetMethod("BuildPlan", InstanceFlags);
+        Assert.That(buildPlan, Is.Not.Null);
+
+        var plan = buildPlan.Invoke(
+            planner,
+            new object[]
+            {
+                level,
+                1,
+                new DeterministicRandomService(4242),
+                new RunSettings(4242, RunDifficultyPreset.Standard, RunScoringMode.Classic, 3, 500, 1, 1f, 1f, 1f, 1f, DropPoolMode.Mixed, true, null),
+            });
+
+        Assert.That(GetFieldValue<LevelCompletionRule>(plan, "CompletionRule"), Is.EqualTo(LevelCompletionRule.ClearRequiredBricks));
+        Assert.That(GetFieldValue<int>(plan, "TargetScore"), Is.EqualTo(0));
+    }
+
     private object CreateLevelPlanner(List<LevelDefinition> levels, List<BrickDefinition> bricks)
     {
         var plannerType = typeof(BreakoutGameController).Assembly.GetType("GetBricked.Gameplay.BreakoutLevelPlanner", throwOnError: false);

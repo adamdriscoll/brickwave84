@@ -152,9 +152,6 @@ namespace GetBricked.Gameplay
         private LevelDefinition currentLevel;
         private int currentLevelIndex;
         private string currentLevelDisplayName = "No level loaded";
-        private LevelCompletionRule currentLevelCompletionRule = LevelCompletionRule.ClearRequiredBricks;
-        private int currentLevelTargetScore;
-        private int levelScore;
         private float currentLevelBallSpeed;
         private float currentLevelPaddleSpeed;
         private BreakoutLevelPlanner levelPlanner;
@@ -369,7 +366,6 @@ namespace GetBricked.Gameplay
                 ? scoreService.BuildBrickScoreAward(brick, scoringBall, destructionCause, BuildScoreContext())
                 : default;
             score += scoreAward.TotalPoints;
-            levelScore += scoreAward.TotalPoints;
 
             if (scoreAward.BonusPoints > 0)
             {
@@ -1178,9 +1174,6 @@ namespace GetBricked.Gameplay
                 currentLevel = null;
                 currentLevelIndex = 0;
                 currentLevelDisplayName = "No levels loaded";
-                currentLevelCompletionRule = LevelCompletionRule.ClearRequiredBricks;
-                currentLevelTargetScore = 0;
-                levelScore = 0;
                 requiredBricksRemaining = 0;
                 roundState = RoundState.GameOver;
                 selectedOverlayActionIndex = 0;
@@ -1197,9 +1190,6 @@ namespace GetBricked.Gameplay
             {
                 currentLevelIndex = 0;
                 currentLevelDisplayName = "No levels loaded";
-                currentLevelCompletionRule = LevelCompletionRule.ClearRequiredBricks;
-                currentLevelTargetScore = 0;
-                levelScore = 0;
                 requiredBricksRemaining = 0;
                 roundState = RoundState.GameOver;
                 selectedOverlayActionIndex = 0;
@@ -1210,13 +1200,10 @@ namespace GetBricked.Gameplay
             }
 
             UpdateBackgroundVisuals();
-            levelScore = 0;
             var levelPlan = BuildLevelLayoutPlan(currentLevel);
             currentLevelDisplayName = string.IsNullOrWhiteSpace(levelPlan.DisplayName)
                 ? currentLevel.DisplayName
                 : levelPlan.DisplayName;
-            currentLevelCompletionRule = levelPlan.CompletionRule;
-            currentLevelTargetScore = levelPlan.TargetScore;
 
             ApplyLevelTuning(levelPlan);
             BuildBrickWall(levelPlan);
@@ -1525,12 +1512,7 @@ namespace GetBricked.Gameplay
                 return;
             }
 
-            var levelCleared = (brickService == null || !brickService.HasBreakableBricksRemaining()) || currentLevelCompletionRule switch
-            {
-                LevelCompletionRule.ClearRequiredBricks => requiredBricksRemaining <= 0,
-                LevelCompletionRule.ReachTargetScore => levelScore >= currentLevelTargetScore,
-                _ => false,
-            };
+            var levelCleared = brickService != null && !brickService.HasBreakableBricksRemaining();
 
             if (!levelCleared)
             {
@@ -2316,11 +2298,6 @@ namespace GetBricked.Gameplay
                 return "Remaining Bricks --";
             }
 
-            if (currentLevelCompletionRule == LevelCompletionRule.ReachTargetScore)
-            {
-                return $"Target Score {currentLevelTargetScore:0000} | Level Score {levelScore:0000}";
-            }
-
             return $"Remaining Bricks {requiredBricksRemaining:00}";
         }
 
@@ -2508,7 +2485,6 @@ namespace GetBricked.Gameplay
         {
             var bonusPoints = BreakoutPowerUpService.CapsuleMadnessPickupBonusPoints;
             score += bonusPoints;
-            levelScore += bonusPoints;
             scoreService?.CreateFloatingScorePopup(
                 pickupPosition,
                 bonusPoints,
