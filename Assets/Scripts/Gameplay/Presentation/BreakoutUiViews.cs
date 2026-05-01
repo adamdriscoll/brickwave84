@@ -126,6 +126,15 @@ namespace GetBricked.Gameplay
         public Color Color = Color.white;
     }
 
+    internal sealed class BreakoutUiCapsuleMadnessView
+    {
+        public string Text = string.Empty;
+        public Rect PlayfieldRect;
+        public float Timer;
+        public float Duration;
+        public Color Color = Color.white;
+    }
+
     internal sealed class BreakoutUiFloatingScoreView
     {
         public Vector2 ScreenPosition;

@@ -237,10 +237,15 @@ namespace GetBricked.Gameplay
 
     internal sealed class BreakoutPowerUpService
     {
+        public const int CapsuleMadnessPickupThreshold = 5;
+        public const float CapsuleMadnessDurationSeconds = 2.6f;
+        public const int CapsuleMadnessPickupBonusPoints = 250;
+
         private readonly Vector2 pickupSize;
         private readonly float pickupFallSpeed;
         private readonly float multiBallSpreadAngle;
         private readonly Material pickupMaterial;
+        private bool capsuleMadnessThresholdArmed = true;
 
         public BreakoutPowerUpService(Vector2 pickupSize, float pickupFallSpeed, float multiBallSpreadAngle, Material pickupMaterial)
         {
@@ -260,9 +265,23 @@ namespace GetBricked.Gameplay
 
         public Color PickupBannerColor { get; private set; } = Color.white;
 
+        public float CapsuleMadnessTimer { get; private set; }
+
+        public bool IsCapsuleMadnessActive => CapsuleMadnessTimer > 0f;
+
         public void UpdateTimedEffects(bool isPlaying, float deltaTime, System.Action modifiersChanged)
         {
-            if (!isPlaying || ActiveTimedEffects.Count == 0)
+            if (!isPlaying)
+            {
+                return;
+            }
+
+            if (CapsuleMadnessTimer > 0f)
+            {
+                CapsuleMadnessTimer = Mathf.Max(0f, CapsuleMadnessTimer - deltaTime);
+            }
+
+            if (ActiveTimedEffects.Count == 0)
             {
                 return;
             }
@@ -458,6 +477,8 @@ namespace GetBricked.Gameplay
             {
                 ActivePickups.Remove(pickup);
             }
+
+            UpdateCapsuleMadnessThresholdArming();
         }
 
         public void ClearPickups()
@@ -474,6 +495,8 @@ namespace GetBricked.Gameplay
             }
 
             ActivePickups.Clear();
+            CapsuleMadnessTimer = 0f;
+            capsuleMadnessThresholdArmed = true;
         }
 
         public void ClearTimedEffects()
@@ -555,6 +578,24 @@ namespace GetBricked.Gameplay
             return summaries;
         }
 
+        public void EvaluateCapsuleMadnessActivation()
+        {
+            if (ActivePickups.Count < CapsuleMadnessPickupThreshold)
+            {
+                capsuleMadnessThresholdArmed = true;
+                return;
+            }
+
+            if (!capsuleMadnessThresholdArmed || IsCapsuleMadnessActive)
+            {
+                return;
+            }
+
+            CapsuleMadnessTimer = CapsuleMadnessDurationSeconds;
+            capsuleMadnessThresholdArmed = false;
+            ShowStatusBanner("CAPSULE MADNESS!!", new Color(1f, 0.87f, 0.36f, 1f), CapsuleMadnessDurationSeconds);
+        }
+
         private static bool IsDropAllowed(RunSettings activeRunSettings, PowerUpDefinition powerUpDefinition)
         {
             if (powerUpDefinition == null)
@@ -607,6 +648,15 @@ namespace GetBricked.Gameplay
                 ResolvePickupSpinDegreesPerSecond(powerUpDefinition),
                 pickupStyle);
             ActivePickups.Add(pickup);
+            EvaluateCapsuleMadnessActivation();
+        }
+
+        private void UpdateCapsuleMadnessThresholdArming()
+        {
+            if (ActivePickups.Count < CapsuleMadnessPickupThreshold)
+            {
+                capsuleMadnessThresholdArmed = true;
+            }
         }
 
         private int AddTimedEffect(PowerUpDefinition powerUpDefinition)

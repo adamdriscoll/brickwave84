@@ -27,6 +27,7 @@ namespace GetBricked.Gameplay
         private GUIStyle modifierPanelTimerStyle;
         private GUIStyle floatingScoreStyle;
         private GUIStyle floatingScoreTagStyle;
+        private GUIStyle capsuleMadnessStyle;
         private Font retroUiFont;
         private BreakoutUiThemePalette palette = new BreakoutUiThemePalette();
 
@@ -436,6 +437,67 @@ namespace GetBricked.Gameplay
             DrawTextWithShadow(rect, view.Text, pickupStyle, view.Color, 0.3f);
         }
 
+        public void DrawCapsuleMadness(BreakoutUiCapsuleMadnessView view)
+        {
+            EnsureStyles();
+
+            if (view == null
+                || view.Timer <= 0f
+                || view.Duration <= 0f
+                || string.IsNullOrWhiteSpace(view.Text)
+                || view.PlayfieldRect.width <= 2f
+                || view.PlayfieldRect.height <= 2f)
+            {
+                return;
+            }
+
+            var remainingRatio = Mathf.Clamp01(view.Timer / view.Duration);
+            var lifeRatio = 1f - remainingRatio;
+            var alpha = Mathf.Min(
+                Mathf.InverseLerp(0f, 0.12f, lifeRatio),
+                Mathf.InverseLerp(0f, 0.22f, remainingRatio));
+
+            if (alpha <= 0.001f)
+            {
+                return;
+            }
+
+            var playfield = view.PlayfieldRect;
+            var rectWidth = Mathf.Min(playfield.width * 0.96f, 980f);
+            var rectHeight = Mathf.Min(206f, playfield.height * 0.38f);
+            var center = new Vector2(playfield.center.x, Mathf.Lerp(playfield.y + (playfield.height * 0.34f), playfield.center.y, 0.45f));
+            var textRect = new Rect(center.x - (rectWidth * 0.5f), center.y - (rectHeight * 0.5f), rectWidth, rectHeight);
+            var time = Time.unscaledTime;
+            var pulse = 1f + (Mathf.Sin(time * 17f) * 0.065f) + (Mathf.Sin(time * 31f) * 0.025f);
+            var rotation = Mathf.Sin(time * 9.5f) * 5.5f;
+            var previousMatrix = GUI.matrix;
+
+            GUIUtility.ScaleAroundPivot(new Vector2(pulse, pulse), center);
+            GUIUtility.RotateAroundPivot(rotation, center);
+
+            DrawSolidRect(Inflate(textRect, 10f), WithAlpha(palette.BezelDark, 0.055f * alpha));
+            DrawTextWithShadow(
+                new Rect(textRect.x - 5f, textRect.y + 4f, textRect.width, textRect.height),
+                ToArcadeLabel(view.Text),
+                capsuleMadnessStyle,
+                WithAlpha(palette.AccentSecondary, 0.24f * alpha),
+                0.08f * alpha);
+            DrawTextWithShadow(
+                new Rect(textRect.x + 5f, textRect.y - 4f, textRect.width, textRect.height),
+                ToArcadeLabel(view.Text),
+                capsuleMadnessStyle,
+                WithAlpha(palette.AccentPrimary, 0.2f * alpha),
+                0.08f * alpha);
+            DrawTextWithShadow(
+                textRect,
+                ToArcadeLabel(view.Text),
+                capsuleMadnessStyle,
+                WithAlpha(view.Color, 0.42f * alpha),
+                0.2f * alpha);
+
+            GUI.matrix = previousMatrix;
+        }
+
         public void DrawFloatingScorePopups(BreakoutUiFloatingScoreView[] views)
         {
             EnsureStyles();
@@ -573,6 +635,13 @@ namespace GetBricked.Gameplay
                 fontSize = 18,
                 fontStyle = FontStyle.Bold,
             };
+            capsuleMadnessStyle ??= new GUIStyle(pickupStyle)
+            {
+                alignment = TextAnchor.MiddleCenter,
+                fontSize = 72,
+                fontStyle = FontStyle.Bold,
+                wordWrap = true,
+            };
 
             ApplyRetroFont();
 
@@ -595,6 +664,7 @@ namespace GetBricked.Gameplay
             modifierPanelTimerStyle.normal.textColor = palette.TextMuted;
             floatingScoreStyle.normal.textColor = palette.AccentWarm;
             floatingScoreTagStyle.normal.textColor = palette.AccentPrimary;
+            capsuleMadnessStyle.normal.textColor = palette.AccentWarm;
         }
 
         private void ApplyRetroFont()
@@ -623,6 +693,7 @@ namespace GetBricked.Gameplay
             modifierPanelTimerStyle.font = retroUiFont;
             floatingScoreStyle.font = retroUiFont;
             floatingScoreTagStyle.font = retroUiFont;
+            capsuleMadnessStyle.font = retroUiFont;
         }
 
         private void DrawBallSpeedMeter(BreakoutUiSpeedMeterView view)

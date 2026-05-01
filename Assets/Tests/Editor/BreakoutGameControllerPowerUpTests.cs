@@ -171,6 +171,53 @@ public sealed class BreakoutGameControllerPowerUpTests
     }
 
     [Test]
+    public void CaughtPickupDuringCapsuleMadnessAwardsBonusPoints()
+    {
+        var controller = CreateControllerHarness(out _);
+        var powerUpService = GetPrivateField<object>(controller, "powerUpService");
+        var pickupObject = new GameObject("Capsule");
+        runtimeObjects.Add(pickupObject);
+        pickupObject.AddComponent<BoxCollider2D>();
+        pickupObject.AddComponent<SpriteRenderer>();
+        pickupObject.AddComponent<Rigidbody2D>();
+        var pickup = pickupObject.AddComponent<PowerUpPickup>();
+        var powerUp = CreatePowerUp(
+            "Score Capsule",
+            PowerUpEffectType.PaddleWidthMultiplier,
+            beneficial: true,
+            durationSeconds: 0f,
+            scalar: 1f);
+        SetPrivateField(pickup, "definition", powerUp);
+        var activePickups = GetPropertyValue<System.Collections.IList>(powerUpService, "ActivePickups");
+        activePickups.Add(pickup);
+
+        for (var index = 1; index < BreakoutPowerUpService.CapsuleMadnessPickupThreshold; index++)
+        {
+            var extraPickupObject = new GameObject($"Capsule {index}");
+            runtimeObjects.Add(extraPickupObject);
+            extraPickupObject.AddComponent<BoxCollider2D>();
+            extraPickupObject.AddComponent<SpriteRenderer>();
+            extraPickupObject.AddComponent<Rigidbody2D>();
+            activePickups.Add(extraPickupObject.AddComponent<PowerUpPickup>());
+        }
+
+        InvokePrivateMethod(powerUpService, "EvaluateCapsuleMadnessActivation");
+        SetPrivateField(controller, "score", 100);
+        SetPrivateField(controller, "levelScore", 40);
+        SetPrivateEnumField(controller, "roundState", "Playing");
+
+        controller.HandlePickupCaught(pickup);
+
+        var popups = GetFloatingScorePopups(controller);
+
+        Assert.That(GetPrivateField<int>(controller, "score"), Is.EqualTo(100 + BreakoutPowerUpService.CapsuleMadnessPickupBonusPoints));
+        Assert.That(GetPrivateField<int>(controller, "levelScore"), Is.EqualTo(40 + BreakoutPowerUpService.CapsuleMadnessPickupBonusPoints));
+        Assert.That(popups.Count, Is.EqualTo(1));
+        Assert.That(GetFieldValue<string>(popups[0], "PrimaryText"), Is.EqualTo($"+{BreakoutPowerUpService.CapsuleMadnessPickupBonusPoints}"));
+        Assert.That(GetFieldValue<string>(popups[0], "SecondaryText"), Is.EqualTo("COMBO BONUS: CAPSULE MADNESS!"));
+    }
+
+    [Test]
     public void ApplyingActiveDropMultiplierDoublesEffectsWithoutExtendingTimers()
     {
         var controller = CreateControllerHarness(out var paddle);

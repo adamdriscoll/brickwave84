@@ -191,9 +191,57 @@ public sealed class BreakoutPowerUpServiceTests
         Assert.That(directions[0].y, Is.EqualTo(directions[2].y).Within(0.0001f));
     }
 
+    [Test]
+    public void CapsuleMadnessActivatesAtFivePickupsAndRearmsAfterCountDrops()
+    {
+        var service = CreateService();
+
+        for (var index = 0; index < BreakoutPowerUpService.CapsuleMadnessPickupThreshold - 1; index++)
+        {
+            service.ActivePickups.Add(CreatePickup());
+        }
+
+        service.EvaluateCapsuleMadnessActivation();
+
+        Assert.That(service.IsCapsuleMadnessActive, Is.False);
+
+        var fifthPickup = CreatePickup();
+        service.ActivePickups.Add(fifthPickup);
+        service.EvaluateCapsuleMadnessActivation();
+
+        Assert.That(service.IsCapsuleMadnessActive, Is.True);
+        Assert.That(service.CapsuleMadnessTimer, Is.EqualTo(BreakoutPowerUpService.CapsuleMadnessDurationSeconds).Within(0.0001f));
+        Assert.That(service.PickupBannerText, Is.EqualTo("CAPSULE MADNESS!!"));
+
+        service.UpdateTimedEffects(isPlaying: false, deltaTime: 99f, modifiersChanged: null);
+
+        Assert.That(service.CapsuleMadnessTimer, Is.EqualTo(BreakoutPowerUpService.CapsuleMadnessDurationSeconds).Within(0.0001f));
+
+        service.UpdateTimedEffects(isPlaying: true, deltaTime: BreakoutPowerUpService.CapsuleMadnessDurationSeconds + 0.1f, modifiersChanged: null);
+        service.EvaluateCapsuleMadnessActivation();
+
+        Assert.That(service.IsCapsuleMadnessActive, Is.False);
+
+        service.RemovePickup(fifthPickup);
+        service.ActivePickups.Add(fifthPickup);
+        service.EvaluateCapsuleMadnessActivation();
+
+        Assert.That(service.IsCapsuleMadnessActive, Is.True);
+    }
+
     private BreakoutPowerUpService CreateService(float multiBallSpreadAngle = 18f)
     {
         return new BreakoutPowerUpService(new Vector2(0.55f, 0.55f), 3.2f, multiBallSpreadAngle, null);
+    }
+
+    private PowerUpPickup CreatePickup()
+    {
+        var pickupObject = new GameObject("Pickup");
+        runtimeObjects.Add(pickupObject);
+        pickupObject.AddComponent<BoxCollider2D>();
+        pickupObject.AddComponent<SpriteRenderer>();
+        pickupObject.AddComponent<Rigidbody2D>();
+        return pickupObject.AddComponent<PowerUpPickup>();
     }
 
     private PowerUpDefinition CreatePowerUp(

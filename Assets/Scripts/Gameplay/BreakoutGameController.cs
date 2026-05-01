@@ -525,7 +525,15 @@ namespace GetBricked.Gameplay
                 return;
             }
 
+            var pickupPosition = (Vector2)pickup.transform.position;
+            var awardCapsuleMadnessBonus = powerUpService != null && powerUpService.IsCapsuleMadnessActive;
             powerUpService.RemovePickup(pickup);
+
+            if (awardCapsuleMadnessBonus)
+            {
+                AwardCapsuleMadnessPickupBonus(pickupPosition);
+            }
+
             ApplyPowerUp(pickup.Definition);
             pickup.gameObject.SetActive(false);
             DestroyRuntimeObject(pickup.gameObject);
@@ -1887,9 +1895,11 @@ namespace GetBricked.Gameplay
                 return;
             }
 
-            uiRenderer.DrawCabinetBackdrop(BuildChromeView(string.Empty, string.Empty, false));
+            var gameplayChromeView = BuildChromeView(string.Empty, string.Empty, false);
+            uiRenderer.DrawCabinetBackdrop(gameplayChromeView);
             uiRenderer.DrawGameplayHud(BuildHudView(), ToggleDiagnosticsOverlay, ToggleHudMenuOverlay);
             uiRenderer.DrawModifierIndicator(BuildModifierViews(), isDiagnosticsOverlayVisible);
+            uiRenderer.DrawCapsuleMadness(BuildCapsuleMadnessView(gameplayChromeView.PlayfieldRect));
             uiRenderer.DrawFloatingScorePopups(scoreService?.BuildFloatingScoreViews(activeCamera, Screen.height) ?? Array.Empty<BreakoutUiFloatingScoreView>());
 
             if (isDiagnosticsOverlayVisible)
@@ -2193,6 +2203,18 @@ namespace GetBricked.Gameplay
             };
         }
 
+        private BreakoutUiCapsuleMadnessView BuildCapsuleMadnessView(Rect playfieldRect)
+        {
+            return new BreakoutUiCapsuleMadnessView
+            {
+                Text = "Capsule Madness!!",
+                PlayfieldRect = playfieldRect,
+                Timer = powerUpService?.CapsuleMadnessTimer ?? 0f,
+                Duration = BreakoutPowerUpService.CapsuleMadnessDurationSeconds,
+                Color = ResolveCapsuleMadnessColor(),
+            };
+        }
+
         private string[] BuildOverlayActionLabels(OverlayAction[] actions)
         {
             var labels = new string[actions.Length];
@@ -2482,6 +2504,18 @@ namespace GetBricked.Gameplay
             }
         }
 
+        private void AwardCapsuleMadnessPickupBonus(Vector2 pickupPosition)
+        {
+            var bonusPoints = BreakoutPowerUpService.CapsuleMadnessPickupBonusPoints;
+            score += bonusPoints;
+            levelScore += bonusPoints;
+            scoreService?.CreateFloatingScorePopup(
+                pickupPosition,
+                bonusPoints,
+                "CAPSULE MADNESS",
+                ResolveCapsuleMadnessColor());
+        }
+
         private void ApplyActiveEffects()
         {
             var persistentModifiers = GetPersistentRunUpgradeModifiers();
@@ -2688,6 +2722,13 @@ namespace GetBricked.Gameplay
         {
             return themeService != null
                 ? themeService.ResolveBallStyle().PrimaryColor
+                : new Color(1f, 0.87f, 0.36f, 1f);
+        }
+
+        private Color ResolveCapsuleMadnessColor()
+        {
+            return themeService != null
+                ? themeService.ResolveThemeStyle(ThemeVisualSlot.PickupBurst, ballColor, ballColor, squareSprite).PrimaryColor
                 : new Color(1f, 0.87f, 0.36f, 1f);
         }
 
