@@ -455,8 +455,13 @@ namespace GetBricked.Gameplay
                 }
 
                 var position = view.ScreenPosition;
-                var primaryRect = new Rect(position.x - 96f, position.y - 18f, 192f, 30f);
-                var secondaryRect = new Rect(position.x - 176f, position.y + 10f, 352f, 22f);
+                var primaryRect = new Rect(position.x - 112f, position.y - 24f, 224f, 36f);
+                var secondaryWidth = Mathf.Min(560f, Mathf.Max(352f, Screen.width - 32f));
+                var secondaryX = Mathf.Clamp(
+                    position.x - (secondaryWidth * 0.5f),
+                    16f,
+                    Mathf.Max(16f, Screen.width - secondaryWidth - 16f));
+                var secondaryRect = new Rect(secondaryX, position.y + 12f, secondaryWidth, 30f);
                 var scoreColor = WithAlpha(view.Color, view.Alpha);
                 var tagColor = WithAlpha(Color.Lerp(palette.AccentSecondary, palette.AccentPrimary, 0.45f), view.Alpha * 0.92f);
 
@@ -560,12 +565,12 @@ namespace GetBricked.Gameplay
             };
             floatingScoreStyle ??= new GUIStyle(pickupStyle)
             {
-                fontSize = 26,
+                fontSize = 30,
             };
             floatingScoreTagStyle ??= new GUIStyle(hudStyle)
             {
                 alignment = TextAnchor.MiddleCenter,
-                fontSize = 12,
+                fontSize = 18,
                 fontStyle = FontStyle.Bold,
             };
 
