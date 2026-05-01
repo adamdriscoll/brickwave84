@@ -25,21 +25,25 @@
 - `README.md`: human-readable project overview and implemented-content inventory; keep this aligned with the actual playable state
 - `Assets/Scenes/SampleScene.unity`: current playable scene and only scene in build settings
 - `Assets/InputSystem_Actions.inputactions`: starter input maps for `Player` and `UI`
+- `Assets/Scripts/AssemblyInfo.cs`: grants runtime internals visibility to the default Unity editor-test assembly so focused Edit Mode tests can cover internal services without introducing `.asmdef` files yet
 - `Assets/Scripts/Core/BreakoutBootstrap.cs`: runtime entry point that ensures the prototype controller exists after scene load
 - `Assets/Scripts/Gameplay/BreakoutGameController.cs`: top-level runtime coordinator for scene bootstrapping, run flow, serve/life transitions, and cross-system orchestration
-- `Assets/Scripts/Gameplay/BreakoutLevelPlanner.cs`: deterministic procedural level-planning service that builds seeded layout plans and moving-brick assignments from level templates and brick definitions
-- `Assets/Scripts/Gameplay/BreakoutRunSetupState.cs`: mutable run-setup state model for seed text, difficulty/modifier choices, and validated `RunSettings` construction
-- `Assets/Scripts/Gameplay/BreakoutRunSetupPersistence.cs`: `PlayerPrefs` persistence helper for saved run-setup choices and theme selection
-- `Assets/Scripts/Gameplay/BreakoutRunState.cs`: run-layer state for cleared encounters, chosen permanent upgrades, pending draft offers, and aggregated persistent modifiers
-- `Assets/Scripts/Gameplay/BreakoutThemeService.cs`: runtime theme resolver/applicator for camera, walls, paddle, balls, bricks, and pickups
-- `Assets/Scripts/Gameplay/BreakoutPowerUpService.cs`: pickup spawning, timed-effect tracking, banner state, and effect-modifier calculations for movement, control, visibility, laser, phase, and chain behaviors
-- `Assets/Scripts/Gameplay/BreakoutUiRenderer.cs`: runtime OnGUI presentation service for main menu, run setup, HUD, pause, upgrade draft, and end-state overlays
-- `Assets/Scripts/Gameplay/BreakoutUpgradeDraftService.cs`: deterministic `1 of 3` run-upgrade offer generator using the run seed, cleared-level count, and prior picks
-- `Assets/Scripts/Gameplay/BreakoutGlowRenderer.cs`: legacy runtime helper for layered neon halo sprites that still exists for optional use, but is no longer the default glow path for core gameplay pieces
-- `Assets/Scripts/Gameplay/PaddleController.cs`: keyboard-driven paddle movement with clamped horizontal bounds and runtime width modifiers
-- `Assets/Scripts/Gameplay/BallController.cs`: launch, bounce shaping, spin-biased brick ricochet response, per-level speed tuning, speed clamping, and single/multi-ball loss detection support
-- `Assets/Scripts/Gameplay/Brick.cs`: definition-driven brick behavior with variable durability, optional anchored spin response, optional moving-body motion, and unbreakable support
-- `Assets/Scripts/Gameplay/PowerUpPickup.cs`: falling pickup behavior and paddle catch detection
+- `Assets/Scripts/Gameplay/Actors/PaddleController.cs`: keyboard-driven paddle movement with clamped horizontal bounds and runtime width modifiers
+- `Assets/Scripts/Gameplay/Actors/BallController.cs`: launch, bounce shaping, spin-biased brick ricochet response, per-level speed tuning, speed clamping, and single/multi-ball loss detection support
+- `Assets/Scripts/Gameplay/Actors/Brick.cs`: definition-driven brick behavior with variable durability, optional anchored spin response, optional moving-body motion, and unbreakable support
+- `Assets/Scripts/Gameplay/Actors/PowerUpPickup.cs`: falling pickup behavior and paddle catch detection
+- `Assets/Scripts/Gameplay/Levels/BreakoutLevelPlanner.cs`: deterministic procedural level-planning service that builds seeded layout plans and moving-brick assignments from level templates and brick definitions
+- `Assets/Scripts/Gameplay/PowerUps/BreakoutPowerUpService.cs`: pickup spawning, timed-effect tracking, banner state, and effect-modifier calculations for movement, control, visibility, laser, phase, and chain behaviors
+- `Assets/Scripts/Gameplay/PowerUps/BreakoutBrickEffectResolver.cs`: brick-targeting helper used by direct-damage effects such as explosions, lasers, and chain lightning
+- `Assets/Scripts/Gameplay/Presentation/BreakoutThemeService.cs`: runtime theme resolver/applicator for camera, walls, paddle, balls, bricks, and pickups
+- `Assets/Scripts/Gameplay/Presentation/BreakoutUiRenderer.cs`: runtime OnGUI presentation service for main menu, run setup, HUD, pause, upgrade draft, and end-state overlays
+- `Assets/Scripts/Gameplay/Presentation/BreakoutGlowRenderer.cs`: legacy runtime helper for layered neon halo sprites that still exists for optional use, but is no longer the default glow path for core gameplay pieces
+- `Assets/Scripts/Gameplay/RunFlow/BreakoutRunSetupState.cs`: mutable run-setup state model for seed text, difficulty/modifier choices, and validated `RunSettings` construction
+- `Assets/Scripts/Gameplay/RunFlow/BreakoutRunSetupPersistence.cs`: `PlayerPrefs` persistence helper for saved run-setup choices and theme selection
+- `Assets/Scripts/Gameplay/RunFlow/BreakoutRunState.cs`: run-layer state for cleared encounters, chosen permanent upgrades, pending draft offers, and aggregated persistent modifiers
+- `Assets/Scripts/Gameplay/RunFlow/BreakoutUpgradeDraftService.cs`: deterministic `1 of 3` run-upgrade offer generator using the run seed, cleared-level count, and prior picks
+- `Assets/Scripts/Gameplay/Scoring/IBreakoutScoreService.cs`: interface seam for brick-score awards, combo tracking, and floating score popup state
+- `Assets/Scripts/Gameplay/Scoring/BreakoutScoreService.cs`: service that owns scoring multipliers, slam-chain / bank-shot / party-split bonuses, and floating score popup view construction
 - `Assets/Scripts/Gameplay/DeterministicRandomService.cs`: seed-driven random helper used for gameplay-critical procedural choices
 - `Assets/Scripts/Gameplay/Data/BrickDefinition.cs`: ScriptableObject data for brick durability, scoring, completion contribution, colors, and weighted drop tables
 - `Assets/Scripts/Gameplay/Data/LevelDefinition.cs`: ScriptableObject data for progression-profile tuning, legacy layout references, completion rules, and optional authored motion hints that now serve mainly as template data
@@ -48,6 +52,7 @@
 - `Assets/Scripts/Gameplay/Data/RunUpgradeDefinition.cs`: ScriptableObject data for permanent run modifiers, draft weighting, stack caps, exclusions, and upgrade presentation
 - `Assets/Scripts/Gameplay/Data/ThemeDefinition.cs`: ScriptableObject theme data for semantic visual slots, palette colors, and future sprite overrides
 - `Assets/Tests/Editor/BreakoutGameControllerPowerUpTests.cs`: first Unity Edit Mode regression coverage for immediate power-up modifier application on the paddle
+- `Assets/Tests/Editor/BreakoutScoreServiceTests.cs`: Unity Edit Mode coverage for score multiplier and combo-bonus rules behind `IBreakoutScoreService`
 - `Assets/Tests/Editor/BreakoutSpinningBrickTests.cs`: Unity Edit Mode regression coverage for spinning-brick rigidbody setup and spin-biased bounce math
 - `Assets/Resources/Bricks/*`: authored brick definition assets loaded at runtime
 - `Assets/Resources/Levels/*`: authored level definition assets loaded at runtime
@@ -78,6 +83,8 @@
 - `com.unity.test-framework` is installed and the project now has a starter Edit Mode test layer under `Assets/Tests/Editor/`.
 - The input action asset already includes common starter actions like `Move`, `Look`, `Attack`, `Interact`, `Jump`, `Sprint`, `Previous`, and `Next`.
 - The current prototype is scene-light and code-heavy: the gameplay board, bounds, ball, paddle, bricks, and temporary HUD are created at runtime instead of being serialized into `SampleScene`.
+- Gameplay code is now grouped by responsibility under `Assets/Scripts/Gameplay/Actors/`, `Levels/`, `PowerUps/`, `Presentation/`, `RunFlow/`, and `Scoring/`, with `BreakoutGameController` kept at the gameplay root as the orchestration entry point.
+- `IBreakoutScoreService` is the first explicit gameplay service interface seam; the controller delegates brick-score award calculation, score-combo state, and floating score popup state to `BreakoutScoreService`.
 - Bricks and levels are now authored as ScriptableObjects under `Assets/Resources/` and loaded at runtime by the controller plus its leaf services.
 - Brick definitions now own drop chance plus weighted pickup references, so most drop-table tuning is an asset edit rather than a controller edit.
 - Brick definitions can now also opt into anchored spin behavior, tune torque/bounce response, and point at a per-definition fallback sprite resource path without changing controller code.
@@ -107,7 +114,7 @@
 - The current `Balls Per Serve` run modifier spawns extra balls at every serve, so future ball-loss or serve-flow changes should be checked against `BreakoutGameController.SpawnConfiguredServeBalls`.
 - Prototype input is currently read directly from `UnityEngine.InputSystem.Keyboard` rather than being wired through `PlayerInput` or the existing action asset.
 - Ball and paddle behavior use Unity 6-era 2D physics APIs such as `Rigidbody2D.linearVelocity`.
-- Run flow is still runtime-authored and coordinated by `BreakoutGameController`, but setup persistence, procedural planning, theme application, pickup/effect state, and OnGUI rendering now live in dedicated gameplay services.
+- Run flow is still runtime-authored and coordinated by `BreakoutGameController`, but setup persistence, procedural planning, theme application, pickup/effect state, scoring/combo state, and OnGUI rendering now live in dedicated gameplay services.
 - Brick and power-up definition assets can optionally override their semantic theme slot, but default routing already maps brick durability tiers plus beneficial/harmful/burst pickups onto the shared theme palette automatically.
 - Laser shots, chain-lightning arcs, and phase-ball passthrough all route back through brick runtime damage helpers instead of bypassing `BrickDefinition` durability and score rules, so future direct-damage effects should usually build on `Brick.ApplyEffectHit`.
 - The current default visuals now reach a first-pass synthwave cabinet presentation through theme palettes, theme-derived UI chrome, playfield framing, and a softer glowing ball silhouette, but there is still room for authored art, material, VFX, and post-processing polish.
@@ -168,7 +175,7 @@
   - `Assets/Scripts/Input/`
   - `Assets/Scripts/UI/`
   - `Assets/Scripts/Core/`
-- If a feature slice keeps growing, prefer focused subfolders by responsibility such as `Assets/Scripts/Gameplay/RunFlow/`, `Assets/Scripts/Gameplay/Scoring/`, `Assets/Scripts/Gameplay/Presentation/`, or `Assets/Scripts/Gameplay/PowerUps/` instead of keeping every runtime class in one flat folder forever.
+- Keep gameplay code in focused subfolders by responsibility, including `Assets/Scripts/Gameplay/Actors/`, `Levels/`, `PowerUps/`, `Presentation/`, `RunFlow/`, and `Scoring/`, instead of adding new runtime classes to one flat gameplay folder.
 - Prefer small, responsibility-revealing collaborator names such as `*Service`, `*Coordinator`, `*Resolver`, `*Factory`, `*Presenter`, or `*Builder` over catch-all names like `Utils`, `Helpers`, or `Manager` when the role is more specific.
 - Favor Edit Mode testable plain C# logic behind narrow seams, then let `MonoBehaviour` wrappers translate Unity callbacks and scene state into those services.
 - Keep first-pass gameplay tuning values serialized on the controlling MonoBehaviour so feel can be adjusted quickly in the Inspector during playtesting.
