@@ -10,7 +10,7 @@ Give the cabinet a stable top-level menu structure before every mode is implemen
 
 - `Rogue`
   - New primary run style for progression, unlocks, intensities, heat, and long-term arcade goals.
-  - Placeholder shell for now.
+  - See [Chunk 10](./10-rogue-mode-gameplay-plan.md) for the concrete 10-stage run, boss, intensity, and paddle progression plan.
 - `Custom Game`
   - Current playable seeded/configurable run setup.
   - Owns Tape ID editing, score mode, balls per serve, modifier bias, drop pool, Capsule Party, and theme selection.

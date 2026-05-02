@@ -39,6 +39,7 @@ A roguelite run needs shape. The player should feel a run opening up, becoming u
 
 ## Implementation Notes
 
+- The concrete Rogue boss roster currently lives in [Chunk 10](./10-rogue-mode-gameplay-plan.md): `The Paddle Punk`, `The Brickasaurus Wrecks`, and `The Mainframe Maniac`.
 - Escalation should add new decision pressure before it adds raw stat inflation
 - Bosses should reuse brick-breaker language where possible:
   - armor layers

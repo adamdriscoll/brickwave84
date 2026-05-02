@@ -77,6 +77,7 @@ That means the roadmap should focus less on `can we make breakout work?` and mor
 - [07 UI, Run Readability, And Presentation](./07-ui-run-readability-and-presentation.md)
 - [08 Social Modes, Content Pipeline, And Production Readiness](./08-social-modes-content-pipeline-and-production-readiness.md)
 - [09 Gameplay Mode Shell And Settings](./09-gameplay-mode-shell-and-settings.md)
+- [10 Rogue Mode Gameplay Plan](./10-rogue-mode-gameplay-plan.md)
 
 ## Sequencing Logic
 
@@ -91,7 +92,7 @@ The new order is intentional:
 
 ## Open Design Questions
 
-- What progression, unlock, and intensity systems define `Rogue` well enough to separate it from `Custom Game`?
+- Which parts of the concrete `Rogue` contract in [Chunk 10](./10-rogue-mode-gameplay-plan.md) should become the first playable vertical slice?
 - How many `Core Mod` slots should a run support before the build becomes too noisy?
 - Which run systems remain score-valid for future daily challenges, and which become `chaos` or `custom` variants?
 - Should bosses gate progress on fixed milestones, seed rules, or score thresholds?
