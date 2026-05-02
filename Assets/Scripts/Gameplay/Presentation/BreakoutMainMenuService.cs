@@ -12,6 +12,7 @@ namespace GetBricked.Gameplay
         TurnBased,
         SoundSettings,
         GraphicsSettings,
+        DeveloperMode,
     }
 
     internal sealed class BreakoutMainMenuContext
@@ -40,6 +41,7 @@ namespace GetBricked.Gameplay
             BreakoutMainMenuAction.TurnBased,
             BreakoutMainMenuAction.SoundSettings,
             BreakoutMainMenuAction.GraphicsSettings,
+            BreakoutMainMenuAction.DeveloperMode,
         };
 
         public BreakoutMainMenuAction[] BuildActions()
@@ -66,7 +68,7 @@ namespace GetBricked.Gameplay
                 PreviewLines = BuildPreviewLines(selectedAction, context),
                 ValidationText = BuildValidationText(selectedAction, context),
                 FooterText = BuildFooterText(selectedAction),
-                HintText = "Up/Down selects. Space confirms. Rogue starts now. Custom Game opens seeded setup. Other channels are staged for upcoming sessions.",
+                HintText = "Up/Down selects. Space confirms. Rogue starts now. Custom Game opens setup. Dev opens the jump bench.",
             };
         }
 
@@ -105,6 +107,7 @@ namespace GetBricked.Gameplay
                     BreakoutMainMenuAction.TurnBased => "Turn-Based",
                     BreakoutMainMenuAction.SoundSettings => "Sound",
                     BreakoutMainMenuAction.GraphicsSettings => "Graphics",
+                    BreakoutMainMenuAction.DeveloperMode => "Dev",
                     _ => actions[index].ToString(),
                 };
             }
@@ -127,6 +130,7 @@ namespace GetBricked.Gameplay
                     BreakoutMainMenuAction.TurnBased => "Multiplayer",
                     BreakoutMainMenuAction.SoundSettings => "Settings",
                     BreakoutMainMenuAction.GraphicsSettings => "Settings",
+                    BreakoutMainMenuAction.DeveloperMode => "Settings",
                     _ => string.Empty,
                 };
             }
@@ -145,6 +149,7 @@ namespace GetBricked.Gameplay
                 BreakoutMainMenuAction.TurnBased => "Turn-Based Shell",
                 BreakoutMainMenuAction.SoundSettings => "Sound Settings Shell",
                 BreakoutMainMenuAction.GraphicsSettings => "Graphics Shell",
+                BreakoutMainMenuAction.DeveloperMode => "Developer Jump",
                 _ => "Cabinet Readout",
             };
         }
@@ -215,6 +220,14 @@ namespace GetBricked.Gameplay
                         "Scanlines: placeholder",
                         "Future: bloom, CRT treatment, and readability options.",
                     };
+                case BreakoutMainMenuAction.DeveloperMode:
+                    return new[]
+                    {
+                        "Jump directly into Rogue stages or boss gates.",
+                        "Pick lives, run upgrades, and drop unlocks before launch.",
+                        "For local tuning only. No progression result is protected here yet.",
+                        "Status: active debug bench.",
+                    };
                 default:
                     return Array.Empty<string>();
             }
@@ -240,6 +253,7 @@ namespace GetBricked.Gameplay
                 BreakoutMainMenuAction.Rogue => "Rogue launches the first progression-forward singleplayer run: fixed rules, seeded stages, draft rewards, and a saved result.",
                 BreakoutMainMenuAction.SoundSettings => "Sound controls are staged here so mixer work has a clear home.",
                 BreakoutMainMenuAction.GraphicsSettings => "Graphics controls are staged here so display and readability options have a clear home.",
+                BreakoutMainMenuAction.DeveloperMode => "Developer Mode is a subtle local jump bench for testing Rogue stages, boss gates, lives, upgrades, and drop unlocks.",
                 _ => "Multiplayer channels are staged as menu shells until the shared-screen architecture is ready.",
             };
         }
