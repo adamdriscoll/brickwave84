@@ -15,6 +15,7 @@ namespace GetBricked.Gameplay
         private const float WavyStrengthEpsilon = 0.001f;
         private const float LagSpikeCycleSeconds = 0.72f;
         private const float LagSpikeMaxPauseSeconds = 0.14f;
+        private const float MaxArenaWidthCoverage = 0.9f;
 
         private BreakoutGameController gameController;
         private Rigidbody2D paddleBody;
@@ -59,7 +60,9 @@ namespace GetBricked.Gameplay
 
         public void SetWidthMultiplier(float multiplier)
         {
-            var width = baseScale.x * multiplier;
+            var arenaWidth = Mathf.Max(0f, rightBoundaryX - leftBoundaryX);
+            var maxWidth = arenaWidth > 0f ? arenaWidth * MaxArenaWidthCoverage : float.PositiveInfinity;
+            var width = Mathf.Min(baseScale.x * Mathf.Max(0.1f, multiplier), maxWidth);
             transform.localScale = new Vector3(width, baseScale.y, baseScale.z);
             HalfWidthWorld = width * 0.5f;
             ClampToBounds();

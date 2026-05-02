@@ -146,7 +146,7 @@ public sealed class BreakoutGameControllerPowerUpTests
     }
 
     [Test]
-    public void ApplyingSameWidePowerUpTwiceStacksPaddleScaleWithoutClamp()
+    public void ApplyingSameWidePowerUpTwiceStacksPaddleScaleBelowWidthCap()
     {
         var controller = CreateControllerHarness(out var paddle);
         var widePowerUp = CreatePowerUp(
@@ -160,6 +160,26 @@ public sealed class BreakoutGameControllerPowerUpTests
         InvokePrivateMethod(controller, "ApplyPowerUp", widePowerUp);
 
         Assert.That(paddle.transform.localScale.x, Is.EqualTo(2.1f * 1.45f * 1.45f).Within(0.0001f));
+    }
+
+    [Test]
+    public void ApplyingStackedWidePowerUpsCapsPaddleAtPlayableArenaWidth()
+    {
+        var controller = CreateControllerHarness(out var paddle);
+        var widePowerUp = CreatePowerUp(
+            "Wide Paddle",
+            PowerUpEffectType.PaddleWidthMultiplier,
+            beneficial: true,
+            durationSeconds: 12f,
+            scalar: 1.45f);
+
+        for (var index = 0; index < 6; index++)
+        {
+            InvokePrivateMethod(controller, "ApplyPowerUp", widePowerUp);
+        }
+
+        Assert.That(paddle.transform.localScale.x, Is.EqualTo(18f).Within(0.0001f));
+        Assert.That(paddle.HalfWidthWorld, Is.EqualTo(9f).Within(0.0001f));
     }
 
     [Test]
