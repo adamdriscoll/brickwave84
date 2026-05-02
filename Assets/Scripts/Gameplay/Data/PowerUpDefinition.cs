@@ -21,6 +21,11 @@ namespace GetBricked.Gameplay.Data
         FogOfWar = 12,
         LagSpike = 13,
         ActiveDropMultiplier = 14,
+        BrickMagnet = 15,
+        ScoreMultiplier = 16,
+        PaddleClone = 17,
+        BrickJammer = 18,
+        HotPotatoBall = 19,
     }
 
     [CreateAssetMenu(menuName = "Get Bricked/Power-Up Definition", fileName = "PowerUpDefinition")]
@@ -84,7 +89,9 @@ namespace GetBricked.Gameplay.Data
             }
 
             if (effectType == PowerUpEffectType.MultiBallBurst
-                || effectType == PowerUpEffectType.ActiveDropMultiplier)
+                || effectType == PowerUpEffectType.ActiveDropMultiplier
+                || effectType == PowerUpEffectType.ScoreMultiplier
+                || effectType == PowerUpEffectType.HotPotatoBall)
             {
                 return ThemeVisualSlot.PickupBurst;
             }

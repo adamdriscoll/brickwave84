@@ -88,6 +88,11 @@ namespace GetBricked.Gameplay
             return !string.IsNullOrWhiteSpace(dropId) && unlockedDropIds.Contains(dropId);
         }
 
+        public bool UnlockDrop(PowerUpDefinition definition)
+        {
+            return AddUnlockedDrop(definition, countAsChosenReward: false);
+        }
+
         public void SetPendingDraftOffers(IList<BreakoutRunDraftOffer> offers)
         {
             pendingDraftOffers.Clear();
@@ -266,13 +271,13 @@ namespace GetBricked.Gameplay
             AddUnlockedDrop(offer.DropUnlockDefinition, countAsChosenReward: true);
         }
 
-        private void AddUnlockedDrop(PowerUpDefinition definition, bool countAsChosenReward)
+        private bool AddUnlockedDrop(PowerUpDefinition definition, bool countAsChosenReward)
         {
             var dropId = BreakoutPowerUpIdentity.GetStableId(definition);
 
             if (definition == null || string.IsNullOrWhiteSpace(dropId) || !unlockedDropIds.Add(dropId))
             {
-                return;
+                return false;
             }
 
             unlockedDropDefinitions.Add(definition);
@@ -281,6 +286,8 @@ namespace GetBricked.Gameplay
             {
                 chosenDropUnlocks.Add(definition);
             }
+
+            return true;
         }
 
         private static bool UpgradeListsConflict(

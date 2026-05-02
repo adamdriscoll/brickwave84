@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
+  <title id="title">Ghost Ball</title>
+  <desc id="desc">A monochrome neon icon showing a translucent ball passing through a brick.</desc>
+  <defs>
+    <filter id="softGlow" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="2.25" result="blur"/><feColorMatrix in="blur" type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 .8 0" result="glow"/><feMerge><feMergeNode in="glow"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+    <style><![CDATA[.icon{fill:none;stroke:#fff;stroke-linecap:round;stroke-linejoin:round;filter:url(#softGlow)}.main{stroke-width:8}.mid{stroke-width:5;opacity:.86}.thin{stroke-width:3.5;opacity:.5}.dash{stroke-dasharray:10 8}.fill{fill:#fff;stroke:none;opacity:.86;filter:url(#softGlow)}]]></style>
+  </defs>
+  <g class="icon">
+    <rect class="mid" x="52" y="92" width="152" height="42" rx="7"/>
+    <path class="thin" d="M92 92 l18 42 M134 92 l-18 42 M154 92 l20 42"/>
+    <circle class="thin dash" cx="170" cy="64" r="19"/><circle class="thin dash" cx="141" cy="84" r="22"/><circle class="thin dash" cx="111" cy="110" r="25"/>
+    <path class="mid dash" d="M190 50 C154 66, 126 91, 91 130 C77 146, 65 164, 51 189"/>
+    <circle class="main" cx="54" cy="190" r="23"/>
+    <path class="thin" d="M45 184 Q52 176 64 178"/>
+    <circle class="fill" cx="44" cy="194" r="2.7"/>
+  </g>
+</svg>

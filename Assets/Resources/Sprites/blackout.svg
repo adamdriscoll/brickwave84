@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
+  <title id="title">Blackout</title>
+  <desc id="desc">A monochrome neon icon showing a dark field with only ball and brick outlines.</desc>
+  <defs>
+    <filter id="softGlow" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="2.25" result="blur"/><feColorMatrix in="blur" type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 .8 0" result="glow"/><feMerge><feMergeNode in="glow"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+    <style><![CDATA[.icon{fill:none;stroke:#fff;stroke-linecap:round;stroke-linejoin:round;filter:url(#softGlow)}.main{stroke-width:8}.mid{stroke-width:5;opacity:.84}.thin{stroke-width:3.5;opacity:.46}.fillsoft{fill:#fff;stroke:none;opacity:.18;filter:url(#softGlow)}]]></style>
+  </defs>
+  <g class="icon">
+    <rect class="fillsoft" x="47" y="47" width="162" height="162" rx="13"/>
+    <rect class="main" x="47" y="47" width="162" height="162" rx="13"/>
+    <path class="thin" d="M72 75 h42 M143 75 h41 M72 108 h38 M139 108 h45 M72 141 h112"/>
+    <circle class="mid" cx="99" cy="177" r="17"/>
+    <path class="mid" d="M136 177 h42"/>
+    <path class="thin" d="M61 56 l134 134 M195 56 L61 190"/>
+  </g>
+</svg>

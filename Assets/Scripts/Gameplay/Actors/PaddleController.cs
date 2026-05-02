@@ -16,6 +16,9 @@ namespace GetBricked.Gameplay
         private const float LagSpikeCycleSeconds = 0.72f;
         private const float LagSpikeMaxPauseSeconds = 0.14f;
         private const float MaxArenaWidthCoverage = 0.9f;
+        private const float ClonePaddleYOffset = 0.74f;
+        private const float ClonePaddleWidthMultiplier = 0.62f;
+        private const int ClonePaddleSortingOrder = 11;
 
         private BreakoutGameController gameController;
         private Rigidbody2D paddleBody;
@@ -35,6 +38,9 @@ namespace GetBricked.Gameplay
         private bool controlsReversed;
         private float splitGapWidthNormalized;
         private float lagSpikeStrength;
+        private GameObject clonePaddleObject;
+        private BoxCollider2D clonePaddleCollider;
+        private SpriteRenderer clonePaddleRenderer;
 
         public float HalfWidthWorld { get; private set; }
 
@@ -95,6 +101,16 @@ namespace GetBricked.Gameplay
         public void SetLagSpikeStrength(float strength)
         {
             lagSpikeStrength = Mathf.Clamp01(strength);
+        }
+
+        public void SetClonePaddleEnabled(bool enabled)
+        {
+            EnsureClonePaddle();
+
+            if (clonePaddleObject != null)
+            {
+                clonePaddleObject.SetActive(enabled);
+            }
         }
 
         public bool IsPointInsideSplitGap(float worldX)
@@ -241,6 +257,41 @@ namespace GetBricked.Gameplay
 
             var cycleTime = Mathf.Repeat(Time.time, LagSpikeCycleSeconds);
             return cycleTime < LagSpikeMaxPauseSeconds * lagSpikeStrength;
+        }
+
+        private void EnsureClonePaddle()
+        {
+            if (clonePaddleObject != null)
+            {
+                return;
+            }
+
+            var sourceRenderer = GetComponentInChildren<SpriteRenderer>();
+            clonePaddleObject = new GameObject("Clone Paddle");
+            clonePaddleObject.transform.SetParent(transform, false);
+            clonePaddleObject.transform.localPosition = new Vector3(0f, ClonePaddleYOffset, 0f);
+            clonePaddleObject.transform.localScale = new Vector3(ClonePaddleWidthMultiplier, 0.76f, 1f);
+
+            clonePaddleCollider = clonePaddleObject.AddComponent<BoxCollider2D>();
+
+            var sourceCollider = GetComponent<BoxCollider2D>();
+
+            if (sourceCollider != null)
+            {
+                clonePaddleCollider.sharedMaterial = sourceCollider.sharedMaterial;
+            }
+
+            clonePaddleRenderer = clonePaddleObject.AddComponent<SpriteRenderer>();
+
+            if (sourceRenderer != null)
+            {
+                clonePaddleRenderer.sprite = sourceRenderer.sprite;
+                clonePaddleRenderer.color = sourceRenderer.color;
+                clonePaddleRenderer.sharedMaterial = sourceRenderer.sharedMaterial;
+            }
+
+            clonePaddleRenderer.sortingOrder = ClonePaddleSortingOrder;
+            clonePaddleObject.SetActive(false);
         }
 
         private float ReadHorizontalInput()

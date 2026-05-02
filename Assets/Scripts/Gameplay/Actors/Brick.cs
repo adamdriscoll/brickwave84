@@ -32,6 +32,7 @@ namespace GetBricked.Gameplay
         private Color themedBaseColor;
         private Color themedDamagedColor;
         private float visibilityMultiplier = 1f;
+        private float jammerStrength;
 
         public BrickDefinition Definition => definition;
 
@@ -84,6 +85,11 @@ namespace GetBricked.Gameplay
             RefreshVisual();
         }
 
+        public void SetJammerStrength(float strength)
+        {
+            jammerStrength = Mathf.Clamp01(strength);
+        }
+
         public void SetMovementBounds(Rect bounds)
         {
             if (bounds.width <= 0.01f || bounds.height <= 0.01f)
@@ -104,6 +110,13 @@ namespace GetBricked.Gameplay
                 {
                     return;
                 }
+            }
+
+            if (jammerStrength > 0.001f)
+            {
+                brickBody.linearVelocity = Vector2.zero;
+                brickBody.angularVelocity *= 1f - jammerStrength;
+                return;
             }
 
             if (hasMotion)

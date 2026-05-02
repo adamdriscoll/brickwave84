@@ -80,7 +80,12 @@ namespace GetBricked.Gameplay
             float splitPaddleGapNormalized,
             float gravityWellStrength,
             float fogVisibilityMultiplier,
-            float lagSpikeStrength)
+            float lagSpikeStrength,
+            float brickMagnetStrength,
+            float scoreMultiplier,
+            bool paddleCloneEnabled,
+            float brickJammerStrength,
+            float hotPotatoStrength)
         {
             PaddleWidthMultiplier = paddleWidthMultiplier;
             WavyPaddleStrength = wavyPaddleStrength;
@@ -94,6 +99,11 @@ namespace GetBricked.Gameplay
             GravityWellStrength = gravityWellStrength;
             FogVisibilityMultiplier = fogVisibilityMultiplier;
             LagSpikeStrength = lagSpikeStrength;
+            BrickMagnetStrength = brickMagnetStrength;
+            ScoreMultiplier = scoreMultiplier;
+            PaddleCloneEnabled = paddleCloneEnabled;
+            BrickJammerStrength = brickJammerStrength;
+            HotPotatoStrength = hotPotatoStrength;
         }
 
         public float PaddleWidthMultiplier { get; }
@@ -119,6 +129,16 @@ namespace GetBricked.Gameplay
         public float FogVisibilityMultiplier { get; }
 
         public float LagSpikeStrength { get; }
+
+        public float BrickMagnetStrength { get; }
+
+        public float ScoreMultiplier { get; }
+
+        public bool PaddleCloneEnabled { get; }
+
+        public float BrickJammerStrength { get; }
+
+        public float HotPotatoStrength { get; }
     }
 
     internal readonly struct BreakoutPowerUpApplicationResult
@@ -148,6 +168,11 @@ namespace GetBricked.Gameplay
         private float gravityWellStrength;
         private float fogVisibilityMultiplier;
         private float lagSpikeStrength;
+        private float brickMagnetStrength;
+        private float scoreMultiplier;
+        private bool paddleCloneEnabled;
+        private float brickJammerStrength;
+        private float hotPotatoStrength;
 
         public BreakoutEffectModifierAccumulator(float basePaddleWidthMultiplier, float baseWavyPaddleStrength)
         {
@@ -163,6 +188,11 @@ namespace GetBricked.Gameplay
             gravityWellStrength = 0f;
             fogVisibilityMultiplier = 1f;
             lagSpikeStrength = 0f;
+            brickMagnetStrength = 0f;
+            scoreMultiplier = 1f;
+            paddleCloneEnabled = false;
+            brickJammerStrength = 0f;
+            hotPotatoStrength = 0f;
         }
 
         public void Apply(BreakoutActiveTimedEffect activeEffect)
@@ -214,6 +244,23 @@ namespace GetBricked.Gameplay
                 case PowerUpEffectType.LagSpike:
                     lagSpikeStrength = Mathf.Max(lagSpikeStrength, Mathf.Clamp01(powerUpDefinition.Scalar * effectStrength));
                     break;
+                case PowerUpEffectType.BrickMagnet:
+                    brickMagnetStrength = Mathf.Max(brickMagnetStrength, Mathf.Clamp01(powerUpDefinition.Scalar * effectStrength));
+                    break;
+                case PowerUpEffectType.ScoreMultiplier:
+                    scoreMultiplier *= Mathf.Pow(powerUpDefinition.Scalar, effectStrength);
+                    break;
+                case PowerUpEffectType.PaddleClone:
+                    paddleCloneEnabled = true;
+                    break;
+                case PowerUpEffectType.BrickJammer:
+                    brickJammerStrength = Mathf.Max(brickJammerStrength, Mathf.Clamp01(powerUpDefinition.Scalar * effectStrength));
+                    break;
+                case PowerUpEffectType.HotPotatoBall:
+                    timedBallSpeedMultiplier *= Mathf.Pow(powerUpDefinition.Scalar, effectStrength);
+                    scoreMultiplier *= Mathf.Pow(Mathf.Max(1f, powerUpDefinition.Scalar), effectStrength);
+                    hotPotatoStrength = Mathf.Max(hotPotatoStrength, Mathf.Clamp01((powerUpDefinition.Scalar - 1f) * effectStrength));
+                    break;
             }
         }
 
@@ -231,8 +278,26 @@ namespace GetBricked.Gameplay
                 splitPaddleGapNormalized,
                 gravityWellStrength,
                 fogVisibilityMultiplier,
-                lagSpikeStrength);
+                lagSpikeStrength,
+                brickMagnetStrength,
+                Mathf.Max(0.1f, scoreMultiplier),
+                paddleCloneEnabled,
+                brickJammerStrength,
+                hotPotatoStrength);
         }
+    }
+
+    internal readonly struct BreakoutPowerUpDropCandidate
+    {
+        public BreakoutPowerUpDropCandidate(PowerUpDefinition definition, float weight)
+        {
+            Definition = definition;
+            Weight = Mathf.Max(0f, weight);
+        }
+
+        public PowerUpDefinition Definition { get; }
+
+        public float Weight { get; }
     }
 
     internal sealed class BreakoutPowerUpService
@@ -343,7 +408,7 @@ namespace GetBricked.Gameplay
             }
 
             var brickDefinition = brick.Definition;
-            var dropTable = brickDefinition.DropTable;
+            var dropTable = BuildDropCandidates(brickDefinition, activeRunSettings, activeRunState);
             var forcePickupDrops = activeRunSettings?.ForcePickupDropsOnBreak == true;
             var effectiveDropChance = forcePickupDrops
                 ? 1f
@@ -362,7 +427,7 @@ namespace GetBricked.Gameplay
 
             for (var index = 0; index < dropTable.Length; index++)
             {
-                if (!IsDropAllowed(activeRunSettings, activeRunState, dropTable[index].PowerUpDefinition))
+                if (!IsDropAllowed(activeRunSettings, activeRunState, dropTable[index].Definition))
                 {
                     continue;
                 }
@@ -382,7 +447,7 @@ namespace GetBricked.Gameplay
             {
                 var entry = dropTable[index];
 
-                if (!IsDropAllowed(activeRunSettings, activeRunState, entry.PowerUpDefinition))
+                if (!IsDropAllowed(activeRunSettings, activeRunState, entry.Definition))
                 {
                     continue;
                 }
@@ -394,7 +459,7 @@ namespace GetBricked.Gameplay
                     continue;
                 }
 
-                selectedPowerUp = entry.PowerUpDefinition;
+                selectedPowerUp = entry.Definition;
                 break;
             }
 
@@ -620,6 +685,42 @@ namespace GetBricked.Gameplay
                 DropPoolMode.Disabled => false,
                 _ => true,
             };
+        }
+
+        private static BreakoutPowerUpDropCandidate[] BuildDropCandidates(
+            BrickDefinition brickDefinition,
+            RunSettings activeRunSettings,
+            BreakoutRunState activeRunState)
+        {
+            if (activeRunSettings != null && activeRunSettings.IsRogueMode && activeRunState != null)
+            {
+                var unlockedDrops = activeRunState.UnlockedDropDefinitions;
+                var candidates = new List<BreakoutPowerUpDropCandidate>();
+
+                for (var index = 0; index < unlockedDrops.Count; index++)
+                {
+                    var definition = unlockedDrops[index];
+
+                    if (definition == null)
+                    {
+                        continue;
+                    }
+
+                    candidates.Add(new BreakoutPowerUpDropCandidate(definition, definition.IsBeneficial ? 1f : 0.72f));
+                }
+
+                return candidates.ToArray();
+            }
+
+            var dropTable = brickDefinition.DropTable;
+            var authoredCandidates = new BreakoutPowerUpDropCandidate[dropTable.Length];
+
+            for (var index = 0; index < dropTable.Length; index++)
+            {
+                authoredCandidates[index] = new BreakoutPowerUpDropCandidate(dropTable[index].PowerUpDefinition, dropTable[index].Weight);
+            }
+
+            return authoredCandidates;
         }
 
         private PowerUpPickup CreatePickup(

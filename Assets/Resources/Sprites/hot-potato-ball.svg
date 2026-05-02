@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
+  <title id="title">Hot Potato Ball</title>
+  <desc id="desc">A monochrome neon icon showing a flaming ball with warning triangles.</desc>
+  <defs>
+    <filter id="softGlow" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="2.25" result="blur"/><feColorMatrix in="blur" type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 .8 0" result="glow"/><feMerge><feMergeNode in="glow"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+    <style><![CDATA[.icon{fill:none;stroke:#fff;stroke-linecap:round;stroke-linejoin:round;filter:url(#softGlow)}.main{stroke-width:8}.mid{stroke-width:5;opacity:.88}.thin{stroke-width:3.5;opacity:.5}.fill{fill:#fff;stroke:none;opacity:.9;filter:url(#softGlow)}]]></style>
+  </defs>
+  <g class="icon">
+    <path class="mid" d="M94 109 C76 74, 99 50, 118 33 C111 62, 136 66, 136 96 C149 77, 170 74, 181 53 C185 89, 172 111, 159 128"/>
+    <circle class="main" cx="128" cy="151" r="42"/>
+    <path class="thin" d="M104 144 C116 130, 138 130, 152 145"/>
+    <circle class="fill" cx="111" cy="158" r="3"/><circle class="fill" cx="145" cy="158" r="3"/>
+    <path class="mid" d="M52 203 l20 -34 l20 34 z M164 203 l20 -34 l20 34 z"/>
+    <path class="thin" d="M72 181 v10 M184 181 v10"/>
+  </g>
+</svg>

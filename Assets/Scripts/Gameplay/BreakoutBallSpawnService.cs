@@ -89,6 +89,7 @@ namespace GetBricked.Gameplay
             var activeEffects = effectResolver();
             ball.SetPhaseThroughBricks(activeEffects.PhaseBallEnabled);
             ball.SetGravityWell(gravityWellCenterResolver(), activeEffects.GravityWellStrength);
+            ball.SetHotPotatoStrength(activeEffects.HotPotatoStrength);
 
             return ball;
         }

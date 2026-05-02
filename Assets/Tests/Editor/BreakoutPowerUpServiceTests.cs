@@ -50,6 +50,32 @@ public sealed class BreakoutPowerUpServiceTests
     }
 
     [Test]
+    public void CalculateEffectModifiersIncludesNewArcadeDrops()
+    {
+        var service = CreateService();
+        var magnet = CreatePowerUp("Brick Magnet", PowerUpEffectType.BrickMagnet, true, 10f, 0.38f);
+        var scoreSurge = CreatePowerUp("Score Surge", PowerUpEffectType.ScoreMultiplier, true, 10f, 2f);
+        var clone = CreatePowerUp("Paddle Clone", PowerUpEffectType.PaddleClone, true, 10f, 1f);
+        var jammer = CreatePowerUp("Brick Jammer", PowerUpEffectType.BrickJammer, false, 8f, 0.75f);
+        var hotPotato = CreatePowerUp("Hot Potato Ball", PowerUpEffectType.HotPotatoBall, true, 9f, 1.28f);
+
+        service.ApplyPowerUp(magnet, null);
+        service.ApplyPowerUp(scoreSurge, null);
+        service.ApplyPowerUp(clone, null);
+        service.ApplyPowerUp(jammer, null);
+        service.ApplyPowerUp(hotPotato, null);
+
+        var modifiers = service.CalculateEffectModifiers(1f, 0f);
+
+        Assert.That(modifiers.BrickMagnetStrength, Is.EqualTo(0.38f).Within(0.0001f));
+        Assert.That(modifiers.ScoreMultiplier, Is.EqualTo(2f * 1.28f).Within(0.0001f));
+        Assert.That(modifiers.PaddleCloneEnabled, Is.True);
+        Assert.That(modifiers.BrickJammerStrength, Is.EqualTo(0.75f).Within(0.0001f));
+        Assert.That(modifiers.TimedBallSpeedMultiplier, Is.EqualTo(1.28f).Within(0.0001f));
+        Assert.That(modifiers.HotPotatoStrength, Is.GreaterThan(0f));
+    }
+
+    [Test]
     public void CalculateEffectModifiersRunSettingsOverloadUsesSameBaseMultiplierPath()
     {
         var service = CreateService();

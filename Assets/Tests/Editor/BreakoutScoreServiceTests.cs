@@ -57,6 +57,26 @@ public sealed class BreakoutScoreServiceTests
         Assert.That(award.BonusLabel, Is.EqualTo("SLAM CHAIN"));
     }
 
+    [Test]
+    public void BuildBrickScoreAwardAddsScoreMultiplierBonus()
+    {
+        var service = new BreakoutScoreService();
+        var brick = CreateBrick(scoreValue: 100);
+        var context = new BreakoutScoreContext(
+            activeBallCount: 1,
+            displayedBallSpeed: 8f,
+            baseBallSpeed: 8f,
+            currentTimeSeconds: 10f,
+            scoreMultiplier: 2f);
+
+        var award = service.BuildBrickScoreAward(brick, null, BrickDestructionCause.Impact, context);
+
+        Assert.That(award.BasePoints, Is.EqualTo(100));
+        Assert.That(award.BonusPoints, Is.EqualTo(100));
+        Assert.That(award.TotalPoints, Is.EqualTo(200));
+        Assert.That(award.BonusLabel, Is.EqualTo("SCORE SURGE"));
+    }
+
     private Brick CreateBrick(int scoreValue)
     {
         brickObject = new GameObject("Scoring Brick");

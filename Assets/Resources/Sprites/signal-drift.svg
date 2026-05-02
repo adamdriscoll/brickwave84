@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
+  <title id="title">Signal Drift</title>
+  <desc id="desc">A monochrome neon icon showing a paddle with delayed ghost silhouettes.</desc>
+  <defs>
+    <filter id="softGlow" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="2.25" result="blur"/><feColorMatrix in="blur" type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 .8 0" result="glow"/><feMerge><feMergeNode in="glow"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+    <style><![CDATA[.icon{fill:none;stroke:#fff;stroke-linecap:round;stroke-linejoin:round;filter:url(#softGlow)}.main{stroke-width:8}.mid{stroke-width:5;opacity:.72}.thin{stroke-width:3.5;opacity:.43}.fill{fill:#fff;stroke:none;opacity:.86;filter:url(#softGlow)}]]></style>
+  </defs>
+  <g class="icon">
+    <rect class="thin" x="28" y="141" width="154" height="22" rx="11"/>
+    <rect class="mid" x="51" y="165" width="154" height="22" rx="11"/>
+    <rect class="main" x="74" y="189" width="154" height="24" rx="12"/>
+    <path class="thin" d="M46 78 C76 51, 111 51, 141 78 M68 103 C91 83, 116 83, 139 103 M91 128 C106 116, 123 116, 138 128"/>
+    <circle class="fill" cx="151" cy="72" r="4"/><circle class="fill" cx="151" cy="102" r="3"/><circle class="fill" cx="151" cy="130" r="2.5"/>
+  </g>
+</svg>

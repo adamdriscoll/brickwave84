@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
+  <title id="title">Score Surge</title>
+  <desc id="desc">A monochrome neon x2 mark with lightning rays.</desc>
+  <defs>
+    <filter id="softGlow" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="2.25" result="blur"/><feColorMatrix in="blur" type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 .8 0" result="glow"/><feMerge><feMergeNode in="glow"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+    <style><![CDATA[.icon{fill:none;stroke:#fff;stroke-linecap:round;stroke-linejoin:round;filter:url(#softGlow)}.main{stroke-width:12}.mid{stroke-width:7;opacity:.88}.thin{stroke-width:4;opacity:.5}.fill{fill:#fff;stroke:none;opacity:.92;filter:url(#softGlow)}]]></style>
+  </defs>
+  <g class="icon">
+    <circle class="thin" cx="128" cy="128" r="82"/>
+    <path class="main" d="M65 95 L111 161 M111 95 L65 161"/>
+    <path class="main" d="M146 104 C168 82 202 99 192 128 C185 149 153 151 145 174 H200"/>
+    <path class="fill" d="M129 35 l-12 43 h28 l-25 58 l10 -45 h-27 z"/>
+    <path class="thin" d="M39 55 l18 20 M217 55 l-18 20 M37 202 l21 -17 M219 202 l-21 -17"/>
+  </g>
+</svg>

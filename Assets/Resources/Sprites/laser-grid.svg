@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
+  <title id="title">Laser Grid</title>
+  <desc id="desc">A monochrome neon icon showing a paddle firing three vertical laser beams.</desc>
+  <defs>
+    <filter id="softGlow" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="2.25" result="blur"/>
+      <feColorMatrix in="blur" type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 .8 0" result="glow"/>
+      <feMerge><feMergeNode in="glow"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <style><![CDATA[
+      .icon{fill:none;stroke:#fff;stroke-linecap:round;stroke-linejoin:round;filter:url(#softGlow)}
+      .main{stroke-width:8}.mid{stroke-width:5;opacity:.88}.thin{stroke-width:3.5;opacity:.55}.fill{fill:#fff;stroke:none;opacity:.9;filter:url(#softGlow)}
+    ]]></style>
+  </defs>
+  <g class="icon">
+    <rect class="main" x="44" y="194" width="168" height="24" rx="12"/>
+    <line class="thin" x1="74" y1="198" x2="74" y2="214"/><line class="thin" x1="182" y1="198" x2="182" y2="214"/>
+    <line class="main" x1="82" y1="182" x2="82" y2="42"/><line class="main" x1="128" y1="182" x2="128" y2="32"/><line class="main" x1="174" y1="182" x2="174" y2="42"/>
+    <line class="thin" x1="94" y1="178" x2="94" y2="52"/><line class="thin" x1="140" y1="178" x2="140" y2="44"/><line class="thin" x1="186" y1="178" x2="186" y2="52"/>
+    <path class="mid" d="M49 158 H207"/><path class="thin" d="M56 121 H200"/><path class="thin" d="M64 84 H192"/>
+    <path class="fill" d="M128 15 L134 29 L148 35 L134 41 L128 55 L122 41 L108 35 L122 29 Z"/>
+  </g>
+</svg>

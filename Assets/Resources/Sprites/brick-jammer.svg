@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
+  <title id="title">Brick Jammer</title>
+  <desc id="desc">A monochrome neon icon showing a brick interrupted by glitch scanlines.</desc>
+  <defs>
+    <filter id="softGlow" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="2.25" result="blur"/><feColorMatrix in="blur" type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 .8 0" result="glow"/><feMerge><feMergeNode in="glow"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+    <style><![CDATA[.icon{fill:none;stroke:#fff;stroke-linecap:round;stroke-linejoin:round;filter:url(#softGlow)}.main{stroke-width:8}.mid{stroke-width:5;opacity:.86}.thin{stroke-width:3.5;opacity:.52}.fill{fill:#fff;stroke:none;opacity:.86;filter:url(#softGlow)}]]></style>
+  </defs>
+  <g class="icon">
+    <path class="main" d="M52 82 h152 v91 h-58 l-12 18 l-19 -18 H52 Z"/>
+    <path class="mid" d="M52 112 h70 M145 112 h59 M52 141 h44 M118 141 h86"/>
+    <path class="thin" d="M83 62 l15 16 M173 62 l-15 16 M34 104 h21 M201 194 h25 M32 155 h38 M185 65 h34"/>
+    <path class="fill" d="M126 91 l-15 38 h22 l-18 44 l38 -56 h-23 l15 -26 z"/>
+  </g>
+</svg>

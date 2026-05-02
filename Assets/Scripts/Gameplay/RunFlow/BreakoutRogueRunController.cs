@@ -80,6 +80,28 @@ namespace GetBricked.Gameplay
             return draftService.GenerateDraft(runState, runSettings, runSettings.Seed, levelIndex, DraftOfferCount);
         }
 
+        public int UnlockHazardsForClearedLevel(BreakoutRunState runState)
+        {
+            if (runState == null)
+            {
+                return 0;
+            }
+
+            var hazards = BuildSortedHazardDropPool();
+            var targetHazardCount = Mathf.Min(hazards.Count, GetAutoHazardUnlockCount(runState.ClearedLevelCount));
+            var unlockedCount = 0;
+
+            for (var index = 0; index < targetHazardCount; index++)
+            {
+                if (runState.UnlockDrop(hazards[index]))
+                {
+                    unlockedCount++;
+                }
+            }
+
+            return unlockedCount;
+        }
+
         public float GetStageBallSpeedMultiplier(int levelIndex)
         {
             return BreakoutRunProgression.GetRogueStageBallSpeedMultiplier(levelIndex);
@@ -130,6 +152,32 @@ namespace GetBricked.Gameplay
             }
 
             return startingDrops;
+        }
+
+        private List<PowerUpDefinition> BuildSortedHazardDropPool()
+        {
+            var hazards = new List<PowerUpDefinition>();
+
+            for (var index = 0; index < loadedPowerUpDefinitions.Count; index++)
+            {
+                var definition = loadedPowerUpDefinitions[index];
+
+                if (definition != null && !definition.IsBeneficial)
+                {
+                    hazards.Add(definition);
+                }
+            }
+
+            hazards.Sort((left, right) => string.Compare(
+                BreakoutPowerUpIdentity.GetStableId(left),
+                BreakoutPowerUpIdentity.GetStableId(right),
+                StringComparison.OrdinalIgnoreCase));
+            return hazards;
+        }
+
+        private static int GetAutoHazardUnlockCount(int clearedLevelCount)
+        {
+            return clearedLevelCount <= 0 ? 0 : 1 + ((clearedLevelCount - 1) / 2);
         }
 
         private static bool IsStartingDrop(PowerUpDefinition definition)

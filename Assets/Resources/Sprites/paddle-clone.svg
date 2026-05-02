@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
+  <title id="title">Paddle Clone</title>
+  <desc id="desc">A monochrome neon icon with two stacked glowing paddles.</desc>
+  <defs>
+    <filter id="softGlow" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="2.25" result="blur"/><feColorMatrix in="blur" type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 .8 0" result="glow"/><feMerge><feMergeNode in="glow"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+    <style><![CDATA[.icon{fill:none;stroke:#fff;stroke-linecap:round;stroke-linejoin:round;filter:url(#softGlow)}.main{stroke-width:8}.mid{stroke-width:6;opacity:.86}.thin{stroke-width:3.5;opacity:.5}.fill{fill:#fff;stroke:none;opacity:.88;filter:url(#softGlow)}]]></style>
+  </defs>
+  <g class="icon">
+    <rect class="mid" x="67" y="92" width="122" height="22" rx="11"/>
+    <rect class="main" x="43" y="156" width="170" height="26" rx="13"/>
+    <path class="thin" d="M72 128 C91 140, 105 142, 124 130 M184 128 C165 140, 151 142, 132 130"/>
+    <line class="thin" x1="76" y1="160" x2="76" y2="178"/><line class="thin" x1="180" y1="160" x2="180" y2="178"/>
+    <path class="fill" d="M128 50 L135 66 L152 73 L135 80 L128 96 L121 80 L104 73 L121 66 Z"/>
+  </g>
+</svg>

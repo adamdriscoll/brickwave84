@@ -289,6 +289,7 @@ namespace GetBricked.Gameplay
         private void Update()
         {
             UpdateTimedEffects();
+            RefreshBrickMagnetTargets();
             UpdatePickupBanner();
             audioService?.Update(Time.unscaledDeltaTime);
             scoreService?.UpdateFloatingScorePopups(Time.unscaledDeltaTime);
@@ -3282,8 +3283,10 @@ namespace GetBricked.Gameplay
             var baseSpeed = GetBallSpeedBase();
             var currentSpeed = GetDisplayedBallSpeed();
             var maxSpeed = GetMaximumBallSpeed();
+            var speedScoreMultiplier = scoreService?.GetScoreMultiplierForSpeed(currentSpeed, ballSpeed) ?? 1f;
+            var scoreMultiplier = speedScoreMultiplier * Mathf.Max(0.1f, activeEffectModifiers.ScoreMultiplier);
             return
-                $"Ball Speed {currentSpeed:0.00} | Score x{(scoreService?.GetScoreMultiplierForSpeed(currentSpeed, ballSpeed) ?? 1f):0.00} | Base {baseSpeed:0.00} | Manual x{manualBallSpeedMultiplier:0.00} | Cap {maxSpeed:0.00}";
+                $"Ball Speed {currentSpeed:0.00} | Score x{scoreMultiplier:0.00} | Base {baseSpeed:0.00} | Manual x{manualBallSpeedMultiplier:0.00} | Cap {maxSpeed:0.00}";
         }
 
         private string BuildRoundStateLabel()
@@ -3474,6 +3477,11 @@ namespace GetBricked.Gameplay
                     0f,
                     0f,
                     1f,
+                    0f,
+                    0f,
+                    1f,
+                    false,
+                    0f,
                     0f);
             paddle.SetMoveSpeed(currentLevelPaddleSpeed * (activeRunSettings?.PaddleSpeedMultiplier ?? 1f));
             paddle.SetWidthMultiplier(activeEffectModifiers.PaddleWidthMultiplier);
@@ -3481,6 +3489,7 @@ namespace GetBricked.Gameplay
             paddle.SetControlsReversed(activeEffectModifiers.ReverseControlsEnabled);
             paddle.SetSplitGapWidthNormalized(activeEffectModifiers.SplitPaddleGapNormalized);
             paddle.SetLagSpikeStrength(activeEffectModifiers.LagSpikeStrength);
+            paddle.SetClonePaddleEnabled(activeEffectModifiers.PaddleCloneEnabled);
 
             var currentBallSpeed = GetCurrentBallSpeed();
             var gravityWellCenter = new Vector2(0f, (arenaTop + arenaBottom) * 0.5f);
@@ -3490,6 +3499,7 @@ namespace GetBricked.Gameplay
                 serveBall.SetMovementSpeed(currentBallSpeed);
                 serveBall.SetPhaseThroughBricks(activeEffectModifiers.PhaseBallEnabled);
                 serveBall.SetGravityWell(gravityWellCenter, activeEffectModifiers.GravityWellStrength);
+                serveBall.SetHotPotatoStrength(activeEffectModifiers.HotPotatoStrength);
             }
 
             for (var index = activeBalls.Count - 1; index >= 0; index--)
@@ -3505,9 +3515,11 @@ namespace GetBricked.Gameplay
                 activeBall.SetMovementSpeed(currentBallSpeed);
                 activeBall.SetPhaseThroughBricks(activeEffectModifiers.PhaseBallEnabled);
                 activeBall.SetGravityWell(gravityWellCenter, activeEffectModifiers.GravityWellStrength);
+                activeBall.SetHotPotatoStrength(activeEffectModifiers.HotPotatoStrength);
             }
 
             ApplyVisualEffectState();
+            ApplyBrickJammerState();
             UpdateShieldWallVisual();
 
             if (stickyCaughtBall != null && !activeEffectModifiers.StickyPaddleEnabled)
@@ -3663,7 +3675,12 @@ namespace GetBricked.Gameplay
 
         private BreakoutScoreContext BuildScoreContext()
         {
-            return new BreakoutScoreContext(activeBalls.Count, GetDisplayedBallSpeed(), ballSpeed, Time.time);
+            return new BreakoutScoreContext(
+                activeBalls.Count,
+                GetDisplayedBallSpeed(),
+                ballSpeed,
+                Time.time,
+                activeEffectModifiers.ScoreMultiplier);
         }
 
         private float GetDisplayedBallSpeed()
@@ -3728,6 +3745,11 @@ namespace GetBricked.Gameplay
             }
 
             activeRunState.RegisterLevelClear();
+            if (activeRunSettings.IsRogueMode)
+            {
+                rogueRunController?.UnlockHazardsForClearedLevel(activeRunState);
+            }
+
             var offers = activeRunSettings.IsRogueMode && rogueRunController != null
                 ? rogueRunController.GenerateDraft(activeRunState, activeRunSettings, currentLevelIndex)
                 : upgradeDraftService.GenerateDraft(activeRunState, activeRunSettings, activeRunSettings.Seed, currentLevelIndex, 3);
@@ -3872,6 +3894,11 @@ namespace GetBricked.Gameplay
                 PowerUpEffectType.PhaseBall => $"Phase ball for {definition.DurationSeconds:0.#}s",
                 PowerUpEffectType.ChainLightning => $"Chain hits for {definition.DurationSeconds:0.#}s",
                 PowerUpEffectType.ActiveDropMultiplier => $"Active effects x{definition.Scalar:0.00}",
+                PowerUpEffectType.BrickMagnet => $"Brick pull for {definition.DurationSeconds:0.#}s",
+                PowerUpEffectType.ScoreMultiplier => $"Score x{definition.Scalar:0.00} for {definition.DurationSeconds:0.#}s",
+                PowerUpEffectType.PaddleClone => $"Clone rail for {definition.DurationSeconds:0.#}s",
+                PowerUpEffectType.BrickJammer => $"Brick jam for {definition.DurationSeconds:0.#}s",
+                PowerUpEffectType.HotPotatoBall => $"Ball x{definition.Scalar:0.00}, score x{definition.Scalar:0.00}",
                 _ => $"{definition.HudLabel} for {definition.DurationSeconds:0.#}s",
             };
         }
@@ -4125,6 +4152,123 @@ namespace GetBricked.Gameplay
             }
 
             backgroundPresenter?.ApplyVisibilityMultiplier(visibilityMultiplier);
+        }
+
+        private void ApplyBrickJammerState()
+        {
+            var jammerStrength = activeEffectModifiers.BrickJammerStrength;
+
+            for (var index = bricks.Count - 1; index >= 0; index--)
+            {
+                var brick = bricks[index];
+
+                if (brick == null)
+                {
+                    bricks.RemoveAt(index);
+                    continue;
+                }
+
+                brick.SetJammerStrength(jammerStrength);
+            }
+        }
+
+        private void RefreshBrickMagnetTargets()
+        {
+            if (activeEffectModifiers.BrickMagnetStrength <= 0.001f)
+            {
+                ClearBrickMagnetTargets();
+                return;
+            }
+
+            ApplyBrickMagnetTarget(serveBall);
+
+            for (var index = activeBalls.Count - 1; index >= 0; index--)
+            {
+                var activeBall = activeBalls[index];
+
+                if (activeBall == null)
+                {
+                    activeBalls.RemoveAt(index);
+                    continue;
+                }
+
+                ApplyBrickMagnetTarget(activeBall);
+            }
+        }
+
+        private void ClearBrickMagnetTargets()
+        {
+            serveBall?.SetBrickMagnetTarget(Vector2.zero, 0f);
+
+            for (var index = activeBalls.Count - 1; index >= 0; index--)
+            {
+                var activeBall = activeBalls[index];
+
+                if (activeBall == null)
+                {
+                    activeBalls.RemoveAt(index);
+                    continue;
+                }
+
+                activeBall.SetBrickMagnetTarget(Vector2.zero, 0f);
+            }
+        }
+
+        private void ApplyBrickMagnetTarget(BallController ball)
+        {
+            if (ball == null)
+            {
+                return;
+            }
+
+            if (TryFindNearestBreakableBrick(ball.transform.position, out var targetPosition))
+            {
+                ball.SetBrickMagnetTarget(targetPosition, activeEffectModifiers.BrickMagnetStrength);
+                return;
+            }
+
+            ball.SetBrickMagnetTarget(Vector2.zero, 0f);
+        }
+
+        private bool TryFindNearestBreakableBrick(Vector2 sourcePosition, out Vector2 targetPosition)
+        {
+            Brick nearestBrick = null;
+            var nearestDistanceSquared = float.PositiveInfinity;
+
+            for (var index = bricks.Count - 1; index >= 0; index--)
+            {
+                var brick = bricks[index];
+
+                if (brick == null)
+                {
+                    bricks.RemoveAt(index);
+                    continue;
+                }
+
+                if (brick.Definition == null || !brick.Definition.IsBreakable)
+                {
+                    continue;
+                }
+
+                var distanceSquared = ((Vector2)brick.transform.position - sourcePosition).sqrMagnitude;
+
+                if (distanceSquared >= nearestDistanceSquared)
+                {
+                    continue;
+                }
+
+                nearestDistanceSquared = distanceSquared;
+                nearestBrick = brick;
+            }
+
+            if (nearestBrick == null)
+            {
+                targetPosition = Vector2.zero;
+                return false;
+            }
+
+            targetPosition = nearestBrick.transform.position;
+            return true;
         }
 
         private void UpdateShieldWallVisual()

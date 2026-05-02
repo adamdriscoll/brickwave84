@@ -6,12 +6,13 @@ namespace GetBricked.Gameplay
 {
     internal readonly struct BreakoutScoreContext
     {
-        public BreakoutScoreContext(int activeBallCount, float displayedBallSpeed, float baseBallSpeed, float currentTimeSeconds)
+        public BreakoutScoreContext(int activeBallCount, float displayedBallSpeed, float baseBallSpeed, float currentTimeSeconds, float scoreMultiplier = 1f)
         {
             ActiveBallCount = Mathf.Max(0, activeBallCount);
             DisplayedBallSpeed = displayedBallSpeed;
             BaseBallSpeed = baseBallSpeed;
             CurrentTimeSeconds = currentTimeSeconds;
+            ScoreMultiplier = Mathf.Max(0.1f, scoreMultiplier);
         }
 
         public int ActiveBallCount { get; }
@@ -21,6 +22,8 @@ namespace GetBricked.Gameplay
         public float BaseBallSpeed { get; }
 
         public float CurrentTimeSeconds { get; }
+
+        public float ScoreMultiplier { get; }
     }
 
     internal readonly struct BrickScoreAward
@@ -72,6 +75,7 @@ namespace GetBricked.Gameplay
                 : context.DisplayedBallSpeed;
             var awardedBasePoints = Mathf.Max(1, Mathf.RoundToInt(baseScore * GetScoreMultiplierForSpeed(scoringSpeed, context.BaseBallSpeed)));
             var comboBonuses = new List<ScoreComboBonus>(3);
+            TryAddScoreMultiplierBonus(awardedBasePoints, context.ScoreMultiplier, comboBonuses);
             TryAddSlamChainBonus(awardedBasePoints, context.CurrentTimeSeconds, comboBonuses);
             TryAddBankShotBonus(awardedBasePoints, scoringBall, destructionCause, comboBonuses);
             TryAddPartySplitBonus(awardedBasePoints, scoringBall, context, comboBonuses);
@@ -193,6 +197,17 @@ namespace GetBricked.Gameplay
             return string.IsNullOrWhiteSpace(bonusLabel)
                 ? "COMBO BONUS!"
                 : $"COMBO BONUS: {bonusLabel}!";
+        }
+
+        private static void TryAddScoreMultiplierBonus(int awardedBasePoints, float scoreMultiplier, List<ScoreComboBonus> comboBonuses)
+        {
+            if (scoreMultiplier <= 1.001f)
+            {
+                return;
+            }
+
+            var bonusPoints = Mathf.Max(1, Mathf.RoundToInt(awardedBasePoints * (scoreMultiplier - 1f)));
+            comboBonuses.Add(new ScoreComboBonus("SCORE SURGE", bonusPoints));
         }
 
         private void TryAddSlamChainBonus(int awardedBasePoints, float currentTimeSeconds, List<ScoreComboBonus> comboBonuses)

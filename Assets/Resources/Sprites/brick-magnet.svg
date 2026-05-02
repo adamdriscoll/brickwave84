@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
+  <title id="title">Brick Magnet</title>
+  <desc id="desc">A monochrome neon icon showing a magnet pulling square bricks.</desc>
+  <defs>
+    <filter id="softGlow" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="2.25" result="blur"/><feColorMatrix in="blur" type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 .8 0" result="glow"/><feMerge><feMergeNode in="glow"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+    <style><![CDATA[.icon{fill:none;stroke:#fff;stroke-linecap:round;stroke-linejoin:round;filter:url(#softGlow)}.main{stroke-width:10}.mid{stroke-width:6;opacity:.88}.thin{stroke-width:3.5;opacity:.5}.fill{fill:#fff;stroke:none;opacity:.86;filter:url(#softGlow)}]]></style>
+  </defs>
+  <g class="icon">
+    <path class="main" d="M77 86 v52 c0 32 22 54 51 54 s51-22 51-54 V86"/>
+    <path class="mid" d="M77 86 h38 v48 c0 8 5 14 13 14 s13-6 13-14 V86 h38"/>
+    <rect class="mid" x="61" y="60" width="54" height="28" rx="5"/><rect class="mid" x="141" y="60" width="54" height="28" rx="5"/>
+    <rect class="fill" x="35" y="118" width="18" height="18" rx="3"/><rect class="fill" x="202" y="118" width="18" height="18" rx="3"/>
+    <rect class="fill" x="43" y="158" width="14" height="14" rx="2"/><rect class="fill" x="197" y="158" width="14" height="14" rx="2"/>
+    <path class="thin" d="M62 127 C79 120, 91 119, 106 124 M194 127 C177 120, 165 119, 150 124"/>
+  </g>
+</svg>

@@ -23,6 +23,10 @@ namespace GetBricked.Gameplay
         private bool phaseThroughBricks;
         private float gravityWellStrength;
         private Vector2 gravityWellPoint;
+        private float brickMagnetStrength;
+        private Vector2 brickMagnetPoint;
+        private float hotPotatoStrength;
+        private float hotPotatoSpeedMultiplier = 1f;
         private Vector2 lastTravelDirection = Vector2.up;
         private int ricochetCountSinceLastBrick;
 
@@ -58,6 +62,7 @@ namespace GetBricked.Gameplay
             hasLaunched = false;
             attachedToPaddle = false;
             ClearSpeedBurst();
+            ResetHotPotato();
             ricochetCountSinceLastBrick = 0;
 
             if (ballBody == null)
@@ -92,6 +97,7 @@ namespace GetBricked.Gameplay
 
             attachedToPaddle = false;
             hasLaunched = true;
+            ResetHotPotato();
             ricochetCountSinceLastBrick = 0;
 
             var launchDirection = direction.sqrMagnitude > 0.001f
@@ -130,6 +136,22 @@ namespace GetBricked.Gameplay
             gravityWellStrength = Mathf.Clamp01(strength);
         }
 
+        public void SetBrickMagnetTarget(Vector2 targetPoint, float strength)
+        {
+            brickMagnetPoint = targetPoint;
+            brickMagnetStrength = Mathf.Clamp01(strength);
+        }
+
+        public void SetHotPotatoStrength(float strength)
+        {
+            hotPotatoStrength = Mathf.Clamp01(strength);
+
+            if (hotPotatoStrength <= 0.001f)
+            {
+                hotPotatoSpeedMultiplier = 1f;
+            }
+        }
+
         public void AttachToPaddle()
         {
             if (ballBody == null)
@@ -140,6 +162,7 @@ namespace GetBricked.Gameplay
             attachedToPaddle = true;
             hasLaunched = false;
             ClearSpeedBurst();
+            ResetHotPotato();
             ricochetCountSinceLastBrick = 0;
 
             if (ballBody != null)
@@ -227,6 +250,7 @@ namespace GetBricked.Gameplay
             hasLaunched = false;
             attachedToPaddle = false;
             ClearSpeedBurst();
+            ResetHotPotato();
             ricochetCountSinceLastBrick = 0;
 
             if (ballBody != null)
@@ -295,6 +319,7 @@ namespace GetBricked.Gameplay
 
             UpdateSpeedBurstTimer();
             ApplyGravityWell();
+            ApplyBrickMagnet();
             ClampBallVelocity();
         }
 
@@ -304,6 +329,8 @@ namespace GetBricked.Gameplay
             {
                 return;
             }
+
+            RegisterHotPotatoHit();
 
             if (collision.collider.TryGetComponent<BreakoutPaddlePunkBoss>(out var bossPaddle)
                 && gameController != null
@@ -428,7 +455,7 @@ namespace GetBricked.Gameplay
 
         private float GetTargetSpeed()
         {
-            return launchSpeed * Mathf.Max(1f, speedBurstMultiplier);
+            return launchSpeed * Mathf.Max(1f, speedBurstMultiplier) * Mathf.Max(1f, hotPotatoSpeedMultiplier);
         }
 
         private void ContinueThroughBrickImpact()
@@ -474,10 +501,60 @@ namespace GetBricked.Gameplay
             ballBody.linearVelocity = curvedDirection * GetTargetSpeed();
         }
 
+        private void ApplyBrickMagnet()
+        {
+            if (ballBody == null || brickMagnetStrength <= 0.001f)
+            {
+                return;
+            }
+
+            var pullVector = brickMagnetPoint - ballBody.position;
+
+            if (pullVector.sqrMagnitude <= 0.0001f)
+            {
+                return;
+            }
+
+            var currentDirection = ballBody.linearVelocity.sqrMagnitude > 0.01f
+                ? ballBody.linearVelocity.normalized
+                : lastTravelDirection.normalized;
+            var bendFactor = brickMagnetStrength * Time.fixedDeltaTime * 4.4f;
+            var curvedDirection = (currentDirection + (pullVector.normalized * bendFactor)).normalized;
+
+            if (curvedDirection.sqrMagnitude <= 0.0001f)
+            {
+                return;
+            }
+
+            lastTravelDirection = curvedDirection;
+            ballBody.linearVelocity = curvedDirection * GetTargetSpeed();
+        }
+
         private void ClearSpeedBurst()
         {
             speedBurstMultiplier = 1f;
             speedBurstTimeRemaining = 0f;
+        }
+
+        private void ResetHotPotato()
+        {
+            hotPotatoSpeedMultiplier = 1f;
+        }
+
+        private void RegisterHotPotatoHit()
+        {
+            if (ballBody == null || hotPotatoStrength <= 0.001f)
+            {
+                return;
+            }
+
+            var rampMultiplier = 1.065f + (hotPotatoStrength * 0.1f);
+            hotPotatoSpeedMultiplier = Mathf.Min(2.25f, Mathf.Max(1f, hotPotatoSpeedMultiplier) * rampMultiplier);
+
+            if (ballBody.linearVelocity.sqrMagnitude > 0.01f)
+            {
+                ballBody.linearVelocity = ballBody.linearVelocity.normalized * GetTargetSpeed();
+            }
         }
 
         private void RegisterRicochet()

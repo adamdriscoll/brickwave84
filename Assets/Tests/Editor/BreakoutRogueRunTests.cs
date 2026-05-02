@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Reflection;
 using GetBricked.Gameplay;
 using GetBricked.Gameplay.Data;
 using NUnit.Framework;
@@ -8,6 +9,7 @@ public sealed class BreakoutRogueRunTests
 {
     private const string LastRogueResultKey = "GetBricked.Rogue.LastResult";
     private const string RogueProgressKey = "GetBricked.Rogue.IntensityProgress";
+    private const BindingFlags InstanceFlags = BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public;
 
     [SetUp]
     public void SetUp()
@@ -332,6 +334,45 @@ public sealed class BreakoutRogueRunTests
     }
 
     [Test]
+    public void RogueRunControllerAutomaticallyUnlocksHazardsAsStagesAdvance()
+    {
+        var helpful = CreatePowerUp("Laser Grid", "laser_grid", beneficial: true);
+        var blackout = CreatePowerUp("Blackout", "blackout", beneficial: false);
+        var jammer = CreatePowerUp("Brick Jammer", "brick_jammer", beneficial: false);
+        var drift = CreatePowerUp("Signal Drift", "signal_drift", beneficial: false);
+
+        try
+        {
+            var controller = new BreakoutRogueRunController(
+                new List<RunUpgradeDefinition>(),
+                new List<PowerUpDefinition> { helpful, drift, jammer, blackout });
+            var runState = new BreakoutRunState();
+
+            controller.InitializeRunState(runState);
+            Assert.That(runState.IsDropUnlocked(blackout), Is.False);
+
+            runState.RegisterLevelClear();
+            Assert.That(controller.UnlockHazardsForClearedLevel(runState), Is.EqualTo(1));
+            Assert.That(runState.IsDropUnlocked(blackout), Is.True);
+            Assert.That(runState.IsDropUnlocked(jammer), Is.False);
+
+            runState.RegisterLevelClear();
+            Assert.That(controller.UnlockHazardsForClearedLevel(runState), Is.Zero);
+
+            runState.RegisterLevelClear();
+            Assert.That(controller.UnlockHazardsForClearedLevel(runState), Is.EqualTo(1));
+            Assert.That(runState.IsDropUnlocked(jammer), Is.True);
+        }
+        finally
+        {
+            Object.DestroyImmediate(helpful);
+            Object.DestroyImmediate(blackout);
+            Object.DestroyImmediate(jammer);
+            Object.DestroyImmediate(drift);
+        }
+    }
+
+    [Test]
     public void DeveloperRunsDoNotRecordRogueResults()
     {
         var settings = new RunSettings(
@@ -453,5 +494,24 @@ public sealed class BreakoutRogueRunTests
             null,
             RunGameMode.Rogue,
             intensity);
+    }
+
+    private static PowerUpDefinition CreatePowerUp(string displayName, string powerUpId, bool beneficial)
+    {
+        var powerUp = ScriptableObject.CreateInstance<PowerUpDefinition>();
+        SetPrivateField(powerUp, "displayName", displayName);
+        SetPrivateField(powerUp, "hudLabel", displayName.ToUpperInvariant());
+        SetPrivateField(powerUp, "powerUpId", powerUpId);
+        SetPrivateField(powerUp, "beneficial", beneficial);
+        SetPrivateField(powerUp, "durationSeconds", 10f);
+        SetPrivateField(powerUp, "scalar", 1f);
+        return powerUp;
+    }
+
+    private static void SetPrivateField(object instance, string fieldName, object value)
+    {
+        var field = instance.GetType().GetField(fieldName, InstanceFlags);
+        Assert.That(field, Is.Not.Null, $"Missing field '{fieldName}' on {instance.GetType().Name}.");
+        field.SetValue(instance, value);
     }
 }
