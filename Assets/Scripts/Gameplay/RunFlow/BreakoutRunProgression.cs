@@ -18,5 +18,10 @@ namespace GetBricked.Gameplay
         {
             return Mathf.Clamp01(Mathf.Max(0, levelIndex) / (float)(TargetLevelCount - 1));
         }
+
+        public static float GetRogueStageBallSpeedMultiplier(int levelIndex)
+        {
+            return Mathf.Lerp(1f, 1.1f, GetLevelProgress(levelIndex));
+        }
     }
 }

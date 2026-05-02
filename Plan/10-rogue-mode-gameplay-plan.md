@@ -331,10 +331,10 @@ Implement `The Brickasaurus Wrecks` and `The Mainframe Maniac` once the run, rew
 
 ## Open Questions
 
-- Should boss gates count as extra encounters or occupy stages within the 10-stage contract?
-- Should boss rewards always be current-run relics, meta unlocks, or a mix?
-- Should drop unlock rewards be purely beneficial at low intensity, with power-down unlocks arriving later?
-- How much should paddle-specific upgrades appear in general drafts versus paddle-focused pools?
-- Should `Seed Breaker Mode` be a post-run modifier, a high-intensity rule, or a separate challenge lane?
-- Which intensity bands should remain score-valid for daily or leaderboard comparison?
+- Should boss gates count as extra encounters or occupy stages within the 10-stage contract? Extra
+- Should boss rewards always be current-run relics, meta unlocks, or a mix? Mix
+- Should drop unlock rewards be purely beneficial at low intensity, with power-down unlocks arriving later? Power-downs later
+- How much should paddle-specific upgrades appear in general drafts versus paddle-focused pools? We want to support paddle synergies without forcing them, so probably a mix with clear tagging.
+- Should `Seed Breaker Mode` be a post-run modifier, a high-intensity rule, or a separate challenge lane? High-intensity rule seems best for now, as it creates a clear risk-reward decision for players climbing intensity.
+- Which intensity bands should remain score-valid for daily or leaderboard comparison? Let's not have score-chasing at all for rogue. That's just in the custom\classic game.
 

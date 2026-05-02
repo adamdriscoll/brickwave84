@@ -26,6 +26,7 @@ namespace GetBricked.Gameplay
         public string DropSummaryLabel = string.Empty;
         public string PreviewValidation = string.Empty;
         public string PendingValidationMessage = string.Empty;
+        public string LastRogueResultSummary = string.Empty;
     }
 
     internal sealed class BreakoutMainMenuService
@@ -56,7 +57,7 @@ namespace GetBricked.Gameplay
             return new BreakoutUiMenuView
             {
                 Title = "Get Bricked",
-                Subtitle = "Choose the cabinet channel. Custom Game is playable now; the new Rogue, multiplayer, and settings lanes are staged for buildout.",
+                Subtitle = "Choose the cabinet channel. Rogue starts a fixed 10-stage mixtape; Custom Game keeps the full tape-tuning bench.",
                 SectionTitle = "Mode Select",
                 ActionLabels = BuildActionLabels(actions),
                 ActionGroupLabels = BuildActionGroupLabels(actions),
@@ -65,7 +66,7 @@ namespace GetBricked.Gameplay
                 PreviewLines = BuildPreviewLines(selectedAction, context),
                 ValidationText = BuildValidationText(selectedAction, context),
                 FooterText = BuildFooterText(selectedAction),
-                HintText = "Up/Down selects. Space confirms. Custom Game opens the current seeded run setup. Other channels are placeholders for upcoming sessions.",
+                HintText = "Up/Down selects. Space confirms. Rogue starts now. Custom Game opens seeded setup. Other channels are staged for upcoming sessions.",
             };
         }
 
@@ -137,7 +138,7 @@ namespace GetBricked.Gameplay
         {
             return action switch
             {
-                BreakoutMainMenuAction.Rogue => "Rogue Run Shell",
+                BreakoutMainMenuAction.Rogue => "Rogue Run",
                 BreakoutMainMenuAction.CustomGame => "Custom Game Loadout",
                 BreakoutMainMenuAction.DualSticks => "Versus Shell",
                 BreakoutMainMenuAction.Coop => "Co-op Shell",
@@ -155,10 +156,12 @@ namespace GetBricked.Gameplay
                 case BreakoutMainMenuAction.Rogue:
                     return new[]
                     {
-                        "Singleplayer run-builder mode.",
-                        "Future: progression, unlocks, intensities, and cabinet heat.",
-                        "Goal: become the main roguelite path once the meta layer lands.",
-                        "Status: placeholder shell.",
+                        "10 stages. 3 balls. One fresh Tape ID.",
+                        "Draft one permanent cabinet mod after each cleared stage.",
+                        "Boss gates, intensity, and paddle unlocks are staged next.",
+                        string.IsNullOrWhiteSpace(context.LastRogueResultSummary)
+                            ? "Last Run: no Rogue tape recorded yet."
+                            : context.LastRogueResultSummary,
                     };
                 case BreakoutMainMenuAction.CustomGame:
                     var previewSettings = context.PreviewSettings;
@@ -234,7 +237,7 @@ namespace GetBricked.Gameplay
             return action switch
             {
                 BreakoutMainMenuAction.CustomGame => "Custom Game is the current playable setup path with Tape ID editing, score mode tuning, modifier tweaks, and theme cycling.",
-                BreakoutMainMenuAction.Rogue => "Rogue is reserved for the new progression-forward singleplayer path.",
+                BreakoutMainMenuAction.Rogue => "Rogue launches the first progression-forward singleplayer run: fixed rules, seeded stages, draft rewards, and a saved result.",
                 BreakoutMainMenuAction.SoundSettings => "Sound controls are staged here so mixer work has a clear home.",
                 BreakoutMainMenuAction.GraphicsSettings => "Graphics controls are staged here so display and readability options have a clear home.",
                 _ => "Multiplayer channels are staged as menu shells until the shared-screen architecture is ready.",

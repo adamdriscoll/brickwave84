@@ -17,6 +17,8 @@ namespace GetBricked.Gameplay
         private const string PowerUpSpriteResourcePath = "Sprites/powerup";
         private const float LaserShotCooldownSeconds = 0.3f;
         private const float ShieldWallYOffset = 0.38f;
+        private const string DefaultRoguePaddleLabel = BreakoutRogueRunResultStore.DefaultPaddleLabel;
+        private const int RogueStartingLives = 3;
 
         private enum RoundState
         {
@@ -169,6 +171,7 @@ namespace GetBricked.Gameplay
         private float manualBallSpeedHoldTimer;
         private bool isDiagnosticsOverlayVisible;
         private int selectedUpgradeDraftIndex;
+        private bool activeRunResultRecorded;
         private BreakoutEffectModifiers activeEffectModifiers;
         private BallController stickyCaughtBall;
         private SpriteRenderer shieldWallRenderer;
@@ -313,7 +316,7 @@ namespace GetBricked.Gameplay
 
             if (keyboard.rKey.wasPressedThisFrame)
             {
-                EnterRunSetup();
+                ReturnToLaunchSurface();
                 return;
             }
 
@@ -460,6 +463,8 @@ namespace GetBricked.Gameplay
                 selectedOverlayActionIndex = 0;
                 SetSimulationPaused(false);
                 ClearPickups();
+                RecordRogueRunResult(completed: false);
+
                 if (!isServeBall)
                 {
                     DestroyRuntimeObject(lostBall.gameObject);
@@ -590,6 +595,7 @@ namespace GetBricked.Gameplay
             livesRemaining = activeRunSettings.StartingLives;
             lifeLossCount = 0;
             score = 0;
+            activeRunResultRecorded = false;
             currentLevelIndex = 0;
             currentLevelVariationLabel = "Variation: pending";
             shieldWallCharges = 0;
@@ -603,7 +609,7 @@ namespace GetBricked.Gameplay
             LoadLevel(currentLevelIndex, RoundState.ReadyToServe);
 
             Debug.Log(
-                $"Starting run | seed {activeRunSettings.Seed} | preset {activeRunSettings.DifficultyLabel} | " +
+                $"Starting {activeRunSettings.GameModeLabel} run | seed {activeRunSettings.Seed} | preset {activeRunSettings.DifficultyLabel} | " +
                 $"score mode {activeRunSettings.ScoringModeLabel} | life loss penalty {activeRunSettings.LifeLossScorePenalty} | " +
                 $"balls/serve {activeRunSettings.BallsPerServe} | paddle x{activeRunSettings.PaddleWidthMultiplier:0.00} | " +
                 $"ball speed x{activeRunSettings.BallSpeedMultiplier:0.00} | brick durability x{activeRunSettings.BrickDurabilityMultiplier:0.00} | " +
@@ -797,7 +803,7 @@ namespace GetBricked.Gameplay
 
             if (keyboard.rKey.wasPressedThisFrame)
             {
-                EnterRunSetup();
+                ReturnToLaunchSurface();
                 return;
             }
 
@@ -885,20 +891,48 @@ namespace GetBricked.Gameplay
 
         private OverlayAction[] GetOverlayActionsForState(RoundState state)
         {
+            var isRogueRun = activeRunSettings != null && activeRunSettings.IsRogueMode;
+
             return state switch
             {
-                RoundState.Paused => new[]
-                {
-                    OverlayAction.Resume,
-                    OverlayAction.RestartRun,
-                    OverlayAction.ReturnToRunSetup,
-                    OverlayAction.ReturnToMainMenu,
-                    OverlayAction.QuitGame,
-                },
+                RoundState.Paused => isRogueRun
+                    ? new[]
+                    {
+                        OverlayAction.Resume,
+                        OverlayAction.RestartRun,
+                        OverlayAction.ReturnToMainMenu,
+                        OverlayAction.QuitGame,
+                    }
+                    : new[]
+                    {
+                        OverlayAction.Resume,
+                        OverlayAction.RestartRun,
+                        OverlayAction.ReturnToRunSetup,
+                        OverlayAction.ReturnToMainMenu,
+                        OverlayAction.QuitGame,
+                    },
                 RoundState.LevelComplete => HasNextLevel()
                     ? new[]
                     {
                         OverlayAction.NextLevel,
+                        OverlayAction.RestartRun,
+                        OverlayAction.ReturnToMainMenu,
+                    }
+                    : isRogueRun
+                        ? new[]
+                        {
+                            OverlayAction.RestartRun,
+                            OverlayAction.ReturnToMainMenu,
+                        }
+                        : new[]
+                    {
+                        OverlayAction.RestartRun,
+                        OverlayAction.ReturnToRunSetup,
+                        OverlayAction.ReturnToMainMenu,
+                    },
+                RoundState.GameOver => isRogueRun
+                    ? new[]
+                    {
                         OverlayAction.RestartRun,
                         OverlayAction.ReturnToMainMenu,
                     }
@@ -908,12 +942,6 @@ namespace GetBricked.Gameplay
                         OverlayAction.ReturnToRunSetup,
                         OverlayAction.ReturnToMainMenu,
                     },
-                RoundState.GameOver => new[]
-                {
-                    OverlayAction.RestartRun,
-                    OverlayAction.ReturnToRunSetup,
-                    OverlayAction.ReturnToMainMenu,
-                },
                 _ => Array.Empty<OverlayAction>(),
             };
         }
@@ -923,7 +951,7 @@ namespace GetBricked.Gameplay
             switch (action)
             {
                 case OverlayAction.ReturnToRunSetup:
-                    EnterRunSetup();
+                    ReturnToLaunchSurface();
                     break;
                 case OverlayAction.Resume:
                     ResumeGameplay();
@@ -953,6 +981,12 @@ namespace GetBricked.Gameplay
 
         private void PerformMainMenuAction(BreakoutMainMenuAction action)
         {
+            if (action == BreakoutMainMenuAction.Rogue)
+            {
+                StartRogueRun();
+                return;
+            }
+
             if (action == BreakoutMainMenuAction.CustomGame)
             {
                 EnterRunSetup();
@@ -960,6 +994,38 @@ namespace GetBricked.Gameplay
             }
 
             pendingValidationMessage = mainMenuService?.BuildPlaceholderMessage(action) ?? string.Empty;
+        }
+
+        private void ReturnToLaunchSurface()
+        {
+            if (activeRunSettings != null && activeRunSettings.IsRogueMode)
+            {
+                EnterMainMenu();
+                return;
+            }
+
+            EnterRunSetup();
+        }
+
+        private void StartRogueRun()
+        {
+            activeRunSettings = new RunSettings(
+                GenerateSeed(),
+                RunDifficultyPreset.Standard,
+                RunScoringMode.Classic,
+                RogueStartingLives,
+                lifeLossScorePenalty,
+                1,
+                1f,
+                1f,
+                1f,
+                1f,
+                DropPoolMode.Mixed,
+                false,
+                ResolvePendingThemeDefinition(),
+                RunGameMode.Rogue);
+            pendingValidationMessage = "Rogue tape loaded: 10 stages, 3 balls, draft rewards, no score-chase mode.";
+            StartNewRun();
         }
 
         private bool CanPauseRoundState(RoundState state)
@@ -1276,7 +1342,7 @@ namespace GetBricked.Gameplay
             if (levelPlan == null)
             {
                 currentLevelPaddleSpeed = paddleSpeed;
-                currentLevelBallSpeed = ballSpeed * persistentModifiers.BallSpeedMultiplier;
+                currentLevelBallSpeed = ballSpeed * GetModeBallSpeedMultiplier() * persistentModifiers.BallSpeedMultiplier;
                 ApplyActiveEffects();
                 return;
             }
@@ -1285,6 +1351,7 @@ namespace GetBricked.Gameplay
             currentLevelBallSpeed = ballSpeed
                 * Mathf.Max(0.5f, levelPlan.BallSpeedMultiplier)
                 * (activeRunSettings?.BallSpeedMultiplier ?? 1f)
+                * GetModeBallSpeedMultiplier()
                 * persistentModifiers.BallSpeedMultiplier;
             ApplyActiveEffects();
         }
@@ -1601,6 +1668,7 @@ namespace GetBricked.Gameplay
 
             roundState = RoundState.LevelComplete;
             selectedOverlayActionIndex = 0;
+            RecordRogueRunResult(completed: !HasNextLevel());
         }
 
         private bool HasNextLevel()
@@ -2029,6 +2097,7 @@ namespace GetBricked.Gameplay
         private BreakoutUiMenuView BuildMainMenuView()
         {
             var previewSettings = BuildRunSettingsFromPending(out var previewValidation);
+            BreakoutRogueRunResultStore.TryLoad(out var lastRogueResult);
             var context = new BreakoutMainMenuContext
             {
                 SelectedActionIndex = selectedMainMenuActionIndex,
@@ -2041,6 +2110,7 @@ namespace GetBricked.Gameplay
                 DropSummaryLabel = BuildDropSummaryLabel(previewSettings),
                 PreviewValidation = previewValidation,
                 PendingValidationMessage = pendingValidationMessage,
+                LastRogueResultSummary = BreakoutRogueRunResultStore.BuildSummary(lastRogueResult),
             };
 
             return mainMenuService.BuildView(context);
@@ -2166,20 +2236,24 @@ namespace GetBricked.Gameplay
         {
             var isGameOver = roundState == RoundState.GameOver;
             var title = isGameOver
-                ? "Run Over"
+                ? (activeRunSettings != null && activeRunSettings.IsRogueMode ? "Rogue Wiped Out" : "Run Over")
                 : HasNextLevel()
                     ? "Level Cleared"
-                    : "Final Layout Cleared";
+                    : (activeRunSettings != null && activeRunSettings.IsRogueMode ? "Mixtape Cleared" : "Final Layout Cleared");
             var summary = isGameOver
                 ? $"{GetScoreDisplayLabel()} {FormatScoreValue(score)} | Reached {BuildLevelLabel()} | Tape ID {activeRunSettings?.Seed.ToString(CultureInfo.InvariantCulture) ?? GetPendingSeedDisplay()}"
                 : HasNextLevel()
                     ? $"{GetScoreDisplayLabel()} {FormatScoreValue(score)} | {GetLifeCounterLabel()} {GetLifeCounterValue():00} | Next up: level {currentLevelIndex + 2:00}"
                     : $"{GetScoreDisplayLabel()} {FormatScoreValue(score)} | {GetLifeCounterLabel()} {GetLifeCounterValue():00} | Tape ID {activeRunSettings?.Seed.ToString(CultureInfo.InvariantCulture) ?? GetPendingSeedDisplay()}";
             var footer = isGameOver
-                ? "Restart the run, jump back to setup, or return to the main menu."
+                ? activeRunSettings != null && activeRunSettings.IsRogueMode
+                    ? "Restart the run or return to the main menu."
+                    : "Restart the run, jump back to setup, or return to the main menu."
                 : HasNextLevel()
                     ? "Advance to the next stage, restart the run, or return to the menu."
-                    : "The 10-stage run is complete. Restart, tune a new setup, or head back to the menu.";
+                    : activeRunSettings != null && activeRunSettings.IsRogueMode
+                        ? "The 10-stage mixtape is complete. Restart or head back to the menu."
+                        : "The 10-stage run is complete. Restart, tune a new setup, or head back to the menu.";
             return new BreakoutUiOverlayView
             {
                 Title = title,
@@ -2511,7 +2585,7 @@ namespace GetBricked.Gameplay
             }
 
             var summary =
-                $"Tape ID: {activeRunSettings.Seed} | {activeRunSettings.DifficultyLabel} | {BuildScoreModeSummaryLabel(activeRunSettings)} | {BuildRetrySummaryLabel(activeRunSettings)} | Balls/Serve {GetEffectiveBallsPerServe()} | " +
+                $"{activeRunSettings.GameModeLabel} | Tape ID: {activeRunSettings.Seed} | {activeRunSettings.DifficultyLabel} | {BuildScoreModeSummaryLabel(activeRunSettings)} | {BuildRetrySummaryLabel(activeRunSettings)} | Balls/Serve {GetEffectiveBallsPerServe()} | " +
                 $"Theme: {activeRunSettings.ThemeLabel} | Drops: {BuildDropSummaryLabel(activeRunSettings)} | Paddle x{activeRunSettings.PaddleWidthMultiplier:0.00} | Ball x{activeRunSettings.BallSpeedMultiplier:0.00} | Build {GetChosenUpgradeCount():00}";
             return summary;
         }
@@ -2776,6 +2850,13 @@ namespace GetBricked.Gameplay
             return GetBallSpeedBase() * Mathf.Clamp(manualBallSpeedMultiplier, 1f, Mathf.Max(1f, manualBallSpeedMaxMultiplier));
         }
 
+        private float GetModeBallSpeedMultiplier()
+        {
+            return activeRunSettings != null && activeRunSettings.IsRogueMode
+                ? BreakoutRunProgression.GetRogueStageBallSpeedMultiplier(currentLevelIndex)
+                : 1f;
+        }
+
         private int GetLifeLossScorePenalty()
         {
             return activeRunSettings != null && activeRunSettings.UsesLifeLossScorePenalty
@@ -2786,6 +2867,23 @@ namespace GetBricked.Gameplay
         private bool UsesHighScoreMode()
         {
             return activeRunSettings != null && activeRunSettings.ScoringMode == RunScoringMode.HighScore;
+        }
+
+        private void RecordRogueRunResult(bool completed)
+        {
+            if (activeRunResultRecorded || activeRunSettings == null || !activeRunSettings.IsRogueMode)
+            {
+                return;
+            }
+
+            activeRunResultRecorded = true;
+            var result = BreakoutRogueRunResultStore.BuildResult(
+                activeRunSettings,
+                completed,
+                currentLevelIndex + 1,
+                DefaultRoguePaddleLabel,
+                score);
+            BreakoutRogueRunResultStore.Save(result);
         }
 
         private void ApplyLifeLossScorePenalty()

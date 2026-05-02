@@ -23,6 +23,12 @@ namespace GetBricked.Gameplay.Data
         HighScore = 1,
     }
 
+    public enum RunGameMode
+    {
+        CustomGame = 0,
+        Rogue = 1,
+    }
+
     public sealed class RunSettings
     {
         public RunSettings(
@@ -38,11 +44,13 @@ namespace GetBricked.Gameplay.Data
             float dropChanceMultiplier,
             DropPoolMode dropPoolMode,
             bool forcePickupDropsOnBreak,
-            ThemeDefinition themeDefinition)
+            ThemeDefinition themeDefinition,
+            RunGameMode gameMode = RunGameMode.CustomGame)
         {
             Seed = seed == int.MinValue ? int.MaxValue : Mathf.Abs(seed);
             DifficultyPreset = difficultyPreset;
             ScoringMode = scoringMode;
+            GameMode = gameMode;
             StartingLives = Mathf.Max(1, startingLives);
             LifeLossScorePenalty = Mathf.Max(0, lifeLossScorePenalty);
             BallsPerServe = Mathf.Clamp(ballsPerServe, 1, 4);
@@ -60,6 +68,8 @@ namespace GetBricked.Gameplay.Data
         public RunDifficultyPreset DifficultyPreset { get; }
 
         public RunScoringMode ScoringMode { get; }
+
+        public RunGameMode GameMode { get; }
 
         public int StartingLives { get; }
 
@@ -88,6 +98,14 @@ namespace GetBricked.Gameplay.Data
             RunScoringMode.HighScore => "High Score",
             _ => "Classic",
         };
+
+        public string GameModeLabel => GameMode switch
+        {
+            RunGameMode.Rogue => "Rogue",
+            _ => "Custom Game",
+        };
+
+        public bool IsRogueMode => GameMode == RunGameMode.Rogue;
 
         public bool UsesLifeLossScorePenalty => ScoringMode == RunScoringMode.HighScore && LifeLossScorePenalty > 0;
 
