@@ -1,4 +1,4 @@
-# Get Bricked — Synthwave Background Music Loops
+# Brickwave '84 — Synthwave Background Music Loops
 
 Three loopable background tracks for an 1980s retro arcade / synthwave Breakout-style game.
 
@@ -32,7 +32,7 @@ Three loopable background tracks for an 1980s retro arcade / synthwave Breakout-
 
 ## Notes
 
-Designed to loop cleanly and stay in the same sonic family as the Get Bricked synthwave SFX pack:
+Designed to loop cleanly and stay in the same sonic family as the Brickwave '84 synthwave SFX pack:
 - saw / square synth bass
 - bright arpeggios
 - gated-style retro drums

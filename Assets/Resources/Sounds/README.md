@@ -1,4 +1,4 @@
-# Get Bricked — 1980s Synthwave Arcade SFX Pack
+# Brickwave '84 — 1980s Synthwave Arcade SFX Pack
 
 These are short mono WAV sound effects designed for a retro breakout-style game with a synthwave / neon arcade feel. They are intentionally simple so they cut through music without taking over the mix.
 

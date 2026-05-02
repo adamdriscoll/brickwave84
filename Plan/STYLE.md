@@ -1,8 +1,8 @@
-# Get Bricked Style Guide
+# Brickwave '84 Style Guide
 
 ## Core Direction
 
-`Get Bricked` should look like a brick-breaker being played inside an oversized neon arcade cabinet. The target style is `1980s synthwave retro-futurism`: dark violet skies, electric cyan and hot magenta highlights, chrome-like UI accents, perspective grids, and controlled CRT-style glow.
+`Brickwave '84` should look like a brick-breaker being played inside an oversized neon arcade cabinet. The target style is `1980s synthwave retro-futurism`: dark violet skies, electric cyan and hot magenta highlights, chrome-like UI accents, perspective grids, and controlled CRT-style glow.
 
 The short version is:
 

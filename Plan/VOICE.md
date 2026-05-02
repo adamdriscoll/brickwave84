@@ -1,6 +1,6 @@
-# Get Bricked — 80s Arcade Voice & Labeling Guide
+# Brickwave '84 — 80s Arcade Voice & Labeling Guide
 
-This file defines the naming, tone, slang, and UI text conventions for **Get Bricked**, a synthwave/retro arcade brick-breaker. It is intended for a coding agent to use when naming power-ups, bricks, levels, achievements, menus, pickups, event callouts, and result screens.
+This file defines the naming, tone, slang, and UI text conventions for **Brickwave '84**, a synthwave/retro arcade brick-breaker. It is intended for a coding agent to use when naming power-ups, bricks, levels, achievements, menus, pickups, event callouts, and result screens.
 
 ## 1. Creative Target
 
@@ -512,7 +512,7 @@ Generation patterns:
 
 | UI Element | Recommended Label | Alternatives |
 |---|---|---|
-| Start game | Press Start | Get Bricked, Start Run, Drop Token |
+| Start game | Press Start | Brickwave '84, Start Run, Drop Token |
 | Daily run | Daily Tape | Today’s Tape, Daily Mixtape |
 | Seeded run | Tape ID | Cabinet Code, Grid Code |
 | Level select | Stage Select | Pick a Stage, Choose Track |
@@ -542,7 +542,7 @@ Keep these big, short, and readable.
 #### Start / ready
 
 - READY!
-- GET BRICKED!
+- BRICKWAVE '84!
 - PLAYER ONE, GO!
 - DROP IN!
 - LOCK THE GRID!

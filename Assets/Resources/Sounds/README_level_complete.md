@@ -1,4 +1,4 @@
-# Get Bricked – Level Completion SFX
+# Brickwave '84 – Level Completion SFX
 
 ## File
 

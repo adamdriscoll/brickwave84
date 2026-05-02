@@ -1,4 +1,4 @@
-# Get Bricked — Special Brick Synthwave SFX
+# Brickwave '84 — Special Brick Synthwave SFX
 
 Extra one-shot WAV effects for special brick behavior. Designed to match the existing 1980s retro arcade / synthwave sound set: short, bright, synthetic, and easy to layer under music.
 

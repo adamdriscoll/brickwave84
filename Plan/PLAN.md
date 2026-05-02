@@ -1,10 +1,10 @@
-# Get Bricked Plan
+# Brickwave '84 Plan
 
 ## Planning Reset
 
 This plan replaces the earlier roadmap that assumed the project still needed its first vertical slice. That is no longer true.
 
-`Get Bricked` already has a real playable runtime with seeded run setup, procedural level progression, lives, drops, themes, temporary UI flow, and data-driven content hooks. The new plan starts from that baseline and pushes the game toward a stronger identity:
+`Brickwave '84` already has a real playable runtime with seeded run setup, procedural level progression, lives, drops, themes, temporary UI flow, and data-driven content hooks. The new plan starts from that baseline and pushes the game toward a stronger identity:
 
 `a run-based arcade roguelite built on brick-breaker feel`
 

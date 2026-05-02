@@ -1,8 +1,8 @@
-# Get Bricked Overview
+# Brickwave '84 Overview
 
 ## Product Reframe
 
-`Get Bricked` should no longer be planned as a straight brick-breaker that gradually adds more levels, more bricks, and eventually multiplayer. The current game has already moved past that starting line.
+`Brickwave '84` should no longer be planned as a straight brick-breaker that gradually adds more levels, more bricks, and eventually multiplayer. The current game has already moved past that starting line.
 
 The stronger direction is:
 

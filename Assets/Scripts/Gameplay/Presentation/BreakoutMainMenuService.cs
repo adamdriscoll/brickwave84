@@ -59,7 +59,7 @@ namespace GetBricked.Gameplay
 
             return new BreakoutUiMenuView
             {
-                Title = "Get Bricked",
+                Title = "Brickwave '84",
                 Subtitle = "Choose the cabinet channel. Rogue starts a fixed 10-stage mixtape; Custom Game keeps the full tape-tuning bench.",
                 SectionTitle = "Mode Select",
                 ActionLabels = BuildActionLabels(actions),

@@ -1,4 +1,4 @@
-# Get Bricked — Ball Lost SFX
+# Brickwave '84 — Ball Lost SFX
 
 Two synthwave arcade sounds for when the ball drops below the paddle and disappears into the void.
 

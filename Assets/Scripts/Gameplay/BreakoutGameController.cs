@@ -2562,7 +2562,7 @@ namespace GetBricked.Gameplay
 
             if (roundState == RoundState.MainMenu)
             {
-                uiRenderer.DrawCabinetBackdrop(BuildChromeView("Get Bricked", "Synthwave Cabinet", true));
+                uiRenderer.DrawCabinetBackdrop(BuildChromeView("Brickwave '84", "Synthwave Cabinet", true));
                 uiRenderer.DrawMainMenu(BuildMainMenuView(), HandleMainMenuActionClick);
                 return;
             }

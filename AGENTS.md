@@ -2,13 +2,14 @@
 
 ## Project Snapshot
 
-- `Get Bricked` is a functioning Unity 6 brick-breaker / arcade roguelite game in active development.
+- `Brickwave '84` is a functioning Unity 6 brick-breaker / arcade roguelite game in active development.
 - Unity editor version: `6000.3.6f1`.
 - Render pipeline: URP with 2D renderer assets.
 - One enabled build scene: `Assets/Scenes/SampleScene.unity`.
 - The scene stays intentionally light: `Assets/Scripts/Core/BreakoutBootstrap.cs` injects the playable runtime game systems on load.
 - The project is tracked in git. Do not rewrite history or revert unrelated user changes.
 - There are no `.asmdef` files and no prefabs yet; runtime objects are currently created from code.
+- Internal namespaces, generated project files, asset menu paths, shaders, and persisted keys may still use `GetBricked` / `Get Bricked`; do not rename those unless explicitly asked.
 
 ## Current Gameplay Shape
 
@@ -82,7 +83,7 @@ python .codex/skills/unity-tests/scripts/run_unity_tests.py --platform editmode
 
 - Use Play Mode validation for scene lifecycle, collisions, physics timing, spawned runtime objects, input flow, and visual integration.
 - If Unity cannot run in the environment, report that clearly and include the closest completed validation.
-- Let Unity regenerate project files after adding or renaming scripts instead of hand-maintaining `Get Bricked.sln`.
+- Let Unity regenerate project files after adding or renaming scripts instead of hand-maintaining generated solution files.
 
 ## Local Skills
 

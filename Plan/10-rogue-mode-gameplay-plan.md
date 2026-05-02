@@ -8,7 +8,7 @@ This is a gameplay plan, not an implementation spec. The details should change a
 
 ## Mode Promise
 
-`Rogue` is the primary progression mode for `Get Bricked`.
+`Rogue` is the primary progression mode for `Brickwave '84`.
 
 The player starts a run with one paddle type, 3 lives, a generated seed, and a small active content pool. They clear a 10-stage mixtape, draft a reward after each cleared stage, survive three boss gates, and either wipe out or complete the run to push that paddle to a higher intensity.
 

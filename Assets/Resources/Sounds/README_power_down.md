@@ -1,4 +1,4 @@
-# Get Bricked - Power Down SFX
+# Brickwave '84 - Power Down SFX
 
 Negative pickup sounds for 1980s synthwave arcade modifiers.
 
