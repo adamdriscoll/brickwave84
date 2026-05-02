@@ -1156,6 +1156,8 @@ namespace GetBricked.Gameplay
 
         private void StartRogueRun()
         {
+            var selectedPaddle = DefaultRoguePaddleLabel;
+            var intensity = BreakoutRogueIntensityProgressStore.GetAvailableIntensity(selectedPaddle);
             activeRunSettings = rogueRunController != null
                 ? rogueRunController.BuildRunSettings(GenerateSeed(), lifeLossScorePenalty, ResolvePendingThemeDefinition())
                 : new RunSettings(
@@ -1166,22 +1168,26 @@ namespace GetBricked.Gameplay
                     lifeLossScorePenalty,
                     1,
                     1f,
-                    1f,
+                    BreakoutRunProgression.GetRogueIntensityBallSpeedMultiplier(intensity),
                     1f,
                     1f,
                     DropPoolMode.Mixed,
                     false,
                     ResolvePendingThemeDefinition(),
-                    RunGameMode.Rogue);
-            pendingValidationMessage = "Rogue tape loaded: 10 stages, 3 balls, draft rewards, growing drop pool.";
+                    RunGameMode.Rogue,
+                    intensity,
+                    selectedPaddle);
+            pendingValidationMessage = $"Rogue tape loaded: Heat {activeRunSettings.RogueIntensity:00}/50, 10 stages, 3 balls, draft rewards, growing drop pool.";
             StartNewRun();
         }
 
         private void StartDeveloperRun()
         {
             developerLaunchState ??= new BreakoutDeveloperLaunchState();
+            var selectedPaddle = DefaultRoguePaddleLabel;
+            var intensity = BreakoutRunProgression.ClampRogueIntensity(developerLaunchState.Intensity);
             activeRunSettings = rogueRunController != null
-                ? rogueRunController.BuildRunSettings(GenerateSeed(), lifeLossScorePenalty, ResolvePendingThemeDefinition())
+                ? rogueRunController.BuildRunSettings(GenerateSeed(), lifeLossScorePenalty, ResolvePendingThemeDefinition(), intensity)
                 : new RunSettings(
                     GenerateSeed(),
                     RunDifficultyPreset.Standard,
@@ -1190,16 +1196,18 @@ namespace GetBricked.Gameplay
                     lifeLossScorePenalty,
                     1,
                     1f,
-                    1f,
+                    BreakoutRunProgression.GetRogueIntensityBallSpeedMultiplier(intensity),
                     1f,
                     1f,
                     DropPoolMode.Mixed,
                     false,
                     ResolvePendingThemeDefinition(),
-                    RunGameMode.Rogue);
+                    RunGameMode.Rogue,
+                    intensity,
+                    selectedPaddle);
 
             var encounter = developerLaunchState.ResolveEncounter();
-            pendingValidationMessage = $"Dev jump loaded: {encounter.DisplayName}.";
+            pendingValidationMessage = $"Dev jump loaded: {encounter.DisplayName} at Heat {activeRunSettings.RogueIntensity:00}.";
             StartNewRun(encounter, developerLaunchState.LivesRemaining, applyDeveloperSelections: true);
         }
 
@@ -2661,6 +2669,7 @@ namespace GetBricked.Gameplay
                 PreviewValidation = previewValidation,
                 PendingValidationMessage = pendingValidationMessage,
                 LastRogueResultSummary = BreakoutRogueRunResultStore.BuildSummary(lastRogueResult),
+                AvailableRogueIntensity = BreakoutRogueIntensityProgressStore.GetAvailableIntensity(DefaultRoguePaddleLabel),
             };
 
             return mainMenuService.BuildView(context);
@@ -2710,11 +2719,12 @@ namespace GetBricked.Gameplay
                 {
                     $"Encounter: {FormatDeveloperEncounterLabel(encounter)}",
                     $"Lives: {developerLaunchState.LivesRemaining}",
+                    $"Heat: {developerLaunchState.Intensity:00}/{BreakoutRunProgression.MaxRogueIntensity:00}",
                     $"Upgrade: {FormatDeveloperToggle(upgradeSelected)} {FormatDeveloperUpgradeLabel(currentUpgrade)}",
                     $"Drop Unlock: {FormatDeveloperToggle(dropSelected)} {FormatDeveloperDropLabel(currentDrop)}",
                 },
                 SelectedFieldIndex = (int)selectedDeveloperLaunchField,
-                PreviewLine = $"Preview: {FormatDeveloperEncounterLabel(encounter)} | Balls {developerLaunchState.LivesRemaining:00} | Build {developerLaunchState.SelectedUpgradeCount:00} upgrades, {developerLaunchState.SelectedDropUnlockCount:00} drops | Theme {ResolvePendingThemeDefinition()?.DisplayName ?? "Fallback"}",
+                PreviewLine = $"Preview: {FormatDeveloperEncounterLabel(encounter)} | Heat {developerLaunchState.Intensity:00} | Balls {developerLaunchState.LivesRemaining:00} | Build {developerLaunchState.SelectedUpgradeCount:00} upgrades, {developerLaunchState.SelectedDropUnlockCount:00} drops | Theme {ResolvePendingThemeDefinition()?.DisplayName ?? "Fallback"}",
                 ValidationText = "Encounter cycles through Stage 01-10, then Boss Gate 1-3. Dev runs do not update the saved Rogue result.",
                 HintText = "Up/Down selects. Left/Right changes. T toggles build picks. N clears build. Esc returns to menu. Space launches.",
             };
@@ -2726,6 +2736,11 @@ namespace GetBricked.Gameplay
                 ? activeCamera.WorldToScreenPoint(new Vector3(arenaLeft, 0f, 0f)).x
                 : 0f;
             var speed = GetDisplayedBallSpeed();
+            var isRogueRun = activeRunSettings != null && activeRunSettings.IsRogueMode;
+            var intensity = isRogueRun
+                ? BreakoutRunProgression.ClampRogueIntensity(activeRunSettings.RogueIntensity)
+                : BreakoutRunProgression.MinRogueIntensity;
+            var intensityProgress = BreakoutRunProgression.GetRogueIntensityProgress(intensity);
             return new BreakoutUiHudView
             {
                 TopLine = $"{GetScoreDisplayLabel().ToUpperInvariant()} {FormatScoreValue(score)}   {GetLifeCounterLabel().ToUpperInvariant()} {GetLifeCounterValue():00}   {BuildLevelLabel().ToUpperInvariant()}",
@@ -2739,6 +2754,15 @@ namespace GetBricked.Gameplay
                     IsDiagnosticsVisible = isDiagnosticsOverlayVisible,
                     Speed = speed,
                     SpeedRatio = Mathf.Clamp01(speed / Mathf.Max(0.1f, GetMaximumBallSpeed())),
+                },
+                IntensityGauge = new BreakoutUiIntensityGaugeView
+                {
+                    IsVisible = isRogueRun,
+                    Intensity = intensity,
+                    MaxIntensity = BreakoutRunProgression.MaxRogueIntensity,
+                    Progress = intensityProgress,
+                    PulseRate = Mathf.Lerp(1.6f, 8.6f, intensityProgress),
+                    Color = BreakoutRunProgression.GetRogueIntensityGaugeColor(intensity),
                 },
             };
         }
@@ -3211,9 +3235,10 @@ namespace GetBricked.Gameplay
                 return $"Tape ID: {GetPendingSeedDisplay()} | Theme: {ResolvePendingThemeDefinition()?.DisplayName ?? "Fallback"} | Preview only";
             }
 
+            var heatSummary = activeRunSettings.IsRogueMode ? $" | Heat {activeRunSettings.RogueIntensity:00}" : string.Empty;
             var summary =
                 $"{activeRunSettings.GameModeLabel} | Tape ID: {activeRunSettings.Seed} | {activeRunSettings.DifficultyLabel} | {BuildScoreModeSummaryLabel(activeRunSettings)} | {BuildRetrySummaryLabel(activeRunSettings)} | Balls/Serve {GetEffectiveBallsPerServe()} | " +
-                $"Theme: {activeRunSettings.ThemeLabel} | Drops: {BuildDropSummaryLabel(activeRunSettings)} | Paddle x{activeRunSettings.PaddleWidthMultiplier:0.00} | Ball x{activeRunSettings.BallSpeedMultiplier:0.00} | Build {GetChosenUpgradeCount():00}";
+                $"Theme: {activeRunSettings.ThemeLabel} | Drops: {BuildDropSummaryLabel(activeRunSettings)}{heatSummary} | Paddle x{activeRunSettings.PaddleWidthMultiplier:0.00} | Ball x{activeRunSettings.BallSpeedMultiplier:0.00} | Build {GetChosenUpgradeCount():00}";
             return summary;
         }
 

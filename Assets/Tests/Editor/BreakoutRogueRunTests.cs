@@ -7,17 +7,20 @@ using UnityEngine;
 public sealed class BreakoutRogueRunTests
 {
     private const string LastRogueResultKey = "GetBricked.Rogue.LastResult";
+    private const string RogueProgressKey = "GetBricked.Rogue.IntensityProgress";
 
     [SetUp]
     public void SetUp()
     {
         PlayerPrefs.DeleteKey(LastRogueResultKey);
+        PlayerPrefs.DeleteKey(RogueProgressKey);
     }
 
     [TearDown]
     public void TearDown()
     {
         PlayerPrefs.DeleteKey(LastRogueResultKey);
+        PlayerPrefs.DeleteKey(RogueProgressKey);
     }
 
     [Test]
@@ -55,6 +58,31 @@ public sealed class BreakoutRogueRunTests
         Assert.That(firstStage, Is.EqualTo(1f).Within(0.0001f));
         Assert.That(middleStage, Is.GreaterThan(firstStage));
         Assert.That(finalStage, Is.EqualTo(1.1f).Within(0.0001f));
+    }
+
+    [Test]
+    public void RogueIntensityBallSpeedMultiplierRampsAcrossFiftyHeatLevels()
+    {
+        var firstHeat = BreakoutRunProgression.GetRogueIntensityBallSpeedMultiplier(1);
+        var middleHeat = BreakoutRunProgression.GetRogueIntensityBallSpeedMultiplier(25);
+        var finalHeat = BreakoutRunProgression.GetRogueIntensityBallSpeedMultiplier(50);
+
+        Assert.That(firstHeat, Is.EqualTo(1f).Within(0.0001f));
+        Assert.That(middleHeat, Is.GreaterThan(firstHeat));
+        Assert.That(finalHeat, Is.EqualTo(1.18f).Within(0.0001f));
+    }
+
+    [Test]
+    public void RogueIntensityGaugeColorMovesFromGreenToYellowToRed()
+    {
+        var low = BreakoutRunProgression.GetRogueIntensityGaugeColor(1);
+        var mid = BreakoutRunProgression.GetRogueIntensityGaugeColor(25);
+        var high = BreakoutRunProgression.GetRogueIntensityGaugeColor(50);
+
+        Assert.That(low.g, Is.GreaterThan(low.r));
+        Assert.That(mid.r, Is.GreaterThan(0.9f));
+        Assert.That(mid.g, Is.GreaterThan(0.7f));
+        Assert.That(high.r, Is.GreaterThan(high.g));
     }
 
     [Test]
@@ -208,6 +236,9 @@ public sealed class BreakoutRogueRunTests
             state.AdjustField(BreakoutDeveloperLaunchField.Lives, 20, null, null);
             Assert.That(state.LivesRemaining, Is.EqualTo(9));
 
+            state.AdjustField(BreakoutDeveloperLaunchField.Heat, 60, null, null);
+            Assert.That(state.Intensity, Is.EqualTo(BreakoutRunProgression.MaxRogueIntensity));
+
             state.ToggleCurrentUpgrade(new[] { upgrade });
             state.ToggleCurrentDropUnlock(new[] { drop });
 
@@ -220,6 +251,7 @@ public sealed class BreakoutRogueRunTests
 
             Assert.That(state.SelectedUpgradeCount, Is.EqualTo(0));
             Assert.That(state.SelectedDropUnlockCount, Is.EqualTo(0));
+            Assert.That(state.Intensity, Is.EqualTo(BreakoutRunProgression.MaxRogueIntensity));
         }
         finally
         {
@@ -290,7 +322,8 @@ public sealed class BreakoutRogueRunTests
             DropPoolMode.Mixed,
             false,
             null,
-            RunGameMode.Rogue);
+            RunGameMode.Rogue,
+            rogueIntensity: 7);
         var result = BreakoutRogueRunResultStore.BuildResult(settings, completed: false, stageReached: 6, "Classic Paddle", 1234);
 
         BreakoutRogueRunResultStore.Save(result);
@@ -299,8 +332,77 @@ public sealed class BreakoutRogueRunTests
         Assert.That(loaded.Completed, Is.False);
         Assert.That(loaded.StageReached, Is.EqualTo(6));
         Assert.That(loaded.SelectedPaddle, Is.EqualTo("Classic Paddle"));
+        Assert.That(loaded.CurrentIntensity, Is.EqualTo(7));
         Assert.That(loaded.Seed, Is.EqualTo(9876));
         Assert.That(loaded.Score, Is.EqualTo(1234));
         Assert.That(BreakoutRogueRunResultStore.BuildSummary(loaded), Does.Contain("Wiped Out | Stage 06/10"));
+        Assert.That(BreakoutRogueRunResultStore.BuildSummary(loaded), Does.Contain("Heat 07"));
+    }
+
+    [Test]
+    public void RogueIntensityProgressUnlocksNextHeatOnlyAfterCompletion()
+    {
+        var failedSettings = CreateRogueSettings(1010, intensity: 1);
+        var failedResult = BreakoutRogueRunResultStore.BuildResult(failedSettings, completed: false, stageReached: 8, "Classic Paddle", 4000);
+
+        BreakoutRogueRunResultStore.Save(failedResult);
+
+        Assert.That(BreakoutRogueIntensityProgressStore.GetAvailableIntensity("Classic Paddle"), Is.EqualTo(1));
+        Assert.That(BreakoutRogueIntensityProgressStore.GetBestStageReached("Classic Paddle", 1), Is.EqualTo(8));
+
+        var completedResult = BreakoutRogueRunResultStore.BuildResult(failedSettings, completed: true, stageReached: 10, "Classic Paddle", 6500);
+
+        BreakoutRogueRunResultStore.Save(completedResult);
+
+        Assert.That(BreakoutRogueIntensityProgressStore.GetHighestCompletedIntensity("Classic Paddle"), Is.EqualTo(1));
+        Assert.That(BreakoutRogueIntensityProgressStore.GetAvailableIntensity("Classic Paddle"), Is.EqualTo(2));
+        Assert.That(BreakoutRogueIntensityProgressStore.GetBestStageReached("Classic Paddle", 1), Is.EqualTo(10));
+    }
+
+    [Test]
+    public void RogueRunControllerBuildsRunAtAvailableIntensity()
+    {
+        var controller = new BreakoutRogueRunController(new List<RunUpgradeDefinition>(), new List<PowerUpDefinition>());
+        var completedSettings = CreateRogueSettings(2020, intensity: 1);
+        var completedResult = BreakoutRogueRunResultStore.BuildResult(completedSettings, completed: true, stageReached: 10, "Classic Paddle", 5000);
+
+        BreakoutRogueRunResultStore.Save(completedResult);
+
+        var settings = controller.BuildRunSettings(3030, 500, null);
+
+        Assert.That(settings.RogueIntensity, Is.EqualTo(2));
+        Assert.That(settings.SelectedPaddleLabel, Is.EqualTo("Classic Paddle"));
+        Assert.That(settings.BallSpeedMultiplier, Is.EqualTo(BreakoutRunProgression.GetRogueIntensityBallSpeedMultiplier(2)).Within(0.0001f));
+    }
+
+    [Test]
+    public void RogueRunControllerCanBuildDeveloperRunAtRequestedIntensity()
+    {
+        var controller = new BreakoutRogueRunController(new List<RunUpgradeDefinition>(), new List<PowerUpDefinition>());
+
+        var settings = controller.BuildRunSettings(4040, 500, null, intensityOverride: 42);
+
+        Assert.That(settings.RogueIntensity, Is.EqualTo(42));
+        Assert.That(settings.BallSpeedMultiplier, Is.EqualTo(BreakoutRunProgression.GetRogueIntensityBallSpeedMultiplier(42)).Within(0.0001f));
+    }
+
+    private static RunSettings CreateRogueSettings(int seed, int intensity)
+    {
+        return new RunSettings(
+            seed,
+            RunDifficultyPreset.Standard,
+            RunScoringMode.Classic,
+            3,
+            500,
+            1,
+            1f,
+            BreakoutRunProgression.GetRogueIntensityBallSpeedMultiplier(intensity),
+            1f,
+            1f,
+            DropPoolMode.Mixed,
+            false,
+            null,
+            RunGameMode.Rogue,
+            intensity);
     }
 }

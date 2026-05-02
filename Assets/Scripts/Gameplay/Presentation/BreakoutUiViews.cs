@@ -69,6 +69,16 @@ namespace GetBricked.Gameplay
         public float SpeedRatio;
     }
 
+    internal sealed class BreakoutUiIntensityGaugeView
+    {
+        public bool IsVisible;
+        public int Intensity = 1;
+        public int MaxIntensity = 50;
+        public float Progress;
+        public float PulseRate = 2f;
+        public Color Color = Color.white;
+    }
+
     internal sealed class BreakoutUiHudView
     {
         public string TopLine = string.Empty;
@@ -77,6 +87,7 @@ namespace GetBricked.Gameplay
         public bool IsPaused;
         public bool IsDiagnosticsVisible;
         public BreakoutUiSpeedMeterView SpeedMeter = new BreakoutUiSpeedMeterView();
+        public BreakoutUiIntensityGaugeView IntensityGauge = new BreakoutUiIntensityGaugeView();
     }
 
     internal sealed class BreakoutUiOverlayView

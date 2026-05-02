@@ -29,8 +29,12 @@ namespace GetBricked.Gameplay
             draftService = new BreakoutUpgradeDraftService(loadedRunUpgradeDefinitions, this.loadedPowerUpDefinitions);
         }
 
-        public RunSettings BuildRunSettings(int seed, int lifeLossScorePenalty, ThemeDefinition themeDefinition)
+        public RunSettings BuildRunSettings(int seed, int lifeLossScorePenalty, ThemeDefinition themeDefinition, int? intensityOverride = null)
         {
+            var selectedPaddle = BreakoutRogueRunResultStore.DefaultPaddleLabel;
+            var intensity = intensityOverride.HasValue
+                ? BreakoutRunProgression.ClampRogueIntensity(intensityOverride.Value)
+                : BreakoutRogueIntensityProgressStore.GetAvailableIntensity(selectedPaddle);
             return new RunSettings(
                 seed,
                 RunDifficultyPreset.Standard,
@@ -39,13 +43,15 @@ namespace GetBricked.Gameplay
                 lifeLossScorePenalty,
                 1,
                 1f,
-                1f,
+                BreakoutRunProgression.GetRogueIntensityBallSpeedMultiplier(intensity),
                 1f,
                 1f,
                 DropPoolMode.Mixed,
                 false,
                 themeDefinition,
-                RunGameMode.Rogue);
+                RunGameMode.Rogue,
+                intensity,
+                selectedPaddle);
         }
 
         public void InitializeRunState(BreakoutRunState runState)
@@ -84,7 +90,7 @@ namespace GetBricked.Gameplay
                 settings,
                 completed,
                 stageReached,
-                BreakoutRogueRunResultStore.DefaultPaddleLabel,
+                settings != null ? settings.SelectedPaddleLabel : BreakoutRogueRunResultStore.DefaultPaddleLabel,
                 score);
         }
 

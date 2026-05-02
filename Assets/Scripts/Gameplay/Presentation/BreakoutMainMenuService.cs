@@ -28,6 +28,7 @@ namespace GetBricked.Gameplay
         public string PreviewValidation = string.Empty;
         public string PendingValidationMessage = string.Empty;
         public string LastRogueResultSummary = string.Empty;
+        public int AvailableRogueIntensity = 1;
     }
 
     internal sealed class BreakoutMainMenuService
@@ -161,9 +162,9 @@ namespace GetBricked.Gameplay
                 case BreakoutMainMenuAction.Rogue:
                     return new[]
                     {
-                        "10 stages. 3 balls. One fresh Tape ID.",
+                        $"Heat {context.AvailableRogueIntensity:00}/50. 10 stages. 3 balls. One fresh Tape ID.",
                         "Draft run upgrades or unlock new capsules after each cleared stage.",
-                        "Boss gates, intensity, and paddle unlocks are staged next.",
+                        "Boss gates are live. Clear the mixtape to unlock the next heat.",
                         string.IsNullOrWhiteSpace(context.LastRogueResultSummary)
                             ? "Last Run: no Rogue tape recorded yet."
                             : context.LastRogueResultSummary,

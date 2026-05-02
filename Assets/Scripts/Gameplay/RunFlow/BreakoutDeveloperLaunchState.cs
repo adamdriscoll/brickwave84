@@ -9,8 +9,9 @@ namespace GetBricked.Gameplay
     {
         Encounter = 0,
         Lives = 1,
-        Upgrade = 2,
-        DropUnlock = 3,
+        Heat = 2,
+        Upgrade = 3,
+        DropUnlock = 4,
     }
 
     internal readonly struct BreakoutDeveloperEncounter
@@ -44,6 +45,8 @@ namespace GetBricked.Gameplay
 
         public int LivesRemaining { get; private set; } = 3;
 
+        public int Intensity { get; private set; } = BreakoutRunProgression.MinRogueIntensity;
+
         public int UpgradeIndex { get; private set; }
 
         public int DropUnlockIndex { get; private set; }
@@ -56,6 +59,7 @@ namespace GetBricked.Gameplay
         {
             EncounterIndex = 0;
             LivesRemaining = 3;
+            Intensity = BreakoutRunProgression.MinRogueIntensity;
             UpgradeIndex = 0;
             DropUnlockIndex = 0;
             selectedUpgradeIds.Clear();
@@ -80,6 +84,9 @@ namespace GetBricked.Gameplay
                     break;
                 case BreakoutDeveloperLaunchField.Lives:
                     LivesRemaining = Mathf.Clamp(LivesRemaining + direction, 1, 9);
+                    break;
+                case BreakoutDeveloperLaunchField.Heat:
+                    Intensity = BreakoutRunProgression.ClampRogueIntensity(Intensity + direction);
                     break;
                 case BreakoutDeveloperLaunchField.Upgrade:
                     UpgradeIndex = Wrap(UpgradeIndex + direction, Mathf.Max(1, upgrades?.Count ?? 0));

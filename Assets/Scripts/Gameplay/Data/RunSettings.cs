@@ -45,12 +45,18 @@ namespace GetBricked.Gameplay.Data
             DropPoolMode dropPoolMode,
             bool forcePickupDropsOnBreak,
             ThemeDefinition themeDefinition,
-            RunGameMode gameMode = RunGameMode.CustomGame)
+            RunGameMode gameMode = RunGameMode.CustomGame,
+            int rogueIntensity = 1,
+            string selectedPaddleLabel = null)
         {
             Seed = seed == int.MinValue ? int.MaxValue : Mathf.Abs(seed);
             DifficultyPreset = difficultyPreset;
             ScoringMode = scoringMode;
             GameMode = gameMode;
+            RogueIntensity = Mathf.Clamp(rogueIntensity, 1, 50);
+            SelectedPaddleLabel = string.IsNullOrWhiteSpace(selectedPaddleLabel)
+                ? "Classic Paddle"
+                : selectedPaddleLabel.Trim();
             StartingLives = Mathf.Max(1, startingLives);
             LifeLossScorePenalty = Mathf.Max(0, lifeLossScorePenalty);
             BallsPerServe = Mathf.Clamp(ballsPerServe, 1, 4);
@@ -70,6 +76,10 @@ namespace GetBricked.Gameplay.Data
         public RunScoringMode ScoringMode { get; }
 
         public RunGameMode GameMode { get; }
+
+        public int RogueIntensity { get; }
+
+        public string SelectedPaddleLabel { get; }
 
         public int StartingLives { get; }
 

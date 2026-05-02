@@ -39,6 +39,8 @@ namespace GetBricked.Gameplay
     internal static class BreakoutRunProgression
     {
         public const int TargetLevelCount = 10;
+        public const int MinRogueIntensity = 1;
+        public const int MaxRogueIntensity = 50;
 
         private static readonly int[] BossGateTriggerLevelIndexes =
         {
@@ -62,6 +64,33 @@ namespace GetBricked.Gameplay
         public static float GetRogueStageBallSpeedMultiplier(int levelIndex)
         {
             return Mathf.Lerp(1f, 1.1f, GetLevelProgress(levelIndex));
+        }
+
+        public static int ClampRogueIntensity(int intensity)
+        {
+            return Mathf.Clamp(intensity, MinRogueIntensity, MaxRogueIntensity);
+        }
+
+        public static float GetRogueIntensityProgress(int intensity)
+        {
+            return Mathf.InverseLerp(MinRogueIntensity, MaxRogueIntensity, ClampRogueIntensity(intensity));
+        }
+
+        public static float GetRogueIntensityBallSpeedMultiplier(int intensity)
+        {
+            return Mathf.Lerp(1f, 1.18f, GetRogueIntensityProgress(intensity));
+        }
+
+        public static Color GetRogueIntensityGaugeColor(int intensity)
+        {
+            var progress = GetRogueIntensityProgress(intensity);
+            var mint = new Color(0.45f, 0.95f, 0.72f, 1f);
+            var yellow = new Color(1f, 0.87f, 0.36f, 1f);
+            var red = new Color(0.99f, 0.27f, 0.31f, 1f);
+
+            return progress < 0.5f
+                ? Color.Lerp(mint, yellow, progress / 0.5f)
+                : Color.Lerp(yellow, red, (progress - 0.5f) / 0.5f);
         }
 
         public static bool TryGetBossGateAfterLevel(int levelIndex, out BreakoutBossGate bossGate)

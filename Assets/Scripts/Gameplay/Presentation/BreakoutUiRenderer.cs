@@ -212,9 +212,12 @@ namespace GetBricked.Gameplay
         {
             EnsureStyles();
 
-            var statusRect = new Rect(18f, 18f, Mathf.Max(320f, Screen.width - 320f), 72f);
             var buttonsX = Screen.width - 258f;
             var buttonsY = 20f;
+            var showIntensityGauge = view?.IntensityGauge != null && view.IntensityGauge.IsVisible;
+            var gaugeRect = new Rect(buttonsX - 100f, 12f, 84f, 84f);
+            var statusMaxX = showIntensityGauge ? gaugeRect.x - 14f : buttonsX - 18f;
+            var statusRect = new Rect(18f, 18f, Mathf.Max(320f, statusMaxX - 18f), 72f);
             var diagnosticsLabel = view.IsDiagnosticsVisible ? "DBG ON" : "DBG";
             var menuLabel = view.IsPaused ? "RESUME" : "MENU";
 
@@ -222,6 +225,7 @@ namespace GetBricked.Gameplay
             DrawTextWithShadow(new Rect(statusRect.x + 20f, statusRect.y + 14f, statusRect.width - 40f, 24f), view.TopLine, hudStyle, palette.TextPrimary, 0.35f);
             DrawTextWithShadow(new Rect(statusRect.x + 20f, statusRect.y + 40f, statusRect.width - 40f, 22f), view.BottomLine, overlayBodyStyle, palette.TextMuted, 0.3f);
             DrawBallSpeedMeter(view.SpeedMeter);
+            DrawIntensityGauge(gaugeRect, view.IntensityGauge);
 
             if (DrawArcadeButton(new Rect(buttonsX, buttonsY, 122f, 42f), diagnosticsLabel, view.IsDiagnosticsVisible))
             {
@@ -811,6 +815,54 @@ namespace GetBricked.Gameplay
             DrawTextWithShadow(new Rect(panelRect.x, panelRect.y + 10f, panelRect.width, 18f), "SPD", speedMeterCaptionStyle, palette.TextPrimary, 0.25f);
             DrawTextWithShadow(new Rect(panelRect.x - 10f, panelRect.yMax - 38f, panelRect.width + 20f, 18f), $"{view.Speed:0.00}", speedMeterValueStyle, palette.TextPrimary, 0.2f);
             DrawTextWithShadow(new Rect(panelRect.x - 10f, panelRect.yMax - 22f, panelRect.width + 20f, 16f), "u/s", speedMeterValueStyle, palette.TextMuted, 0.2f);
+        }
+
+        private void DrawIntensityGauge(Rect rect, BreakoutUiIntensityGaugeView view)
+        {
+            if (view == null || !view.IsVisible)
+            {
+                return;
+            }
+
+            var progress = Mathf.Clamp01(view.Progress);
+            var gaugeColor = view.Color;
+            gaugeColor.a = 1f;
+            var pulseRate = Mathf.Max(0.5f, view.PulseRate);
+            var pulse = 0.5f + (0.5f * Mathf.Sin(Time.unscaledTime * pulseRate * Mathf.PI * 2f));
+            var glowAlpha = Mathf.Lerp(0.05f, 0.18f, pulse) + (progress * 0.07f);
+            var center = rect.center;
+            var radius = Mathf.Min(rect.width, rect.height) * 0.42f;
+            var activeTickCount = Mathf.CeilToInt(Mathf.Lerp(1f, 40f, progress));
+
+            DrawSolidRect(Inflate(rect, Mathf.Lerp(4f, 12f, pulse)), WithAlpha(gaugeColor, glowAlpha));
+            DrawSolidRect(new Rect(center.x - 25f, center.y - 25f, 50f, 50f), WithAlpha(palette.BezelDark, 0.92f));
+            DrawOutline(new Rect(center.x - 25f, center.y - 25f, 50f, 50f), WithAlpha(gaugeColor, 0.75f + (pulse * 0.25f)), 2f);
+
+            const int tickCount = 40;
+
+            for (var index = 0; index < tickCount; index++)
+            {
+                var isActive = index < activeTickCount;
+                var tickAlpha = isActive ? Mathf.Lerp(0.58f, 1f, pulse) : 0.16f;
+                var tickHeight = isActive ? Mathf.Lerp(7f, 11f, pulse) : 5f;
+                var tickRect = new Rect(center.x - 1.5f, center.y - radius - tickHeight, 3f, tickHeight);
+                var previousMatrix = GUI.matrix;
+                GUIUtility.RotateAroundPivot(index * (360f / tickCount), center);
+                DrawSolidRect(tickRect, WithAlpha(isActive ? gaugeColor : palette.TextMuted, tickAlpha));
+                GUI.matrix = previousMatrix;
+            }
+
+            for (var index = 0; index < 8; index++)
+            {
+                var tickRect = new Rect(center.x - 1f, center.y - radius - 16f - (pulse * 6f), 2f, 5f + (pulse * 7f));
+                var previousMatrix = GUI.matrix;
+                GUIUtility.RotateAroundPivot(index * 45f, center);
+                DrawSolidRect(tickRect, WithAlpha(gaugeColor, Mathf.Lerp(0.05f, 0.18f, pulse)));
+                GUI.matrix = previousMatrix;
+            }
+
+            DrawTextWithShadow(new Rect(rect.x, rect.y + 5f, rect.width, 18f), "HEAT", speedMeterCaptionStyle, gaugeColor, 0.25f);
+            DrawTextWithShadow(new Rect(rect.x, center.y - 16f, rect.width, 34f), $"{Mathf.Clamp(view.Intensity, 1, Mathf.Max(1, view.MaxIntensity)):00}", pickupStyle, palette.TextPrimary, 0.28f);
         }
 
         private void DrawActionList(string[] labels, int selectedIndex, float x, float y, float width, float lineHeight, Action<int> onActionClicked)
