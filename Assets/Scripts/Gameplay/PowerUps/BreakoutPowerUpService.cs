@@ -329,6 +329,7 @@ namespace GetBricked.Gameplay
         public PowerUpPickup TrySpawnPickup(
             Brick brick,
             RunSettings activeRunSettings,
+            BreakoutRunState activeRunState,
             float effectiveDropChanceMultiplier,
             System.Func<float, float, float> nextGameplayRandomFloat,
             Transform pickupsRoot,
@@ -361,7 +362,7 @@ namespace GetBricked.Gameplay
 
             for (var index = 0; index < dropTable.Length; index++)
             {
-                if (!IsDropAllowed(activeRunSettings, dropTable[index].PowerUpDefinition))
+                if (!IsDropAllowed(activeRunSettings, activeRunState, dropTable[index].PowerUpDefinition))
                 {
                     continue;
                 }
@@ -381,7 +382,7 @@ namespace GetBricked.Gameplay
             {
                 var entry = dropTable[index];
 
-                if (!IsDropAllowed(activeRunSettings, entry.PowerUpDefinition))
+                if (!IsDropAllowed(activeRunSettings, activeRunState, entry.PowerUpDefinition))
                 {
                     continue;
                 }
@@ -596,9 +597,16 @@ namespace GetBricked.Gameplay
             ShowStatusBanner("CAPSULE MADNESS!!", new Color(1f, 0.87f, 0.36f, 1f), CapsuleMadnessDurationSeconds);
         }
 
-        private static bool IsDropAllowed(RunSettings activeRunSettings, PowerUpDefinition powerUpDefinition)
+        private static bool IsDropAllowed(RunSettings activeRunSettings, BreakoutRunState activeRunState, PowerUpDefinition powerUpDefinition)
         {
             if (powerUpDefinition == null)
+            {
+                return false;
+            }
+
+            if (activeRunSettings != null
+                && activeRunSettings.IsRogueMode
+                && (activeRunState == null || !activeRunState.IsDropUnlocked(powerUpDefinition)))
             {
                 return false;
             }

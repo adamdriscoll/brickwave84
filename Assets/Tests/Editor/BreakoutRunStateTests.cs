@@ -38,13 +38,13 @@ public sealed class BreakoutRunStateTests
             wavyPaddleStrength: 0.35f,
             extraBallsPerServe: 1);
 
-        runState.SetPendingDraftOffers(new[] { upgrade });
+        runState.SetPendingDraftOffers(new[] { BreakoutRunDraftOffer.FromRunUpgrade(upgrade) });
 
-        var applied = runState.TryApplyPendingDraftOffer(0, out var appliedUpgrade);
+        var applied = runState.TryApplyPendingDraftOffer(0, out var appliedOffer);
         var modifiers = runState.CalculateModifiers();
 
         Assert.That(applied, Is.True);
-        Assert.That(appliedUpgrade, Is.EqualTo(upgrade));
+        Assert.That(appliedOffer.UpgradeDefinition, Is.EqualTo(upgrade));
         Assert.That(runState.PendingDraftOffers, Is.Empty);
         Assert.That(runState.ChosenUpgrades, Has.Count.EqualTo(1));
         Assert.That(runState.GetStackCount(" wide-loader "), Is.EqualTo(1));
@@ -61,9 +61,9 @@ public sealed class BreakoutRunStateTests
         var runState = new BreakoutRunState();
         var upgrade = CreateUpgrade("afterburn", maxStacks: 2, ballSpeedMultiplier: 1.08f);
 
-        runState.SetPendingDraftOffers(new[] { upgrade });
+        runState.SetPendingDraftOffers(new[] { BreakoutRunDraftOffer.FromRunUpgrade(upgrade) });
         Assert.That(runState.TryApplyPendingDraftOffer(0, out _), Is.True);
-        runState.SetPendingDraftOffers(new[] { upgrade });
+        runState.SetPendingDraftOffers(new[] { BreakoutRunDraftOffer.FromRunUpgrade(upgrade) });
         Assert.That(runState.TryApplyPendingDraftOffer(0, out _), Is.True);
 
         Assert.That(runState.GetStackCount(upgrade), Is.EqualTo(2));
@@ -77,7 +77,7 @@ public sealed class BreakoutRunStateTests
         var chosen = CreateUpgrade("wide-loader", excludedUpgradeIds: new[] { "flux-line" });
         var conflict = CreateUpgrade("FLUX-LINE");
 
-        runState.SetPendingDraftOffers(new[] { chosen });
+        runState.SetPendingDraftOffers(new[] { BreakoutRunDraftOffer.FromRunUpgrade(chosen) });
         Assert.That(runState.TryApplyPendingDraftOffer(0, out _), Is.True);
 
         Assert.That(runState.HasConflict(conflict), Is.True);
@@ -91,7 +91,7 @@ public sealed class BreakoutRunStateTests
         var upgrade = CreateUpgrade("repair-stock", bonusLives: 1);
 
         runState.RegisterLevelClear();
-        runState.SetPendingDraftOffers(new[] { upgrade });
+        runState.SetPendingDraftOffers(new[] { BreakoutRunDraftOffer.FromRunUpgrade(upgrade) });
         Assert.That(runState.TryApplyPendingDraftOffer(0, out _), Is.True);
 
         runState.Reset();
@@ -101,6 +101,29 @@ public sealed class BreakoutRunStateTests
         Assert.That(runState.PendingDraftOffers, Is.Empty);
         Assert.That(runState.GetStackCount(upgrade), Is.Zero);
         Assert.That(runState.HasActiveBuild, Is.False);
+    }
+
+    [Test]
+    public void DropUnlockOffersAddRunLocalDropWithoutCountingStartingPoolAsBuild()
+    {
+        var runState = new BreakoutRunState();
+        var startingDrop = CreatePowerUp("Wide Paddle", "large_paddle", beneficial: true);
+        var draftedDrop = CreatePowerUp("Laser Paddle", "laser_paddle", beneficial: true);
+
+        runState.SetInitialDropUnlocks(new[] { startingDrop });
+
+        Assert.That(runState.IsDropUnlocked(startingDrop), Is.True);
+        Assert.That(runState.HasActiveBuild, Is.False);
+        Assert.That(runState.CanOffer(BreakoutRunDraftOffer.FromDropUnlock(startingDrop)), Is.False);
+        Assert.That(runState.CanOffer(BreakoutRunDraftOffer.FromDropUnlock(draftedDrop)), Is.True);
+
+        runState.SetPendingDraftOffers(new[] { BreakoutRunDraftOffer.FromDropUnlock(draftedDrop) });
+
+        Assert.That(runState.TryApplyPendingDraftOffer(0, out var appliedOffer), Is.True);
+        Assert.That(appliedOffer.Kind, Is.EqualTo(BreakoutRunDraftOfferKind.DropUnlock));
+        Assert.That(runState.IsDropUnlocked(draftedDrop), Is.True);
+        Assert.That(runState.ChosenDropUnlocks, Is.EqualTo(new[] { draftedDrop }));
+        Assert.That(runState.HasActiveBuild, Is.True);
     }
 
     private RunUpgradeDefinition CreateUpgrade(
@@ -129,6 +152,19 @@ public sealed class BreakoutRunStateTests
         SetPrivateField(upgrade, "extraBallsPerServe", extraBallsPerServe);
         SetPrivateField(upgrade, "bonusLives", bonusLives);
         return upgrade;
+    }
+
+    private PowerUpDefinition CreatePowerUp(string displayName, string powerUpId, bool beneficial)
+    {
+        var powerUp = ScriptableObject.CreateInstance<PowerUpDefinition>();
+        runtimeObjects.Add(powerUp);
+        SetPrivateField(powerUp, "displayName", displayName);
+        SetPrivateField(powerUp, "hudLabel", displayName.ToUpperInvariant());
+        SetPrivateField(powerUp, "powerUpId", powerUpId);
+        SetPrivateField(powerUp, "beneficial", beneficial);
+        SetPrivateField(powerUp, "durationSeconds", 10f);
+        SetPrivateField(powerUp, "scalar", 1f);
+        return powerUp;
     }
 
     private static void SetPrivateField(object instance, string fieldName, object value)

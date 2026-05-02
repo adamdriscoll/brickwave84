@@ -1,44 +1,150 @@
 using System;
 using System.Collections.Generic;
 using GetBricked.Gameplay.Data;
+using UnityEngine;
 
 namespace GetBricked.Gameplay
 {
-    internal sealed class BreakoutUpgradeDraftService
+    internal enum BreakoutRunDraftOfferKind
     {
-        private readonly List<RunUpgradeDefinition> loadedDefinitions;
+        RunUpgrade,
+        DropUnlock,
+    }
 
-        public BreakoutUpgradeDraftService(List<RunUpgradeDefinition> loadedDefinitions)
+    internal sealed class BreakoutRunDraftOffer
+    {
+        private const float HelpfulDropUnlockDraftWeight = 0.85f;
+        private const float HarmfulDropUnlockDraftWeight = 0.45f;
+
+        private BreakoutRunDraftOffer(
+            BreakoutRunDraftOfferKind kind,
+            RunUpgradeDefinition upgradeDefinition,
+            PowerUpDefinition dropUnlockDefinition)
         {
-            this.loadedDefinitions = loadedDefinitions ?? new List<RunUpgradeDefinition>();
+            Kind = kind;
+            UpgradeDefinition = upgradeDefinition;
+            DropUnlockDefinition = dropUnlockDefinition;
         }
 
-        public RunUpgradeDefinition[] GenerateDraft(BreakoutRunState runState, RunSettings runSettings, int runSeed, int levelIndex, int offerCount)
+        public BreakoutRunDraftOfferKind Kind { get; }
+
+        public RunUpgradeDefinition UpgradeDefinition { get; }
+
+        public PowerUpDefinition DropUnlockDefinition { get; }
+
+        public string OfferId => Kind == BreakoutRunDraftOfferKind.RunUpgrade
+            ? UpgradeDefinition?.UpgradeId ?? string.Empty
+            : BreakoutPowerUpIdentity.GetStableId(DropUnlockDefinition);
+
+        public string DisplayName => Kind == BreakoutRunDraftOfferKind.RunUpgrade
+            ? UpgradeDefinition?.DisplayName ?? "Missing Upgrade"
+            : DropUnlockDefinition?.DisplayName ?? "Missing Drop";
+
+        public float DraftWeight => Kind == BreakoutRunDraftOfferKind.RunUpgrade
+            ? UpgradeDefinition?.DraftWeight ?? 0f
+            : ResolveDropUnlockDraftWeight(DropUnlockDefinition);
+
+        public static BreakoutRunDraftOffer FromRunUpgrade(RunUpgradeDefinition definition)
         {
-            if (runState == null || loadedDefinitions.Count == 0 || offerCount <= 0)
+            return new BreakoutRunDraftOffer(BreakoutRunDraftOfferKind.RunUpgrade, definition, null);
+        }
+
+        public static BreakoutRunDraftOffer FromDropUnlock(PowerUpDefinition definition)
+        {
+            return new BreakoutRunDraftOffer(BreakoutRunDraftOfferKind.DropUnlock, null, definition);
+        }
+
+        private static float ResolveDropUnlockDraftWeight(PowerUpDefinition definition)
+        {
+            if (definition == null)
             {
-                return Array.Empty<RunUpgradeDefinition>();
+                return 0f;
             }
 
-            var available = new List<RunUpgradeDefinition>();
+            return definition.IsBeneficial ? HelpfulDropUnlockDraftWeight : HarmfulDropUnlockDraftWeight;
+        }
+    }
 
-            for (var index = 0; index < loadedDefinitions.Count; index++)
+    internal static class BreakoutPowerUpIdentity
+    {
+        public static string GetStableId(PowerUpDefinition definition)
+        {
+            if (definition == null)
             {
-                var definition = loadedDefinitions[index];
+                return string.Empty;
+            }
+
+            if (!string.IsNullOrWhiteSpace(definition.PowerUpId))
+            {
+                return definition.PowerUpId.Trim();
+            }
+
+            if (!string.IsNullOrWhiteSpace(definition.name))
+            {
+                return Normalize(definition.name);
+            }
+
+            return Normalize(definition.DisplayName);
+        }
+
+        private static string Normalize(string value)
+        {
+            return string.IsNullOrWhiteSpace(value)
+                ? string.Empty
+                : value.Trim().Replace(' ', '_').Replace('-', '_').ToLowerInvariant();
+        }
+    }
+
+    internal sealed class BreakoutUpgradeDraftService
+    {
+        private readonly List<RunUpgradeDefinition> loadedUpgradeDefinitions;
+        private readonly List<PowerUpDefinition> loadedDropUnlockDefinitions;
+
+        public BreakoutUpgradeDraftService(
+            List<RunUpgradeDefinition> loadedUpgradeDefinitions,
+            List<PowerUpDefinition> loadedDropUnlockDefinitions = null)
+        {
+            this.loadedUpgradeDefinitions = loadedUpgradeDefinitions ?? new List<RunUpgradeDefinition>();
+            this.loadedDropUnlockDefinitions = loadedDropUnlockDefinitions ?? new List<PowerUpDefinition>();
+        }
+
+        public BreakoutRunDraftOffer[] GenerateDraft(BreakoutRunState runState, RunSettings runSettings, int runSeed, int levelIndex, int offerCount)
+        {
+            if (runState == null || offerCount <= 0)
+            {
+                return Array.Empty<BreakoutRunDraftOffer>();
+            }
+
+            var available = new List<BreakoutRunDraftOffer>();
+
+            for (var index = 0; index < loadedUpgradeDefinitions.Count; index++)
+            {
+                var definition = loadedUpgradeDefinitions[index];
 
                 if (runState.CanOffer(definition) && IsUpgradeCompatibleWithRun(definition, runSettings))
                 {
-                    available.Add(definition);
+                    available.Add(BreakoutRunDraftOffer.FromRunUpgrade(definition));
+                }
+            }
+
+            for (var index = 0; index < loadedDropUnlockDefinitions.Count; index++)
+            {
+                var definition = loadedDropUnlockDefinitions[index];
+                var offer = BreakoutRunDraftOffer.FromDropUnlock(definition);
+
+                if (runState.CanOffer(offer) && IsDropUnlockCompatibleWithRun(definition, runSettings))
+                {
+                    available.Add(offer);
                 }
             }
 
             if (available.Count == 0)
             {
-                return Array.Empty<RunUpgradeDefinition>();
+                return Array.Empty<BreakoutRunDraftOffer>();
             }
 
             var draftRandom = CreateDraftRandom(runState, runSeed, levelIndex);
-            var offers = new List<RunUpgradeDefinition>();
+            var offers = new List<BreakoutRunDraftOffer>();
 
             while (offers.Count < offerCount && available.Count > 0)
             {
@@ -48,6 +154,21 @@ namespace GetBricked.Gameplay
             }
 
             return offers.ToArray();
+        }
+
+        private static bool IsDropUnlockCompatibleWithRun(PowerUpDefinition definition, RunSettings runSettings)
+        {
+            if (definition == null || runSettings == null || !runSettings.IsRogueMode)
+            {
+                return false;
+            }
+
+            if (runSettings.DropPoolMode == DropPoolMode.Disabled)
+            {
+                return false;
+            }
+
+            return definition.IsBeneficial;
         }
 
         private static bool IsUpgradeCompatibleWithRun(RunUpgradeDefinition definition, RunSettings runSettings)
@@ -80,23 +201,37 @@ namespace GetBricked.Gameplay
                 combinedSeed = DeterministicRandomService.CombineSeed(combinedSeed, index + 1);
             }
 
+            var chosenDropUnlocks = runState.ChosenDropUnlocks;
+
+            for (var index = 0; index < chosenDropUnlocks.Count; index++)
+            {
+                var definition = chosenDropUnlocks[index];
+                combinedSeed = DeterministicRandomService.CombineSeed(combinedSeed, StableHash(BreakoutPowerUpIdentity.GetStableId(definition)));
+                combinedSeed = DeterministicRandomService.CombineSeed(combinedSeed, index + 101);
+            }
+
             return new DeterministicRandomService(combinedSeed);
         }
 
-        private static int WeightedPickIndex(List<RunUpgradeDefinition> definitions, DeterministicRandomService draftRandom)
+        private static int WeightedPickIndex(List<BreakoutRunDraftOffer> definitions, DeterministicRandomService draftRandom)
         {
             var totalWeight = 0f;
 
             for (var index = 0; index < definitions.Count; index++)
             {
-                totalWeight += definitions[index].DraftWeight;
+                totalWeight += Mathf.Max(0f, definitions[index].DraftWeight);
+            }
+
+            if (totalWeight <= 0f)
+            {
+                return definitions.Count - 1;
             }
 
             var roll = draftRandom.Range(0f, totalWeight);
 
             for (var index = 0; index < definitions.Count; index++)
             {
-                roll -= definitions[index].DraftWeight;
+                roll -= Mathf.Max(0f, definitions[index].DraftWeight);
 
                 if (roll <= 0f)
                 {

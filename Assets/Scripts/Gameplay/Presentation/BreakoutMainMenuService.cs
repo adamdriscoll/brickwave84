@@ -157,7 +157,7 @@ namespace GetBricked.Gameplay
                     return new[]
                     {
                         "10 stages. 3 balls. One fresh Tape ID.",
-                        "Draft one permanent cabinet mod after each cleared stage.",
+                        "Draft run upgrades or unlock new capsules after each cleared stage.",
                         "Boss gates, intensity, and paddle unlocks are staged next.",
                         string.IsNullOrWhiteSpace(context.LastRogueResultSummary)
                             ? "Last Run: no Rogue tape recorded yet."
