@@ -240,6 +240,7 @@ public sealed class BreakoutPowerUpServiceTests
         var pickup = service.TrySpawnPickup(
             brick,
             activeRunSettings: null,
+            activeRunState: null,
             effectiveDropChanceMultiplier: 1f,
             nextGameplayRandomFloat: (_, _) => 0f,
             pickupsRoot,
@@ -264,6 +265,7 @@ public sealed class BreakoutPowerUpServiceTests
         var pickup = service.TrySpawnPickup(
             brick,
             activeRunSettings: null,
+            activeRunState: null,
             effectiveDropChanceMultiplier: 1f,
             nextGameplayRandomFloat: (_, _) => 1f,
             pickupsRoot,
@@ -273,6 +275,50 @@ public sealed class BreakoutPowerUpServiceTests
 
         Assert.That(pickup, Is.Null);
         Assert.That(service.ActivePickups, Is.Empty);
+    }
+
+    [Test]
+    public void RogueDropsOnlySpawnFromUnlockedRunPool()
+    {
+        var service = CreateService();
+        var wide = CreatePowerUp("Wide Paddle", PowerUpEffectType.PaddleWidthMultiplier, true, 10f, 1.2f);
+        var laser = CreatePowerUp("Laser Paddle", PowerUpEffectType.LaserPaddle, true, 10f, 1f);
+        SetPrivateField(wide, "powerUpId", "large_paddle");
+        SetPrivateField(laser, "powerUpId", "laser_paddle");
+        var brick = CreateBrick(CreateBrickDefinition(dropChance: 1f, wide, laser));
+        var runState = new BreakoutRunState();
+        var pickupsRoot = CreateRuntimeRoot("Pickups");
+        var rogueSettings = new RunSettings(
+            1234,
+            RunDifficultyPreset.Standard,
+            RunScoringMode.Classic,
+            3,
+            500,
+            1,
+            1f,
+            1f,
+            1f,
+            1f,
+            DropPoolMode.Mixed,
+            false,
+            null,
+            RunGameMode.Rogue);
+
+        runState.SetInitialDropUnlocks(new[] { wide });
+
+        var pickup = service.TrySpawnPickup(
+            brick,
+            rogueSettings,
+            runState,
+            effectiveDropChanceMultiplier: 1f,
+            nextGameplayRandomFloat: (_, max) => max > 1f ? 1.5f : 0f,
+            pickupsRoot,
+            arenaBottom: -4f,
+            themeService: null,
+            controller: null);
+
+        Assert.That(pickup, Is.Not.Null);
+        Assert.That(pickup.Definition, Is.SameAs(wide));
     }
 
     private BreakoutPowerUpService CreateService(float multiBallSpreadAngle = 18f)
@@ -338,14 +384,21 @@ public sealed class BreakoutPowerUpServiceTests
         return powerUp;
     }
 
-    private BrickDefinition CreateBrickDefinition(float dropChance, PowerUpDefinition powerUp)
+    private BrickDefinition CreateBrickDefinition(float dropChance, params PowerUpDefinition[] powerUps)
     {
         var definition = ScriptableObject.CreateInstance<BrickDefinition>();
         runtimeObjects.Add(definition);
         SetPrivateField(definition, "displayName", "Drop Brick");
         SetPrivateField(definition, "hitPoints", 1);
         SetPrivateField(definition, "dropChance", dropChance);
-        SetPrivateField(definition, "dropTable", new[] { CreateDropEntry(powerUp, 1f) });
+        var dropEntries = new BrickPowerUpDropEntry[powerUps.Length];
+
+        for (var index = 0; index < powerUps.Length; index++)
+        {
+            dropEntries[index] = CreateDropEntry(powerUps[index], 1f);
+        }
+
+        SetPrivateField(definition, "dropTable", dropEntries);
         return definition;
     }
 

@@ -46,7 +46,13 @@ public sealed class BreakoutUpgradeDraftServiceTests
         var firstDraft = service.GenerateDraft(firstRunState, runSettings, runSeed: 8675309, levelIndex: 2, offerCount: 3);
         var secondDraft = service.GenerateDraft(secondRunState, runSettings, runSeed: 8675309, levelIndex: 2, offerCount: 3);
 
-        Assert.That(secondDraft, Is.EqualTo(firstDraft));
+        Assert.That(secondDraft, Has.Length.EqualTo(firstDraft.Length));
+
+        for (var index = 0; index < firstDraft.Length; index++)
+        {
+            Assert.That(secondDraft[index].Kind, Is.EqualTo(firstDraft[index].Kind));
+            Assert.That(secondDraft[index].OfferId, Is.EqualTo(firstDraft[index].OfferId));
+        }
     }
 
     [Test]
@@ -66,14 +72,16 @@ public sealed class BreakoutUpgradeDraftServiceTests
             keeper,
         });
 
-        runState.SetPendingDraftOffers(new[] { maxed });
+        runState.SetPendingDraftOffers(new[] { BreakoutRunDraftOffer.FromRunUpgrade(maxed) });
         Assert.That(runState.TryApplyPendingDraftOffer(0, out _), Is.True);
-        runState.SetPendingDraftOffers(new[] { chosenBlocker });
+        runState.SetPendingDraftOffers(new[] { BreakoutRunDraftOffer.FromRunUpgrade(chosenBlocker) });
         Assert.That(runState.TryApplyPendingDraftOffer(0, out _), Is.True);
 
         var draft = service.GenerateDraft(runState, CreateRunSettings(RunScoringMode.HighScore), runSeed: 4242, levelIndex: 0, offerCount: 3);
 
-        Assert.That(draft, Is.EqualTo(new[] { keeper }));
+        Assert.That(draft, Has.Length.EqualTo(1));
+        Assert.That(draft[0].Kind, Is.EqualTo(BreakoutRunDraftOfferKind.RunUpgrade));
+        Assert.That(draft[0].UpgradeDefinition, Is.EqualTo(keeper));
     }
 
     [Test]
@@ -83,7 +91,7 @@ public sealed class BreakoutUpgradeDraftServiceTests
         var runState = new BreakoutRunState();
         var service = new BreakoutUpgradeDraftService(new List<RunUpgradeDefinition> { maxed });
 
-        runState.SetPendingDraftOffers(new[] { maxed });
+        runState.SetPendingDraftOffers(new[] { BreakoutRunDraftOffer.FromRunUpgrade(maxed) });
         Assert.That(runState.TryApplyPendingDraftOffer(0, out _), Is.True);
 
         var draft = service.GenerateDraft(runState, CreateRunSettings(RunScoringMode.Classic), runSeed: 11, levelIndex: 0, offerCount: 3);
@@ -91,7 +99,51 @@ public sealed class BreakoutUpgradeDraftServiceTests
         Assert.That(draft, Is.Empty);
     }
 
-    private static RunSettings CreateRunSettings(RunScoringMode scoringMode)
+    [Test]
+    public void RogueDraftOffersHelpfulDropUnlocksAndSkipsAlreadyUnlockedDrops()
+    {
+        var wide = CreatePowerUp("Wide Paddle", "large_paddle", beneficial: true);
+        var laser = CreatePowerUp("Laser Paddle", "laser_paddle", beneficial: true);
+        var hazard = CreatePowerUp("Reverse Controls", "reverse_controls", beneficial: false);
+        var runState = new BreakoutRunState();
+        var service = new BreakoutUpgradeDraftService(
+            new List<RunUpgradeDefinition>(),
+            new List<PowerUpDefinition> { wide, laser, hazard });
+
+        runState.SetInitialDropUnlocks(new[] { wide });
+
+        var draft = service.GenerateDraft(
+            runState,
+            CreateRunSettings(RunScoringMode.Classic, RunGameMode.Rogue),
+            runSeed: 123,
+            levelIndex: 1,
+            offerCount: 3);
+
+        Assert.That(draft, Has.Length.EqualTo(1));
+        Assert.That(draft[0].Kind, Is.EqualTo(BreakoutRunDraftOfferKind.DropUnlock));
+        Assert.That(draft[0].DropUnlockDefinition, Is.EqualTo(laser));
+    }
+
+    [Test]
+    public void CustomGameDraftDoesNotOfferDropUnlocks()
+    {
+        var laser = CreatePowerUp("Laser Paddle", "laser_paddle", beneficial: true);
+        var runState = new BreakoutRunState();
+        var service = new BreakoutUpgradeDraftService(
+            new List<RunUpgradeDefinition>(),
+            new List<PowerUpDefinition> { laser });
+
+        var draft = service.GenerateDraft(
+            runState,
+            CreateRunSettings(RunScoringMode.Classic),
+            runSeed: 123,
+            levelIndex: 1,
+            offerCount: 3);
+
+        Assert.That(draft, Is.Empty);
+    }
+
+    private static RunSettings CreateRunSettings(RunScoringMode scoringMode, RunGameMode gameMode = RunGameMode.CustomGame)
     {
         return new RunSettings(
             1234,
@@ -106,7 +158,8 @@ public sealed class BreakoutUpgradeDraftServiceTests
             1f,
             DropPoolMode.Mixed,
             false,
-            null);
+            null,
+            gameMode);
     }
 
     private RunUpgradeDefinition CreateUpgrade(
@@ -130,6 +183,19 @@ public sealed class BreakoutUpgradeDraftServiceTests
         SetPrivateField(upgrade, "dropChanceMultiplier", 1f);
         SetPrivateField(upgrade, "bonusLives", bonusLives);
         return upgrade;
+    }
+
+    private PowerUpDefinition CreatePowerUp(string displayName, string powerUpId, bool beneficial)
+    {
+        var powerUp = ScriptableObject.CreateInstance<PowerUpDefinition>();
+        runtimeObjects.Add(powerUp);
+        SetPrivateField(powerUp, "displayName", displayName);
+        SetPrivateField(powerUp, "hudLabel", displayName.ToUpperInvariant());
+        SetPrivateField(powerUp, "powerUpId", powerUpId);
+        SetPrivateField(powerUp, "beneficial", beneficial);
+        SetPrivateField(powerUp, "durationSeconds", 10f);
+        SetPrivateField(powerUp, "scalar", 1f);
+        return powerUp;
     }
 
     private static void SetPrivateField(object instance, string fieldName, object value)

@@ -14,14 +14,18 @@ namespace GetBricked.Gameplay
         private const string BallSpriteResourcePath = "Sprites/ball";
         private const string BrickSpriteResourcePath = "Sprites/brick";
         private const string PaddleSpriteResourcePath = "Sprites/paddle";
+        private const string BossPaddleSpriteResourcePath = "Sprites/paddle-punk";
         private const string PowerUpSpriteResourcePath = "Sprites/powerup";
         private const float LaserShotCooldownSeconds = 0.3f;
+        private const float BossPaddleCollisionSpeedBurstSeconds = 1.8f;
         private const float ShieldWallYOffset = 0.38f;
+        private const string DefaultRoguePaddleLabel = BreakoutRogueRunResultStore.DefaultPaddleLabel;
 
         private enum RoundState
         {
             MainMenu,
             RunSetup,
+            DeveloperMenu,
             UpgradeDraft,
             ReadyToServe,
             Playing,
@@ -33,9 +37,6 @@ namespace GetBricked.Gameplay
 
         private enum OverlayAction
         {
-            StartRun,
-            OpenRunSetup,
-            ResetSetupDefaults,
             Resume,
             RestartRun,
             NextLevel,
@@ -102,6 +103,7 @@ namespace GetBricked.Gameplay
         private readonly List<BrickDefinition> loadedBrickDefinitions = new List<BrickDefinition>();
         private readonly List<ThemeDefinition> loadedThemes = new List<ThemeDefinition>();
         private readonly List<RunUpgradeDefinition> loadedRunUpgradeDefinitions = new List<RunUpgradeDefinition>();
+        private readonly List<PowerUpDefinition> loadedPowerUpDefinitions = new List<PowerUpDefinition>();
         private readonly List<BallController> activeBalls = new List<BallController>();
         private readonly List<SpriteRenderer> wallRenderers = new List<SpriteRenderer>();
         private readonly Dictionary<string, Sprite> runUpgradeSpriteCache = new Dictionary<string, Sprite>(StringComparer.OrdinalIgnoreCase);
@@ -114,6 +116,7 @@ namespace GetBricked.Gameplay
         private Transform ballsRoot;
         private Transform bricksRoot;
         private Transform pickupsRoot;
+        private Transform bossRoot;
         private PaddleController paddle;
         private Collider2D paddleCollider;
         private SpriteRenderer paddleSpriteRenderer;
@@ -125,6 +128,7 @@ namespace GetBricked.Gameplay
         private Sprite ballSprite;
         private Sprite brickSprite;
         private Sprite paddleSprite;
+        private Sprite bossPaddleSprite;
         private Sprite powerUpSprite;
         private PhysicsMaterial2D bounceMaterial;
         private Material spriteUnlitMaterial;
@@ -136,12 +140,14 @@ namespace GetBricked.Gameplay
         private BreakoutBrickService brickService;
         private BreakoutPaddleSpawnService paddleSpawnService;
         private BreakoutBallSpawnService ballSpawnService;
+        private BreakoutMainMenuService mainMenuService;
         private BreakoutUiRenderer uiRenderer;
         private IBreakoutScoreService scoreService;
         private BreakoutBackgroundLibrary backgroundLibrary;
         private BreakoutBackgroundPresenter backgroundPresenter;
         private BreakoutRunState activeRunState;
         private BreakoutUpgradeDraftService upgradeDraftService;
+        private BreakoutRogueRunController rogueRunController;
         private RoundState roundState;
         private int livesRemaining;
         private int lifeLossCount;
@@ -158,10 +164,13 @@ namespace GetBricked.Gameplay
         private float currentLevelPaddleSpeed;
         private BreakoutLevelPlanner levelPlanner;
         private BreakoutRunSetupState pendingRunSetup;
+        private BreakoutDeveloperLaunchState developerLaunchState;
+        private BreakoutDeveloperLaunchField selectedDeveloperLaunchField;
         private RunSettings activeRunSettings;
         private DeterministicRandomService gameplayRandom;
         private BreakoutRunSetupField selectedRunSetupField;
         private RoundState pausedFromState;
+        private int selectedMainMenuActionIndex;
         private int selectedOverlayActionIndex;
         private string currentLevelVariationLabel = "Variation: not started";
         private string pendingValidationMessage = string.Empty;
@@ -170,11 +179,17 @@ namespace GetBricked.Gameplay
         private float manualBallSpeedHoldTimer;
         private bool isDiagnosticsOverlayVisible;
         private int selectedUpgradeDraftIndex;
+        private bool activeRunResultRecorded;
         private BreakoutEffectModifiers activeEffectModifiers;
         private BallController stickyCaughtBall;
         private SpriteRenderer shieldWallRenderer;
         private int shieldWallCharges;
         private float laserShotCooldownTimer;
+        private BreakoutBossGate? activeBossGate;
+        private BreakoutBossGate? pendingBossGate;
+        private BreakoutPaddlePunkBoss activePaddlePunkBoss;
+        private int bossShieldSpawnIndex;
+        private bool isDeveloperRunActive;
 
         public Collider2D PaddleCollider => paddleCollider;
 
@@ -184,6 +199,7 @@ namespace GetBricked.Gameplay
             LoadLevelDefinitions();
             LoadThemeDefinitions();
             LoadRunUpgradeDefinitions();
+            LoadPowerUpDefinitions();
             levelPlanner = new BreakoutLevelPlanner(loadedLevels, loadedBrickDefinitions, GenerateSeed);
             ConfigureCamera();
             CreateRuntimeAssets();
@@ -200,10 +216,13 @@ namespace GetBricked.Gameplay
                 brickSprite,
                 powerUpSprite);
             powerUpService = new BreakoutPowerUpService(pickupSize, pickupFallSpeed, multiBallSpreadAngle, additiveSpriteMaterial);
+            mainMenuService = new BreakoutMainMenuService();
             uiRenderer = new BreakoutUiRenderer();
             scoreService = new BreakoutScoreService();
             activeRunState = new BreakoutRunState();
+            developerLaunchState = new BreakoutDeveloperLaunchState();
             upgradeDraftService = new BreakoutUpgradeDraftService(loadedRunUpgradeDefinitions);
+            rogueRunController = new BreakoutRogueRunController(loadedRunUpgradeDefinitions, loadedPowerUpDefinitions);
             CreateRuntimeRoots();
             CreateAudioService();
             CreateActorSpawnServices();
@@ -273,6 +292,7 @@ namespace GetBricked.Gameplay
             audioService?.Update(Time.unscaledDeltaTime);
             scoreService?.UpdateFloatingScorePopups(Time.unscaledDeltaTime);
             laserShotCooldownTimer = Mathf.Max(0f, laserShotCooldownTimer - Time.deltaTime);
+            UpdateBossEncounter();
 
             var keyboard = Keyboard.current;
 
@@ -298,6 +318,13 @@ namespace GetBricked.Gameplay
                 return;
             }
 
+            if (roundState == RoundState.DeveloperMenu)
+            {
+                ResetManualBallSpeedHold();
+                HandleDeveloperMenuInput(keyboard);
+                return;
+            }
+
             if (roundState == RoundState.RunSetup)
             {
                 ResetManualBallSpeedHold();
@@ -313,7 +340,7 @@ namespace GetBricked.Gameplay
 
             if (keyboard.rKey.wasPressedThisFrame)
             {
-                EnterRunSetup();
+                ReturnToLaunchSurface();
                 return;
             }
 
@@ -460,6 +487,8 @@ namespace GetBricked.Gameplay
                 selectedOverlayActionIndex = 0;
                 SetSimulationPaused(false);
                 ClearPickups();
+                RecordRogueRunResult(completed: false);
+
                 if (!isServeBall)
                 {
                     DestroyRuntimeObject(lostBall.gameObject);
@@ -525,6 +554,28 @@ namespace GetBricked.Gameplay
             return false;
         }
 
+        internal bool TryHandleBossPaddleCollision(BallController ball, BreakoutPaddlePunkBoss bossPaddle, Collision2D collision)
+        {
+            if (roundState != RoundState.Playing
+                || ball == null
+                || bossPaddle == null
+                || activeBossGate == null
+                || !bossPaddle.TryBuildCollisionResponse(collision, out var bounceDirection, out var speedBurstMultiplier))
+            {
+                return false;
+            }
+
+            audioService?.PlayBallHitPaddle();
+            ball.ApplyCollisionResponse(bounceDirection, 0.18f);
+
+            if (speedBurstMultiplier > 1.001f)
+            {
+                ball.ApplySpeedBurst(speedBurstMultiplier, BossPaddleCollisionSpeedBurstSeconds);
+            }
+
+            return true;
+        }
+
         public void HandleBallHitPaddle()
         {
             audioService?.PlayBallHitPaddle();
@@ -576,34 +627,63 @@ namespace GetBricked.Gameplay
 
         private void StartNewRun()
         {
+            StartNewRun(null, -1, applyDeveloperSelections: false);
+        }
+
+        private void StartNewRun(BreakoutDeveloperEncounter? developerEncounter, int developerLivesRemaining, bool applyDeveloperSelections)
+        {
             if (activeRunSettings == null)
             {
                 activeRunSettings = BuildRunSettingsFromPending(out pendingValidationMessage, commitSeedText: true);
             }
 
+            isDeveloperRunActive = applyDeveloperSelections;
             ApplyTheme(activeRunSettings.ThemeDefinition);
             isDiagnosticsOverlayVisible = false;
             manualBallSpeedMultiplier = 1f;
             SetSimulationPaused(false);
             selectedOverlayActionIndex = 0;
             gameplayRandom = new DeterministicRandomService(activeRunSettings.Seed);
-            livesRemaining = activeRunSettings.StartingLives;
+            livesRemaining = developerLivesRemaining > 0
+                ? Mathf.Clamp(developerLivesRemaining, 1, 9)
+                : activeRunSettings.StartingLives;
             lifeLossCount = 0;
             score = 0;
-            currentLevelIndex = 0;
+            activeRunResultRecorded = false;
+            currentLevelIndex = developerEncounter?.LevelIndex ?? 0;
             currentLevelVariationLabel = "Variation: pending";
+            pendingBossGate = null;
             shieldWallCharges = 0;
             laserShotCooldownTimer = 0f;
             stickyCaughtBall = null;
             scoreService?.ResetComboTracking(clearPopups: true);
             activeRunState?.Reset();
+            if (activeRunSettings.IsRogueMode)
+            {
+                rogueRunController?.InitializeRunState(activeRunState);
+            }
+
+            if (applyDeveloperSelections)
+            {
+                ApplyDeveloperSelectionsToRunState();
+            }
+
             ClearTimedEffects();
             ClearPickups();
+            ClearBossEncounter();
             UpdateShieldWallVisual();
-            LoadLevel(currentLevelIndex, RoundState.ReadyToServe);
+
+            if (developerEncounter.HasValue && developerEncounter.Value.IsBossGate)
+            {
+                LoadBossGate(developerEncounter.Value.BossGate.Value);
+            }
+            else
+            {
+                LoadLevel(currentLevelIndex, RoundState.ReadyToServe);
+            }
 
             Debug.Log(
-                $"Starting run | seed {activeRunSettings.Seed} | preset {activeRunSettings.DifficultyLabel} | " +
+                $"Starting {(isDeveloperRunActive ? "Developer " : string.Empty)}{activeRunSettings.GameModeLabel} run | seed {activeRunSettings.Seed} | preset {activeRunSettings.DifficultyLabel} | " +
                 $"score mode {activeRunSettings.ScoringModeLabel} | life loss penalty {activeRunSettings.LifeLossScorePenalty} | " +
                 $"balls/serve {activeRunSettings.BallsPerServe} | paddle x{activeRunSettings.PaddleWidthMultiplier:0.00} | " +
                 $"ball speed x{activeRunSettings.BallSpeedMultiplier:0.00} | brick durability x{activeRunSettings.BrickDurabilityMultiplier:0.00} | " +
@@ -613,10 +693,12 @@ namespace GetBricked.Gameplay
         private void EnterMainMenu()
         {
             roundState = RoundState.MainMenu;
+            selectedMainMenuActionIndex = 0;
             selectedOverlayActionIndex = 0;
             pendingValidationMessage = string.Empty;
             currentLevelVariationLabel = "Variation: pending";
             isDiagnosticsOverlayVisible = false;
+            isDeveloperRunActive = false;
             activeRunState?.Reset();
             ResetRuntimeForMetaFlow();
             ApplyPendingThemePreview();
@@ -647,6 +729,21 @@ namespace GetBricked.Gameplay
             pendingValidationMessage = string.Empty;
             currentLevelVariationLabel = "Variation: pending";
             isDiagnosticsOverlayVisible = false;
+            isDeveloperRunActive = false;
+            activeRunState?.Reset();
+            ResetRuntimeForMetaFlow();
+            ApplyPendingThemePreview();
+            audioService?.PlayMusic(BreakoutMusicTrack.Menu);
+        }
+
+        private void EnterDeveloperMenu()
+        {
+            developerLaunchState ??= new BreakoutDeveloperLaunchState();
+            roundState = RoundState.DeveloperMenu;
+            selectedDeveloperLaunchField = BreakoutDeveloperLaunchField.Encounter;
+            pendingValidationMessage = string.Empty;
+            currentLevelVariationLabel = "Variation: pending";
+            isDiagnosticsOverlayVisible = false;
             activeRunState?.Reset();
             ResetRuntimeForMetaFlow();
             ApplyPendingThemePreview();
@@ -660,9 +757,11 @@ namespace GetBricked.Gameplay
             brickService?.ClearBricks();
             ClearPickups();
             ClearTimedEffects();
+            ClearBossEncounter();
             StopAllBalls();
             DestroyAdditionalBalls();
             activeBalls.Clear();
+            pendingBossGate = null;
             activeRunState?.ClearPendingDraftOffers();
             selectedUpgradeDraftIndex = 0;
             stickyCaughtBall = null;
@@ -796,7 +895,7 @@ namespace GetBricked.Gameplay
 
             if (keyboard.rKey.wasPressedThisFrame)
             {
-                EnterRunSetup();
+                ReturnToLaunchSurface();
                 return;
             }
 
@@ -818,6 +917,12 @@ namespace GetBricked.Gameplay
 
         private void HandleOverlayMenuInput(Keyboard keyboard)
         {
+            if (roundState == RoundState.MainMenu)
+            {
+                HandleMainMenuInput(keyboard);
+                return;
+            }
+
             var actions = GetOverlayActionsForState(roundState);
 
             if (actions.Length == 0)
@@ -848,28 +953,127 @@ namespace GetBricked.Gameplay
             }
         }
 
+        private void HandleDeveloperMenuInput(Keyboard keyboard)
+        {
+            if (keyboard == null || developerLaunchState == null)
+            {
+                return;
+            }
+
+            if (keyboard.upArrowKey.wasPressedThisFrame || keyboard.wKey.wasPressedThisFrame)
+            {
+                selectedDeveloperLaunchField = (BreakoutDeveloperLaunchField)Mathf.Max(0, (int)selectedDeveloperLaunchField - 1);
+            }
+
+            if (keyboard.downArrowKey.wasPressedThisFrame || keyboard.sKey.wasPressedThisFrame)
+            {
+                selectedDeveloperLaunchField = (BreakoutDeveloperLaunchField)Mathf.Min((int)BreakoutDeveloperLaunchField.DropUnlock, (int)selectedDeveloperLaunchField + 1);
+            }
+
+            if (keyboard.leftArrowKey.wasPressedThisFrame || keyboard.aKey.wasPressedThisFrame)
+            {
+                developerLaunchState.AdjustField(selectedDeveloperLaunchField, -1, loadedRunUpgradeDefinitions, loadedPowerUpDefinitions);
+            }
+
+            if (keyboard.rightArrowKey.wasPressedThisFrame || keyboard.dKey.wasPressedThisFrame)
+            {
+                developerLaunchState.AdjustField(selectedDeveloperLaunchField, 1, loadedRunUpgradeDefinitions, loadedPowerUpDefinitions);
+            }
+
+            if (keyboard.tKey.wasPressedThisFrame)
+            {
+                ToggleDeveloperMenuSelection();
+            }
+
+            if (keyboard.nKey.wasPressedThisFrame)
+            {
+                developerLaunchState.ClearBuild();
+            }
+
+            if (keyboard.escapeKey.wasPressedThisFrame)
+            {
+                EnterMainMenu();
+                return;
+            }
+
+            if (keyboard.spaceKey.wasPressedThisFrame || keyboard.enterKey.wasPressedThisFrame || keyboard.numpadEnterKey.wasPressedThisFrame)
+            {
+                StartDeveloperRun();
+            }
+        }
+
+        private void HandleMainMenuInput(Keyboard keyboard)
+        {
+            var actions = mainMenuService?.BuildActions() ?? Array.Empty<BreakoutMainMenuAction>();
+
+            if (keyboard == null || actions.Length == 0)
+            {
+                return;
+            }
+
+            if (keyboard.upArrowKey.wasPressedThisFrame || keyboard.wKey.wasPressedThisFrame)
+            {
+                selectedMainMenuActionIndex = (selectedMainMenuActionIndex + actions.Length - 1) % actions.Length;
+                pendingValidationMessage = string.Empty;
+            }
+
+            if (keyboard.downArrowKey.wasPressedThisFrame || keyboard.sKey.wasPressedThisFrame)
+            {
+                selectedMainMenuActionIndex = (selectedMainMenuActionIndex + 1) % actions.Length;
+                pendingValidationMessage = string.Empty;
+            }
+
+            if (keyboard.spaceKey.wasPressedThisFrame || keyboard.enterKey.wasPressedThisFrame || keyboard.numpadEnterKey.wasPressedThisFrame)
+            {
+                selectedMainMenuActionIndex = Mathf.Clamp(selectedMainMenuActionIndex, 0, actions.Length - 1);
+                PerformMainMenuAction(actions[selectedMainMenuActionIndex]);
+            }
+        }
+
         private OverlayAction[] GetOverlayActionsForState(RoundState state)
         {
+            var isRogueRun = activeRunSettings != null && activeRunSettings.IsRogueMode;
+
             return state switch
             {
-                RoundState.MainMenu => new[]
-                {
-                    OverlayAction.StartRun,
-                    OverlayAction.OpenRunSetup,
-                    OverlayAction.ResetSetupDefaults,
-                },
-                RoundState.Paused => new[]
-                {
-                    OverlayAction.Resume,
-                    OverlayAction.RestartRun,
-                    OverlayAction.ReturnToRunSetup,
-                    OverlayAction.ReturnToMainMenu,
-                    OverlayAction.QuitGame,
-                },
+                RoundState.Paused => isRogueRun
+                    ? new[]
+                    {
+                        OverlayAction.Resume,
+                        OverlayAction.RestartRun,
+                        OverlayAction.ReturnToMainMenu,
+                        OverlayAction.QuitGame,
+                    }
+                    : new[]
+                    {
+                        OverlayAction.Resume,
+                        OverlayAction.RestartRun,
+                        OverlayAction.ReturnToRunSetup,
+                        OverlayAction.ReturnToMainMenu,
+                        OverlayAction.QuitGame,
+                    },
                 RoundState.LevelComplete => HasNextLevel()
                     ? new[]
                     {
                         OverlayAction.NextLevel,
+                        OverlayAction.RestartRun,
+                        OverlayAction.ReturnToMainMenu,
+                    }
+                    : isRogueRun
+                        ? new[]
+                        {
+                            OverlayAction.RestartRun,
+                            OverlayAction.ReturnToMainMenu,
+                        }
+                        : new[]
+                    {
+                        OverlayAction.RestartRun,
+                        OverlayAction.ReturnToRunSetup,
+                        OverlayAction.ReturnToMainMenu,
+                    },
+                RoundState.GameOver => isRogueRun
+                    ? new[]
+                    {
                         OverlayAction.RestartRun,
                         OverlayAction.ReturnToMainMenu,
                     }
@@ -879,12 +1083,6 @@ namespace GetBricked.Gameplay
                         OverlayAction.ReturnToRunSetup,
                         OverlayAction.ReturnToMainMenu,
                     },
-                RoundState.GameOver => new[]
-                {
-                    OverlayAction.RestartRun,
-                    OverlayAction.ReturnToRunSetup,
-                    OverlayAction.ReturnToMainMenu,
-                },
                 _ => Array.Empty<OverlayAction>(),
             };
         }
@@ -893,20 +1091,8 @@ namespace GetBricked.Gameplay
         {
             switch (action)
             {
-                case OverlayAction.StartRun:
-                    activeRunSettings = BuildRunSettingsFromPending(out pendingValidationMessage, commitSeedText: true);
-                    SavePersistedRunSetup();
-                    StartNewRun();
-                    break;
-                case OverlayAction.OpenRunSetup:
                 case OverlayAction.ReturnToRunSetup:
-                    EnterRunSetup();
-                    break;
-                case OverlayAction.ResetSetupDefaults:
-                    ResetPendingRunSetup(generateNewSeed: true);
-                    ApplyPendingThemePreview();
-                    SavePersistedRunSetup();
-                    pendingValidationMessage = "Run setup reset to defaults.";
+                    ReturnToLaunchSurface();
                     break;
                 case OverlayAction.Resume:
                     ResumeGameplay();
@@ -932,6 +1118,165 @@ namespace GetBricked.Gameplay
                     QuitGame();
                     break;
             }
+        }
+
+        private void PerformMainMenuAction(BreakoutMainMenuAction action)
+        {
+            if (action == BreakoutMainMenuAction.Rogue)
+            {
+                StartRogueRun();
+                return;
+            }
+
+            if (action == BreakoutMainMenuAction.CustomGame)
+            {
+                EnterRunSetup();
+                return;
+            }
+
+            if (action == BreakoutMainMenuAction.DeveloperMode)
+            {
+                EnterDeveloperMenu();
+                return;
+            }
+
+            pendingValidationMessage = mainMenuService?.BuildPlaceholderMessage(action) ?? string.Empty;
+        }
+
+        private void ReturnToLaunchSurface()
+        {
+            if (activeRunSettings != null && activeRunSettings.IsRogueMode)
+            {
+                EnterMainMenu();
+                return;
+            }
+
+            EnterRunSetup();
+        }
+
+        private void StartRogueRun()
+        {
+            var selectedPaddle = DefaultRoguePaddleLabel;
+            var intensity = BreakoutRogueIntensityProgressStore.GetAvailableIntensity(selectedPaddle);
+            activeRunSettings = rogueRunController != null
+                ? rogueRunController.BuildRunSettings(GenerateSeed(), lifeLossScorePenalty, ResolvePendingThemeDefinition())
+                : new RunSettings(
+                    GenerateSeed(),
+                    RunDifficultyPreset.Standard,
+                    RunScoringMode.Classic,
+                    3,
+                    lifeLossScorePenalty,
+                    1,
+                    1f,
+                    BreakoutRunProgression.GetRogueIntensityBallSpeedMultiplier(intensity),
+                    1f,
+                    1f,
+                    DropPoolMode.Mixed,
+                    false,
+                    ResolvePendingThemeDefinition(),
+                    RunGameMode.Rogue,
+                    intensity,
+                    selectedPaddle);
+            pendingValidationMessage = $"Rogue tape loaded: Heat {activeRunSettings.RogueIntensity:00}/50, 10 stages, 3 balls, draft rewards, growing drop pool.";
+            StartNewRun();
+        }
+
+        private void StartDeveloperRun()
+        {
+            developerLaunchState ??= new BreakoutDeveloperLaunchState();
+            var selectedPaddle = DefaultRoguePaddleLabel;
+            var intensity = BreakoutRunProgression.ClampRogueIntensity(developerLaunchState.Intensity);
+            activeRunSettings = rogueRunController != null
+                ? rogueRunController.BuildRunSettings(GenerateSeed(), lifeLossScorePenalty, ResolvePendingThemeDefinition(), intensity)
+                : new RunSettings(
+                    GenerateSeed(),
+                    RunDifficultyPreset.Standard,
+                    RunScoringMode.Classic,
+                    3,
+                    lifeLossScorePenalty,
+                    1,
+                    1f,
+                    BreakoutRunProgression.GetRogueIntensityBallSpeedMultiplier(intensity),
+                    1f,
+                    1f,
+                    DropPoolMode.Mixed,
+                    false,
+                    ResolvePendingThemeDefinition(),
+                    RunGameMode.Rogue,
+                    intensity,
+                    selectedPaddle);
+
+            var encounter = developerLaunchState.ResolveEncounter();
+            pendingValidationMessage = $"Dev jump loaded: {encounter.DisplayName} at Heat {activeRunSettings.RogueIntensity:00}.";
+            StartNewRun(encounter, developerLaunchState.LivesRemaining, applyDeveloperSelections: true);
+        }
+
+        private void ToggleDeveloperMenuSelection()
+        {
+            if (developerLaunchState == null)
+            {
+                return;
+            }
+
+            switch (selectedDeveloperLaunchField)
+            {
+                case BreakoutDeveloperLaunchField.Upgrade:
+                    developerLaunchState.ToggleCurrentUpgrade(loadedRunUpgradeDefinitions);
+                    break;
+                case BreakoutDeveloperLaunchField.DropUnlock:
+                    developerLaunchState.ToggleCurrentDropUnlock(loadedPowerUpDefinitions);
+                    break;
+            }
+        }
+
+        private void ApplyDeveloperSelectionsToRunState()
+        {
+            if (developerLaunchState == null || activeRunState == null)
+            {
+                return;
+            }
+
+            for (var index = 0; index < loadedRunUpgradeDefinitions.Count; index++)
+            {
+                var upgrade = loadedRunUpgradeDefinitions[index];
+
+                if (upgrade == null || !developerLaunchState.ShouldApplyUpgrade(upgrade))
+                {
+                    continue;
+                }
+
+                var offer = BreakoutRunDraftOffer.FromRunUpgrade(upgrade);
+
+                if (!activeRunState.CanOffer(offer))
+                {
+                    continue;
+                }
+
+                activeRunState.SetPendingDraftOffers(new[] { offer });
+                activeRunState.TryApplyPendingDraftOffer(0, out _);
+            }
+
+            for (var index = 0; index < loadedPowerUpDefinitions.Count; index++)
+            {
+                var dropUnlock = loadedPowerUpDefinitions[index];
+
+                if (dropUnlock == null || !developerLaunchState.ShouldApplyDropUnlock(dropUnlock))
+                {
+                    continue;
+                }
+
+                var offer = BreakoutRunDraftOffer.FromDropUnlock(dropUnlock);
+
+                if (!activeRunState.CanOffer(offer))
+                {
+                    continue;
+                }
+
+                activeRunState.SetPendingDraftOffers(new[] { offer });
+                activeRunState.TryApplyPendingDraftOffer(0, out _);
+            }
+
+            activeRunState.ClearPendingDraftOffers();
         }
 
         private bool CanPauseRoundState(RoundState state)
@@ -1190,8 +1535,21 @@ namespace GetBricked.Gameplay
             }
         }
 
+        private void LoadPowerUpDefinitions()
+        {
+            loadedPowerUpDefinitions.Clear();
+            loadedPowerUpDefinitions.AddRange(Resources.LoadAll<PowerUpDefinition>("PowerUps"));
+            loadedPowerUpDefinitions.Sort(ComparePowerUpDefinitions);
+
+            if (loadedPowerUpDefinitions.Count == 0)
+            {
+                Debug.LogWarning("No power-up definitions were found in Resources/PowerUps. Rogue drop unlocks will be skipped.");
+            }
+        }
+
         private void LoadLevel(int levelIndex, RoundState serveState)
         {
+            ClearBossEncounter();
             brickService?.ClearBricks();
             ClearPickups();
             stickyCaughtBall = null;
@@ -1248,7 +1606,7 @@ namespace GetBricked.Gameplay
             if (levelPlan == null)
             {
                 currentLevelPaddleSpeed = paddleSpeed;
-                currentLevelBallSpeed = ballSpeed * persistentModifiers.BallSpeedMultiplier;
+                currentLevelBallSpeed = ballSpeed * GetModeBallSpeedMultiplier() * persistentModifiers.BallSpeedMultiplier;
                 ApplyActiveEffects();
                 return;
             }
@@ -1257,6 +1615,7 @@ namespace GetBricked.Gameplay
             currentLevelBallSpeed = ballSpeed
                 * Mathf.Max(0.5f, levelPlan.BallSpeedMultiplier)
                 * (activeRunSettings?.BallSpeedMultiplier ?? 1f)
+                * GetModeBallSpeedMultiplier()
                 * persistentModifiers.BallSpeedMultiplier;
             ApplyActiveEffects();
         }
@@ -1296,6 +1655,7 @@ namespace GetBricked.Gameplay
             ballSprite = BreakoutRuntimeVisualFactory.LoadSpriteResource(BallSpriteResourcePath, circleSprite);
             brickSprite = BreakoutRuntimeVisualFactory.LoadSpriteResource(BrickSpriteResourcePath, squareSprite);
             paddleSprite = BreakoutRuntimeVisualFactory.LoadSpriteResource(PaddleSpriteResourcePath, squareSprite);
+            bossPaddleSprite = BreakoutRuntimeVisualFactory.LoadSpriteResource(BossPaddleSpriteResourcePath, paddleSprite);
             powerUpSprite = BreakoutRuntimeVisualFactory.LoadSpriteResource(PowerUpSpriteResourcePath, squareSprite);
             spriteUnlitMaterial = BreakoutRuntimeVisualFactory.CreateSpriteUnlitMaterial();
             additiveSpriteMaterial = BreakoutRuntimeVisualFactory.CreateAdditiveSpriteMaterial();
@@ -1356,6 +1716,9 @@ namespace GetBricked.Gameplay
 
             pickupsRoot = new GameObject("Pickups").transform;
             pickupsRoot.SetParent(runtimeRoot, false);
+
+            bossRoot = new GameObject("Bosses").transform;
+            bossRoot.SetParent(runtimeRoot, false);
         }
 
         private void CreateAudioService()
@@ -1536,6 +1899,227 @@ namespace GetBricked.Gameplay
                 : 0;
         }
 
+        private void LoadBossGate(BreakoutBossGate bossGate)
+        {
+            ClearBossEncounter();
+            brickService?.ClearBricks();
+            ClearPickups();
+            stickyCaughtBall = null;
+            ClearTimedEffects();
+            scoreService?.ResetComboTracking(clearPopups: true);
+
+            activeBossGate = bossGate;
+            pendingBossGate = null;
+            bossShieldSpawnIndex = 0;
+            currentLevelIndex = bossGate.TriggerLevelIndex;
+            currentLevel = ResolveLevelTemplate(currentLevelIndex);
+            currentLevelDisplayName = bossGate.DisplayName;
+            currentLevelVariationLabel = $"Boss Gate: {bossGate.HudLabel} | Break the weak points behind the rail.";
+
+            UpdateBackgroundVisuals();
+            audioService?.PlayMusic(BreakoutMusicTrack.Intense);
+            ApplyBossGateTuning(bossGate);
+            BuildPaddlePunkBossGate(bossGate);
+            PrepareServe(RoundState.ReadyToServe);
+
+            powerUpService?.ShowStatusBanner("PADDLE PUNK!", new Color(1f, 0.18f, 0.23f, 1f), 2.4f);
+        }
+
+        private void ApplyBossGateTuning(BreakoutBossGate bossGate)
+        {
+            var persistentModifiers = GetPersistentRunUpgradeModifiers();
+            currentLevelPaddleSpeed = paddleSpeed * Mathf.Lerp(1f, 1.08f, Mathf.Clamp01(bossGate.GateIndex / 2f));
+            currentLevelBallSpeed = ballSpeed
+                * (activeRunSettings?.BallSpeedMultiplier ?? 1f)
+                * GetModeBallSpeedMultiplier()
+                * BreakoutRunProgression.GetBossGateBallSpeedMultiplier(bossGate)
+                * persistentModifiers.BallSpeedMultiplier;
+            ApplyActiveEffects();
+        }
+
+        private void BuildPaddlePunkBossGate(BreakoutBossGate bossGate)
+        {
+            if (brickService == null)
+            {
+                requiredBricksRemaining = 0;
+                return;
+            }
+
+            requiredBricksRemaining = 0;
+            var weakPointDefinition = FindBrickDefinition("Tiny Brick") ?? FindBreakableBrickDefinition();
+            var shieldDefinition = FindBrickDefinition("Steel Brick");
+            var weakPointCount = Mathf.Clamp(4 + bossGate.GateIndex, 4, 6);
+            var weakPointSpacing = Mathf.Min(1.18f, (arenaRight - arenaLeft - 1.5f) / Mathf.Max(1, weakPointCount - 1));
+            var weakPointStartX = -weakPointSpacing * (weakPointCount - 1) * 0.5f;
+            var weakPointY = arenaTop - 0.52f;
+
+            for (var index = 0; index < weakPointCount; index++)
+            {
+                var position = new Vector2(weakPointStartX + (index * weakPointSpacing), weakPointY);
+                var brick = brickService.CreateBrick(position, weakPointDefinition, 0, index, default);
+
+                if (brick != null && brick.CountsTowardLevelCompletion)
+                {
+                    requiredBricksRemaining++;
+                }
+            }
+
+            if (shieldDefinition != null)
+            {
+                var shieldY = arenaTop - 1.92f;
+                var shieldOffset = 2.65f + (bossGate.GateIndex * 0.28f);
+                brickService.CreateBrick(new Vector2(-shieldOffset, shieldY), shieldDefinition, 1, 0, default);
+                brickService.CreateBrick(new Vector2(shieldOffset, shieldY), shieldDefinition, 1, 1, default);
+            }
+
+            CreatePaddlePunkBossActor(bossGate);
+        }
+
+        private void CreatePaddlePunkBossActor(BreakoutBossGate bossGate)
+        {
+            var bossObject = new GameObject("The Paddle Punk");
+            bossObject.transform.SetParent(bossRoot != null ? bossRoot : runtimeRoot, false);
+            bossObject.transform.localScale = new Vector3(paddleSize.x * 1.12f, paddleSize.y * 0.82f, 1f);
+            bossObject.transform.position = new Vector2(0f, arenaTop - 1.42f);
+
+            var visualObject = new GameObject("Visual");
+            visualObject.transform.SetParent(bossObject.transform, false);
+
+            var spriteRenderer = visualObject.AddComponent<SpriteRenderer>();
+            spriteRenderer.sprite = bossPaddleSprite != null ? bossPaddleSprite : paddleSprite;
+            spriteRenderer.color = Color.white;
+            spriteRenderer.sortingOrder = 11;
+            spriteRenderer.sharedMaterial = spriteUnlitMaterial;
+            BreakoutSpriteRendererUtility.NormalizeScale(spriteRenderer);
+
+            var collider = bossObject.AddComponent<BoxCollider2D>();
+            collider.sharedMaterial = bounceMaterial;
+
+            var body = bossObject.AddComponent<Rigidbody2D>();
+            body.bodyType = RigidbodyType2D.Kinematic;
+            body.gravityScale = 0f;
+            body.interpolation = RigidbodyInterpolation2D.Interpolate;
+            body.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
+
+            activePaddlePunkBoss = bossObject.AddComponent<BreakoutPaddlePunkBoss>();
+            activePaddlePunkBoss.Configure(
+                bossGate.GateIndex,
+                arenaLeft,
+                arenaRight,
+                bossObject.transform.localScale.x * 0.5f,
+                paddleSpeed * (0.72f + (bossGate.GateIndex * 0.08f)),
+                ResolveBossTargetBallPosition,
+                NextGameplayRandomFloat);
+        }
+
+        private void UpdateBossEncounter()
+        {
+            if (roundState != RoundState.Playing
+                || activeBossGate == null
+                || activePaddlePunkBoss == null
+                || !activePaddlePunkBoss.TryConsumeShieldSpawnRequest())
+            {
+                return;
+            }
+
+            SpawnPaddlePunkShieldBrick(activeBossGate.Value);
+        }
+
+        private void SpawnPaddlePunkShieldBrick(BreakoutBossGate bossGate)
+        {
+            var shieldDefinition = FindBrickDefinition("Steel Brick");
+
+            if (brickService == null || shieldDefinition == null)
+            {
+                return;
+            }
+
+            var laneCount = 5;
+            var laneIndex = (bossShieldSpawnIndex + bossGate.GateIndex) % laneCount;
+            bossShieldSpawnIndex++;
+            var normalizedLane = laneCount <= 1 ? 0.5f : laneIndex / (float)(laneCount - 1);
+            var x = Mathf.Lerp(arenaLeft + 1.1f, arenaRight - 1.1f, normalizedLane);
+            var y = arenaTop - Mathf.Lerp(1.78f, 2.28f, bossGate.GateIndex / 2f);
+            brickService.CreateBrick(new Vector2(x, y), shieldDefinition, 2, bossShieldSpawnIndex, default);
+        }
+
+        private Vector2? ResolveBossTargetBallPosition()
+        {
+            BallController bestBall = null;
+            var bestY = float.NegativeInfinity;
+
+            for (var index = activeBalls.Count - 1; index >= 0; index--)
+            {
+                var candidate = activeBalls[index];
+
+                if (candidate == null)
+                {
+                    activeBalls.RemoveAt(index);
+                    continue;
+                }
+
+                if (candidate.transform.position.y > bestY)
+                {
+                    bestY = candidate.transform.position.y;
+                    bestBall = candidate;
+                }
+            }
+
+            if (bestBall != null)
+            {
+                return bestBall.transform.position;
+            }
+
+            return serveBall != null ? serveBall.transform.position : null;
+        }
+
+        private BrickDefinition FindBrickDefinition(string displayName)
+        {
+            for (var index = 0; index < loadedBrickDefinitions.Count; index++)
+            {
+                var definition = loadedBrickDefinitions[index];
+
+                if (definition != null && string.Equals(definition.DisplayName, displayName, StringComparison.OrdinalIgnoreCase))
+                {
+                    return definition;
+                }
+            }
+
+            return null;
+        }
+
+        private BrickDefinition FindBreakableBrickDefinition()
+        {
+            for (var index = 0; index < loadedBrickDefinitions.Count; index++)
+            {
+                var definition = loadedBrickDefinitions[index];
+
+                if (definition != null && definition.IsBreakable)
+                {
+                    return definition;
+                }
+            }
+
+            return loadedBrickDefinitions.Count > 0 ? loadedBrickDefinitions[0] : null;
+        }
+
+        private void ClearBossEncounter()
+        {
+            activeBossGate = null;
+            activePaddlePunkBoss = null;
+            bossShieldSpawnIndex = 0;
+
+            if (bossRoot == null)
+            {
+                return;
+            }
+
+            for (var index = bossRoot.childCount - 1; index >= 0; index--)
+            {
+                DestroyRuntimeObject(bossRoot.GetChild(index).gameObject);
+            }
+        }
+
         private LevelDefinition ResolveLevelTemplate(int levelIndex)
         {
             if (loadedLevels.Count == 0 || levelIndex < 0)
@@ -1560,11 +2144,32 @@ namespace GetBricked.Gameplay
                 return;
             }
 
+            if (activeBossGate.HasValue)
+            {
+                CompleteBossGate(activeBossGate.Value);
+                return;
+            }
+
             SetSimulationPaused(false);
             ClearPickups();
             StopAllBalls();
             stickyCaughtBall = null;
             audioService?.PlayLevelComplete();
+
+            if (activeRunSettings != null
+                && activeRunSettings.IsRogueMode
+                && BreakoutRunProgression.TryGetBossGateAfterLevel(currentLevelIndex, out var bossGate))
+            {
+                pendingBossGate = bossGate;
+
+                if (TryOpenUpgradeDraft())
+                {
+                    return;
+                }
+
+                LoadBossGate(bossGate);
+                return;
+            }
 
             if (HasNextLevel() && TryOpenUpgradeDraft())
             {
@@ -1573,6 +2178,28 @@ namespace GetBricked.Gameplay
 
             roundState = RoundState.LevelComplete;
             selectedOverlayActionIndex = 0;
+            RecordRogueRunResult(completed: !HasNextLevel());
+        }
+
+        private void CompleteBossGate(BreakoutBossGate bossGate)
+        {
+            SetSimulationPaused(false);
+            ClearPickups();
+            StopAllBalls();
+            stickyCaughtBall = null;
+            audioService?.PlayLevelComplete();
+            powerUpService?.ShowStatusBanner("PUNK WIPED!", new Color(1f, 0.18f, 0.23f, 1f), 2.2f);
+            ClearBossEncounter();
+
+            if (bossGate.TriggerLevelIndex >= BreakoutRunProgression.TargetLevelCount - 1)
+            {
+                roundState = RoundState.LevelComplete;
+                selectedOverlayActionIndex = 0;
+                RecordRogueRunResult(completed: true);
+                return;
+            }
+
+            LoadLevel(bossGate.TriggerLevelIndex + 1, RoundState.ReadyToServe);
         }
 
         private bool HasNextLevel()
@@ -1701,6 +2328,26 @@ namespace GetBricked.Gameplay
         }
 
         private static int CompareRunUpgradeDefinitions(RunUpgradeDefinition left, RunUpgradeDefinition right)
+        {
+            if (ReferenceEquals(left, right))
+            {
+                return 0;
+            }
+
+            if (left == null)
+            {
+                return 1;
+            }
+
+            if (right == null)
+            {
+                return -1;
+            }
+
+            return string.Compare(left.DisplayName, right.DisplayName, StringComparison.Ordinal);
+        }
+
+        private static int ComparePowerUpDefinitions(PowerUpDefinition left, PowerUpDefinition right)
         {
             if (ReferenceEquals(left, right))
             {
@@ -1916,7 +2563,7 @@ namespace GetBricked.Gameplay
             if (roundState == RoundState.MainMenu)
             {
                 uiRenderer.DrawCabinetBackdrop(BuildChromeView("Get Bricked", "Synthwave Cabinet", true));
-                uiRenderer.DrawMainMenu(BuildMainMenuView(), HandleOverlayActionClick);
+                uiRenderer.DrawMainMenu(BuildMainMenuView(), HandleMainMenuActionClick);
                 return;
             }
 
@@ -1927,9 +2574,16 @@ namespace GetBricked.Gameplay
                 return;
             }
 
+            if (roundState == RoundState.DeveloperMenu)
+            {
+                uiRenderer.DrawCabinetBackdrop(BuildChromeView("Dev Mode", ResolvePendingThemeDefinition()?.DisplayName ?? "Theme Preview", true));
+                uiRenderer.DrawRunSetup(BuildDeveloperMenuView());
+                return;
+            }
+
             if (roundState == RoundState.UpgradeDraft)
             {
-                uiRenderer.DrawCabinetBackdrop(BuildChromeView("Upgrade Draft", "Choose one permanent mod", true));
+                uiRenderer.DrawCabinetBackdrop(BuildChromeView("Reward Draft", "Choose one run reward", true));
                 uiRenderer.DrawUpgradeDraft(BuildUpgradeDraftView(), HandleUpgradeDraftChoice);
                 uiRenderer.DrawPickupBanner(BuildPickupBannerView());
                 return;
@@ -1988,9 +2642,6 @@ namespace GetBricked.Gameplay
         {
             return action switch
             {
-                OverlayAction.StartRun => "Start Run",
-                OverlayAction.OpenRunSetup => "Open Run Setup",
-                OverlayAction.ResetSetupDefaults => "Reset Setup Defaults",
                 OverlayAction.Resume => "Resume",
                 OverlayAction.RestartRun => "Restart Run",
                 OverlayAction.NextLevel => "Next Level",
@@ -2004,28 +2655,24 @@ namespace GetBricked.Gameplay
         private BreakoutUiMenuView BuildMainMenuView()
         {
             var previewSettings = BuildRunSettingsFromPending(out var previewValidation);
-            return new BreakoutUiMenuView
+            BreakoutRogueRunResultStore.TryLoad(out var lastRogueResult);
+            var context = new BreakoutMainMenuContext
             {
-                Title = "Get Bricked",
-                Subtitle = "Neon cabinet online. Quick-start the last tuned run or open the control panel and retune the seed, score mode, modifiers, and palette.",
-                SectionTitle = "Control Panel",
-                ActionLabels = BuildOverlayActionLabels(GetOverlayActionsForState(RoundState.MainMenu)),
-                SelectedActionIndex = selectedOverlayActionIndex,
-                PreviewTitle = "Saved Run Loadout",
-                PreviewLines = new[]
-                {
-                    $"Tape ID: {GetPendingSeedDisplay()}",
-                    $"Difficulty: {pendingRunSetup.DifficultyPreset} | Score Mode: {previewSettings.ScoringModeLabel}",
-                    $"Balls/Serve: {pendingRunSetup.BallsPerServe} | {BuildRetrySummaryLabel(previewSettings)}",
-                    $"Theme: {previewSettings.ThemeLabel}",
-                    $"Paddle x{previewSettings.PaddleWidthMultiplier:0.00} | Ball x{previewSettings.BallSpeedMultiplier:0.00}",
-                    $"Brick durability x{previewSettings.BrickDurabilityMultiplier:0.00} | {BuildScoreModeSummaryLabel(previewSettings)}",
-                    $"Drops: {BuildDropSummaryLabel(previewSettings)}",
-                },
-                ValidationText = previewValidation,
-                FooterText = "Run setup selections persist automatically, so quick start reuses the last cabinet tuning across sessions.",
-                HintText = "Up/Down selects. Space confirms. Open Run Setup for Tape ID editing, score mode tuning, modifier tweaks, and theme cycling.",
+                SelectedActionIndex = selectedMainMenuActionIndex,
+                PendingSeedDisplay = GetPendingSeedDisplay(),
+                DifficultyPresetLabel = pendingRunSetup.DifficultyPreset.ToString(),
+                BallsPerServe = pendingRunSetup.BallsPerServe,
+                PreviewSettings = previewSettings,
+                ScoreModeSummaryLabel = BuildScoreModeSummaryLabel(previewSettings),
+                RetrySummaryLabel = BuildRetrySummaryLabel(previewSettings),
+                DropSummaryLabel = BuildDropSummaryLabel(previewSettings),
+                PreviewValidation = previewValidation,
+                PendingValidationMessage = pendingValidationMessage,
+                LastRogueResultSummary = BreakoutRogueRunResultStore.BuildSummary(lastRogueResult),
+                AvailableRogueIntensity = BreakoutRogueIntensityProgressStore.GetAvailableIntensity(DefaultRoguePaddleLabel),
             };
+
+            return mainMenuService.BuildView(context);
         }
 
         private BreakoutUiRunSetupView BuildRunSetupView()
@@ -2055,12 +2702,45 @@ namespace GetBricked.Gameplay
             };
         }
 
+        private BreakoutUiRunSetupView BuildDeveloperMenuView()
+        {
+            developerLaunchState ??= new BreakoutDeveloperLaunchState();
+            var encounter = developerLaunchState.ResolveEncounter();
+            var currentUpgrade = developerLaunchState.ResolveCurrentUpgrade(loadedRunUpgradeDefinitions);
+            var currentDrop = developerLaunchState.ResolveCurrentDropUnlock(loadedPowerUpDefinitions);
+            var upgradeSelected = currentUpgrade != null && developerLaunchState.IsUpgradeSelected(currentUpgrade);
+            var dropSelected = currentDrop != null && developerLaunchState.IsDropUnlockSelected(currentDrop);
+
+            return new BreakoutUiRunSetupView
+            {
+                Title = "Dev Mode",
+                Subtitle = "Local Rogue jump bench. Pick an encounter, seed a build, and launch straight into the test target.",
+                FieldLines = new[]
+                {
+                    $"Encounter: {FormatDeveloperEncounterLabel(encounter)}",
+                    $"Lives: {developerLaunchState.LivesRemaining}",
+                    $"Heat: {developerLaunchState.Intensity:00}/{BreakoutRunProgression.MaxRogueIntensity:00}",
+                    $"Upgrade: {FormatDeveloperToggle(upgradeSelected)} {FormatDeveloperUpgradeLabel(currentUpgrade)}",
+                    $"Drop Unlock: {FormatDeveloperToggle(dropSelected)} {FormatDeveloperDropLabel(currentDrop)}",
+                },
+                SelectedFieldIndex = (int)selectedDeveloperLaunchField,
+                PreviewLine = $"Preview: {FormatDeveloperEncounterLabel(encounter)} | Heat {developerLaunchState.Intensity:00} | Balls {developerLaunchState.LivesRemaining:00} | Build {developerLaunchState.SelectedUpgradeCount:00} upgrades, {developerLaunchState.SelectedDropUnlockCount:00} drops | Theme {ResolvePendingThemeDefinition()?.DisplayName ?? "Fallback"}",
+                ValidationText = "Encounter cycles through Stage 01-10, then Boss Gate 1-3. Dev runs do not update the saved Rogue result.",
+                HintText = "Up/Down selects. Left/Right changes. T toggles build picks. N clears build. Esc returns to menu. Space launches.",
+            };
+        }
+
         private BreakoutUiHudView BuildHudView()
         {
             var bounceZoneLeftScreen = activeCamera != null
                 ? activeCamera.WorldToScreenPoint(new Vector3(arenaLeft, 0f, 0f)).x
                 : 0f;
             var speed = GetDisplayedBallSpeed();
+            var isRogueRun = activeRunSettings != null && activeRunSettings.IsRogueMode;
+            var intensity = isRogueRun
+                ? BreakoutRunProgression.ClampRogueIntensity(activeRunSettings.RogueIntensity)
+                : BreakoutRunProgression.MinRogueIntensity;
+            var intensityProgress = BreakoutRunProgression.GetRogueIntensityProgress(intensity);
             return new BreakoutUiHudView
             {
                 TopLine = $"{GetScoreDisplayLabel().ToUpperInvariant()} {FormatScoreValue(score)}   {GetLifeCounterLabel().ToUpperInvariant()} {GetLifeCounterValue():00}   {BuildLevelLabel().ToUpperInvariant()}",
@@ -2074,6 +2754,15 @@ namespace GetBricked.Gameplay
                     IsDiagnosticsVisible = isDiagnosticsOverlayVisible,
                     Speed = speed,
                     SpeedRatio = Mathf.Clamp01(speed / Mathf.Max(0.1f, GetMaximumBallSpeed())),
+                },
+                IntensityGauge = new BreakoutUiIntensityGaugeView
+                {
+                    IsVisible = isRogueRun,
+                    Intensity = intensity,
+                    MaxIntensity = BreakoutRunProgression.MaxRogueIntensity,
+                    Progress = intensityProgress,
+                    PulseRate = Mathf.Lerp(1.6f, 8.6f, intensityProgress),
+                    Color = BreakoutRunProgression.GetRogueIntensityGaugeColor(intensity),
                 },
             };
         }
@@ -2108,8 +2797,8 @@ namespace GetBricked.Gameplay
             {
                 return new BreakoutUiUpgradeDraftView
                 {
-                    Title = "Upgrade Draft",
-                    Subtitle = "No upgrades available.",
+                    Title = "Reward Draft",
+                    Subtitle = "No rewards available.",
                     BuildLine = BuildUpgradeSummaryLabel(3),
                     HintText = "Press R to return to setup.",
                 };
@@ -2119,24 +2808,28 @@ namespace GetBricked.Gameplay
 
             for (var index = 0; index < offers.Count; index++)
             {
-                var upgrade = offers[index];
+                var offer = offers[index];
+                var upgrade = offer?.UpgradeDefinition;
+                var dropUnlock = offer?.DropUnlockDefinition;
                 var currentStacks = activeRunState != null ? activeRunState.GetStackCount(upgrade) : 0;
                 optionViews[index] = new BreakoutUiUpgradeDraftOptionView
                 {
-                    Title = upgrade != null ? upgrade.DisplayName : "Missing Upgrade",
-                    Description = upgrade != null ? upgrade.Description : "This draft slot failed to load.",
-                    Detail = upgrade != null
-                        ? $"Stacks {currentStacks}/{upgrade.MaxStacks}   |   {BuildUpgradeMechanicalSummary(upgrade)}"
-                        : "Unavailable",
-                    Icon = ResolveRunUpgradeIcon(upgrade),
-                    Accent = ResolveRunUpgradeAccentColor(upgrade),
+                    Title = BuildDraftOfferTitle(offer),
+                    Description = BuildDraftOfferDescription(offer),
+                    Detail = offer != null && offer.Kind == BreakoutRunDraftOfferKind.RunUpgrade && upgrade != null
+                        ? $"Run Upgrade | Stacks {currentStacks}/{upgrade.MaxStacks} | {BuildUpgradeMechanicalSummary(upgrade)}"
+                        : BuildDropUnlockDetail(dropUnlock),
+                    Icon = ResolveDraftOfferIcon(offer),
+                    Accent = ResolveDraftOfferAccentColor(offer),
                 };
             }
 
             return new BreakoutUiUpgradeDraftView
             {
-                Title = "Upgrade Draft",
-                Subtitle = $"Level {currentLevelIndex + 1:00} cleared. Choose one cabinet mod to lock in for the rest of this run.",
+                Title = "Reward Draft",
+                Subtitle = pendingBossGate.HasValue
+                    ? $"Level {currentLevelIndex + 1:00} cleared. Choose one reward before {pendingBossGate.Value.HudLabel}."
+                    : $"Level {currentLevelIndex + 1:00} cleared. Choose one reward for the rest of this run.",
                 BuildLine = BuildUpgradeSummaryLabel(4),
                 Options = optionViews,
                 SelectedOptionIndex = Mathf.Clamp(selectedUpgradeDraftIndex, 0, optionViews.Length - 1),
@@ -2148,20 +2841,24 @@ namespace GetBricked.Gameplay
         {
             var isGameOver = roundState == RoundState.GameOver;
             var title = isGameOver
-                ? "Run Over"
+                ? (activeRunSettings != null && activeRunSettings.IsRogueMode ? "Rogue Wiped Out" : "Run Over")
                 : HasNextLevel()
                     ? "Level Cleared"
-                    : "Final Layout Cleared";
+                    : (activeRunSettings != null && activeRunSettings.IsRogueMode ? "Mixtape Cleared" : "Final Layout Cleared");
             var summary = isGameOver
                 ? $"{GetScoreDisplayLabel()} {FormatScoreValue(score)} | Reached {BuildLevelLabel()} | Tape ID {activeRunSettings?.Seed.ToString(CultureInfo.InvariantCulture) ?? GetPendingSeedDisplay()}"
                 : HasNextLevel()
                     ? $"{GetScoreDisplayLabel()} {FormatScoreValue(score)} | {GetLifeCounterLabel()} {GetLifeCounterValue():00} | Next up: level {currentLevelIndex + 2:00}"
                     : $"{GetScoreDisplayLabel()} {FormatScoreValue(score)} | {GetLifeCounterLabel()} {GetLifeCounterValue():00} | Tape ID {activeRunSettings?.Seed.ToString(CultureInfo.InvariantCulture) ?? GetPendingSeedDisplay()}";
             var footer = isGameOver
-                ? "Restart the run, jump back to setup, or return to the main menu."
+                ? activeRunSettings != null && activeRunSettings.IsRogueMode
+                    ? "Restart the run or return to the main menu."
+                    : "Restart the run, jump back to setup, or return to the main menu."
                 : HasNextLevel()
                     ? "Advance to the next stage, restart the run, or return to the menu."
-                    : "The 10-stage run is complete. Restart, tune a new setup, or head back to the menu.";
+                    : activeRunSettings != null && activeRunSettings.IsRogueMode
+                        ? "The 10-stage mixtape is complete. Restart or head back to the menu."
+                        : "The 10-stage run is complete. Restart, tune a new setup, or head back to the menu.";
             return new BreakoutUiOverlayView
             {
                 Title = title,
@@ -2218,7 +2915,7 @@ namespace GetBricked.Gameplay
         {
             var chosenUpgrades = activeRunState?.ChosenUpgrades;
 
-            if (chosenUpgrades == null || chosenUpgrades.Count == 0)
+            if (activeRunState == null || !activeRunState.HasActiveBuild)
             {
                 return new BreakoutUiRunUpgradePanelView
                 {
@@ -2248,6 +2945,29 @@ namespace GetBricked.Gameplay
                     StackCount = stackCount,
                     Icon = ResolveRunUpgradeIcon(upgrade),
                     Accent = ResolveRunUpgradeAccentColor(upgrade),
+                });
+            }
+
+            var chosenDropUnlocks = activeRunState.ChosenDropUnlocks;
+
+            for (var index = 0; index < chosenDropUnlocks.Count; index++)
+            {
+                var dropUnlock = chosenDropUnlocks[index];
+
+                if (dropUnlock == null || !addedIds.Add($"drop:{BreakoutPowerUpIdentity.GetStableId(dropUnlock)}"))
+                {
+                    continue;
+                }
+
+                items.Add(new BreakoutUiRunUpgradePanelItemView
+                {
+                    Label = dropUnlock.HudLabel,
+                    Title = $"Drop Unlock: {dropUnlock.DisplayName}",
+                    Description = $"Adds {dropUnlock.DisplayName} capsules to this Rogue run's drop pool.",
+                    Detail = BuildDropUnlockDetail(dropUnlock),
+                    StackCount = 1,
+                    Icon = ResolvePowerUpIcon(dropUnlock),
+                    Accent = ResolvePowerUpAccentColor(dropUnlock),
                 });
             }
 
@@ -2317,11 +3037,6 @@ namespace GetBricked.Gameplay
         {
             var actions = GetOverlayActionsForState(roundState);
 
-            if (roundState == RoundState.MainMenu)
-            {
-                actions = GetOverlayActionsForState(RoundState.MainMenu);
-            }
-
             if (actionIndex < 0 || actionIndex >= actions.Length)
             {
                 return;
@@ -2331,6 +3046,19 @@ namespace GetBricked.Gameplay
             PerformOverlayAction(actions[actionIndex]);
         }
 
+        private void HandleMainMenuActionClick(int actionIndex)
+        {
+            var actions = mainMenuService?.BuildActions() ?? Array.Empty<BreakoutMainMenuAction>();
+
+            if (actionIndex < 0 || actionIndex >= actions.Length)
+            {
+                return;
+            }
+
+            selectedMainMenuActionIndex = actionIndex;
+            PerformMainMenuAction(actions[actionIndex]);
+        }
+
         private void ToggleDiagnosticsOverlay()
         {
             isDiagnosticsOverlayVisible = !isDiagnosticsOverlayVisible;
@@ -2338,6 +3066,11 @@ namespace GetBricked.Gameplay
 
         private string BuildLevelLabel()
         {
+            if (activeBossGate.HasValue)
+            {
+                return activeBossGate.Value.DisplayName;
+            }
+
             return currentLevel == null
                 ? "No levels loaded"
                 : $"Level {currentLevelIndex + 1:00} - {currentLevelDisplayName}";
@@ -2402,7 +3135,13 @@ namespace GetBricked.Gameplay
                 return "Remaining Bricks --";
             }
 
-            return $"Remaining Bricks {requiredBricksRemaining:00}";
+            if (!activeBossGate.HasValue)
+            {
+                return $"Remaining Bricks {requiredBricksRemaining:00}";
+            }
+
+            var phaseLabel = activePaddlePunkBoss != null ? activePaddlePunkBoss.PhaseLabel : activeBossGate.Value.HudLabel;
+            return $"Wall Core {requiredBricksRemaining:00} | {phaseLabel}";
         }
 
         private string BuildGameplayStatusLine()
@@ -2430,6 +3169,7 @@ namespace GetBricked.Gameplay
             }
 
             var chosenUpgrades = activeRunState.ChosenUpgrades;
+            var chosenDropUnlocks = activeRunState.ChosenDropUnlocks;
             var names = new List<string>();
 
             for (var index = 0; index < chosenUpgrades.Count && names.Count < Mathf.Max(1, maxNames); index++)
@@ -2442,7 +3182,18 @@ namespace GetBricked.Gameplay
                 }
             }
 
-            var remainder = Mathf.Max(0, chosenUpgrades.Count - names.Count);
+            for (var index = 0; index < chosenDropUnlocks.Count && names.Count < Mathf.Max(1, maxNames); index++)
+            {
+                var definition = chosenDropUnlocks[index];
+
+                if (definition != null)
+                {
+                    names.Add(definition.HudLabel);
+                }
+            }
+
+            var chosenRewardCount = chosenUpgrades.Count + chosenDropUnlocks.Count;
+            var remainder = Mathf.Max(0, chosenRewardCount - names.Count);
             var labels = string.Join(", ", names);
 
             if (remainder > 0)
@@ -2450,7 +3201,7 @@ namespace GetBricked.Gameplay
                 labels = string.IsNullOrWhiteSpace(labels) ? $"+{remainder} more" : $"{labels}, +{remainder} more";
             }
 
-            return $"Build {chosenUpgrades.Count:00}: {labels}";
+            return $"Build {chosenRewardCount:00}: {labels}";
         }
 
         private string BuildBallSpeedControlLabel()
@@ -2469,7 +3220,7 @@ namespace GetBricked.Gameplay
                 RoundState.ReadyToServe => "Ready to serve",
                 RoundState.Playing => "Ball in play",
                 RoundState.LifeLost => "Recovering from a loss",
-                RoundState.UpgradeDraft => "Choosing a permanent upgrade",
+                RoundState.UpgradeDraft => "Choosing a run reward",
                 RoundState.Paused => "Paused",
                 RoundState.LevelComplete => "Level complete",
                 RoundState.GameOver => "Game over",
@@ -2484,9 +3235,10 @@ namespace GetBricked.Gameplay
                 return $"Tape ID: {GetPendingSeedDisplay()} | Theme: {ResolvePendingThemeDefinition()?.DisplayName ?? "Fallback"} | Preview only";
             }
 
+            var heatSummary = activeRunSettings.IsRogueMode ? $" | Heat {activeRunSettings.RogueIntensity:00}" : string.Empty;
             var summary =
-                $"Tape ID: {activeRunSettings.Seed} | {activeRunSettings.DifficultyLabel} | {BuildScoreModeSummaryLabel(activeRunSettings)} | {BuildRetrySummaryLabel(activeRunSettings)} | Balls/Serve {GetEffectiveBallsPerServe()} | " +
-                $"Theme: {activeRunSettings.ThemeLabel} | Drops: {BuildDropSummaryLabel(activeRunSettings)} | Paddle x{activeRunSettings.PaddleWidthMultiplier:0.00} | Ball x{activeRunSettings.BallSpeedMultiplier:0.00} | Build {GetChosenUpgradeCount():00}";
+                $"{activeRunSettings.GameModeLabel} | Tape ID: {activeRunSettings.Seed} | {activeRunSettings.DifficultyLabel} | {BuildScoreModeSummaryLabel(activeRunSettings)} | {BuildRetrySummaryLabel(activeRunSettings)} | Balls/Serve {GetEffectiveBallsPerServe()} | " +
+                $"Theme: {activeRunSettings.ThemeLabel} | Drops: {BuildDropSummaryLabel(activeRunSettings)}{heatSummary} | Paddle x{activeRunSettings.PaddleWidthMultiplier:0.00} | Ball x{activeRunSettings.BallSpeedMultiplier:0.00} | Build {GetChosenUpgradeCount():00}";
             return summary;
         }
 
@@ -2538,6 +3290,33 @@ namespace GetBricked.Gameplay
             return value == 0 ? "0" : value > 0 ? $"+{value}" : value.ToString(CultureInfo.InvariantCulture);
         }
 
+        private static string FormatDeveloperToggle(bool selected)
+        {
+            return selected ? "[ON]" : "[--]";
+        }
+
+        private static string FormatDeveloperEncounterLabel(BreakoutDeveloperEncounter encounter)
+        {
+            return encounter.IsBossGate
+                ? $"[BOSS] {encounter.DisplayName}"
+                : $"[STAGE] {encounter.DisplayName}";
+        }
+
+        private static string FormatDeveloperUpgradeLabel(RunUpgradeDefinition upgrade)
+        {
+            return upgrade != null ? upgrade.DisplayName : "No upgrades loaded";
+        }
+
+        private static string FormatDeveloperDropLabel(PowerUpDefinition drop)
+        {
+            if (drop == null)
+            {
+                return "No drops loaded";
+            }
+
+            return drop.IsBeneficial ? drop.DisplayName : $"{drop.DisplayName} (Hazard)";
+        }
+
         private void UpdateTimedEffects()
         {
             powerUpService?.UpdateTimedEffects(roundState == RoundState.Playing, Time.deltaTime, ApplyActiveEffects);
@@ -2553,6 +3332,7 @@ namespace GetBricked.Gameplay
             var spawnedPickup = powerUpService?.TrySpawnPickup(
                 brick,
                 activeRunSettings,
+                activeRunState,
                 GetEffectiveDropChanceMultiplier(),
                 NextGameplayRandomFloat,
                 pickupsRoot,
@@ -2750,6 +3530,13 @@ namespace GetBricked.Gameplay
             return GetBallSpeedBase() * Mathf.Clamp(manualBallSpeedMultiplier, 1f, Mathf.Max(1f, manualBallSpeedMaxMultiplier));
         }
 
+        private float GetModeBallSpeedMultiplier()
+        {
+            return activeRunSettings != null && activeRunSettings.IsRogueMode
+                ? rogueRunController?.GetStageBallSpeedMultiplier(currentLevelIndex) ?? BreakoutRunProgression.GetRogueStageBallSpeedMultiplier(currentLevelIndex)
+                : 1f;
+        }
+
         private int GetLifeLossScorePenalty()
         {
             return activeRunSettings != null && activeRunSettings.UsesLifeLossScorePenalty
@@ -2760,6 +3547,33 @@ namespace GetBricked.Gameplay
         private bool UsesHighScoreMode()
         {
             return activeRunSettings != null && activeRunSettings.ScoringMode == RunScoringMode.HighScore;
+        }
+
+        private void RecordRogueRunResult(bool completed)
+        {
+            if (!ShouldRecordRogueRunResult(activeRunResultRecorded, isDeveloperRunActive, activeRunSettings))
+            {
+                return;
+            }
+
+            activeRunResultRecorded = true;
+            var result = rogueRunController != null
+                ? rogueRunController.BuildResult(activeRunSettings, completed, currentLevelIndex + 1, score)
+                : BreakoutRogueRunResultStore.BuildResult(
+                    activeRunSettings,
+                    completed,
+                    currentLevelIndex + 1,
+                    DefaultRoguePaddleLabel,
+                    score);
+            BreakoutRogueRunResultStore.Save(result);
+        }
+
+        internal static bool ShouldRecordRogueRunResult(bool resultAlreadyRecorded, bool developerRunActive, RunSettings settings)
+        {
+            return !resultAlreadyRecorded
+                && !developerRunActive
+                && settings != null
+                && settings.IsRogueMode;
         }
 
         private void ApplyLifeLossScorePenalty()
@@ -2841,7 +3655,9 @@ namespace GetBricked.Gameplay
             }
 
             activeRunState.RegisterLevelClear();
-            var offers = upgradeDraftService.GenerateDraft(activeRunState, activeRunSettings, activeRunSettings.Seed, currentLevelIndex, 3);
+            var offers = activeRunSettings.IsRogueMode && rogueRunController != null
+                ? rogueRunController.GenerateDraft(activeRunState, activeRunSettings, currentLevelIndex)
+                : upgradeDraftService.GenerateDraft(activeRunState, activeRunSettings, activeRunSettings.Seed, currentLevelIndex, 3);
 
             if (offers.Length == 0)
             {
@@ -2864,10 +3680,12 @@ namespace GetBricked.Gameplay
 
             selectedUpgradeDraftIndex = optionIndex;
 
-            if (!activeRunState.TryApplyPendingDraftOffer(optionIndex, out var appliedUpgrade))
+            if (!activeRunState.TryApplyPendingDraftOffer(optionIndex, out var appliedOffer))
             {
                 return;
             }
+
+            var appliedUpgrade = appliedOffer.UpgradeDefinition;
 
             if (!UsesHighScoreMode() && appliedUpgrade != null && appliedUpgrade.BonusLives > 0)
             {
@@ -2875,7 +3693,13 @@ namespace GetBricked.Gameplay
             }
 
             ApplyActiveEffects();
-            ShowRunUpgradeBanner(appliedUpgrade);
+            ShowRunDraftRewardBanner(appliedOffer);
+
+            if (pendingBossGate.HasValue)
+            {
+                LoadBossGate(pendingBossGate.Value);
+                return;
+            }
 
             if (HasNextLevel())
             {
@@ -2910,7 +3734,73 @@ namespace GetBricked.Gameplay
 
         private int GetChosenUpgradeCount()
         {
-            return activeRunState?.ChosenUpgrades.Count ?? 0;
+            return activeRunState == null
+                ? 0
+                : activeRunState.ChosenUpgrades.Count + activeRunState.ChosenDropUnlocks.Count;
+        }
+
+        private string BuildDraftOfferTitle(BreakoutRunDraftOffer offer)
+        {
+            if (offer == null)
+            {
+                return "Missing Reward";
+            }
+
+            return offer.Kind == BreakoutRunDraftOfferKind.DropUnlock
+                ? $"Drop Unlock: {offer.DisplayName}"
+                : offer.DisplayName;
+        }
+
+        private string BuildDraftOfferDescription(BreakoutRunDraftOffer offer)
+        {
+            if (offer == null)
+            {
+                return "This draft slot failed to load.";
+            }
+
+            if (offer.Kind == BreakoutRunDraftOfferKind.RunUpgrade)
+            {
+                return offer.UpgradeDefinition != null ? offer.UpgradeDefinition.Description : "This draft slot failed to load.";
+            }
+
+            var dropUnlock = offer.DropUnlockDefinition;
+            return dropUnlock != null
+                ? $"Adds {dropUnlock.DisplayName} capsules to this Rogue run's drop pool."
+                : "This drop unlock failed to load.";
+        }
+
+        private string BuildDropUnlockDetail(PowerUpDefinition definition)
+        {
+            if (definition == null)
+            {
+                return "Drop Unlock | Unavailable";
+            }
+
+            var polarity = definition.IsBeneficial ? "Helpful Drop" : "Hazard Drop";
+            return $"Drop Unlock | {polarity} | {BuildPowerUpMechanicalSummary(definition)}";
+        }
+
+        private string BuildPowerUpMechanicalSummary(PowerUpDefinition definition)
+        {
+            if (definition == null)
+            {
+                return "Unavailable";
+            }
+
+            return definition.EffectType switch
+            {
+                PowerUpEffectType.PaddleWidthMultiplier => $"Paddle x{definition.Scalar:0.00} for {definition.DurationSeconds:0.#}s",
+                PowerUpEffectType.BallSpeedMultiplier => $"Ball x{definition.Scalar:0.00} for {definition.DurationSeconds:0.#}s",
+                PowerUpEffectType.MultiBallBurst => $"+{Mathf.Max(1, definition.ExtraBallCount)} balls",
+                PowerUpEffectType.WavyPaddle => $"Wave {definition.Scalar:0.00} for {definition.DurationSeconds:0.#}s",
+                PowerUpEffectType.StickyPaddle => $"Catch ball for {definition.DurationSeconds:0.#}s",
+                PowerUpEffectType.LaserPaddle => $"Laser paddle for {definition.DurationSeconds:0.#}s",
+                PowerUpEffectType.ShieldWall => "Shield save",
+                PowerUpEffectType.PhaseBall => $"Phase ball for {definition.DurationSeconds:0.#}s",
+                PowerUpEffectType.ChainLightning => $"Chain hits for {definition.DurationSeconds:0.#}s",
+                PowerUpEffectType.ActiveDropMultiplier => $"Active effects x{definition.Scalar:0.00}",
+                _ => $"{definition.HudLabel} for {definition.DurationSeconds:0.#}s",
+            };
         }
 
         private string BuildUpgradeMechanicalSummary(RunUpgradeDefinition upgrade)
@@ -2990,14 +3880,63 @@ namespace GetBricked.Gameplay
             return cachedSprite != null ? cachedSprite : squareSprite;
         }
 
-        private void ShowRunUpgradeBanner(RunUpgradeDefinition upgrade)
+        private Color ResolvePowerUpAccentColor(PowerUpDefinition definition)
         {
-            if (upgrade == null || powerUpService == null)
+            if (definition == null)
+            {
+                return Color.white;
+            }
+
+            return themeService != null
+                ? themeService.ResolvePowerUpStyle(definition).PrimaryColor
+                : definition.PickupColor;
+        }
+
+        private Sprite ResolvePowerUpIcon(PowerUpDefinition definition)
+        {
+            return themeService != null
+                ? themeService.ResolvePowerUpStyle(definition).Sprite
+                : powerUpSprite;
+        }
+
+        private Color ResolveDraftOfferAccentColor(BreakoutRunDraftOffer offer)
+        {
+            if (offer == null)
+            {
+                return Color.white;
+            }
+
+            return offer.Kind == BreakoutRunDraftOfferKind.DropUnlock
+                ? ResolvePowerUpAccentColor(offer.DropUnlockDefinition)
+                : ResolveRunUpgradeAccentColor(offer.UpgradeDefinition);
+        }
+
+        private Sprite ResolveDraftOfferIcon(BreakoutRunDraftOffer offer)
+        {
+            if (offer == null)
+            {
+                return squareSprite;
+            }
+
+            return offer.Kind == BreakoutRunDraftOfferKind.DropUnlock
+                ? ResolvePowerUpIcon(offer.DropUnlockDefinition)
+                : ResolveRunUpgradeIcon(offer.UpgradeDefinition);
+        }
+
+        private void ShowRunDraftRewardBanner(BreakoutRunDraftOffer offer)
+        {
+            if (offer == null || powerUpService == null)
             {
                 return;
             }
 
-            powerUpService.ShowStatusBanner($"+ BUILD {upgrade.DisplayName}", ResolveRunUpgradeAccentColor(upgrade), 2.2f);
+            if (offer.Kind == BreakoutRunDraftOfferKind.DropUnlock)
+            {
+                powerUpService.ShowStatusBanner($"+ DROP {offer.DisplayName}", ResolvePowerUpAccentColor(offer.DropUnlockDefinition), 2.2f);
+                return;
+            }
+
+            powerUpService.ShowStatusBanner($"+ BUILD {offer.DisplayName}", ResolveRunUpgradeAccentColor(offer.UpgradeDefinition), 2.2f);
         }
 
         private bool ReleaseStickyCaughtBall()

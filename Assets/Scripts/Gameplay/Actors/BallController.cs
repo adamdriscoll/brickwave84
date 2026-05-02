@@ -305,6 +305,13 @@ namespace GetBricked.Gameplay
                 return;
             }
 
+            if (collision.collider.TryGetComponent<BreakoutPaddlePunkBoss>(out var bossPaddle)
+                && gameController != null
+                && gameController.TryHandleBossPaddleCollision(this, bossPaddle, collision))
+            {
+                return;
+            }
+
             if (collision.collider.TryGetComponent<PaddleController>(out var hitPaddle))
             {
                 gameController?.HandleBallHitPaddle();

@@ -18,12 +18,12 @@ The overview includes strong social ideas, but they will land better once the co
 
 ## Recommended Social Mode Priorities
 
-1. `Shared-screen co-op`
-   Two paddles, cooperative survival, and shared build decisions
-2. `Draft pressure mode`
-   Players take turns choosing upgrades that help one side and complicate another
-3. `Versus disruption mode`
-   Junk bricks, hazards, or rule injections sent between players
+1. `Co-op`
+   Side-by-side cooperative play with two paddles, two balls, one keyboard, and shared custom-game pressure.
+2. `Turn-Based`
+   Custom Game-style seeded runs where players switch control on lives and level transitions.
+3. `Dual Sticks`
+   Side-by-side versus action where players race to clear bricks first and eventually send negative drops or extra bricks to the opponent.
 
 ## Deliverables
 
