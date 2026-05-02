@@ -129,6 +129,47 @@ public sealed class BreakoutPowerUpServiceTests
     }
 
     [Test]
+    public void ApplyingStackedTimedEffectRefreshesTimerInsteadOfAddingDuration()
+    {
+        var service = CreateService();
+        var wide = CreatePowerUp("Wide Paddle", PowerUpEffectType.PaddleWidthMultiplier, true, 10f, 1.2f);
+
+        service.ApplyPowerUp(wide, null);
+        service.UpdateTimedEffects(isPlaying: true, deltaTime: 3f, modifiersChanged: null);
+        service.ApplyPowerUp(wide, null);
+
+        var summaries = service.BuildTimedEffectStackSummaries();
+
+        Assert.That(service.ActiveTimedEffects, Has.Count.EqualTo(1));
+        Assert.That(service.ActiveTimedEffects[0].StackCount, Is.EqualTo(2));
+        Assert.That(service.ActiveTimedEffects[0].RemainingDuration, Is.EqualTo(10f).Within(0.0001f));
+        Assert.That(summaries[0].RemainingDuration, Is.EqualTo(10f).Within(0.0001f));
+        Assert.That(summaries[0].DurationRatio, Is.EqualTo(1f).Within(0.0001f));
+        Assert.That(service.BuildActiveEffectsLabel(), Does.Contain("WIDE PADDLE x2 10.0s"));
+    }
+
+    [Test]
+    public void RemoveBeneficialPaddleWidthEffectsCancelsWideDropsOnly()
+    {
+        var service = CreateService();
+        var wide = CreatePowerUp("Wide Paddle", PowerUpEffectType.PaddleWidthMultiplier, true, 10f, 1.2f);
+        var narrow = CreatePowerUp("Narrow Paddle", PowerUpEffectType.PaddleWidthMultiplier, false, 10f, 0.72f);
+        var slowBall = CreatePowerUp("Slow Ball", PowerUpEffectType.BallSpeedMultiplier, true, 10f, 0.8f);
+
+        service.ApplyPowerUp(wide, null);
+        service.ApplyPowerUp(narrow, null);
+        service.ApplyPowerUp(slowBall, null);
+
+        var removedCount = service.RemoveBeneficialPaddleWidthEffects();
+        var modifiers = service.CalculateEffectModifiers(1f, 0f);
+
+        Assert.That(removedCount, Is.EqualTo(1));
+        Assert.That(service.ActiveTimedEffects, Has.Count.EqualTo(2));
+        Assert.That(modifiers.PaddleWidthMultiplier, Is.EqualTo(0.72f).Within(0.0001f));
+        Assert.That(modifiers.TimedBallSpeedMultiplier, Is.EqualTo(0.8f).Within(0.0001f));
+    }
+
+    [Test]
     public void ApplyPowerUpReturnsImmediateResultsWithoutTimedEffectEntries()
     {
         var service = CreateService();

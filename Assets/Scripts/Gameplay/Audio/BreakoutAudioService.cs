@@ -195,6 +195,11 @@ namespace GetBricked.Gameplay
             PlaySfx(pickupCollectPositive, 0.9f, 0.98f, 1.05f);
         }
 
+        public void PlayPowerDown()
+        {
+            PlaySfx(pickupCollectNegativeShort, 0.82f, 0.94f, 1.02f);
+        }
+
         public void PlayBallLost(bool hasOtherActiveBalls)
         {
             PlaySfx(hasOtherActiveBalls ? ballLostShort : ballLostMain, hasOtherActiveBalls ? 0.55f : 0.84f, 0.96f, 1.03f);

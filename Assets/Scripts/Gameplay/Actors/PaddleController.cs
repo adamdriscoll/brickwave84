@@ -13,6 +13,10 @@ namespace GetBricked.Gameplay
         private const float WavyMaxVerticalAmplitude = 0.32f;
         private const float WavyMaxRotationDegrees = 16f;
         private const float WavyStrengthEpsilon = 0.001f;
+        private const float BreakWiggleDurationSeconds = 0.55f;
+        private const float BreakWigglePhaseSpeed = 34f;
+        private const float BreakWiggleMaxVerticalAmplitude = 0.18f;
+        private const float BreakWiggleMaxRotationDegrees = 7f;
         private const float LagSpikeCycleSeconds = 0.72f;
         private const float LagSpikeMaxPauseSeconds = 0.14f;
         private const float MaxArenaWidthCoverage = 0.9f;
@@ -35,6 +39,10 @@ namespace GetBricked.Gameplay
         private float targetWavyYOffset;
         private float targetWavyRotation;
         private float wavyRetargetTimer;
+        private float breakWiggleTimer;
+        private float breakWigglePhase;
+        private float currentBreakWiggleYOffset;
+        private float currentBreakWiggleRotation;
         private bool controlsReversed;
         private float splitGapWidthNormalized;
         private float lagSpikeStrength;
@@ -43,6 +51,8 @@ namespace GetBricked.Gameplay
         private SpriteRenderer clonePaddleRenderer;
 
         public float HalfWidthWorld { get; private set; }
+
+        public bool IsBreakWiggleActive => breakWiggleTimer > 0f;
 
         public void Configure(BreakoutGameController controller, float speed, float minimumBoundaryX, float maximumBoundaryX, float startY)
         {
@@ -64,14 +74,22 @@ namespace GetBricked.Gameplay
             moveSpeed = Mathf.Max(0f, speed);
         }
 
-        public void SetWidthMultiplier(float multiplier)
+        public bool SetWidthMultiplier(float multiplier)
         {
             var arenaWidth = Mathf.Max(0f, rightBoundaryX - leftBoundaryX);
             var maxWidth = arenaWidth > 0f ? arenaWidth * MaxArenaWidthCoverage : float.PositiveInfinity;
-            var width = Mathf.Min(baseScale.x * Mathf.Max(0.1f, multiplier), maxWidth);
+            var requestedWidth = baseScale.x * Mathf.Max(0.1f, multiplier);
+            var width = Mathf.Min(requestedWidth, maxWidth);
             transform.localScale = new Vector3(width, baseScale.y, baseScale.z);
             HalfWidthWorld = width * 0.5f;
             ClampToBounds();
+            return maxWidth < float.PositiveInfinity && requestedWidth >= maxWidth - 0.0001f;
+        }
+
+        public void StartBreakWiggle()
+        {
+            breakWiggleTimer = BreakWiggleDurationSeconds;
+            breakWigglePhase += 1.31f;
         }
 
         public void SetWavyStrength(float strength)
@@ -134,6 +152,7 @@ namespace GetBricked.Gameplay
             }
 
             ResetWavyPoseForCurrentState();
+            ResetBreakWiggle();
             transform.SetPositionAndRotation(resetPosition, Quaternion.identity);
             paddleBody.position = resetPosition;
             paddleBody.rotation = 0f;
@@ -144,6 +163,7 @@ namespace GetBricked.Gameplay
         {
             horizontalInput = ReadHorizontalInput();
             UpdateWavyMotion(Time.deltaTime);
+            UpdateBreakWiggle(Time.deltaTime);
         }
 
         private void FixedUpdate()
@@ -163,8 +183,8 @@ namespace GetBricked.Gameplay
                 nextX = paddleBody.position.x;
             }
 
-            paddleBody.MovePosition(new Vector2(nextX, startingY + currentWavyYOffset));
-            paddleBody.MoveRotation(currentWavyRotation);
+            paddleBody.MovePosition(new Vector2(nextX, startingY + GetCurrentVerticalOffset()));
+            paddleBody.MoveRotation(GetCurrentRotation());
         }
 
         private void ClampToBounds()
@@ -179,10 +199,11 @@ namespace GetBricked.Gameplay
                 leftBoundaryX + HalfWidthWorld,
                 rightBoundaryX - HalfWidthWorld);
 
-            var clampedPosition = new Vector2(clampedX, startingY + currentWavyYOffset);
-            transform.SetPositionAndRotation(clampedPosition, Quaternion.Euler(0f, 0f, currentWavyRotation));
+            var clampedPosition = new Vector2(clampedX, startingY + GetCurrentVerticalOffset());
+            var currentRotation = GetCurrentRotation();
+            transform.SetPositionAndRotation(clampedPosition, Quaternion.Euler(0f, 0f, currentRotation));
             paddleBody.position = clampedPosition;
-            paddleBody.rotation = currentWavyRotation;
+            paddleBody.rotation = currentRotation;
         }
 
         private void UpdateWavyMotion(float deltaTime)
@@ -232,6 +253,46 @@ namespace GetBricked.Gameplay
             targetWavyYOffset = 0f;
             targetWavyRotation = 0f;
             wavyRetargetTimer = 0f;
+        }
+
+        private void UpdateBreakWiggle(float deltaTime)
+        {
+            if (deltaTime <= 0f || breakWiggleTimer <= 0f)
+            {
+                return;
+            }
+
+            breakWiggleTimer = Mathf.Max(0f, breakWiggleTimer - deltaTime);
+            breakWigglePhase += BreakWigglePhaseSpeed * deltaTime;
+
+            var normalizedTime = BreakWiggleDurationSeconds > 0f
+                ? breakWiggleTimer / BreakWiggleDurationSeconds
+                : 0f;
+            var envelope = Mathf.Sin(Mathf.Clamp01(normalizedTime) * Mathf.PI);
+            currentBreakWiggleYOffset = Mathf.Sin(breakWigglePhase) * BreakWiggleMaxVerticalAmplitude * envelope;
+            currentBreakWiggleRotation = Mathf.Sin((breakWigglePhase * 1.63f) + 0.45f) * BreakWiggleMaxRotationDegrees * envelope;
+
+            if (breakWiggleTimer <= 0f)
+            {
+                ResetBreakWiggle();
+            }
+        }
+
+        private void ResetBreakWiggle()
+        {
+            breakWiggleTimer = 0f;
+            currentBreakWiggleYOffset = 0f;
+            currentBreakWiggleRotation = 0f;
+        }
+
+        private float GetCurrentVerticalOffset()
+        {
+            return currentWavyYOffset + currentBreakWiggleYOffset;
+        }
+
+        private float GetCurrentRotation()
+        {
+            return currentWavyRotation + currentBreakWiggleRotation;
         }
 
         private void RetargetWavyMotion()

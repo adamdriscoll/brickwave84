@@ -3484,7 +3484,15 @@ namespace GetBricked.Gameplay
                     0f,
                     0f);
             paddle.SetMoveSpeed(currentLevelPaddleSpeed * (activeRunSettings?.PaddleSpeedMultiplier ?? 1f));
-            paddle.SetWidthMultiplier(activeEffectModifiers.PaddleWidthMultiplier);
+            var paddleHitMaximumWidth = paddle.SetWidthMultiplier(activeEffectModifiers.PaddleWidthMultiplier);
+
+            if (paddleHitMaximumWidth && TryBreakWidePaddle())
+            {
+                ApplyActiveEffects();
+                TriggerWidePaddleBreakFeedback();
+                return;
+            }
+
             paddle.SetWavyStrength(activeEffectModifiers.WavyPaddleStrength);
             paddle.SetControlsReversed(activeEffectModifiers.ReverseControlsEnabled);
             paddle.SetSplitGapWidthNormalized(activeEffectModifiers.SplitPaddleGapNormalized);
@@ -3526,6 +3534,18 @@ namespace GetBricked.Gameplay
             {
                 ReleaseStickyCaughtBall();
             }
+        }
+
+        private bool TryBreakWidePaddle()
+        {
+            return powerUpService != null && powerUpService.RemoveBeneficialPaddleWidthEffects() > 0;
+        }
+
+        private void TriggerWidePaddleBreakFeedback()
+        {
+            paddle?.StartBreakWiggle();
+            audioService?.PlayPowerDown();
+            powerUpService?.ShowStatusBanner("RAIL BUSTED!", new Color(1f, 0.28f, 0.32f, 1f), 1.4f);
         }
 
         private void SpawnMultiBall(PowerUpDefinition powerUpDefinition)

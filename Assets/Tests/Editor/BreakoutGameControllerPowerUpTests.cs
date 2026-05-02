@@ -163,7 +163,7 @@ public sealed class BreakoutGameControllerPowerUpTests
     }
 
     [Test]
-    public void ApplyingStackedWidePowerUpsCapsPaddleAtPlayableArenaWidth()
+    public void ApplyingStackedWidePowerUpsBreaksPaddleAtPlayableArenaWidth()
     {
         var controller = CreateControllerHarness(out var paddle);
         var widePowerUp = CreatePowerUp(
@@ -178,8 +178,17 @@ public sealed class BreakoutGameControllerPowerUpTests
             InvokePrivateMethod(controller, "ApplyPowerUp", widePowerUp);
         }
 
-        Assert.That(paddle.transform.localScale.x, Is.EqualTo(18f).Within(0.0001f));
-        Assert.That(paddle.HalfWidthWorld, Is.EqualTo(9f).Within(0.0001f));
+        var powerUpService = GetPrivateField<object>(controller, "powerUpService");
+        var activeTimedEffects = GetPropertyValue<System.Collections.IList>(powerUpService, "ActiveTimedEffects");
+        var activeEffectModifiers = GetPrivateField<object>(controller, "activeEffectModifiers");
+        var pickupBannerView = InvokePrivateMethodWithResult(controller, "BuildPickupBannerView");
+
+        Assert.That(activeTimedEffects.Count, Is.Zero);
+        Assert.That(GetPropertyValue<float>(activeEffectModifiers, "PaddleWidthMultiplier"), Is.EqualTo(1f).Within(0.0001f));
+        Assert.That(paddle.transform.localScale.x, Is.EqualTo(2.1f).Within(0.0001f));
+        Assert.That(paddle.HalfWidthWorld, Is.EqualTo(1.05f).Within(0.0001f));
+        Assert.That(paddle.IsBreakWiggleActive, Is.True);
+        Assert.That(GetFieldValue<string>(pickupBannerView, "Text"), Is.EqualTo("RAIL BUSTED!"));
     }
 
     [Test]
@@ -204,13 +213,13 @@ public sealed class BreakoutGameControllerPowerUpTests
 
         Assert.That(activeTimedEffects.Count, Is.EqualTo(1));
         Assert.That(GetPropertyValue<int>(activeTimedEffects[0], "StackCount"), Is.EqualTo(2));
-        Assert.That(GetPropertyValue<float>(activeTimedEffects[0], "RemainingDuration"), Is.EqualTo(20f).Within(0.0001f));
+        Assert.That(GetPropertyValue<float>(activeTimedEffects[0], "RemainingDuration"), Is.EqualTo(10f).Within(0.0001f));
         Assert.That(activeEffectsLabel, Does.Contain("x2"));
-        Assert.That(activeEffectsLabel, Does.Contain("20.0s"));
+        Assert.That(activeEffectsLabel, Does.Contain("10.0s"));
         Assert.That(GetFieldValue<string>(pickupBannerView, "Text"), Does.Contain("x2"));
         Assert.That(modifierViews.Length, Is.EqualTo(1));
         Assert.That(GetFieldValue<string>(modifierViews.GetValue(0), "Label"), Does.Contain("x2"));
-        Assert.That(GetFieldValue<float>(modifierViews.GetValue(0), "RemainingDuration"), Is.EqualTo(20f).Within(0.0001f));
+        Assert.That(GetFieldValue<float>(modifierViews.GetValue(0), "RemainingDuration"), Is.EqualTo(10f).Within(0.0001f));
         Assert.That(GetFieldValue<float>(modifierViews.GetValue(0), "DurationRatio"), Is.EqualTo(1f).Within(0.0001f));
     }
 
@@ -298,7 +307,7 @@ public sealed class BreakoutGameControllerPowerUpTests
     }
 
     [Test]
-    public void ApplyingSameTimedPowerUpTwiceExtendsTimerAcrossTimedDropTypes()
+    public void ApplyingSameTimedPowerUpTwiceRefreshesTimerAcrossTimedDropTypes()
     {
         var timedPowerUps = new[]
         {
@@ -337,8 +346,8 @@ public sealed class BreakoutGameControllerPowerUpTests
             Assert.That(GetPropertyValue<int>(activeTimedEffects[0], "StackCount"), Is.EqualTo(2), $"Expected stack count 2 for {powerUpCase.DisplayName}.");
             Assert.That(
                 GetPropertyValue<float>(activeTimedEffects[0], "RemainingDuration"),
-                Is.EqualTo(powerUpCase.DurationSeconds * 2f).Within(0.0001f),
-                $"Expected doubled duration for {powerUpCase.DisplayName}.");
+                Is.EqualTo(powerUpCase.DurationSeconds).Within(0.0001f),
+                $"Expected refreshed duration for {powerUpCase.DisplayName}.");
 
             UnityEngine.Object.DestroyImmediate(controller.gameObject);
             controllerObject = null;

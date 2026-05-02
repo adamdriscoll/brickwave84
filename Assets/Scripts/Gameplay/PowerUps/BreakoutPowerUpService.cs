@@ -28,7 +28,7 @@ namespace GetBricked.Gameplay
         public void AddStack(float durationSeconds)
         {
             StackCount += 1;
-            RemainingDuration += Mathf.Max(0f, durationSeconds);
+            RemainingDuration = Mathf.Max(0f, durationSeconds);
         }
 
         public void MultiplyEffect(float multiplier)
@@ -570,6 +570,29 @@ namespace GetBricked.Gameplay
             ActiveTimedEffects.Clear();
         }
 
+        public int RemoveBeneficialPaddleWidthEffects()
+        {
+            var removedCount = 0;
+
+            for (var index = ActiveTimedEffects.Count - 1; index >= 0; index--)
+            {
+                var definition = ActiveTimedEffects[index]?.Definition;
+
+                if (definition == null
+                    || definition.EffectType != PowerUpEffectType.PaddleWidthMultiplier
+                    || !definition.IsBeneficial
+                    || definition.Scalar <= 1f)
+                {
+                    continue;
+                }
+
+                ActiveTimedEffects.RemoveAt(index);
+                removedCount++;
+            }
+
+            return removedCount;
+        }
+
         public void ShowStatusBanner(string text, Color color, float durationSeconds = 1.8f)
         {
             PickupBannerText = text ?? string.Empty;
@@ -629,7 +652,7 @@ namespace GetBricked.Gameplay
                     continue;
                 }
 
-                var totalDuration = definition.DurationSeconds * Mathf.Max(1, activeEffect.StackCount);
+                var totalDuration = definition.DurationSeconds;
                 var durationRatio = totalDuration > 0f
                     ? Mathf.Clamp01(activeEffect.RemainingDuration / totalDuration)
                     : 1f;
