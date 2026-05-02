@@ -29,6 +29,14 @@ namespace GetBricked.Gameplay
         public string PendingValidationMessage = string.Empty;
         public string LastRogueResultSummary = string.Empty;
         public int AvailableRogueIntensity = 1;
+        public string SelectedRoguePaddleLabel = BreakoutRogueRunResultStore.DefaultPaddleLabel;
+        public string SelectedRoguePaddleIdentity = string.Empty;
+        public string SelectedRoguePaddleStrength = string.Empty;
+        public string SelectedRoguePaddleDrawback = string.Empty;
+        public string NextRoguePaddleUnlockLabel = string.Empty;
+        public string NextRoguePaddleUnlockRequirementLabel = BreakoutRogueRunResultStore.DefaultPaddleLabel;
+        public int UnlockedRoguePaddleCount = 1;
+        public int TotalRoguePaddleCount = 1;
     }
 
     internal sealed class BreakoutMainMenuService
@@ -69,7 +77,7 @@ namespace GetBricked.Gameplay
                 PreviewLines = BuildPreviewLines(selectedAction, context),
                 ValidationText = BuildValidationText(selectedAction, context),
                 FooterText = BuildFooterText(selectedAction),
-                HintText = "Up/Down selects. Space confirms. Rogue starts now. Custom Game opens setup. Dev opens the jump bench.",
+                HintText = "Up/Down selects. Left/Right changes Rogue paddle. Space confirms. Custom Game opens setup. Dev opens the jump bench.",
             };
         }
 
@@ -160,11 +168,17 @@ namespace GetBricked.Gameplay
             switch (action)
             {
                 case BreakoutMainMenuAction.Rogue:
+                    var unlockLine = string.IsNullOrWhiteSpace(context.NextRoguePaddleUnlockLabel)
+                        ? "All starter paddles unlocked for the bench."
+                        : $"Next unlock: clear with {context.NextRoguePaddleUnlockRequirementLabel} to wake {context.NextRoguePaddleUnlockLabel}.";
                     return new[]
                     {
+                        $"Paddle: {context.SelectedRoguePaddleLabel} ({context.UnlockedRoguePaddleCount}/{context.TotalRoguePaddleCount} unlocked).",
+                        $"{context.SelectedRoguePaddleIdentity}. {context.SelectedRoguePaddleStrength}",
+                        $"Tradeoff: {context.SelectedRoguePaddleDrawback}",
                         $"Heat {context.AvailableRogueIntensity:00}/50. 10 stages. 3 balls. One fresh Tape ID.",
                         "Draft run upgrades or unlock new capsules after each cleared stage.",
-                        "Boss gates are live. Clear the mixtape to unlock the next heat.",
+                        unlockLine,
                         string.IsNullOrWhiteSpace(context.LastRogueResultSummary)
                             ? "Last Run: no Rogue tape recorded yet."
                             : context.LastRogueResultSummary,
@@ -225,7 +239,7 @@ namespace GetBricked.Gameplay
                     return new[]
                     {
                         "Jump directly into Rogue stages or boss gates.",
-                        "Pick lives, run upgrades, and drop unlocks before launch.",
+                        "Pick paddle, lives, run upgrades, and drop unlocks before launch.",
                         "For local tuning only. No progression result is protected here yet.",
                         "Status: active debug bench.",
                     };
@@ -254,7 +268,7 @@ namespace GetBricked.Gameplay
                 BreakoutMainMenuAction.Rogue => "Rogue launches the first progression-forward singleplayer run: fixed rules, seeded stages, draft rewards, and a saved result.",
                 BreakoutMainMenuAction.SoundSettings => "Sound controls are staged here so mixer work has a clear home.",
                 BreakoutMainMenuAction.GraphicsSettings => "Graphics controls are staged here so display and readability options have a clear home.",
-                BreakoutMainMenuAction.DeveloperMode => "Developer Mode is a subtle local jump bench for testing Rogue stages, boss gates, lives, upgrades, and drop unlocks.",
+                BreakoutMainMenuAction.DeveloperMode => "Developer Mode is a subtle local jump bench for testing Rogue stages, boss gates, paddles, lives, upgrades, and drop unlocks.",
                 _ => "Multiplayer channels are staged as menu shells until the shared-screen architecture is ready.",
             };
         }

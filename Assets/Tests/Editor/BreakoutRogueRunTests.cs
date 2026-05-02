@@ -239,6 +239,9 @@ public sealed class BreakoutRogueRunTests
             state.AdjustField(BreakoutDeveloperLaunchField.Heat, 60, null, null);
             Assert.That(state.Intensity, Is.EqualTo(BreakoutRunProgression.MaxRogueIntensity));
 
+            state.AdjustField(BreakoutDeveloperLaunchField.Paddle, 1, null, null);
+            Assert.That(state.ResolvePaddle().DisplayName, Is.EqualTo("Comet Paddle"));
+
             state.ToggleCurrentUpgrade(new[] { upgrade });
             state.ToggleCurrentDropUnlock(new[] { drop });
 
@@ -280,6 +283,52 @@ public sealed class BreakoutRogueRunTests
             Assert.That(encounter.BossGate.Value.GateIndex, Is.EqualTo(bossIndex));
             Assert.That(encounter.DisplayName, Does.Contain("The Paddle Punk"));
         }
+    }
+
+    [Test]
+    public void RoguePaddleCatalogUnlocksAlternatesThroughCompletionChain()
+    {
+        var initialPaddles = BreakoutRoguePaddleCatalog.BuildUnlockedPaddles();
+
+        Assert.That(initialPaddles, Has.Length.EqualTo(1));
+        Assert.That(initialPaddles[0].DisplayName, Is.EqualTo("Classic Paddle"));
+
+        var classicSettings = CreateRogueSettings(1010, intensity: 1);
+        var classicClear = BreakoutRogueRunResultStore.BuildResult(classicSettings, completed: true, stageReached: 10, "Classic Paddle", 5000);
+
+        BreakoutRogueRunResultStore.Save(classicClear);
+
+        var cometUnlocked = BreakoutRoguePaddleCatalog.BuildUnlockedPaddles();
+
+        Assert.That(cometUnlocked, Has.Length.EqualTo(2));
+        Assert.That(cometUnlocked[1].DisplayName, Is.EqualTo("Comet Paddle"));
+        Assert.That(BreakoutRoguePaddleCatalog.GetNextLockedPaddle().DisplayName, Is.EqualTo("Cruiser Paddle"));
+
+        var cometClear = BreakoutRogueRunResultStore.BuildResult(classicSettings, completed: true, stageReached: 10, "Comet Paddle", 6200);
+
+        BreakoutRogueRunResultStore.Save(cometClear);
+
+        var cruiserUnlocked = BreakoutRoguePaddleCatalog.BuildUnlockedPaddles();
+
+        Assert.That(cruiserUnlocked, Has.Length.EqualTo(3));
+        Assert.That(cruiserUnlocked[2].DisplayName, Is.EqualTo("Cruiser Paddle"));
+    }
+
+    [Test]
+    public void RogueRunControllerAppliesSelectedPaddleTuning()
+    {
+        var controller = new BreakoutRogueRunController(new List<RunUpgradeDefinition>(), new List<PowerUpDefinition>());
+
+        var cometSettings = controller.BuildRunSettings(5050, 500, null, "Comet Paddle");
+        var cruiserSettings = controller.BuildRunSettings(6060, 500, null, "Cruiser Paddle");
+
+        Assert.That(cometSettings.SelectedPaddleLabel, Is.EqualTo("Comet Paddle"));
+        Assert.That(cometSettings.PaddleWidthMultiplier, Is.EqualTo(0.82f).Within(0.0001f));
+        Assert.That(cometSettings.PaddleSpeedMultiplier, Is.EqualTo(1.22f).Within(0.0001f));
+
+        Assert.That(cruiserSettings.SelectedPaddleLabel, Is.EqualTo("Cruiser Paddle"));
+        Assert.That(cruiserSettings.PaddleWidthMultiplier, Is.EqualTo(1.22f).Within(0.0001f));
+        Assert.That(cruiserSettings.PaddleSpeedMultiplier, Is.EqualTo(0.82f).Within(0.0001f));
     }
 
     [Test]

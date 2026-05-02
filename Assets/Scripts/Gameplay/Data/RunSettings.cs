@@ -47,7 +47,8 @@ namespace GetBricked.Gameplay.Data
             ThemeDefinition themeDefinition,
             RunGameMode gameMode = RunGameMode.CustomGame,
             int rogueIntensity = 1,
-            string selectedPaddleLabel = null)
+            string selectedPaddleLabel = null,
+            float paddleSpeedMultiplier = 1f)
         {
             Seed = seed == int.MinValue ? int.MaxValue : Mathf.Abs(seed);
             DifficultyPreset = difficultyPreset;
@@ -61,6 +62,7 @@ namespace GetBricked.Gameplay.Data
             LifeLossScorePenalty = Mathf.Max(0, lifeLossScorePenalty);
             BallsPerServe = Mathf.Clamp(ballsPerServe, 1, 4);
             PaddleWidthMultiplier = Mathf.Clamp(paddleWidthMultiplier, 0.6f, 1.8f);
+            PaddleSpeedMultiplier = Mathf.Clamp(paddleSpeedMultiplier, 0.5f, 1.6f);
             BallSpeedMultiplier = Mathf.Clamp(ballSpeedMultiplier, 0.6f, 1.75f);
             BrickDurabilityMultiplier = Mathf.Clamp(brickDurabilityMultiplier, 0.75f, 2.5f);
             DropChanceMultiplier = Mathf.Clamp(dropChanceMultiplier, 0f, 2f);
@@ -88,6 +90,8 @@ namespace GetBricked.Gameplay.Data
         public int BallsPerServe { get; }
 
         public float PaddleWidthMultiplier { get; }
+
+        public float PaddleSpeedMultiplier { get; }
 
         public float BallSpeedMultiplier { get; }
 

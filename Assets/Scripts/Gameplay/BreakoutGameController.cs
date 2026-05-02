@@ -171,6 +171,7 @@ namespace GetBricked.Gameplay
         private BreakoutRunSetupField selectedRunSetupField;
         private RoundState pausedFromState;
         private int selectedMainMenuActionIndex;
+        private int selectedRoguePaddleIndex;
         private int selectedOverlayActionIndex;
         private string currentLevelVariationLabel = "Variation: not started";
         private string pendingValidationMessage = string.Empty;
@@ -685,7 +686,7 @@ namespace GetBricked.Gameplay
             Debug.Log(
                 $"Starting {(isDeveloperRunActive ? "Developer " : string.Empty)}{activeRunSettings.GameModeLabel} run | seed {activeRunSettings.Seed} | preset {activeRunSettings.DifficultyLabel} | " +
                 $"score mode {activeRunSettings.ScoringModeLabel} | life loss penalty {activeRunSettings.LifeLossScorePenalty} | " +
-                $"balls/serve {activeRunSettings.BallsPerServe} | paddle x{activeRunSettings.PaddleWidthMultiplier:0.00} | " +
+                $"balls/serve {activeRunSettings.BallsPerServe} | paddle {activeRunSettings.SelectedPaddleLabel} width x{activeRunSettings.PaddleWidthMultiplier:0.00} speed x{activeRunSettings.PaddleSpeedMultiplier:0.00} | " +
                 $"ball speed x{activeRunSettings.BallSpeedMultiplier:0.00} | brick durability x{activeRunSettings.BrickDurabilityMultiplier:0.00} | " +
                 $"drops {activeRunSettings.DropPoolLabel} | theme {activeRunSettings.ThemeLabel}");
         }
@@ -1023,6 +1024,21 @@ namespace GetBricked.Gameplay
                 pendingValidationMessage = string.Empty;
             }
 
+            if (mainMenuService.ResolveAction(selectedMainMenuActionIndex) == BreakoutMainMenuAction.Rogue)
+            {
+                if (keyboard.leftArrowKey.wasPressedThisFrame || keyboard.aKey.wasPressedThisFrame)
+                {
+                    AdjustSelectedRoguePaddle(-1);
+                    pendingValidationMessage = string.Empty;
+                }
+
+                if (keyboard.rightArrowKey.wasPressedThisFrame || keyboard.dKey.wasPressedThisFrame)
+                {
+                    AdjustSelectedRoguePaddle(1);
+                    pendingValidationMessage = string.Empty;
+                }
+            }
+
             if (keyboard.spaceKey.wasPressedThisFrame || keyboard.enterKey.wasPressedThisFrame || keyboard.numpadEnterKey.wasPressedThisFrame)
             {
                 selectedMainMenuActionIndex = Mathf.Clamp(selectedMainMenuActionIndex, 0, actions.Length - 1);
@@ -1156,10 +1172,10 @@ namespace GetBricked.Gameplay
 
         private void StartRogueRun()
         {
-            var selectedPaddle = DefaultRoguePaddleLabel;
-            var intensity = BreakoutRogueIntensityProgressStore.GetAvailableIntensity(selectedPaddle);
+            var selectedPaddle = ResolveSelectedRoguePaddle();
+            var intensity = BreakoutRogueIntensityProgressStore.GetAvailableIntensity(selectedPaddle.DisplayName);
             activeRunSettings = rogueRunController != null
-                ? rogueRunController.BuildRunSettings(GenerateSeed(), lifeLossScorePenalty, ResolvePendingThemeDefinition())
+                ? rogueRunController.BuildRunSettings(GenerateSeed(), lifeLossScorePenalty, ResolvePendingThemeDefinition(), selectedPaddle.DisplayName)
                 : new RunSettings(
                     GenerateSeed(),
                     RunDifficultyPreset.Standard,
@@ -1167,7 +1183,7 @@ namespace GetBricked.Gameplay
                     3,
                     lifeLossScorePenalty,
                     1,
-                    1f,
+                    selectedPaddle.WidthMultiplier,
                     BreakoutRunProgression.GetRogueIntensityBallSpeedMultiplier(intensity),
                     1f,
                     1f,
@@ -1176,18 +1192,19 @@ namespace GetBricked.Gameplay
                     ResolvePendingThemeDefinition(),
                     RunGameMode.Rogue,
                     intensity,
-                    selectedPaddle);
-            pendingValidationMessage = $"Rogue tape loaded: Heat {activeRunSettings.RogueIntensity:00}/50, 10 stages, 3 balls, draft rewards, growing drop pool.";
+                    selectedPaddle.DisplayName,
+                    selectedPaddle.SpeedMultiplier);
+            pendingValidationMessage = $"Rogue tape loaded: {activeRunSettings.SelectedPaddleLabel}, Heat {activeRunSettings.RogueIntensity:00}/50, 10 stages, 3 balls, draft rewards, growing drop pool.";
             StartNewRun();
         }
 
         private void StartDeveloperRun()
         {
             developerLaunchState ??= new BreakoutDeveloperLaunchState();
-            var selectedPaddle = DefaultRoguePaddleLabel;
+            var selectedPaddle = developerLaunchState.ResolvePaddle();
             var intensity = BreakoutRunProgression.ClampRogueIntensity(developerLaunchState.Intensity);
             activeRunSettings = rogueRunController != null
-                ? rogueRunController.BuildRunSettings(GenerateSeed(), lifeLossScorePenalty, ResolvePendingThemeDefinition(), intensity)
+                ? rogueRunController.BuildRunSettings(GenerateSeed(), lifeLossScorePenalty, ResolvePendingThemeDefinition(), selectedPaddle.DisplayName, intensity)
                 : new RunSettings(
                     GenerateSeed(),
                     RunDifficultyPreset.Standard,
@@ -1195,7 +1212,7 @@ namespace GetBricked.Gameplay
                     3,
                     lifeLossScorePenalty,
                     1,
-                    1f,
+                    selectedPaddle.WidthMultiplier,
                     BreakoutRunProgression.GetRogueIntensityBallSpeedMultiplier(intensity),
                     1f,
                     1f,
@@ -1204,10 +1221,11 @@ namespace GetBricked.Gameplay
                     ResolvePendingThemeDefinition(),
                     RunGameMode.Rogue,
                     intensity,
-                    selectedPaddle);
+                    selectedPaddle.DisplayName,
+                    selectedPaddle.SpeedMultiplier);
 
             var encounter = developerLaunchState.ResolveEncounter();
-            pendingValidationMessage = $"Dev jump loaded: {encounter.DisplayName} at Heat {activeRunSettings.RogueIntensity:00}.";
+            pendingValidationMessage = $"Dev jump loaded: {encounter.DisplayName} with {activeRunSettings.SelectedPaddleLabel} at Heat {activeRunSettings.RogueIntensity:00}.";
             StartNewRun(encounter, developerLaunchState.LivesRemaining, applyDeveloperSelections: true);
         }
 
@@ -1333,6 +1351,43 @@ namespace GetBricked.Gameplay
             }
 
             pendingRunSetup.AdjustField(selectedRunSetupField, direction, GenerateSeed, ShiftThemeId);
+        }
+
+        private void AdjustSelectedRoguePaddle(int direction)
+        {
+            var unlockedPaddles = BreakoutRoguePaddleCatalog.BuildUnlockedPaddles();
+
+            if (direction == 0 || unlockedPaddles.Length <= 1)
+            {
+                selectedRoguePaddleIndex = 0;
+                return;
+            }
+
+            selectedRoguePaddleIndex = WrapIndex(selectedRoguePaddleIndex + direction, unlockedPaddles.Length);
+        }
+
+        private BreakoutRoguePaddleDefinition ResolveSelectedRoguePaddle()
+        {
+            var unlockedPaddles = BreakoutRoguePaddleCatalog.BuildUnlockedPaddles();
+
+            if (unlockedPaddles.Length == 0)
+            {
+                selectedRoguePaddleIndex = 0;
+                return BreakoutRoguePaddleCatalog.DefaultPaddle;
+            }
+
+            selectedRoguePaddleIndex = Mathf.Clamp(selectedRoguePaddleIndex, 0, unlockedPaddles.Length - 1);
+            return unlockedPaddles[selectedRoguePaddleIndex];
+        }
+
+        private static int WrapIndex(int value, int count)
+        {
+            if (count <= 0)
+            {
+                return 0;
+            }
+
+            return ((value % count) + count) % count;
         }
 
         private void AdjustManualBallSpeed(int direction)
@@ -2656,6 +2711,10 @@ namespace GetBricked.Gameplay
         {
             var previewSettings = BuildRunSettingsFromPending(out var previewValidation);
             BreakoutRogueRunResultStore.TryLoad(out var lastRogueResult);
+            var selectedPaddle = ResolveSelectedRoguePaddle();
+            var unlockedPaddles = BreakoutRoguePaddleCatalog.BuildUnlockedPaddles();
+            var nextPaddleUnlock = BreakoutRoguePaddleCatalog.GetNextLockedPaddle();
+            var nextPaddleUnlockRequirement = BreakoutRoguePaddleCatalog.GetUnlockRequirement(nextPaddleUnlock);
             var context = new BreakoutMainMenuContext
             {
                 SelectedActionIndex = selectedMainMenuActionIndex,
@@ -2669,7 +2728,19 @@ namespace GetBricked.Gameplay
                 PreviewValidation = previewValidation,
                 PendingValidationMessage = pendingValidationMessage,
                 LastRogueResultSummary = BreakoutRogueRunResultStore.BuildSummary(lastRogueResult),
-                AvailableRogueIntensity = BreakoutRogueIntensityProgressStore.GetAvailableIntensity(DefaultRoguePaddleLabel),
+                AvailableRogueIntensity = BreakoutRogueIntensityProgressStore.GetAvailableIntensity(selectedPaddle.DisplayName),
+                SelectedRoguePaddleLabel = selectedPaddle.DisplayName,
+                SelectedRoguePaddleIdentity = selectedPaddle.Identity,
+                SelectedRoguePaddleStrength = selectedPaddle.Strength,
+                SelectedRoguePaddleDrawback = selectedPaddle.Drawback,
+                NextRoguePaddleUnlockLabel = string.IsNullOrWhiteSpace(nextPaddleUnlock.DisplayName)
+                    ? string.Empty
+                    : nextPaddleUnlock.DisplayName,
+                NextRoguePaddleUnlockRequirementLabel = string.IsNullOrWhiteSpace(nextPaddleUnlockRequirement.DisplayName)
+                    ? BreakoutRoguePaddleCatalog.DefaultPaddle.DisplayName
+                    : nextPaddleUnlockRequirement.DisplayName,
+                UnlockedRoguePaddleCount = unlockedPaddles.Length,
+                TotalRoguePaddleCount = BreakoutRoguePaddleCatalog.AllPaddles.Count,
             };
 
             return mainMenuService.BuildView(context);
@@ -2706,6 +2777,7 @@ namespace GetBricked.Gameplay
         {
             developerLaunchState ??= new BreakoutDeveloperLaunchState();
             var encounter = developerLaunchState.ResolveEncounter();
+            var selectedPaddle = developerLaunchState.ResolvePaddle();
             var currentUpgrade = developerLaunchState.ResolveCurrentUpgrade(loadedRunUpgradeDefinitions);
             var currentDrop = developerLaunchState.ResolveCurrentDropUnlock(loadedPowerUpDefinitions);
             var upgradeSelected = currentUpgrade != null && developerLaunchState.IsUpgradeSelected(currentUpgrade);
@@ -2718,13 +2790,14 @@ namespace GetBricked.Gameplay
                 FieldLines = new[]
                 {
                     $"Encounter: {FormatDeveloperEncounterLabel(encounter)}",
+                    $"Paddle: {selectedPaddle.DisplayName}",
                     $"Lives: {developerLaunchState.LivesRemaining}",
                     $"Heat: {developerLaunchState.Intensity:00}/{BreakoutRunProgression.MaxRogueIntensity:00}",
                     $"Upgrade: {FormatDeveloperToggle(upgradeSelected)} {FormatDeveloperUpgradeLabel(currentUpgrade)}",
                     $"Drop Unlock: {FormatDeveloperToggle(dropSelected)} {FormatDeveloperDropLabel(currentDrop)}",
                 },
                 SelectedFieldIndex = (int)selectedDeveloperLaunchField,
-                PreviewLine = $"Preview: {FormatDeveloperEncounterLabel(encounter)} | Heat {developerLaunchState.Intensity:00} | Balls {developerLaunchState.LivesRemaining:00} | Build {developerLaunchState.SelectedUpgradeCount:00} upgrades, {developerLaunchState.SelectedDropUnlockCount:00} drops | Theme {ResolvePendingThemeDefinition()?.DisplayName ?? "Fallback"}",
+                PreviewLine = $"Preview: {FormatDeveloperEncounterLabel(encounter)} | {selectedPaddle.DisplayName} | Heat {developerLaunchState.Intensity:00} | Balls {developerLaunchState.LivesRemaining:00} | Paddle x{selectedPaddle.WidthMultiplier:0.00} speed x{selectedPaddle.SpeedMultiplier:0.00} | Build {developerLaunchState.SelectedUpgradeCount:00} upgrades, {developerLaunchState.SelectedDropUnlockCount:00} drops | Theme {ResolvePendingThemeDefinition()?.DisplayName ?? "Fallback"}",
                 ValidationText = "Encounter cycles through Stage 01-10, then Boss Gate 1-3. Dev runs do not update the saved Rogue result.",
                 HintText = "Up/Down selects. Left/Right changes. T toggles build picks. N clears build. Esc returns to menu. Space launches.",
             };
@@ -3238,7 +3311,7 @@ namespace GetBricked.Gameplay
             var heatSummary = activeRunSettings.IsRogueMode ? $" | Heat {activeRunSettings.RogueIntensity:00}" : string.Empty;
             var summary =
                 $"{activeRunSettings.GameModeLabel} | Tape ID: {activeRunSettings.Seed} | {activeRunSettings.DifficultyLabel} | {BuildScoreModeSummaryLabel(activeRunSettings)} | {BuildRetrySummaryLabel(activeRunSettings)} | Balls/Serve {GetEffectiveBallsPerServe()} | " +
-                $"Theme: {activeRunSettings.ThemeLabel} | Drops: {BuildDropSummaryLabel(activeRunSettings)}{heatSummary} | Paddle x{activeRunSettings.PaddleWidthMultiplier:0.00} | Ball x{activeRunSettings.BallSpeedMultiplier:0.00} | Build {GetChosenUpgradeCount():00}";
+                $"Theme: {activeRunSettings.ThemeLabel} | Drops: {BuildDropSummaryLabel(activeRunSettings)}{heatSummary} | {activeRunSettings.SelectedPaddleLabel} x{activeRunSettings.PaddleWidthMultiplier:0.00} speed x{activeRunSettings.PaddleSpeedMultiplier:0.00} | Ball x{activeRunSettings.BallSpeedMultiplier:0.00} | Build {GetChosenUpgradeCount():00}";
             return summary;
         }
 
@@ -3402,7 +3475,7 @@ namespace GetBricked.Gameplay
                     0f,
                     1f,
                     0f);
-            paddle.SetMoveSpeed(currentLevelPaddleSpeed);
+            paddle.SetMoveSpeed(currentLevelPaddleSpeed * (activeRunSettings?.PaddleSpeedMultiplier ?? 1f));
             paddle.SetWidthMultiplier(activeEffectModifiers.PaddleWidthMultiplier);
             paddle.SetWavyStrength(activeEffectModifiers.WavyPaddleStrength);
             paddle.SetControlsReversed(activeEffectModifiers.ReverseControlsEnabled);
