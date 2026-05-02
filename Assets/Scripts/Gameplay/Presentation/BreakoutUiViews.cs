@@ -41,6 +41,7 @@ namespace GetBricked.Gameplay
         public string Subtitle = string.Empty;
         public string SectionTitle = string.Empty;
         public string[] ActionLabels = Array.Empty<string>();
+        public string[] ActionGroupLabels = Array.Empty<string>();
         public int SelectedActionIndex;
         public string PreviewTitle = string.Empty;
         public string[] PreviewLines = Array.Empty<string>();

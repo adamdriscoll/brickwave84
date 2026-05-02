@@ -84,7 +84,7 @@ namespace GetBricked.Gameplay
             EnsureStyles();
 
             var boxWidth = Mathf.Min(1040f, Screen.width - 56f);
-            var boxHeight = Mathf.Min(548f, Screen.height - 150f);
+            var boxHeight = Mathf.Min(620f, Screen.height - 120f);
 
             if (boxWidth < 920f)
             {
@@ -120,7 +120,7 @@ namespace GetBricked.Gameplay
             DrawSectionLabel(new Rect(leftRect.x + 18f, leftRect.y + 14f, leftRect.width - 36f, 22f), view.SectionTitle, palette.AccentWarm);
             DrawSectionLabel(new Rect(rightRect.x + 18f, rightRect.y + 14f, rightRect.width - 36f, 22f), view.PreviewTitle, palette.AccentPrimary);
 
-            DrawActionList(view.ActionLabels, view.SelectedActionIndex, leftRect.x + 18f, leftRect.y + 52f, leftRect.width - 36f, 44f, onActionClicked);
+            DrawGroupedActionList(view.ActionLabels, view.ActionGroupLabels, view.SelectedActionIndex, leftRect.x + 18f, leftRect.y + 44f, leftRect.width - 36f, 38f, 22f, onActionClicked);
 
             for (var index = 0; index < view.PreviewLines.Length; index++)
             {
@@ -829,6 +829,50 @@ namespace GetBricked.Gameplay
                 {
                     onActionClicked?.Invoke(index);
                 }
+            }
+        }
+
+        private void DrawGroupedActionList(
+            string[] labels,
+            string[] groupLabels,
+            int selectedIndex,
+            float x,
+            float y,
+            float width,
+            float lineHeight,
+            float groupHeight,
+            Action<int> onActionClicked)
+        {
+            if (labels == null)
+            {
+                return;
+            }
+
+            var currentY = y;
+            var previousGroup = string.Empty;
+
+            for (var index = 0; index < labels.Length; index++)
+            {
+                var group = groupLabels != null && index < groupLabels.Length
+                    ? groupLabels[index] ?? string.Empty
+                    : string.Empty;
+
+                if (!string.Equals(group, previousGroup, StringComparison.Ordinal))
+                {
+                    DrawSectionLabel(new Rect(x, currentY, width, 16f), group, palette.AccentWarm);
+                    currentY += groupHeight;
+                    previousGroup = group;
+                }
+
+                var isSelected = index == Mathf.Clamp(selectedIndex, 0, Math.Max(0, labels.Length - 1));
+                var actionRect = new Rect(x, currentY, width, lineHeight - 4f);
+
+                if (DrawArcadeButton(actionRect, labels[index], isSelected))
+                {
+                    onActionClicked?.Invoke(index);
+                }
+
+                currentY += lineHeight;
             }
         }
 

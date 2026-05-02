@@ -33,9 +33,6 @@ namespace GetBricked.Gameplay
 
         private enum OverlayAction
         {
-            StartRun,
-            OpenRunSetup,
-            ResetSetupDefaults,
             Resume,
             RestartRun,
             NextLevel,
@@ -136,6 +133,7 @@ namespace GetBricked.Gameplay
         private BreakoutBrickService brickService;
         private BreakoutPaddleSpawnService paddleSpawnService;
         private BreakoutBallSpawnService ballSpawnService;
+        private BreakoutMainMenuService mainMenuService;
         private BreakoutUiRenderer uiRenderer;
         private IBreakoutScoreService scoreService;
         private BreakoutBackgroundLibrary backgroundLibrary;
@@ -162,6 +160,7 @@ namespace GetBricked.Gameplay
         private DeterministicRandomService gameplayRandom;
         private BreakoutRunSetupField selectedRunSetupField;
         private RoundState pausedFromState;
+        private int selectedMainMenuActionIndex;
         private int selectedOverlayActionIndex;
         private string currentLevelVariationLabel = "Variation: not started";
         private string pendingValidationMessage = string.Empty;
@@ -200,6 +199,7 @@ namespace GetBricked.Gameplay
                 brickSprite,
                 powerUpSprite);
             powerUpService = new BreakoutPowerUpService(pickupSize, pickupFallSpeed, multiBallSpreadAngle, additiveSpriteMaterial);
+            mainMenuService = new BreakoutMainMenuService();
             uiRenderer = new BreakoutUiRenderer();
             scoreService = new BreakoutScoreService();
             activeRunState = new BreakoutRunState();
@@ -613,6 +613,7 @@ namespace GetBricked.Gameplay
         private void EnterMainMenu()
         {
             roundState = RoundState.MainMenu;
+            selectedMainMenuActionIndex = 0;
             selectedOverlayActionIndex = 0;
             pendingValidationMessage = string.Empty;
             currentLevelVariationLabel = "Variation: pending";
@@ -818,6 +819,12 @@ namespace GetBricked.Gameplay
 
         private void HandleOverlayMenuInput(Keyboard keyboard)
         {
+            if (roundState == RoundState.MainMenu)
+            {
+                HandleMainMenuInput(keyboard);
+                return;
+            }
+
             var actions = GetOverlayActionsForState(roundState);
 
             if (actions.Length == 0)
@@ -848,16 +855,38 @@ namespace GetBricked.Gameplay
             }
         }
 
+        private void HandleMainMenuInput(Keyboard keyboard)
+        {
+            var actions = mainMenuService?.BuildActions() ?? Array.Empty<BreakoutMainMenuAction>();
+
+            if (keyboard == null || actions.Length == 0)
+            {
+                return;
+            }
+
+            if (keyboard.upArrowKey.wasPressedThisFrame || keyboard.wKey.wasPressedThisFrame)
+            {
+                selectedMainMenuActionIndex = (selectedMainMenuActionIndex + actions.Length - 1) % actions.Length;
+                pendingValidationMessage = string.Empty;
+            }
+
+            if (keyboard.downArrowKey.wasPressedThisFrame || keyboard.sKey.wasPressedThisFrame)
+            {
+                selectedMainMenuActionIndex = (selectedMainMenuActionIndex + 1) % actions.Length;
+                pendingValidationMessage = string.Empty;
+            }
+
+            if (keyboard.spaceKey.wasPressedThisFrame || keyboard.enterKey.wasPressedThisFrame || keyboard.numpadEnterKey.wasPressedThisFrame)
+            {
+                selectedMainMenuActionIndex = Mathf.Clamp(selectedMainMenuActionIndex, 0, actions.Length - 1);
+                PerformMainMenuAction(actions[selectedMainMenuActionIndex]);
+            }
+        }
+
         private OverlayAction[] GetOverlayActionsForState(RoundState state)
         {
             return state switch
             {
-                RoundState.MainMenu => new[]
-                {
-                    OverlayAction.StartRun,
-                    OverlayAction.OpenRunSetup,
-                    OverlayAction.ResetSetupDefaults,
-                },
                 RoundState.Paused => new[]
                 {
                     OverlayAction.Resume,
@@ -893,20 +922,8 @@ namespace GetBricked.Gameplay
         {
             switch (action)
             {
-                case OverlayAction.StartRun:
-                    activeRunSettings = BuildRunSettingsFromPending(out pendingValidationMessage, commitSeedText: true);
-                    SavePersistedRunSetup();
-                    StartNewRun();
-                    break;
-                case OverlayAction.OpenRunSetup:
                 case OverlayAction.ReturnToRunSetup:
                     EnterRunSetup();
-                    break;
-                case OverlayAction.ResetSetupDefaults:
-                    ResetPendingRunSetup(generateNewSeed: true);
-                    ApplyPendingThemePreview();
-                    SavePersistedRunSetup();
-                    pendingValidationMessage = "Run setup reset to defaults.";
                     break;
                 case OverlayAction.Resume:
                     ResumeGameplay();
@@ -932,6 +949,17 @@ namespace GetBricked.Gameplay
                     QuitGame();
                     break;
             }
+        }
+
+        private void PerformMainMenuAction(BreakoutMainMenuAction action)
+        {
+            if (action == BreakoutMainMenuAction.CustomGame)
+            {
+                EnterRunSetup();
+                return;
+            }
+
+            pendingValidationMessage = mainMenuService?.BuildPlaceholderMessage(action) ?? string.Empty;
         }
 
         private bool CanPauseRoundState(RoundState state)
@@ -1916,7 +1944,7 @@ namespace GetBricked.Gameplay
             if (roundState == RoundState.MainMenu)
             {
                 uiRenderer.DrawCabinetBackdrop(BuildChromeView("Get Bricked", "Synthwave Cabinet", true));
-                uiRenderer.DrawMainMenu(BuildMainMenuView(), HandleOverlayActionClick);
+                uiRenderer.DrawMainMenu(BuildMainMenuView(), HandleMainMenuActionClick);
                 return;
             }
 
@@ -1988,9 +2016,6 @@ namespace GetBricked.Gameplay
         {
             return action switch
             {
-                OverlayAction.StartRun => "Start Run",
-                OverlayAction.OpenRunSetup => "Open Run Setup",
-                OverlayAction.ResetSetupDefaults => "Reset Setup Defaults",
                 OverlayAction.Resume => "Resume",
                 OverlayAction.RestartRun => "Restart Run",
                 OverlayAction.NextLevel => "Next Level",
@@ -2004,28 +2029,21 @@ namespace GetBricked.Gameplay
         private BreakoutUiMenuView BuildMainMenuView()
         {
             var previewSettings = BuildRunSettingsFromPending(out var previewValidation);
-            return new BreakoutUiMenuView
+            var context = new BreakoutMainMenuContext
             {
-                Title = "Get Bricked",
-                Subtitle = "Neon cabinet online. Quick-start the last tuned run or open the control panel and retune the seed, score mode, modifiers, and palette.",
-                SectionTitle = "Control Panel",
-                ActionLabels = BuildOverlayActionLabels(GetOverlayActionsForState(RoundState.MainMenu)),
-                SelectedActionIndex = selectedOverlayActionIndex,
-                PreviewTitle = "Saved Run Loadout",
-                PreviewLines = new[]
-                {
-                    $"Tape ID: {GetPendingSeedDisplay()}",
-                    $"Difficulty: {pendingRunSetup.DifficultyPreset} | Score Mode: {previewSettings.ScoringModeLabel}",
-                    $"Balls/Serve: {pendingRunSetup.BallsPerServe} | {BuildRetrySummaryLabel(previewSettings)}",
-                    $"Theme: {previewSettings.ThemeLabel}",
-                    $"Paddle x{previewSettings.PaddleWidthMultiplier:0.00} | Ball x{previewSettings.BallSpeedMultiplier:0.00}",
-                    $"Brick durability x{previewSettings.BrickDurabilityMultiplier:0.00} | {BuildScoreModeSummaryLabel(previewSettings)}",
-                    $"Drops: {BuildDropSummaryLabel(previewSettings)}",
-                },
-                ValidationText = previewValidation,
-                FooterText = "Run setup selections persist automatically, so quick start reuses the last cabinet tuning across sessions.",
-                HintText = "Up/Down selects. Space confirms. Open Run Setup for Tape ID editing, score mode tuning, modifier tweaks, and theme cycling.",
+                SelectedActionIndex = selectedMainMenuActionIndex,
+                PendingSeedDisplay = GetPendingSeedDisplay(),
+                DifficultyPresetLabel = pendingRunSetup.DifficultyPreset.ToString(),
+                BallsPerServe = pendingRunSetup.BallsPerServe,
+                PreviewSettings = previewSettings,
+                ScoreModeSummaryLabel = BuildScoreModeSummaryLabel(previewSettings),
+                RetrySummaryLabel = BuildRetrySummaryLabel(previewSettings),
+                DropSummaryLabel = BuildDropSummaryLabel(previewSettings),
+                PreviewValidation = previewValidation,
+                PendingValidationMessage = pendingValidationMessage,
             };
+
+            return mainMenuService.BuildView(context);
         }
 
         private BreakoutUiRunSetupView BuildRunSetupView()
@@ -2317,11 +2335,6 @@ namespace GetBricked.Gameplay
         {
             var actions = GetOverlayActionsForState(roundState);
 
-            if (roundState == RoundState.MainMenu)
-            {
-                actions = GetOverlayActionsForState(RoundState.MainMenu);
-            }
-
             if (actionIndex < 0 || actionIndex >= actions.Length)
             {
                 return;
@@ -2329,6 +2342,19 @@ namespace GetBricked.Gameplay
 
             selectedOverlayActionIndex = actionIndex;
             PerformOverlayAction(actions[actionIndex]);
+        }
+
+        private void HandleMainMenuActionClick(int actionIndex)
+        {
+            var actions = mainMenuService?.BuildActions() ?? Array.Empty<BreakoutMainMenuAction>();
+
+            if (actionIndex < 0 || actionIndex >= actions.Length)
+            {
+                return;
+            }
+
+            selectedMainMenuActionIndex = actionIndex;
+            PerformMainMenuAction(actions[actionIndex]);
         }
 
         private void ToggleDiagnosticsOverlay()

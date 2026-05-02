@@ -45,6 +45,8 @@ That means the roadmap should focus less on `can we make breakout work?` and mor
 
 - Keep gameplay code under `Assets/Scripts/`
 - Continue using ScriptableObjects and additive content data where practical
+- Treat the home menu as a mode shell with top-level lanes for `Singleplayer`, `Multiplayer`, and `Settings`
+- Keep `Custom Game` mapped to the current seeded/configurable run setup until the new `Rogue` path has its own progression contract
 - Preserve a clear separation between:
   - `RunSettings` for pre-run choices
   - run-state models for active build and progression state
@@ -74,6 +76,7 @@ That means the roadmap should focus less on `can we make breakout work?` and mor
 - [06 Daily Seeds, Meta Progression, And Challenges](./06-daily-seeds-meta-progression-and-challenges.md)
 - [07 UI, Run Readability, And Presentation](./07-ui-run-readability-and-presentation.md)
 - [08 Social Modes, Content Pipeline, And Production Readiness](./08-social-modes-content-pipeline-and-production-readiness.md)
+- [09 Gameplay Mode Shell And Settings](./09-gameplay-mode-shell-and-settings.md)
 
 ## Sequencing Logic
 
@@ -88,10 +91,10 @@ The new order is intentional:
 
 ## Open Design Questions
 
+- What progression, unlock, and intensity systems define `Rogue` well enough to separate it from `Custom Game`?
 - How many `Core Mod` slots should a run support before the build becomes too noisy?
 - Which run systems remain score-valid for future daily challenges, and which become `chaos` or `custom` variants?
 - Should bosses gate progress on fixed milestones, seed rules, or score thresholds?
-- Is endless mode a branch from the main structured run or a separate start option?
 - Which social mode should be the first real extension once single-player run depth is proven?
 
 ## Recommended Immediate Focus
