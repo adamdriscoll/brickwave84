@@ -100,9 +100,12 @@ public sealed class BreakoutRogueRunTests
 
         Assert.That(BreakoutRunProgression.TryGetBossGateAfterLevel(5, out var secondGate), Is.True);
         Assert.That(secondGate.GateIndex, Is.EqualTo(1));
+        Assert.That(secondGate.BossType, Is.EqualTo(BreakoutBossGateType.BrickosaurusWrecks));
+        Assert.That(secondGate.DisplayName, Is.EqualTo("Boss Gate 2 - Brickosaurus Wrecks"));
 
         Assert.That(BreakoutRunProgression.TryGetBossGateAfterLevel(9, out var finalGate), Is.True);
         Assert.That(finalGate.GateIndex, Is.EqualTo(2));
+        Assert.That(finalGate.BossType, Is.EqualTo(BreakoutBossGateType.PaddlePunk));
     }
 
     [Test]
@@ -283,7 +286,7 @@ public sealed class BreakoutRogueRunTests
 
             Assert.That(encounter.IsBossGate, Is.True);
             Assert.That(encounter.BossGate.Value.GateIndex, Is.EqualTo(bossIndex));
-            Assert.That(encounter.DisplayName, Does.Contain("The Paddle Punk"));
+            Assert.That(encounter.DisplayName, Does.Contain(bossIndex == 1 ? "Brickosaurus Wrecks" : "The Paddle Punk"));
         }
     }
 

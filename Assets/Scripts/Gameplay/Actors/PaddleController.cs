@@ -22,7 +22,7 @@ namespace GetBricked.Gameplay
         private const float MaxArenaWidthCoverage = 0.9f;
         private const float ClonePaddleYOffset = 0.74f;
         private const float ClonePaddleWidthMultiplier = 0.62f;
-        private const int ClonePaddleSortingOrder = 11;
+        private const int ClonePaddleSortingOrder = 19;
 
         private BreakoutGameController gameController;
         private Rigidbody2D paddleBody;

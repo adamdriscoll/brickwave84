@@ -200,5 +200,44 @@ namespace GetBricked.Gameplay
                 new Vector2(0.5f, 0.5f),
                 texture.width);
         }
+
+        public static Sprite CreateTriangleSprite()
+        {
+            const int textureSize = 64;
+            var texture = new Texture2D(textureSize, textureSize, TextureFormat.RGBA32, false)
+            {
+                filterMode = FilterMode.Bilinear,
+                wrapMode = TextureWrapMode.Clamp,
+                name = "RuntimeTriangleTexture",
+            };
+
+            var pixels = new Color[textureSize * textureSize];
+            var halfWidth = (textureSize - 1) * 0.5f;
+            var bottomY = textureSize * 0.82f;
+            var topY = textureSize * 0.16f;
+
+            for (var y = 0; y < textureSize; y++)
+            {
+                var verticalProgress = Mathf.InverseLerp(bottomY, topY, y);
+                var allowedHalfWidth = Mathf.Lerp(halfWidth * 0.72f, 0f, verticalProgress);
+
+                for (var x = 0; x < textureSize; x++)
+                {
+                    var index = x + (y * textureSize);
+                    var insideVertical = y >= topY && y <= bottomY;
+                    var insideHorizontal = Mathf.Abs(x - halfWidth) <= allowedHalfWidth;
+                    pixels[index] = insideVertical && insideHorizontal ? Color.white : Color.clear;
+                }
+            }
+
+            texture.SetPixels(pixels);
+            texture.Apply();
+
+            return Sprite.Create(
+                texture,
+                new Rect(0f, 0f, texture.width, texture.height),
+                new Vector2(0.5f, 0.5f),
+                texture.width);
+        }
     }
 }

@@ -9,6 +9,7 @@ using UnityEngine;
 public sealed class BreakoutGameControllerPowerUpTests
 {
     private const BindingFlags InstanceFlags = BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public;
+    private const BindingFlags StaticFlags = BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public;
 
     private GameObject controllerObject;
     private GameObject paddleObject;
@@ -68,6 +69,41 @@ public sealed class BreakoutGameControllerPowerUpTests
         InvokePrivateMethod(controller, "ApplyPowerUp", widePowerUp);
 
         Assert.That(paddle.transform.localScale.x, Is.EqualTo(2.1f * 1.45f).Within(0.0001f));
+    }
+
+    [Test]
+    public void BrickosaurusPowerDownPoolKeepsPaddleReadable()
+    {
+        Assert.That(IsBrickosaurusPowerDownCandidate(CreatePowerUp(
+            "Reverse Controls",
+            PowerUpEffectType.ReverseControls,
+            beneficial: false,
+            durationSeconds: 8f,
+            scalar: 1f)), Is.True);
+        Assert.That(IsBrickosaurusPowerDownCandidate(CreatePowerUp(
+            "Lag Spike",
+            PowerUpEffectType.LagSpike,
+            beneficial: false,
+            durationSeconds: 8f,
+            scalar: 0.5f)), Is.True);
+        Assert.That(IsBrickosaurusPowerDownCandidate(CreatePowerUp(
+            "Narrow Paddle",
+            PowerUpEffectType.PaddleWidthMultiplier,
+            beneficial: false,
+            durationSeconds: 10f,
+            scalar: 0.72f)), Is.False);
+        Assert.That(IsBrickosaurusPowerDownCandidate(CreatePowerUp(
+            "Split Paddle",
+            PowerUpEffectType.SplitPaddle,
+            beneficial: false,
+            durationSeconds: 12f,
+            scalar: 1f)), Is.False);
+        Assert.That(IsBrickosaurusPowerDownCandidate(CreatePowerUp(
+            "Blackout",
+            PowerUpEffectType.FogOfWar,
+            beneficial: false,
+            durationSeconds: 8f,
+            scalar: 0.42f)), Is.False);
     }
 
     [Test]
@@ -662,6 +698,13 @@ public sealed class BreakoutGameControllerPowerUpTests
         var method = instance.GetType().GetMethod(methodName, InstanceFlags);
         Assert.That(method, Is.Not.Null, $"Missing method '{methodName}' on {instance.GetType().Name}.");
         return method.Invoke(instance, args);
+    }
+
+    private static bool IsBrickosaurusPowerDownCandidate(PowerUpDefinition definition)
+    {
+        var method = typeof(BreakoutGameController).GetMethod("IsBrickosaurusPowerDownCandidate", StaticFlags);
+        Assert.That(method, Is.Not.Null, "Missing Brickosaurus power-down candidate resolver.");
+        return (bool)method.Invoke(null, new object[] { definition });
     }
 
     private static T GetPrivateField<T>(object instance, string fieldName)

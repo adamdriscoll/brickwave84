@@ -128,6 +128,7 @@ namespace GetBricked.Gameplay
         private BallController serveBall;
         private Sprite squareSprite;
         private Sprite circleSprite;
+        private Sprite triangleSprite;
         private Sprite backgroundHazeSprite;
         private Sprite backgroundScanlineSprite;
         private Sprite ballSprite;
@@ -194,6 +195,7 @@ namespace GetBricked.Gameplay
         private BreakoutBossGate? activeBossGate;
         private BreakoutBossGate? pendingBossGate;
         private BreakoutPaddlePunkBoss activePaddlePunkBoss;
+        private BreakoutBrickosaurusWrecksBoss activeBrickosaurusBoss;
         private int bossShieldSpawnIndex;
         private bool isDeveloperRunActive;
 
@@ -256,6 +258,11 @@ namespace GetBricked.Gameplay
             if (circleSprite != null)
             {
                 Destroy(circleSprite);
+            }
+
+            if (triangleSprite != null)
+            {
+                Destroy(triangleSprite);
             }
 
             if (backgroundHazeSprite != null)
@@ -604,6 +611,65 @@ namespace GetBricked.Gameplay
             return true;
         }
 
+        internal bool TryHandleBrickosaurusCollision(BallController ball, BreakoutBrickosaurusPart bossPart, Collision2D collision)
+        {
+            if (roundState != RoundState.Playing
+                || ball == null
+                || bossPart == null
+                || activeBossGate == null
+                || activeBrickosaurusBoss == null)
+            {
+                return false;
+            }
+
+            var result = activeBrickosaurusBoss.TryHandlePartHit(bossPart, ball, collision);
+
+            if (!result.Handled)
+            {
+                return false;
+            }
+
+            ball.ApplyCollisionResponse(result.BounceDirection, 0.16f);
+
+            if (result.SpeedBurstMultiplier > 1.001f)
+            {
+                ball.ApplySpeedBurst(result.SpeedBurstMultiplier, result.SpeedBurstDuration);
+            }
+
+            if (result.Damaged)
+            {
+                ball.RegisterBrickScore();
+                audioService?.PlayBrickHit(null);
+            }
+
+            if (result.LayerDestroyed)
+            {
+                audioService?.PlayBrickDestroyed(null);
+            }
+
+            if (result.ScorePoints > 0)
+            {
+                score += result.ScorePoints;
+                scoreService?.CreateFloatingScorePopup(
+                    bossPart.transform.position,
+                    result.ScorePoints,
+                    "WRECKS",
+                    result.CalloutColor);
+            }
+
+            if (result.LayerDestroyed && !string.IsNullOrWhiteSpace(result.Callout))
+            {
+                powerUpService?.ShowStatusBanner(result.Callout, result.CalloutColor, 1.05f);
+            }
+
+            if (result.Defeated)
+            {
+                EvaluateLevelCompletion();
+            }
+
+            return true;
+        }
+
         public void HandleBallHitPaddle()
         {
             audioService?.PlayBallHitPaddle();
@@ -651,6 +717,32 @@ namespace GetBricked.Gameplay
             powerUpService.RemovePickup(pickup);
             pickup.gameObject.SetActive(false);
             DestroyRuntimeObject(pickup.gameObject);
+        }
+
+        internal void HandleBrickosaurusPowerDownHit(BreakoutBrickosaurusPowerDownProjectile projectile)
+        {
+            if (projectile == null)
+            {
+                return;
+            }
+
+            if (roundState == RoundState.Playing)
+            {
+                var hazard = ResolveBrickosaurusPowerDownDefinition();
+
+                if (hazard != null)
+                {
+                    audioService?.PlayPickupCollected(hazard);
+                    ApplyPowerUp(hazard);
+                }
+                else
+                {
+                    powerUpService?.ShowStatusBanner("BOGUS SHOT!", new Color(1f, 0.18f, 0.32f, 1f), 1.2f);
+                }
+            }
+
+            projectile.gameObject.SetActive(false);
+            DestroyRuntimeObject(projectile.gameObject);
         }
 
         private void StartNewRun()
@@ -1730,6 +1822,7 @@ namespace GetBricked.Gameplay
         {
             squareSprite = BreakoutRuntimeVisualFactory.CreateSquareSprite();
             circleSprite = BreakoutRuntimeVisualFactory.CreateCircleSprite();
+            triangleSprite = BreakoutRuntimeVisualFactory.CreateTriangleSprite();
             backgroundHazeSprite = BreakoutRuntimeVisualFactory.CreateBackgroundHazeSprite();
             backgroundScanlineSprite = BreakoutRuntimeVisualFactory.CreateBackgroundScanlineSprite();
             backgroundLibrary = new BreakoutBackgroundLibrary();
@@ -1996,15 +2089,25 @@ namespace GetBricked.Gameplay
             currentLevelIndex = bossGate.TriggerLevelIndex;
             currentLevel = ResolveLevelTemplate(currentLevelIndex);
             currentLevelDisplayName = bossGate.DisplayName;
-            currentLevelVariationLabel = $"Boss Gate: {bossGate.HudLabel} | Break the weak points behind the rail.";
+            currentLevelVariationLabel = bossGate.BossType == BreakoutBossGateType.BrickosaurusWrecks
+                ? $"Boss Gate: {bossGate.HudLabel} | Strip the shield, scales, and core from the snake."
+                : $"Boss Gate: {bossGate.HudLabel} | Break the weak points behind the rail.";
 
             UpdateBackgroundVisuals();
-            audioService?.PlayMusic(BreakoutMusicTrack.Intense);
+            audioService?.PlayBossMusic(bossGate.BossType);
             ApplyBossGateTuning(bossGate);
-            BuildPaddlePunkBossGate(bossGate);
+            if (bossGate.BossType == BreakoutBossGateType.BrickosaurusWrecks)
+            {
+                BuildBrickosaurusWrecksBossGate(bossGate);
+            }
+            else
+            {
+                BuildPaddlePunkBossGate(bossGate);
+            }
+
             PrepareServe(RoundState.ReadyToServe);
 
-            powerUpService?.ShowStatusBanner("PADDLE PUNK!", new Color(1f, 0.18f, 0.23f, 1f), 2.4f);
+            powerUpService?.ShowStatusBanner(bossGate.HudLabel, new Color(1f, 0.18f, 0.23f, 1f), 2.4f);
         }
 
         private void ApplyBossGateTuning(BreakoutBossGate bossGate)
@@ -2055,6 +2158,36 @@ namespace GetBricked.Gameplay
             }
 
             CreatePaddlePunkBossActor(bossGate);
+        }
+
+        private void BuildBrickosaurusWrecksBossGate(BreakoutBossGate bossGate)
+        {
+            brickService?.ClearBricks();
+            requiredBricksRemaining = 0;
+            CreateBrickosaurusWrecksBossActor(bossGate);
+        }
+
+        private void CreateBrickosaurusWrecksBossActor(BreakoutBossGate bossGate)
+        {
+            var bossObject = new GameObject("Brickosaurus Wrecks");
+            bossObject.transform.SetParent(bossRoot != null ? bossRoot : runtimeRoot, false);
+            bossObject.transform.position = Vector3.zero;
+
+            activeBrickosaurusBoss = bossObject.AddComponent<BreakoutBrickosaurusWrecksBoss>();
+            activeBrickosaurusBoss.Configure(
+                this,
+                bossRoot != null ? bossRoot : runtimeRoot,
+                circleSprite,
+                circleSprite,
+                triangleSprite,
+                powerUpSprite,
+                spriteUnlitMaterial,
+                additiveSpriteMaterial,
+                bounceMaterial,
+                Rect.MinMaxRect(arenaLeft, arenaBottom, arenaRight, arenaTop),
+                brickSize,
+                bossGate.GateIndex,
+                NextGameplayRandomFloat);
         }
 
         private void CreatePaddlePunkBossActor(BreakoutBossGate bossGate)
@@ -2189,6 +2322,7 @@ namespace GetBricked.Gameplay
         {
             activeBossGate = null;
             activePaddlePunkBoss = null;
+            activeBrickosaurusBoss = null;
             bossShieldSpawnIndex = 0;
 
             if (bossRoot == null)
@@ -2220,6 +2354,11 @@ namespace GetBricked.Gameplay
             }
 
             var levelCleared = brickService != null && !brickService.HasBreakableBricksRemaining();
+
+            if (activeBossGate.HasValue && activeBrickosaurusBoss != null)
+            {
+                levelCleared = activeBrickosaurusBoss.IsDefeated;
+            }
 
             if (!levelCleared)
             {
@@ -2270,7 +2409,10 @@ namespace GetBricked.Gameplay
             StopAllBalls();
             stickyCaughtBall = null;
             audioService?.PlayLevelComplete();
-            powerUpService?.ShowStatusBanner("PUNK WIPED!", new Color(1f, 0.18f, 0.23f, 1f), 2.2f);
+            powerUpService?.ShowStatusBanner(
+                bossGate.BossType == BreakoutBossGateType.BrickosaurusWrecks ? "WRECKED!" : "PUNK WIPED!",
+                new Color(1f, 0.18f, 0.23f, 1f),
+                2.2f);
             ClearBossEncounter();
 
             if (bossGate.TriggerLevelIndex >= BreakoutRunProgression.TargetLevelCount - 1)
@@ -3240,6 +3382,15 @@ namespace GetBricked.Gameplay
                 return $"Remaining Bricks {requiredBricksRemaining:00}";
             }
 
+            if (activeBrickosaurusBoss != null)
+            {
+                var bodyCount = activeBrickosaurusBoss.ConnectedBodySegmentCount;
+                var headLabel = activeBrickosaurusBoss.IsHeadVulnerable
+                    ? $"HEAD {activeBrickosaurusBoss.HeadHitsRemaining:0}"
+                    : $"BODY {bodyCount:00}";
+                return $"{headLabel} | {activeBrickosaurusBoss.PhaseLabel}";
+            }
+
             var phaseLabel = activePaddlePunkBoss != null ? activePaddlePunkBoss.PhaseLabel : activeBossGate.Value.HudLabel;
             return $"Wall Core {requiredBricksRemaining:00} | {phaseLabel}";
         }
@@ -3448,6 +3599,63 @@ namespace GetBricked.Gameplay
             }
 
             ApplyVisualEffectState();
+        }
+
+        private PowerUpDefinition ResolveBrickosaurusPowerDownDefinition()
+        {
+            var hazardCount = 0;
+
+            for (var index = 0; index < loadedPowerUpDefinitions.Count; index++)
+            {
+                var definition = loadedPowerUpDefinitions[index];
+
+                if (IsBrickosaurusPowerDownCandidate(definition))
+                {
+                    hazardCount++;
+                }
+            }
+
+            if (hazardCount == 0)
+            {
+                return null;
+            }
+
+            var selectedHazardIndex = Mathf.FloorToInt(NextGameplayRandomFloat(0f, hazardCount));
+            selectedHazardIndex = Mathf.Clamp(selectedHazardIndex, 0, hazardCount - 1);
+            var seenHazards = 0;
+
+            for (var index = 0; index < loadedPowerUpDefinitions.Count; index++)
+            {
+                var definition = loadedPowerUpDefinitions[index];
+
+                if (!IsBrickosaurusPowerDownCandidate(definition))
+                {
+                    continue;
+                }
+
+                if (seenHazards == selectedHazardIndex)
+                {
+                    return definition;
+                }
+
+                seenHazards++;
+            }
+
+            return null;
+        }
+
+        private static bool IsBrickosaurusPowerDownCandidate(PowerUpDefinition definition)
+        {
+            if (definition == null || definition.IsBeneficial)
+            {
+                return false;
+            }
+
+            return definition.EffectType == PowerUpEffectType.BallSpeedMultiplier
+                || definition.EffectType == PowerUpEffectType.WavyPaddle
+                || definition.EffectType == PowerUpEffectType.ReverseControls
+                || definition.EffectType == PowerUpEffectType.GravityWell
+                || definition.EffectType == PowerUpEffectType.LagSpike;
         }
 
         private void ApplyPowerUp(PowerUpDefinition powerUpDefinition)

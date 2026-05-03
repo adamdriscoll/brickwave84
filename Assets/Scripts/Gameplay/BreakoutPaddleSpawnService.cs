@@ -20,7 +20,7 @@ namespace GetBricked.Gameplay
 
     internal sealed class BreakoutPaddleSpawnService
     {
-        private const int PaddleSortingOrder = 10;
+        public const int PaddleSortingOrder = 40;
 
         private readonly BreakoutGameController controller;
         private readonly Transform root;
@@ -61,6 +61,7 @@ namespace GetBricked.Gameplay
             spriteRenderer.sprite = paddleSprite;
             spriteRenderer.color = paddleColor;
             spriteRenderer.sortingOrder = PaddleSortingOrder;
+            spriteRenderer.enabled = true;
             spriteRenderer.sharedMaterial = spriteMaterial;
             BreakoutSpriteRendererUtility.NormalizeScale(spriteRenderer);
 

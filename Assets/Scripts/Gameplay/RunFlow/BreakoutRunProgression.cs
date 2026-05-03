@@ -6,6 +6,7 @@ namespace GetBricked.Gameplay
     internal enum BreakoutBossGateType
     {
         PaddlePunk = 0,
+        BrickosaurusWrecks = 1,
     }
 
     internal readonly struct BreakoutBossGate
@@ -25,12 +26,14 @@ namespace GetBricked.Gameplay
 
         public string DisplayName => BossType switch
         {
+            BreakoutBossGateType.BrickosaurusWrecks => $"Boss Gate {GateIndex + 1} - Brickosaurus Wrecks",
             BreakoutBossGateType.PaddlePunk => $"Boss Gate {GateIndex + 1} - The Paddle Punk",
             _ => $"Boss Gate {GateIndex + 1}",
         };
 
         public string HudLabel => BossType switch
         {
+            BreakoutBossGateType.BrickosaurusWrecks => "BRICKOSAURUS",
             BreakoutBossGateType.PaddlePunk => "PADDLE PUNK",
             _ => "BOSS GATE",
         };
@@ -99,13 +102,20 @@ namespace GetBricked.Gameplay
             {
                 if (BossGateTriggerLevelIndexes[index] == levelIndex)
                 {
-                    bossGate = new BreakoutBossGate(index, levelIndex, BreakoutBossGateType.PaddlePunk);
+                    bossGate = new BreakoutBossGate(index, levelIndex, ResolveBossGateType(index));
                     return true;
                 }
             }
 
             bossGate = default;
             return false;
+        }
+
+        private static BreakoutBossGateType ResolveBossGateType(int gateIndex)
+        {
+            return gateIndex == 1
+                ? BreakoutBossGateType.BrickosaurusWrecks
+                : BreakoutBossGateType.PaddlePunk;
         }
 
         public static float GetBossGateBallSpeedMultiplier(BreakoutBossGate bossGate)

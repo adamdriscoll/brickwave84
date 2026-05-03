@@ -355,6 +355,13 @@ namespace GetBricked.Gameplay
 
             RegisterHotPotatoHit();
 
+            if (collision.collider.TryGetComponent<BreakoutBrickosaurusPart>(out var brickosaurusPart)
+                && gameController != null
+                && gameController.TryHandleBrickosaurusCollision(this, brickosaurusPart, collision))
+            {
+                return;
+            }
+
             if (collision.collider.TryGetComponent<BreakoutPaddlePunkBoss>(out var bossPaddle)
                 && gameController != null
                 && gameController.TryHandleBossPaddleCollision(this, bossPaddle, collision))
