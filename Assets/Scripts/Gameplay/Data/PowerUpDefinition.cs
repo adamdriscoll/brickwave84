@@ -58,6 +58,8 @@ namespace GetBricked.Gameplay.Data
 
         public float Scalar => Mathf.Max(0.1f, scalar);
 
+        public float VisibilityScalar => Mathf.Clamp01(scalar);
+
         public int ExtraBallCount => Mathf.Max(0, extraBallCount);
 
         public Color PickupColor => pickupColor;

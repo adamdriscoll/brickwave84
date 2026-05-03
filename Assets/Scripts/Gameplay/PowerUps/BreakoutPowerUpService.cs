@@ -245,7 +245,7 @@ namespace GetBricked.Gameplay
                     gravityWellStrength = Mathf.Max(gravityWellStrength, Mathf.Clamp01(powerUpDefinition.Scalar * effectStrength));
                     break;
                 case PowerUpEffectType.FogOfWar:
-                    fogVisibilityMultiplier = Mathf.Min(fogVisibilityMultiplier, Mathf.Clamp(Mathf.Pow(powerUpDefinition.Scalar, effectStrength), 0.2f, 1f));
+                    fogVisibilityMultiplier = Mathf.Min(fogVisibilityMultiplier, Mathf.Clamp01(Mathf.Pow(powerUpDefinition.VisibilityScalar, effectStrength)));
                     break;
                 case PowerUpEffectType.LagSpike:
                     lagSpikeStrength = Mathf.Max(lagSpikeStrength, Mathf.Clamp01(powerUpDefinition.Scalar * effectStrength));

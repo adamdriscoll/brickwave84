@@ -50,6 +50,22 @@ public sealed class BreakoutPowerUpServiceTests
     }
 
     [Test]
+    public void BlackoutFogEffectCanMakeBricksFullyInvisible()
+    {
+        var service = CreateService();
+        var blackout = CreatePowerUp("Blackout", PowerUpEffectType.FogOfWar, false, 8f, 0f);
+        var brick = CreateBrick(CreateBrickDefinition(dropChance: 0f));
+        var brickRenderer = brick.GetComponentInChildren<SpriteRenderer>();
+
+        service.ApplyPowerUp(blackout, null);
+        var modifiers = service.CalculateEffectModifiers(1f, 0f);
+        brick.SetVisibilityMultiplier(modifiers.FogVisibilityMultiplier);
+
+        Assert.That(modifiers.FogVisibilityMultiplier, Is.Zero);
+        Assert.That(brickRenderer.color.a, Is.Zero);
+    }
+
+    [Test]
     public void CalculateEffectModifiersIncludesNewArcadeDrops()
     {
         var service = CreateService();

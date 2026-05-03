@@ -81,7 +81,7 @@ namespace GetBricked.Gameplay
 
         public void SetVisibilityMultiplier(float multiplier)
         {
-            visibilityMultiplier = Mathf.Clamp(multiplier, 0.15f, 1f);
+            visibilityMultiplier = Mathf.Clamp01(multiplier);
             RefreshVisual();
         }
 
