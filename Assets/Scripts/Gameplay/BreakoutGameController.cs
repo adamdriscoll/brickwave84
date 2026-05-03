@@ -19,6 +19,11 @@ namespace GetBricked.Gameplay
         private const float LaserShotCooldownSeconds = 0.3f;
         private const float BossPaddleCollisionSpeedBurstSeconds = 1.8f;
         private const float ShieldWallYOffset = 0.38f;
+        private const float ExplosiveBallMinimumRadius = 1.25f;
+        private const float ExplosiveBallMaximumRadius = 2.05f;
+        private const float ExplosiveBallMinimumSpeedBurstMultiplier = 1.1f;
+        private const float ExplosiveBallMaximumSpeedBurstMultiplier = 1.22f;
+        private const float ExplosiveBallSpeedBurstDuration = 1.45f;
         private const string DefaultRoguePaddleLabel = BreakoutRogueRunResultStore.DefaultPaddleLabel;
 
         private enum RoundState
@@ -383,6 +388,9 @@ namespace GetBricked.Gameplay
 
             var brickDefinition = brick.Definition;
             var shouldExplode = brickDefinition != null && brickDefinition.IsExplosive;
+            var shouldTriggerExplosiveBall = scoringBall != null
+                && scoringBall.IsExplosiveBall
+                && destructionCause == BrickDestructionCause.Impact;
             var explosionCenter = (Vector2)brick.transform.position;
 
             if (brickService == null || !brickService.RemoveBrick(brick))
@@ -422,9 +430,27 @@ namespace GetBricked.Gameplay
 
             brickService.DisableAndDestroyBrick(brick);
 
+            var explosionHitCount = 0;
+
             if (shouldExplode)
             {
-                brickService.DestroyBricksInExplosionRadius(explosionCenter, brickDefinition.ExplosionRadius, brick, scoringBall);
+                explosionHitCount += brickService.DestroyBricksInExplosionRadius(explosionCenter, brickDefinition.ExplosionRadius, brick, scoringBall);
+            }
+
+            if (shouldTriggerExplosiveBall)
+            {
+                explosionHitCount += brickService.DestroyBricksInExplosionRadius(
+                    explosionCenter,
+                    ResolveExplosiveBallExplosionRadius(scoringBall.ExplosiveBallStrength),
+                    brick,
+                    scoringBall);
+
+                if (explosionHitCount > 0)
+                {
+                    scoringBall.ApplySpeedBurst(
+                        ResolveExplosiveBallSpeedBurstMultiplier(scoringBall.ExplosiveBallStrength),
+                        ExplosiveBallSpeedBurstDuration);
+                }
             }
 
             TryTriggerChainLightning(explosionCenter, brick, scoringBall, destructionCause);
@@ -3482,6 +3508,7 @@ namespace GetBricked.Gameplay
                     1f,
                     false,
                     0f,
+                    0f,
                     0f);
             paddle.SetMoveSpeed(currentLevelPaddleSpeed * (activeRunSettings?.PaddleSpeedMultiplier ?? 1f));
             var paddleHitMaximumWidth = paddle.SetWidthMultiplier(activeEffectModifiers.PaddleWidthMultiplier);
@@ -3508,6 +3535,7 @@ namespace GetBricked.Gameplay
                 serveBall.SetPhaseThroughBricks(activeEffectModifiers.PhaseBallEnabled);
                 serveBall.SetGravityWell(gravityWellCenter, activeEffectModifiers.GravityWellStrength);
                 serveBall.SetHotPotatoStrength(activeEffectModifiers.HotPotatoStrength);
+                serveBall.SetExplosiveBallStrength(activeEffectModifiers.ExplosiveBallStrength);
             }
 
             for (var index = activeBalls.Count - 1; index >= 0; index--)
@@ -3524,6 +3552,7 @@ namespace GetBricked.Gameplay
                 activeBall.SetPhaseThroughBricks(activeEffectModifiers.PhaseBallEnabled);
                 activeBall.SetGravityWell(gravityWellCenter, activeEffectModifiers.GravityWellStrength);
                 activeBall.SetHotPotatoStrength(activeEffectModifiers.HotPotatoStrength);
+                activeBall.SetExplosiveBallStrength(activeEffectModifiers.ExplosiveBallStrength);
             }
 
             ApplyVisualEffectState();
@@ -3919,8 +3948,22 @@ namespace GetBricked.Gameplay
                 PowerUpEffectType.PaddleClone => $"Clone rail for {definition.DurationSeconds:0.#}s",
                 PowerUpEffectType.BrickJammer => $"Brick jam for {definition.DurationSeconds:0.#}s",
                 PowerUpEffectType.HotPotatoBall => $"Ball x{definition.Scalar:0.00}, score x{definition.Scalar:0.00}",
+                PowerUpEffectType.ExplosiveBall => $"Explodes bricks for {definition.DurationSeconds:0.#}s",
                 _ => $"{definition.HudLabel} for {definition.DurationSeconds:0.#}s",
             };
+        }
+
+        private static float ResolveExplosiveBallExplosionRadius(float strength)
+        {
+            return Mathf.Lerp(ExplosiveBallMinimumRadius, ExplosiveBallMaximumRadius, Mathf.Clamp01(strength / 2f));
+        }
+
+        private static float ResolveExplosiveBallSpeedBurstMultiplier(float strength)
+        {
+            return Mathf.Lerp(
+                ExplosiveBallMinimumSpeedBurstMultiplier,
+                ExplosiveBallMaximumSpeedBurstMultiplier,
+                Mathf.Clamp01(strength / 2f));
         }
 
         private string BuildUpgradeMechanicalSummary(RunUpgradeDefinition upgrade)

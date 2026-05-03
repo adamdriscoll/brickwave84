@@ -85,11 +85,13 @@ namespace GetBricked.Gameplay
                 lossThresholdY,
                 ballRadius + (paddleSize.y * 0.5f) + 0.05f,
                 followsPaddleWhenIdle);
+            ball.ApplyVisualStyle(ballStyle);
 
             var activeEffects = effectResolver();
             ball.SetPhaseThroughBricks(activeEffects.PhaseBallEnabled);
             ball.SetGravityWell(gravityWellCenterResolver(), activeEffects.GravityWellStrength);
             ball.SetHotPotatoStrength(activeEffects.HotPotatoStrength);
+            ball.SetExplosiveBallStrength(activeEffects.ExplosiveBallStrength);
 
             return ball;
         }

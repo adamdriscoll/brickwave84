@@ -203,7 +203,7 @@ namespace GetBricked.Gameplay
             bricks.Clear();
         }
 
-        public void DestroyBricksInExplosionRadius(
+        public int DestroyBricksInExplosionRadius(
             Vector2 explosionCenter,
             float explosionRadius,
             Brick sourceBrick,
@@ -211,7 +211,7 @@ namespace GetBricked.Gameplay
         {
             if (explosionRadius <= 0.01f || bricks.Count == 0)
             {
-                return;
+                return 0;
             }
 
             var impactedBricks = new List<Brick>();
@@ -243,6 +243,8 @@ namespace GetBricked.Gameplay
             {
                 impactedBricks[index]?.DestroyByExplosion(scoringBall);
             }
+
+            return impactedBricks.Count;
         }
 
         public bool HasBreakableBricksRemaining()

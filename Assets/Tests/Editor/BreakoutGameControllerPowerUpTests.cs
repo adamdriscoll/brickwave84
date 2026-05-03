@@ -323,6 +323,7 @@ public sealed class BreakoutGameControllerPowerUpTests
             CreateTimedPowerUpCase("Gravity Well", PowerUpEffectType.GravityWell, false, 12f, 0.35f),
             CreateTimedPowerUpCase("Fog of War", PowerUpEffectType.FogOfWar, false, 10f, 0.55f),
             CreateTimedPowerUpCase("Lag Spike", PowerUpEffectType.LagSpike, false, 8f, 0.5f),
+            CreateTimedPowerUpCase("Boom Ball", PowerUpEffectType.ExplosiveBall, true, 10f, 1f),
         };
 
         for (var index = 0; index < timedPowerUps.Length; index++)
@@ -371,19 +372,50 @@ public sealed class BreakoutGameControllerPowerUpTests
         InvokePrivateMethod(controller, "ApplyPowerUp", CreatePowerUp("Gravity Well", PowerUpEffectType.GravityWell, false, 12f, 0.35f));
         InvokePrivateMethod(controller, "ApplyPowerUp", CreatePowerUp("Fog of War", PowerUpEffectType.FogOfWar, false, 10f, 0.55f));
         InvokePrivateMethod(controller, "ApplyPowerUp", CreatePowerUp("Lag Spike", PowerUpEffectType.LagSpike, false, 8f, 0.5f));
+        InvokePrivateMethod(controller, "ApplyPowerUp", CreatePowerUp("Boom Ball", PowerUpEffectType.ExplosiveBall, true, 10f, 1f));
 
         var activeEffectModifiers = GetPrivateField<object>(controller, "activeEffectModifiers");
+        var ballRenderer = serveBall.GetComponent<SpriteRenderer>();
 
         Assert.That(GetPropertyValue<bool>(activeEffectModifiers, "StickyPaddleEnabled"), Is.True);
         Assert.That(GetPropertyValue<bool>(activeEffectModifiers, "LaserPaddleEnabled"), Is.True);
         Assert.That(GetPropertyValue<bool>(activeEffectModifiers, "PhaseBallEnabled"), Is.True);
         Assert.That(GetPropertyValue<float>(activeEffectModifiers, "ChainLightningStrength"), Is.EqualTo(0.35f).Within(0.0001f));
         Assert.That(GetPropertyValue<float>(activeEffectModifiers, "FogVisibilityMultiplier"), Is.EqualTo(0.55f).Within(0.0001f));
+        Assert.That(GetPropertyValue<float>(activeEffectModifiers, "ExplosiveBallStrength"), Is.EqualTo(1f).Within(0.0001f));
         Assert.That(GetPrivateField<bool>(paddle, "controlsReversed"), Is.True);
         Assert.That(GetPrivateField<float>(paddle, "splitGapWidthNormalized"), Is.GreaterThan(0.2f));
         Assert.That(GetPrivateField<float>(paddle, "lagSpikeStrength"), Is.EqualTo(0.5f).Within(0.0001f));
         Assert.That(GetPrivateField<bool>(serveBall, "phaseThroughBricks"), Is.True);
         Assert.That(GetPrivateField<float>(serveBall, "gravityWellStrength"), Is.EqualTo(0.35f).Within(0.0001f));
+        Assert.That(serveBall.IsExplosiveBall, Is.True);
+        Assert.That(ballRenderer.color.r, Is.GreaterThan(ballRenderer.color.g));
+    }
+
+    [Test]
+    public void ExplosiveBallImpactDestroysNearbyBricksAndSpeedsBall()
+    {
+        var controller = CreateControllerHarness(out var paddle);
+        var scoringBall = CreateBallHarness(controller, paddle);
+        var ballBody = scoringBall.GetComponent<Rigidbody2D>();
+        var sourceBrick = CreateBrickHarness(controller, "Source", 100, Vector2.zero);
+        var nearBrick = CreateBrickHarness(controller, "Near", 100, new Vector2(1.15f, 0f));
+        var farBrick = CreateBrickHarness(controller, "Far", 100, new Vector2(3.5f, 0f));
+        var bricks = GetPrivateField<List<Brick>>(controller, "bricks");
+        bricks.Add(sourceBrick);
+        bricks.Add(nearBrick);
+        bricks.Add(farBrick);
+        GetPrivateField<List<BallController>>(controller, "activeBalls").Add(scoringBall);
+
+        SetPrivateField(scoringBall, "hasLaunched", true);
+        ballBody.linearVelocity = Vector2.up * 8f;
+        InvokePrivateMethod(controller, "ApplyPowerUp", CreatePowerUp("Boom Ball", PowerUpEffectType.ExplosiveBall, true, 10f, 1f));
+
+        controller.HandleBrickDestroyed(sourceBrick, scoringBall, BrickDestructionCause.Impact);
+
+        Assert.That(bricks.Count, Is.EqualTo(1));
+        Assert.That(bricks[0], Is.SameAs(farBrick));
+        Assert.That(ballBody.linearVelocity.magnitude, Is.GreaterThan(8f));
     }
 
     [Test]
@@ -531,10 +563,12 @@ public sealed class BreakoutGameControllerPowerUpTests
     {
         var ballObject = new GameObject("Ball");
         runtimeObjects.Add(ballObject);
+        ballObject.AddComponent<SpriteRenderer>();
         ballObject.AddComponent<CircleCollider2D>();
         ballObject.AddComponent<Rigidbody2D>();
         var ball = ballObject.AddComponent<BallController>();
         ball.Configure(controller, paddle, 8f, 0.35f, -6f, 0.5f, false);
+        ball.ApplyVisualStyle(new ThemeVisualStyle(Color.yellow, Color.yellow, null));
         return ball;
     }
 

@@ -58,12 +58,14 @@ public sealed class BreakoutPowerUpServiceTests
         var clone = CreatePowerUp("Paddle Clone", PowerUpEffectType.PaddleClone, true, 10f, 1f);
         var jammer = CreatePowerUp("Brick Jammer", PowerUpEffectType.BrickJammer, false, 8f, 0.75f);
         var hotPotato = CreatePowerUp("Hot Potato Ball", PowerUpEffectType.HotPotatoBall, true, 9f, 1.28f);
+        var boomBall = CreatePowerUp("Boom Ball", PowerUpEffectType.ExplosiveBall, true, 10f, 1f);
 
         service.ApplyPowerUp(magnet, null);
         service.ApplyPowerUp(scoreSurge, null);
         service.ApplyPowerUp(clone, null);
         service.ApplyPowerUp(jammer, null);
         service.ApplyPowerUp(hotPotato, null);
+        service.ApplyPowerUp(boomBall, null);
 
         var modifiers = service.CalculateEffectModifiers(1f, 0f);
 
@@ -73,6 +75,7 @@ public sealed class BreakoutPowerUpServiceTests
         Assert.That(modifiers.BrickJammerStrength, Is.EqualTo(0.75f).Within(0.0001f));
         Assert.That(modifiers.TimedBallSpeedMultiplier, Is.EqualTo(1.28f).Within(0.0001f));
         Assert.That(modifiers.HotPotatoStrength, Is.GreaterThan(0f));
+        Assert.That(modifiers.ExplosiveBallStrength, Is.EqualTo(1f).Within(0.0001f));
     }
 
     [Test]

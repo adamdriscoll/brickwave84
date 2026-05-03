@@ -202,12 +202,11 @@ namespace GetBricked.Gameplay
             }
 
             var ballStyle = ResolveBallStyle();
-            spriteRenderer.sprite = ballStyle.Sprite;
-            spriteRenderer.color = ballStyle.PrimaryColor;
+            ball.ApplyVisualStyle(ballStyle);
 
             if (spriteRenderer.TryGetComponent<BreakoutGlowRenderer>(out var glowRenderer))
             {
-                glowRenderer.ApplyStyle(ballStyle);
+                glowRenderer.ApplyColor(spriteRenderer.color);
             }
         }
 

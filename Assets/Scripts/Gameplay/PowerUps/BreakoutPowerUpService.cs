@@ -85,7 +85,8 @@ namespace GetBricked.Gameplay
             float scoreMultiplier,
             bool paddleCloneEnabled,
             float brickJammerStrength,
-            float hotPotatoStrength)
+            float hotPotatoStrength,
+            float explosiveBallStrength)
         {
             PaddleWidthMultiplier = paddleWidthMultiplier;
             WavyPaddleStrength = wavyPaddleStrength;
@@ -104,6 +105,7 @@ namespace GetBricked.Gameplay
             PaddleCloneEnabled = paddleCloneEnabled;
             BrickJammerStrength = brickJammerStrength;
             HotPotatoStrength = hotPotatoStrength;
+            ExplosiveBallStrength = explosiveBallStrength;
         }
 
         public float PaddleWidthMultiplier { get; }
@@ -139,6 +141,8 @@ namespace GetBricked.Gameplay
         public float BrickJammerStrength { get; }
 
         public float HotPotatoStrength { get; }
+
+        public float ExplosiveBallStrength { get; }
     }
 
     internal readonly struct BreakoutPowerUpApplicationResult
@@ -173,6 +177,7 @@ namespace GetBricked.Gameplay
         private bool paddleCloneEnabled;
         private float brickJammerStrength;
         private float hotPotatoStrength;
+        private float explosiveBallStrength;
 
         public BreakoutEffectModifierAccumulator(float basePaddleWidthMultiplier, float baseWavyPaddleStrength)
         {
@@ -193,6 +198,7 @@ namespace GetBricked.Gameplay
             paddleCloneEnabled = false;
             brickJammerStrength = 0f;
             hotPotatoStrength = 0f;
+            explosiveBallStrength = 0f;
         }
 
         public void Apply(BreakoutActiveTimedEffect activeEffect)
@@ -261,6 +267,9 @@ namespace GetBricked.Gameplay
                     scoreMultiplier *= Mathf.Pow(Mathf.Max(1f, powerUpDefinition.Scalar), effectStrength);
                     hotPotatoStrength = Mathf.Max(hotPotatoStrength, Mathf.Clamp01((powerUpDefinition.Scalar - 1f) * effectStrength));
                     break;
+                case PowerUpEffectType.ExplosiveBall:
+                    explosiveBallStrength = Mathf.Max(explosiveBallStrength, Mathf.Max(0.1f, powerUpDefinition.Scalar * effectStrength));
+                    break;
             }
         }
 
@@ -283,7 +292,8 @@ namespace GetBricked.Gameplay
                 Mathf.Max(0.1f, scoreMultiplier),
                 paddleCloneEnabled,
                 brickJammerStrength,
-                hotPotatoStrength);
+                hotPotatoStrength,
+                explosiveBallStrength);
         }
     }
 

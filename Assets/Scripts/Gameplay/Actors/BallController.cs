@@ -1,3 +1,4 @@
+using GetBricked.Gameplay.Data;
 using UnityEngine;
 
 namespace GetBricked.Gameplay
@@ -27,6 +28,10 @@ namespace GetBricked.Gameplay
         private Vector2 brickMagnetPoint;
         private float hotPotatoStrength;
         private float hotPotatoSpeedMultiplier = 1f;
+        private float explosiveBallStrength;
+        private SpriteRenderer spriteRenderer;
+        private BreakoutGlowRenderer glowRenderer;
+        private ThemeVisualStyle baseVisualStyle = new ThemeVisualStyle(Color.white, Color.white, null);
         private Vector2 lastTravelDirection = Vector2.up;
         private int ricochetCountSinceLastBrick;
 
@@ -37,6 +42,10 @@ namespace GetBricked.Gameplay
         public bool IsAttachedToPaddle => attachedToPaddle;
 
         public int RicochetCountSinceLastBrick => ricochetCountSinceLastBrick;
+
+        public bool IsExplosiveBall => explosiveBallStrength > 0.001f;
+
+        public float ExplosiveBallStrength => explosiveBallStrength;
 
         public void Configure(
             BreakoutGameController controller,
@@ -55,6 +64,8 @@ namespace GetBricked.Gameplay
             paddleFollowOffset = followOffset;
             followsPaddleWhenIdle = followPaddleWhenIdle;
             ballBody = GetComponent<Rigidbody2D>();
+            spriteRenderer = GetComponent<SpriteRenderer>();
+            glowRenderer = GetComponent<BreakoutGlowRenderer>();
         }
 
         public void ResetToPaddle()
@@ -128,6 +139,18 @@ namespace GetBricked.Gameplay
         public void SetPhaseThroughBricks(bool enabled)
         {
             phaseThroughBricks = enabled;
+        }
+
+        public void ApplyVisualStyle(ThemeVisualStyle visualStyle)
+        {
+            baseVisualStyle = visualStyle;
+            RefreshVisualStyle();
+        }
+
+        public void SetExplosiveBallStrength(float strength)
+        {
+            explosiveBallStrength = Mathf.Max(0f, strength);
+            RefreshVisualStyle();
         }
 
         public void SetGravityWell(Vector2 centerPoint, float strength)
@@ -539,6 +562,24 @@ namespace GetBricked.Gameplay
         private void ResetHotPotato()
         {
             hotPotatoSpeedMultiplier = 1f;
+        }
+
+        private void RefreshVisualStyle()
+        {
+            spriteRenderer ??= GetComponent<SpriteRenderer>();
+            glowRenderer ??= GetComponent<BreakoutGlowRenderer>();
+
+            if (spriteRenderer == null)
+            {
+                return;
+            }
+
+            spriteRenderer.sprite = baseVisualStyle.Sprite;
+            var resolvedColor = IsExplosiveBall
+                ? Color.Lerp(baseVisualStyle.PrimaryColor, new Color(1f, 0.34f, 0.1f, 1f), 0.78f)
+                : baseVisualStyle.PrimaryColor;
+            spriteRenderer.color = resolvedColor;
+            glowRenderer?.ApplyColor(resolvedColor);
         }
 
         private void RegisterHotPotatoHit()

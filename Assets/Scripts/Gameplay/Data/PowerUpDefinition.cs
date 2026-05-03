@@ -26,6 +26,7 @@ namespace GetBricked.Gameplay.Data
         PaddleClone = 17,
         BrickJammer = 18,
         HotPotatoBall = 19,
+        ExplosiveBall = 20,
     }
 
     [CreateAssetMenu(menuName = "Get Bricked/Power-Up Definition", fileName = "PowerUpDefinition")]
@@ -91,7 +92,8 @@ namespace GetBricked.Gameplay.Data
             if (effectType == PowerUpEffectType.MultiBallBurst
                 || effectType == PowerUpEffectType.ActiveDropMultiplier
                 || effectType == PowerUpEffectType.ScoreMultiplier
-                || effectType == PowerUpEffectType.HotPotatoBall)
+                || effectType == PowerUpEffectType.HotPotatoBall
+                || effectType == PowerUpEffectType.ExplosiveBall)
             {
                 return ThemeVisualSlot.PickupBurst;
             }

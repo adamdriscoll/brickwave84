@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
+  <title id="title">Boom Ball</title>
+  <desc id="desc">A monochrome neon icon showing a ball bursting through nearby bricks.</desc>
+  <defs>
+    <filter id="softGlow" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="2.25" result="blur"/>
+      <feColorMatrix in="blur" type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 .8 0" result="glow"/>
+      <feMerge><feMergeNode in="glow"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <style><![CDATA[
+      .icon{fill:none;stroke:#fff;stroke-linecap:round;stroke-linejoin:round;filter:url(#softGlow)}
+      .main{stroke-width:10;opacity:.96}
+      .mid{stroke-width:6;opacity:.82}
+      .thin{stroke-width:4;opacity:.42}
+      .fill{fill:#fff;stroke:none;opacity:.18}
+    ]]></style>
+  </defs>
+  <g class="icon">
+    <circle class="main" cx="128" cy="132" r="34"/>
+    <path class="fill" d="M128 73l12 30 32-14-14 32 31 11-31 11 14 32-32-14-12 30-12-30-32 14 14-32-31-11 31-11-14-32 32 14z"/>
+    <path class="mid" d="M128 43v27M128 194v19M62 132H36M220 132h-26M82 86 63 67M174 86l19-19M82 178l-19 19M174 178l19 19"/>
+    <path class="mid" d="M50 42h42v24H50zM164 42h42v24h-42zM37 188h44v24H37zM175 188h44v24h-44z"/>
+    <path class="thin" d="M61 54h20M175 54h20M49 200h21M187 200h20"/>
+  </g>
+</svg>
