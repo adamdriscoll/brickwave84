@@ -170,6 +170,27 @@ public sealed class BreakoutRogueRunTests
     }
 
     [Test]
+    public void PaddlePunkShieldShuffleRequestsRecur()
+    {
+        var bossObject = new GameObject("Paddle Punk Shield Test");
+
+        try
+        {
+            bossObject.AddComponent<Rigidbody2D>();
+            var boss = bossObject.AddComponent<BreakoutPaddlePunkBoss>();
+            boss.Configure(0, -4f, 4f, 1f, 4f, () => null);
+
+            Assert.That(AdvanceUntilShieldRequest(boss, 420), Is.True);
+            Assert.That(boss.TryConsumeShieldSpawnRequest(), Is.False);
+            Assert.That(AdvanceUntilShieldRequest(boss, 420), Is.True);
+        }
+        finally
+        {
+            UnityEngine.Object.DestroyImmediate(bossObject);
+        }
+    }
+
+    [Test]
     public void PaddlePunkInjuredSpinRecursWithSeededJitter()
     {
         var bossObject = new GameObject("Paddle Punk Injured Test");
@@ -509,6 +530,24 @@ public sealed class BreakoutRogueRunTests
         SetPrivateField(powerUp, "durationSeconds", 10f);
         SetPrivateField(powerUp, "scalar", 1f);
         return powerUp;
+    }
+
+    private static bool AdvanceUntilShieldRequest(BreakoutPaddlePunkBoss boss, int fixedUpdateSteps)
+    {
+        var fixedUpdate = typeof(BreakoutPaddlePunkBoss).GetMethod("FixedUpdate", InstanceFlags);
+        Assert.That(fixedUpdate, Is.Not.Null);
+
+        for (var step = 0; step < fixedUpdateSteps; step++)
+        {
+            fixedUpdate.Invoke(boss, null);
+
+            if (boss.TryConsumeShieldSpawnRequest())
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static void SetPrivateField(object instance, string fieldName, object value)

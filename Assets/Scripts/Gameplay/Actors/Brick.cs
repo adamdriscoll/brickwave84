@@ -32,6 +32,7 @@ namespace GetBricked.Gameplay
         private Color themedBaseColor;
         private Color themedDamagedColor;
         private float visibilityMultiplier = 1f;
+        private float transitionVisibilityMultiplier = 1f;
         private float jammerStrength;
 
         public BrickDefinition Definition => definition;
@@ -82,6 +83,12 @@ namespace GetBricked.Gameplay
         public void SetVisibilityMultiplier(float multiplier)
         {
             visibilityMultiplier = Mathf.Clamp01(multiplier);
+            RefreshVisual();
+        }
+
+        public void SetTransitionVisibilityMultiplier(float multiplier)
+        {
+            transitionVisibilityMultiplier = Mathf.Clamp01(multiplier);
             RefreshVisual();
         }
 
@@ -420,7 +427,7 @@ namespace GetBricked.Gameplay
                 resolvedColor = Color.Lerp(themedDamagedColor, themedBaseColor, integrity);
             }
 
-            resolvedColor.a *= visibilityMultiplier;
+            resolvedColor.a *= visibilityMultiplier * transitionVisibilityMultiplier;
             spriteRenderer.color = resolvedColor;
             glowRenderer?.ApplyColor(resolvedColor);
         }

@@ -195,7 +195,7 @@ namespace GetBricked.Gameplay
 
         private void UpdateShieldSpawnTimer()
         {
-            if (shieldSpawnCount >= 2 + gateIndex)
+            if (hasPendingShieldSpawn)
             {
                 return;
             }
@@ -209,7 +209,7 @@ namespace GetBricked.Gameplay
 
             shieldSpawnCount++;
             hasPendingShieldSpawn = true;
-            shieldSpawnTimer = Mathf.Max(4.5f, ShieldSpawnBaseSeconds - gateIndex - (bossHitCount * 0.22f));
+            shieldSpawnTimer = Mathf.Max(4.25f, ShieldSpawnBaseSeconds - gateIndex - (bossHitCount * 0.18f));
         }
 
         private void UpdateWiggle()

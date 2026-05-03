@@ -19,6 +19,8 @@ namespace GetBricked.Gameplay
         private const float LaserShotCooldownSeconds = 0.3f;
         private const float LaserBeamLifetimeSeconds = 0.16f;
         private const float BossPaddleCollisionSpeedBurstSeconds = 1.8f;
+        private const int PaddlePunkShieldLaneCount = 5;
+        private const float PaddlePunkShieldFadeSeconds = 0.42f;
         private const float ShieldWallYOffset = 0.38f;
         private const float ShieldWallThickness = 0.16f;
         private const float ExplosiveBallMinimumRadius = 1.25f;
@@ -113,6 +115,7 @@ namespace GetBricked.Gameplay
         private readonly List<PowerUpDefinition> loadedPowerUpDefinitions = new List<PowerUpDefinition>();
         private readonly List<BallController> activeBalls = new List<BallController>();
         private readonly List<SpriteRenderer> wallRenderers = new List<SpriteRenderer>();
+        private readonly List<Brick> paddlePunkShieldBricks = new List<Brick>();
         private readonly Dictionary<string, Sprite> runUpgradeSpriteCache = new Dictionary<string, Sprite>(StringComparer.OrdinalIgnoreCase);
         private readonly BreakoutBrickEffectResolver brickEffectResolver = new BreakoutBrickEffectResolver();
 
@@ -2204,8 +2207,8 @@ namespace GetBricked.Gameplay
             {
                 var shieldY = arenaTop - 1.92f;
                 var shieldOffset = 2.65f + (bossGate.GateIndex * 0.28f);
-                brickService.CreateBrick(new Vector2(-shieldOffset, shieldY), shieldDefinition, 1, 0, default);
-                brickService.CreateBrick(new Vector2(shieldOffset, shieldY), shieldDefinition, 1, 1, default);
+                RegisterPaddlePunkShieldBrick(brickService.CreateBrick(new Vector2(-shieldOffset, shieldY), shieldDefinition, 1, 0, default));
+                RegisterPaddlePunkShieldBrick(brickService.CreateBrick(new Vector2(shieldOffset, shieldY), shieldDefinition, 1, 1, default));
             }
 
             CreatePaddlePunkBossActor(bossGate);
@@ -2288,10 +2291,10 @@ namespace GetBricked.Gameplay
                 return;
             }
 
-            SpawnPaddlePunkShieldBrick(activeBossGate.Value);
+            ShufflePaddlePunkShieldBrick(activeBossGate.Value);
         }
 
-        private void SpawnPaddlePunkShieldBrick(BreakoutBossGate bossGate)
+        private void ShufflePaddlePunkShieldBrick(BreakoutBossGate bossGate)
         {
             var shieldDefinition = FindBrickDefinition("Steel Brick");
 
@@ -2300,13 +2303,114 @@ namespace GetBricked.Gameplay
                 return;
             }
 
-            var laneCount = 5;
-            var laneIndex = (bossShieldSpawnIndex + bossGate.GateIndex) % laneCount;
+            PrunePaddlePunkShieldBricks();
+
+            var laneIndex = ResolveNextPaddlePunkShieldLane(bossGate);
+
+            if (paddlePunkShieldBricks.Count > 0)
+            {
+                var departingBrick = paddlePunkShieldBricks[0];
+                paddlePunkShieldBricks.RemoveAt(0);
+                FadeOutAndRemovePaddlePunkShieldBrick(departingBrick);
+            }
+
             bossShieldSpawnIndex++;
-            var normalizedLane = laneCount <= 1 ? 0.5f : laneIndex / (float)(laneCount - 1);
+            var position = ResolvePaddlePunkShieldPosition(laneIndex, bossGate);
+            var arrivingBrick = brickService.CreateBrick(position, shieldDefinition, 2, bossShieldSpawnIndex, default);
+            RegisterPaddlePunkShieldBrick(arrivingBrick);
+            FadeInPaddlePunkShieldBrick(arrivingBrick);
+        }
+
+        private void RegisterPaddlePunkShieldBrick(Brick brick)
+        {
+            if (brick == null)
+            {
+                return;
+            }
+
+            paddlePunkShieldBricks.Add(brick);
+        }
+
+        private void PrunePaddlePunkShieldBricks()
+        {
+            for (var index = paddlePunkShieldBricks.Count - 1; index >= 0; index--)
+            {
+                if (paddlePunkShieldBricks[index] == null)
+                {
+                    paddlePunkShieldBricks.RemoveAt(index);
+                }
+            }
+        }
+
+        private int ResolveNextPaddlePunkShieldLane(BreakoutBossGate bossGate)
+        {
+            for (var attempt = 0; attempt < PaddlePunkShieldLaneCount; attempt++)
+            {
+                var laneIndex = (bossShieldSpawnIndex + bossGate.GateIndex + attempt) % PaddlePunkShieldLaneCount;
+                var lanePosition = ResolvePaddlePunkShieldPosition(laneIndex, bossGate);
+
+                if (!HasPaddlePunkShieldNear(lanePosition))
+                {
+                    return laneIndex;
+                }
+            }
+
+            return (bossShieldSpawnIndex + bossGate.GateIndex) % PaddlePunkShieldLaneCount;
+        }
+
+        private Vector2 ResolvePaddlePunkShieldPosition(int laneIndex, BreakoutBossGate bossGate)
+        {
+            var normalizedLane = PaddlePunkShieldLaneCount <= 1 ? 0.5f : laneIndex / (float)(PaddlePunkShieldLaneCount - 1);
             var x = Mathf.Lerp(arenaLeft + 1.1f, arenaRight - 1.1f, normalizedLane);
             var y = arenaTop - Mathf.Lerp(1.78f, 2.28f, bossGate.GateIndex / 2f);
-            brickService.CreateBrick(new Vector2(x, y), shieldDefinition, 2, bossShieldSpawnIndex, default);
+            return new Vector2(x, y);
+        }
+
+        private bool HasPaddlePunkShieldNear(Vector2 position)
+        {
+            for (var index = 0; index < paddlePunkShieldBricks.Count; index++)
+            {
+                var brick = paddlePunkShieldBricks[index];
+
+                if (brick != null && ((Vector2)brick.transform.position - position).sqrMagnitude < 0.16f)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private void FadeInPaddlePunkShieldBrick(Brick brick)
+        {
+            if (brick == null)
+            {
+                return;
+            }
+
+            var fadeAnimator = brick.GetComponent<BreakoutBrickFadeAnimator>() ?? brick.gameObject.AddComponent<BreakoutBrickFadeAnimator>();
+            fadeAnimator.PlayFadeIn(PaddlePunkShieldFadeSeconds);
+        }
+
+        private void FadeOutAndRemovePaddlePunkShieldBrick(Brick brick)
+        {
+            if (brick == null)
+            {
+                return;
+            }
+
+            var fadeAnimator = brick.GetComponent<BreakoutBrickFadeAnimator>() ?? brick.gameObject.AddComponent<BreakoutBrickFadeAnimator>();
+            fadeAnimator.PlayFadeOut(PaddlePunkShieldFadeSeconds, RemoveFadedPaddlePunkShieldBrick);
+        }
+
+        private void RemoveFadedPaddlePunkShieldBrick(Brick brick)
+        {
+            if (brick == null || brickService == null || !brickService.RemoveBrick(brick))
+            {
+                return;
+            }
+
+            brickService.DisableAndDestroyBrick(brick);
         }
 
         private Vector2? ResolveBossTargetBallPosition()
@@ -2375,6 +2479,7 @@ namespace GetBricked.Gameplay
             activePaddlePunkBoss = null;
             activeBrickosaurusBoss = null;
             bossShieldSpawnIndex = 0;
+            paddlePunkShieldBricks.Clear();
 
             if (bossRoot == null)
             {
