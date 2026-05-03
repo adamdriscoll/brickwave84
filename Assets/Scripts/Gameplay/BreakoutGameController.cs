@@ -20,6 +20,7 @@ namespace GetBricked.Gameplay
         private const float LaserBeamLifetimeSeconds = 0.16f;
         private const float BossPaddleCollisionSpeedBurstSeconds = 1.8f;
         private const float ShieldWallYOffset = 0.38f;
+        private const float ShieldWallThickness = 0.16f;
         private const float ExplosiveBallMinimumRadius = 1.25f;
         private const float ExplosiveBallMaximumRadius = 2.05f;
         private const float ExplosiveBallMinimumSpeedBurstMultiplier = 1.1f;
@@ -193,6 +194,8 @@ namespace GetBricked.Gameplay
         private BreakoutEffectModifiers activeEffectModifiers;
         private BallController stickyCaughtBall;
         private SpriteRenderer shieldWallRenderer;
+        private Collider2D shieldWallCollider;
+        private BreakoutShieldWallVisual shieldWallVisual;
         private int shieldWallCharges;
         private float laserShotCooldownTimer;
         private BreakoutBossGate? activeBossGate;
@@ -548,15 +551,21 @@ namespace GetBricked.Gameplay
             PrepareServe(RoundState.LifeLost);
         }
 
-        public bool TryRescueBallWithShield(BallController ball)
+        public bool TryRescueBallWithShield(BallController ball, bool requireImpactThreshold = true)
         {
             if (roundState != RoundState.Playing || ball == null || shieldWallCharges <= 0)
             {
                 return false;
             }
 
+            if (requireImpactThreshold && !IsBallAtShieldWallImpact(ball))
+            {
+                return false;
+            }
+
             shieldWallCharges = Mathf.Max(0, shieldWallCharges - 1);
-            ball.BounceFromShield(arenaBottom + ShieldWallYOffset + 0.12f);
+            shieldWallVisual?.PlayImpactFlash();
+            ball.BounceFromShield(GetShieldWallBallCenterY());
             UpdateShieldWallVisual();
 
             if (powerUpService != null)
@@ -617,6 +626,24 @@ namespace GetBricked.Gameplay
             }
 
             return true;
+        }
+
+        private bool IsBallAtShieldWallImpact(BallController ball)
+        {
+            if (ball == null)
+            {
+                return false;
+            }
+
+            var impactY = GetShieldWallBallCenterY();
+            var currentY = ball.transform.position.y;
+            var downwardTravelAllowance = Mathf.Max(0.04f, ball.CurrentSpeed * Time.fixedDeltaTime);
+            return currentY <= impactY + downwardTravelAllowance;
+        }
+
+        private float GetShieldWallBallCenterY()
+        {
+            return arenaBottom + ShieldWallYOffset + (ShieldWallThickness * 0.5f) + ballRadius + 0.02f;
         }
 
         internal bool TryHandleBrickosaurusCollision(BallController ball, BreakoutBrickosaurusPart bossPart, Collision2D collision)
@@ -2045,13 +2072,25 @@ namespace GetBricked.Gameplay
             var shieldObject = new GameObject("Shield Wall");
             shieldObject.transform.SetParent(runtimeRoot, false);
             shieldObject.transform.position = new Vector2(0f, arenaBottom + ShieldWallYOffset);
-            shieldObject.transform.localScale = new Vector3((arenaRight - arenaLeft) - 0.3f, 0.16f, 1f);
+            shieldObject.transform.localScale = new Vector3((arenaRight - arenaLeft) - 0.3f, ShieldWallThickness, 1f);
 
             shieldWallRenderer = shieldObject.AddComponent<SpriteRenderer>();
             shieldWallRenderer.sprite = squareSprite;
             shieldWallRenderer.sharedMaterial = additiveSpriteMaterial;
             shieldWallRenderer.sortingOrder = 12;
             shieldWallRenderer.enabled = false;
+
+            shieldWallCollider = shieldObject.AddComponent<BoxCollider2D>();
+            shieldWallCollider.sharedMaterial = bounceMaterial;
+            shieldWallCollider.enabled = false;
+
+            shieldWallVisual = shieldObject.AddComponent<BreakoutShieldWallVisual>();
+            shieldWallVisual.Configure(
+                shieldWallRenderer,
+                squareSprite,
+                additiveSpriteMaterial,
+                (arenaRight - arenaLeft) - 0.3f,
+                ShieldWallThickness);
         }
 
         private void CreatePaddle()
@@ -4629,9 +4668,14 @@ namespace GetBricked.Gameplay
             }
 
             shieldWallRenderer.enabled = shieldWallCharges > 0;
+            if (shieldWallCollider != null)
+            {
+                shieldWallCollider.enabled = shieldWallCharges > 0;
+            }
 
             if (!shieldWallRenderer.enabled)
             {
+                shieldWallVisual?.SetActive(false);
                 return;
             }
 
@@ -4642,6 +4686,12 @@ namespace GetBricked.Gameplay
             shieldColor.a = Mathf.Clamp(0.52f + ((shieldWallCharges - 1) * 0.08f), 0.52f, 0.82f);
             shieldWallRenderer.color = shieldColor;
             shieldWallRenderer.transform.position = new Vector2(0f, arenaBottom + ShieldWallYOffset);
+            shieldWallVisual?.SetState(
+                shieldWallCharges,
+                shieldStyle,
+                new Vector2(0f, arenaBottom + ShieldWallYOffset),
+                (arenaRight - arenaLeft) - 0.3f,
+                ShieldWallThickness);
         }
 
         private string BuildActiveEffectsLabel()

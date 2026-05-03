@@ -493,10 +493,34 @@ public sealed class BreakoutGameControllerPowerUpTests
             "ApplyPowerUp",
             CreatePowerUp("Shield Wall", PowerUpEffectType.ShieldWall, true, 0f, 1f));
 
+        var ballBody = serveBall.GetComponent<Rigidbody2D>();
+        serveBall.SetWorldPosition(new Vector2(0f, -4.35f));
+        ballBody.linearVelocity = Vector2.down * 8f;
+
         Assert.That(GetPrivateField<int>(controller, "shieldWallCharges"), Is.EqualTo(1));
         Assert.That(controller.TryRescueBallWithShield(serveBall), Is.True);
         Assert.That(GetPrivateField<int>(controller, "shieldWallCharges"), Is.EqualTo(0));
-        Assert.That(serveBall.GetComponent<Rigidbody2D>().linearVelocity.y, Is.GreaterThan(0f));
+        Assert.That(ballBody.linearVelocity.y, Is.GreaterThan(0f));
+        Assert.That(ballBody.position.y, Is.GreaterThan(-4.5f));
+    }
+
+    [Test]
+    public void ShieldWallDoesNotConsumeChargeBeforeBallReachesWall()
+    {
+        var controller = CreateControllerHarness(out var paddle);
+        var serveBall = CreateBallHarness(controller, paddle);
+        SetPrivateEnumField(controller, "roundState", "Playing");
+
+        InvokePrivateMethod(
+            controller,
+            "ApplyPowerUp",
+            CreatePowerUp("Shield Wall", PowerUpEffectType.ShieldWall, true, 0f, 1f));
+
+        serveBall.SetWorldPosition(new Vector2(0f, -3f));
+        serveBall.GetComponent<Rigidbody2D>().linearVelocity = Vector2.down * 8f;
+
+        Assert.That(controller.TryRescueBallWithShield(serveBall), Is.False);
+        Assert.That(GetPrivateField<int>(controller, "shieldWallCharges"), Is.EqualTo(1));
     }
 
     [Test]

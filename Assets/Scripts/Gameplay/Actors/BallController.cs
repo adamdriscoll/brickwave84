@@ -328,6 +328,11 @@ namespace GetBricked.Gameplay
                 lastTravelDirection = currentVelocity.normalized;
             }
 
+            if (currentVelocity.y < 0f && gameController != null && gameController.TryRescueBallWithShield(this))
+            {
+                return;
+            }
+
             if (transform.position.y < lossThresholdY)
             {
                 if (gameController != null && gameController.TryRescueBallWithShield(this))
@@ -365,6 +370,13 @@ namespace GetBricked.Gameplay
             if (collision.collider.TryGetComponent<BreakoutPaddlePunkBoss>(out var bossPaddle)
                 && gameController != null
                 && gameController.TryHandleBossPaddleCollision(this, bossPaddle, collision))
+            {
+                return;
+            }
+
+            if (collision.collider.TryGetComponent<BreakoutShieldWallVisual>(out _)
+                && gameController != null
+                && gameController.TryRescueBallWithShield(this, false))
             {
                 return;
             }
