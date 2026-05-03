@@ -429,6 +429,33 @@ public sealed class BreakoutGameControllerPowerUpTests
     }
 
     [Test]
+    public void FireLaserVolleyCreatesBeamVisualsForResolvedTargets()
+    {
+        var controller = CreateControllerHarness(out var paddle);
+        var serveBall = CreateBallHarness(controller, paddle);
+        var leftBrick = CreateBrickHarness(controller, "Left Target", 100, new Vector2(-1.2f, 1.6f));
+        var rightBrick = CreateBrickHarness(controller, "Right Target", 100, new Vector2(1.2f, 1.6f));
+        var bricks = GetPrivateField<List<Brick>>(controller, "bricks");
+        var effectsRoot = GetPrivateField<Transform>(controller, "effectsRoot");
+
+        SetPrivateField(leftBrick, "hitPointsRemaining", 2);
+        SetPrivateField(rightBrick, "hitPointsRemaining", 2);
+        SetPrivateField(controller, "serveBall", serveBall);
+        GetPrivateField<List<BallController>>(controller, "activeBalls").Add(serveBall);
+        bricks.Add(leftBrick);
+        bricks.Add(rightBrick);
+
+        InvokePrivateMethod(controller, "ApplyPowerUp", CreatePowerUp("Laser Paddle", PowerUpEffectType.LaserPaddle, true, 15f, 1f));
+        SetPrivateEnumField(controller, "roundState", "Playing");
+
+        var fired = (bool)InvokePrivateMethodWithResult(controller, "FireLaserVolley");
+
+        Assert.That(fired, Is.True);
+        Assert.That(effectsRoot.childCount, Is.EqualTo(2));
+        Assert.That(effectsRoot.GetComponentsInChildren<LineRenderer>().Length, Is.EqualTo(6));
+    }
+
+    [Test]
     public void ExplosiveBallImpactDestroysNearbyBricksAndSpeedsBall()
     {
         var controller = CreateControllerHarness(out var paddle);
@@ -573,12 +600,17 @@ public sealed class BreakoutGameControllerPowerUpTests
 
         paddleObject = new GameObject("Paddle");
         paddleObject.transform.localScale = new Vector3(2.1f, 0.74f, 1f);
-        paddleObject.AddComponent<BoxCollider2D>();
+        var paddleCollider = paddleObject.AddComponent<BoxCollider2D>();
         paddleObject.AddComponent<Rigidbody2D>();
         paddle = paddleObject.AddComponent<PaddleController>();
         paddle.Configure(controller, 12f, -10f, 10f, -3.5f);
 
+        var effectsRoot = new GameObject("Effects").transform;
+        runtimeObjects.Add(effectsRoot.gameObject);
+
         SetPrivateField(controller, "paddle", paddle);
+        SetPrivateField(controller, "paddleCollider", paddleCollider);
+        SetPrivateField(controller, "effectsRoot", effectsRoot);
         SetPrivateField(controller, "powerUpService", CreatePowerUpService());
         SetPrivateField(controller, "scoreService", new BreakoutScoreService());
         SetPrivateField(

@@ -17,6 +17,7 @@ namespace GetBricked.Gameplay
         private const string BossPaddleSpriteResourcePath = "Sprites/paddle-punk";
         private const string PowerUpSpriteResourcePath = "Sprites/powerup";
         private const float LaserShotCooldownSeconds = 0.3f;
+        private const float LaserBeamLifetimeSeconds = 0.16f;
         private const float BossPaddleCollisionSpeedBurstSeconds = 1.8f;
         private const float ShieldWallYOffset = 0.38f;
         private const float ExplosiveBallMinimumRadius = 1.25f;
@@ -121,6 +122,7 @@ namespace GetBricked.Gameplay
         private Transform ballsRoot;
         private Transform bricksRoot;
         private Transform pickupsRoot;
+        private Transform effectsRoot;
         private Transform bossRoot;
         private PaddleController paddle;
         private Collider2D paddleCollider;
@@ -139,6 +141,7 @@ namespace GetBricked.Gameplay
         private PhysicsMaterial2D bounceMaterial;
         private Material spriteUnlitMaterial;
         private Material additiveSpriteMaterial;
+        private Material additiveLineMaterial;
         private VolumeProfile runtimeVolumeProfile;
         private BreakoutThemeService themeService;
         private BreakoutPowerUpService powerUpService;
@@ -290,6 +293,11 @@ namespace GetBricked.Gameplay
             if (additiveSpriteMaterial != null)
             {
                 Destroy(additiveSpriteMaterial);
+            }
+
+            if (additiveLineMaterial != null)
+            {
+                Destroy(additiveLineMaterial);
             }
 
             if (runtimeVolumeProfile != null)
@@ -1834,6 +1842,7 @@ namespace GetBricked.Gameplay
             powerUpSprite = BreakoutRuntimeVisualFactory.LoadSpriteResource(PowerUpSpriteResourcePath, squareSprite);
             spriteUnlitMaterial = BreakoutRuntimeVisualFactory.CreateSpriteUnlitMaterial();
             additiveSpriteMaterial = BreakoutRuntimeVisualFactory.CreateAdditiveSpriteMaterial();
+            additiveLineMaterial = BreakoutRuntimeVisualFactory.CreateAdditiveLineMaterial();
             bounceMaterial = new PhysicsMaterial2D("BreakoutBounce")
             {
                 bounciness = 1f,
@@ -1891,6 +1900,9 @@ namespace GetBricked.Gameplay
 
             pickupsRoot = new GameObject("Pickups").transform;
             pickupsRoot.SetParent(runtimeRoot, false);
+
+            effectsRoot = new GameObject("Effects").transform;
+            effectsRoot.SetParent(runtimeRoot, false);
 
             bossRoot = new GameObject("Bosses").transform;
             bossRoot.SetParent(runtimeRoot, false);
@@ -4352,16 +4364,83 @@ namespace GetBricked.Gameplay
 
             if (leftTarget != null)
             {
+                SpawnLaserBeamVisual(leftTarget, true);
                 leftTarget.ApplyEffectHit(scoringBall, BrickDestructionCause.Laser, 1);
             }
 
             if (rightTarget != null)
             {
+                SpawnLaserBeamVisual(rightTarget, false);
                 rightTarget.ApplyEffectHit(scoringBall, BrickDestructionCause.Laser, 1);
             }
 
             laserShotCooldownTimer = LaserShotCooldownSeconds;
             return true;
+        }
+
+        private void SpawnLaserBeamVisual(Brick target, bool leftEmitter)
+        {
+            if (target == null || paddle == null)
+            {
+                return;
+            }
+
+            var paddlePosition = (Vector2)paddle.transform.position;
+            var emitterPosition = brickEffectResolver.ResolveLaserEmitterPosition(paddlePosition, paddle.HalfWidthWorld, leftEmitter);
+
+            if (paddleCollider != null)
+            {
+                emitterPosition.y = paddleCollider.bounds.max.y + 0.04f;
+            }
+
+            var targetPosition = (Vector2)target.transform.position;
+            var beamObject = new GameObject(leftEmitter ? "Left Laser Beam" : "Right Laser Beam");
+            beamObject.transform.SetParent(effectsRoot != null ? effectsRoot : runtimeRoot, false);
+
+            var beam = beamObject.AddComponent<BreakoutLaserBeamVisual>();
+            var coreColor = ResolveLaserBeamCoreColor();
+            var glowColor = ResolveLaserBeamGlowColor(leftEmitter);
+            var muzzleColor = Color.Lerp(coreColor, glowColor, 0.45f);
+            beam.Configure(
+                emitterPosition,
+                targetPosition,
+                additiveLineMaterial,
+                coreColor,
+                glowColor,
+                muzzleColor,
+                LaserBeamLifetimeSeconds);
+        }
+
+        private Color ResolveLaserBeamCoreColor()
+        {
+            return themeService != null
+                ? Color.Lerp(
+                    Color.white,
+                    themeService.ResolveThemeStyle(ThemeVisualSlot.Ball, ballColor, ballColor, ballSprite).PrimaryColor,
+                    0.3f)
+                : new Color(1f, 0.94f, 1f, 1f);
+        }
+
+        private Color ResolveLaserBeamGlowColor(bool leftEmitter)
+        {
+            if (themeService == null)
+            {
+                return leftEmitter
+                    ? new Color(1f, 0.16f, 0.66f, 1f)
+                    : new Color(0.01f, 0.93f, 0.98f, 1f);
+            }
+
+            return leftEmitter
+                ? themeService.ResolveThemeStyle(
+                    ThemeVisualSlot.BrickPrimary,
+                    new Color(1f, 0.16f, 0.66f, 1f),
+                    new Color(1f, 0.16f, 0.66f, 1f),
+                    squareSprite).PrimaryColor
+                : themeService.ResolveThemeStyle(
+                    ThemeVisualSlot.BrickTertiary,
+                    new Color(0.01f, 0.93f, 0.98f, 1f),
+                    new Color(0.01f, 0.93f, 0.98f, 1f),
+                    squareSprite).PrimaryColor;
         }
 
         private BallController ResolvePrimaryScoringBall()

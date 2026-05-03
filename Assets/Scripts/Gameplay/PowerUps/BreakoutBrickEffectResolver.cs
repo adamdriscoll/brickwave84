@@ -30,11 +30,19 @@ namespace GetBricked.Gameplay
                 return false;
             }
 
-            var leftEmitterX = paddlePosition.x - (paddleHalfWidthWorld * LaserEmitterOffsetMultiplier);
-            var rightEmitterX = paddlePosition.x + (paddleHalfWidthWorld * LaserEmitterOffsetMultiplier);
+            var leftEmitterX = ResolveLaserEmitterPosition(paddlePosition, paddleHalfWidthWorld, true).x;
+            var rightEmitterX = ResolveLaserEmitterPosition(paddlePosition, paddleHalfWidthWorld, false).x;
             leftTarget = FindBestLaserTarget(bricks, leftEmitterX, paddlePosition.y, excluded: null);
             rightTarget = FindBestLaserTarget(bricks, rightEmitterX, paddlePosition.y, leftTarget);
             return leftTarget != null || rightTarget != null;
+        }
+
+        public Vector2 ResolveLaserEmitterPosition(Vector2 paddlePosition, float paddleHalfWidthWorld, bool leftEmitter)
+        {
+            var offsetDirection = leftEmitter ? -1f : 1f;
+            return new Vector2(
+                paddlePosition.x + (paddleHalfWidthWorld * LaserEmitterOffsetMultiplier * offsetDirection),
+                paddlePosition.y);
         }
 
         public IReadOnlyList<Brick> ResolveChainLightningTargets(

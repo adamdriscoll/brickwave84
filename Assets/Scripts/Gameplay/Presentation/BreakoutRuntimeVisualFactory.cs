@@ -71,6 +71,36 @@ namespace GetBricked.Gameplay
             return material;
         }
 
+        public static Material CreateAdditiveLineMaterial()
+        {
+            var shader = Shader.Find("Universal Render Pipeline/Particles/Unlit");
+
+            if (shader == null)
+            {
+                Debug.LogWarning("Could not find the URP particle unlit shader. Laser beams will use the sprite additive material fallback.");
+                return CreateAdditiveSpriteMaterial();
+            }
+
+            var material = new Material(shader)
+            {
+                name = "RuntimeLineAdditive",
+                hideFlags = HideFlags.DontSave,
+                renderQueue = 3000,
+            };
+
+            material.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
+            material.SetFloat("_Surface", 1f);
+            material.SetFloat("_Blend", 2f);
+            material.SetFloat("_SrcBlend", 5f);
+            material.SetFloat("_DstBlend", 1f);
+            material.SetFloat("_SrcBlendAlpha", 1f);
+            material.SetFloat("_DstBlendAlpha", 1f);
+            material.SetFloat("_ZWrite", 0f);
+            material.SetColor("_BaseColor", Color.white);
+            material.SetColor("_EmissionColor", Color.white * 2f);
+            return material;
+        }
+
         public static Sprite CreateSquareSprite()
         {
             var texture = Texture2D.whiteTexture;
