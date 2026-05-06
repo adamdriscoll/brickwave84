@@ -39,6 +39,7 @@ namespace GetBricked.Gameplay
         private readonly AudioClip brickIndestructible;
         private readonly AudioClip brickSpinning;
         private readonly AudioClip brickSplit;
+        private readonly AudioClip brickJelly;
         private readonly AudioClip pickupCollectPositive;
         private readonly AudioClip pickupDrop;
         private readonly AudioClip pickupCollectNegative;
@@ -78,6 +79,7 @@ namespace GetBricked.Gameplay
             brickIndestructible = LoadClip("brick_indestructible_vhs_clang");
             brickSpinning = LoadClip("brick_spinning_orbit_zap");
             brickSplit = LoadClip("brick_split_shard_scatter");
+            brickJelly = LoadClip("red_jello_bubble_bounce_main_medium_syrup");
             pickupCollectPositive = LoadClip("drop_pickup_powerup_rise");
             pickupDrop = pickupCollectPositive;
             pickupCollectNegative = LoadClip("power_down_cursed_pickup_vhs_drop");
@@ -171,6 +173,12 @@ namespace GetBricked.Gameplay
                 return;
             }
 
+            if (definition != null && definition.JellyOnHit)
+            {
+                PlaySfx(brickJelly, 0.72f, 0.94f, 1.04f);
+                return;
+            }
+
             PlaySfx(ballHitBrick, 0.6f, 0.92f, 1.05f);
         }
 
@@ -193,6 +201,11 @@ namespace GetBricked.Gameplay
             if (definition != null && definition.SpinsOnHit)
             {
                 PlaySfx(brickSpinning, 0.48f, 0.92f, 1.1f);
+            }
+
+            if (definition != null && definition.JellyOnHit)
+            {
+                PlaySfx(brickJelly, 0.74f, 0.94f, 1.04f);
             }
 
             PlaySfx(brickBreak, 0.85f, 0.96f, 1.04f);

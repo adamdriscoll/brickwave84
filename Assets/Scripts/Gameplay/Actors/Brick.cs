@@ -34,6 +34,10 @@ namespace GetBricked.Gameplay
         private float visibilityMultiplier = 1f;
         private float transitionVisibilityMultiplier = 1f;
         private float jammerStrength;
+        private Vector3 visualBaseScale = Vector3.one;
+        private float jellyWobbleTimer;
+        private float jellyWobbleDuration;
+        private float jellyWobbleDirection = 1f;
 
         public BrickDefinition Definition => definition;
 
@@ -74,6 +78,7 @@ namespace GetBricked.Gameplay
 
             spriteRenderer.sprite = visualStyle.Sprite;
             NormalizeSpriteRendererScale();
+            visualBaseScale = spriteRenderer.transform.localScale;
             themedBaseColor = visualStyle.PrimaryColor;
             themedDamagedColor = visualStyle.SecondaryColor;
             glowRenderer?.ApplyStyle(visualStyle);
@@ -152,6 +157,11 @@ namespace GetBricked.Gameplay
             }
         }
 
+        private void Update()
+        {
+            UpdateJellyWobble();
+        }
+
         private void OnCollisionEnter2D(Collision2D collision)
         {
             if (isPendingRemoval)
@@ -169,6 +179,11 @@ namespace GetBricked.Gameplay
             if (definition.SpinsOnHit)
             {
                 ApplyImpactSpin(collision);
+            }
+
+            if (definition.JellyOnHit)
+            {
+                ApplyJellyImpact(scoringBall, collision);
             }
 
             if (!definition.IsBreakable)
@@ -514,6 +529,49 @@ namespace GetBricked.Gameplay
             }
 
             RegisterImpactSpin(impactPoint, impactVelocity.normalized, impactVelocity.magnitude);
+        }
+
+        private void ApplyJellyImpact(BallController scoringBall, Collision2D collision)
+        {
+            if (definition == null || !definition.JellyOnHit)
+            {
+                return;
+            }
+
+            scoringBall?.ApplyJellySlow(definition.JellyBallSpeedMultiplier, definition.JellySlowDuration);
+
+            var contactPoint = collision != null && collision.contactCount > 0
+                ? collision.GetContact(0).point
+                : (Vector2)transform.position;
+            jellyWobbleDirection = contactPoint.x >= transform.position.x ? -1f : 1f;
+            jellyWobbleDuration = Mathf.Max(0.1f, definition.JellySlowDuration * 0.55f);
+            jellyWobbleTimer = jellyWobbleDuration;
+        }
+
+        private void UpdateJellyWobble()
+        {
+            if (spriteRenderer == null)
+            {
+                return;
+            }
+
+            if (jellyWobbleTimer <= 0f)
+            {
+                spriteRenderer.transform.localScale = visualBaseScale;
+                spriteRenderer.transform.localRotation = Quaternion.identity;
+                return;
+            }
+
+            jellyWobbleTimer = Mathf.Max(0f, jellyWobbleTimer - Time.deltaTime);
+            var duration = Mathf.Max(0.1f, jellyWobbleDuration);
+            var remainingRatio = Mathf.Clamp01(jellyWobbleTimer / duration);
+            var phase = (1f - remainingRatio) * Mathf.PI * 6f;
+            var wobble = Mathf.Sin(phase) * remainingRatio * (definition?.JellyWobbleStrength ?? 0f);
+            spriteRenderer.transform.localScale = new Vector3(
+                visualBaseScale.x * (1f + (wobble * 0.9f)),
+                visualBaseScale.y * (1f - (wobble * 0.65f)),
+                visualBaseScale.z);
+            spriteRenderer.transform.localRotation = Quaternion.Euler(0f, 0f, jellyWobbleDirection * wobble * 8f);
         }
 
         private float EstimateAngularVelocityDelta(Vector2 impactPoint, Vector2 incomingDirection, float impactSpeed)

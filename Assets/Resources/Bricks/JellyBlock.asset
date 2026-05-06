@@ -1,0 +1,49 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7d65dbb95ba8457a9f726f66cc80214d, type: 3}
+  m_Name: JellyBlock
+  m_EditorClassIdentifier: 
+  displayName: Jelly Block
+  hitPoints: 2
+  scoreValue: 190
+  sizeMultiplier: 1
+  indestructible: 0
+  countsTowardLevelCompletion: 1
+  explosive: 0
+  explosionRadius: 1.5
+  explosionSpeedMultiplier: 2.2
+  explosionSpeedDuration: 2.75
+  spinsOnHit: 0
+  spinTorqueImpulse: 140
+  spinMaxAngularVelocity: 360
+  spinAngularDamping: 2.4
+  spinBounceStrength: 0.75
+  jellyOnHit: 1
+  jellyBallSpeedMultiplier: 0.84
+  jellySlowDuration: 1.25
+  jellyWobbleStrength: 0.2
+  splitsOnBreak: 0
+  splitBrickDefinition: {fileID: 0}
+  dropChance: 0.24
+  dropTable:
+  - powerUpDefinition: {fileID: 11400000, guid: fd4d25758f024fb1af03cb9e4a3a2f95, type: 2}
+    weight: 2
+  - powerUpDefinition: {fileID: 11400000, guid: 76c0cdae8a5d4df4b6119a53951b583e, type: 2}
+    weight: 1
+  - powerUpDefinition: {fileID: 11400000, guid: e2ee17d131c74b4ca9ed3f3c6c1aa71d, type: 2}
+    weight: 1
+  - powerUpDefinition: {fileID: 11400000, guid: e7095a36566041f8a74ef5cd22025653, type: 2}
+    weight: 1
+  baseColor: {r: 1, g: 0.19, b: 0.28, a: 1}
+  damagedColor: {r: 0.7, g: 0.05, b: 0.18, a: 1}
+  spriteResourcePath: Sprites/jelly-block
+  themeSlot: 0

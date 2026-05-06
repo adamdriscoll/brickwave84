@@ -18,6 +18,8 @@ namespace GetBricked.Gameplay
         private float paddleFollowOffset;
         private float speedBurstMultiplier = 1f;
         private float speedBurstTimeRemaining;
+        private float jellySlowMultiplier = 1f;
+        private float jellySlowTimeRemaining;
         private bool attachedToPaddle;
         private bool followsPaddleWhenIdle;
         private bool hasLaunched;
@@ -73,6 +75,7 @@ namespace GetBricked.Gameplay
             hasLaunched = false;
             attachedToPaddle = false;
             ClearSpeedBurst();
+            ClearJellySlow();
             ResetHotPotato();
             ricochetCountSinceLastBrick = 0;
 
@@ -185,6 +188,7 @@ namespace GetBricked.Gameplay
             attachedToPaddle = true;
             hasLaunched = false;
             ClearSpeedBurst();
+            ClearJellySlow();
             ResetHotPotato();
             ricochetCountSinceLastBrick = 0;
 
@@ -258,6 +262,24 @@ namespace GetBricked.Gameplay
             ballBody.linearVelocity = ballBody.linearVelocity.normalized * GetTargetSpeed();
         }
 
+        public void ApplyJellySlow(float multiplier, float durationSeconds)
+        {
+            if (ballBody == null || !hasLaunched)
+            {
+                return;
+            }
+
+            jellySlowMultiplier = Mathf.Min(
+                Mathf.Clamp(jellySlowMultiplier, 0.2f, 1f),
+                Mathf.Clamp(multiplier, 0.2f, 1f));
+            jellySlowTimeRemaining = Mathf.Max(jellySlowTimeRemaining, Mathf.Max(0.1f, durationSeconds));
+
+            if (ballBody.linearVelocity.sqrMagnitude > 0.01f)
+            {
+                ballBody.linearVelocity = ballBody.linearVelocity.normalized * GetTargetSpeed();
+            }
+        }
+
         public void SetWorldPosition(Vector2 worldPosition)
         {
             transform.position = worldPosition;
@@ -273,6 +295,7 @@ namespace GetBricked.Gameplay
             hasLaunched = false;
             attachedToPaddle = false;
             ClearSpeedBurst();
+            ClearJellySlow();
             ResetHotPotato();
             ricochetCountSinceLastBrick = 0;
 
@@ -346,6 +369,7 @@ namespace GetBricked.Gameplay
             }
 
             UpdateSpeedBurstTimer();
+            UpdateJellySlowTimer();
             ApplyGravityWell();
             ApplyBrickMagnet();
             ClampBallVelocity();
@@ -497,7 +521,10 @@ namespace GetBricked.Gameplay
 
         private float GetTargetSpeed()
         {
-            return launchSpeed * Mathf.Max(1f, speedBurstMultiplier) * Mathf.Max(1f, hotPotatoSpeedMultiplier);
+            return launchSpeed
+                * Mathf.Max(1f, speedBurstMultiplier)
+                * Mathf.Max(1f, hotPotatoSpeedMultiplier)
+                * Mathf.Clamp(jellySlowMultiplier, 0.2f, 1f);
         }
 
         private void ContinueThroughBrickImpact()
@@ -576,6 +603,29 @@ namespace GetBricked.Gameplay
         {
             speedBurstMultiplier = 1f;
             speedBurstTimeRemaining = 0f;
+        }
+
+        private void UpdateJellySlowTimer()
+        {
+            if (jellySlowTimeRemaining <= 0f)
+            {
+                return;
+            }
+
+            jellySlowTimeRemaining = Mathf.Max(0f, jellySlowTimeRemaining - Time.fixedDeltaTime);
+
+            if (jellySlowTimeRemaining > 0f)
+            {
+                return;
+            }
+
+            ClearJellySlow();
+        }
+
+        private void ClearJellySlow()
+        {
+            jellySlowMultiplier = 1f;
+            jellySlowTimeRemaining = 0f;
         }
 
         private void ResetHotPotato()

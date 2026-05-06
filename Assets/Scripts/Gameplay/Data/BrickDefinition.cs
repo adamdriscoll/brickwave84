@@ -32,6 +32,10 @@ namespace GetBricked.Gameplay.Data
         [SerializeField, Min(0f)] private float spinMaxAngularVelocity = 360f;
         [SerializeField, Min(0f)] private float spinAngularDamping = 2.4f;
         [SerializeField, Range(0f, 2f)] private float spinBounceStrength = 0.75f;
+        [SerializeField] private bool jellyOnHit;
+        [SerializeField, Range(0.5f, 1f)] private float jellyBallSpeedMultiplier = 0.86f;
+        [SerializeField, Min(0.1f)] private float jellySlowDuration = 1.2f;
+        [SerializeField, Range(0f, 0.4f)] private float jellyWobbleStrength = 0.18f;
         [SerializeField] private bool splitsOnBreak;
         [SerializeField] private BrickDefinition splitBrickDefinition;
         [SerializeField, Range(0f, 1f)] private float dropChance = 0.15f;
@@ -70,6 +74,14 @@ namespace GetBricked.Gameplay.Data
         public float SpinAngularDamping => SpinsOnHit ? Mathf.Max(0f, spinAngularDamping) : 0f;
 
         public float SpinBounceStrength => SpinsOnHit ? Mathf.Clamp(spinBounceStrength, 0f, 2f) : 0f;
+
+        public bool JellyOnHit => IsBreakable && jellyOnHit;
+
+        public float JellyBallSpeedMultiplier => JellyOnHit ? Mathf.Clamp(jellyBallSpeedMultiplier, 0.5f, 1f) : 1f;
+
+        public float JellySlowDuration => JellyOnHit ? Mathf.Max(0.1f, jellySlowDuration) : 0f;
+
+        public float JellyWobbleStrength => JellyOnHit ? Mathf.Clamp(jellyWobbleStrength, 0f, 0.4f) : 0f;
 
         public bool SplitsOnBreak => IsBreakable
             && splitsOnBreak

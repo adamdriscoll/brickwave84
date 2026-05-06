@@ -35,6 +35,7 @@ public sealed class BreakoutLevelPlannerTests
         var dropC = CreatePowerUpDefinition("Drop C");
         var dropD = CreatePowerUpDefinition("Drop D");
         var dropE = CreatePowerUpDefinition("Drop E");
+        var dropF = CreatePowerUpDefinition("Drop F");
 
         var bricks = new List<BrickDefinition>
         {
@@ -43,6 +44,7 @@ public sealed class BreakoutLevelPlannerTests
             CreateBrickDefinition("Fortified Brick", hitPoints: 3, isBreakable: true, dropC),
             CreateBrickDefinition("Spinner Brick", hitPoints: 2, isBreakable: true, dropD, spinsOnHit: true),
             CreateBrickDefinition("Explosive Brick", hitPoints: 1, isBreakable: true, dropE, isExplosive: true),
+            CreateBrickDefinition("Jelly Block", hitPoints: 2, isBreakable: true, dropF, jellyOnHit: true),
             CreateBrickDefinition("Steel Brick", hitPoints: 1, isBreakable: false, null),
         };
 
@@ -61,7 +63,7 @@ public sealed class BreakoutLevelPlannerTests
             });
 
         Assert.That(GetFieldValue<int>(plan, "UniqueBrickTypeCount"), Is.EqualTo(bricks.Count));
-        Assert.That(GetFieldValue<int>(plan, "AvailableDropTypeCount"), Is.EqualTo(5));
+        Assert.That(GetFieldValue<int>(plan, "AvailableDropTypeCount"), Is.EqualTo(6));
     }
 
     [Test]
@@ -146,6 +148,28 @@ public sealed class BreakoutLevelPlannerTests
     }
 
     [Test]
+    public void JellyBlocksJoinProceduralPoolAtMediumStages()
+    {
+        var jellyBlock = CreateBrickDefinition("Jelly Block", hitPoints: 2, isBreakable: true, null, jellyOnHit: true);
+        var plannerType = GetGameplayType("GetBricked.Gameplay.BreakoutLevelPlanner");
+        var weightMethod = plannerType.GetMethod("GetProceduralBrickWeight", BindingFlags.Static | InstanceFlags);
+        var symbolMethod = plannerType.GetMethod("BuildProceduralBrickSymbol", BindingFlags.Static | InstanceFlags);
+        Assert.That(weightMethod, Is.Not.Null);
+        Assert.That(symbolMethod, Is.Not.Null);
+
+        var stageThreeWeight = (float)weightMethod.Invoke(
+            null,
+            new object[] { jellyBlock, 1, 4, 5, 8, 2, false });
+        var stageFourWeight = (float)weightMethod.Invoke(
+            null,
+            new object[] { jellyBlock, 1, 4, 5, 8, 3, false });
+
+        Assert.That(stageThreeWeight, Is.EqualTo(0f));
+        Assert.That(stageFourWeight, Is.GreaterThan(0f));
+        Assert.That((char)symbolMethod.Invoke(null, new object[] { jellyBlock }), Is.EqualTo('J'));
+    }
+
+    [Test]
     public void LaterLoopsCanAddMovementToOpeningTemplate()
     {
         var basicBrick = CreateBrickDefinition("Basic Brick", hitPoints: 1, isBreakable: true, null);
@@ -224,7 +248,8 @@ public sealed class BreakoutLevelPlannerTests
         bool isBreakable,
         PowerUpDefinition powerUpDefinition,
         bool spinsOnHit = false,
-        bool isExplosive = false)
+        bool isExplosive = false,
+        bool jellyOnHit = false)
     {
         var brick = ScriptableObject.CreateInstance<BrickDefinition>();
         runtimeObjects.Add(brick);
@@ -234,6 +259,7 @@ public sealed class BreakoutLevelPlannerTests
         SetPrivateField(brick, "indestructible", !isBreakable);
         SetPrivateField(brick, "spinsOnHit", spinsOnHit);
         SetPrivateField(brick, "explosive", isExplosive);
+        SetPrivateField(brick, "jellyOnHit", jellyOnHit);
         SetPrivateField(brick, "dropChance", powerUpDefinition != null ? 1f : 0f);
         SetPrivateField(
             brick,

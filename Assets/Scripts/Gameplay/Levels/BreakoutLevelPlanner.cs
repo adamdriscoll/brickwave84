@@ -382,6 +382,15 @@ namespace GetBricked.Gameplay
 
                 weight = 0.36f + (topBias * 0.26f) + (centerBias * 0.14f) + (hotspot ? 0.16f : 0f) + ((levelIndex - 3) * 0.05f);
             }
+            else if (definition.JellyOnHit)
+            {
+                if (!isBrutalRun && levelIndex < 3)
+                {
+                    return 0f;
+                }
+
+                weight = 0.52f + (topBias * 0.22f) + (centerBias * 0.16f) + (hotspot ? 0.12f : 0f) + ((levelIndex - 3) * 0.045f);
+            }
             else if (definition.HitPoints >= 3)
             {
                 if (!isBrutalRun && levelIndex < 4)
@@ -841,6 +850,11 @@ namespace GetBricked.Gameplay
             if (definition.SpinsOnHit)
             {
                 return 'R';
+            }
+
+            if (definition.JellyOnHit)
+            {
+                return 'J';
             }
 
             return definition.HitPoints switch
