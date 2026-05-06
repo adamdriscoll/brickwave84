@@ -72,6 +72,7 @@ namespace GetBricked.Gameplay
             float paddleWidthMultiplier,
             float wavyPaddleStrength,
             float timedBallSpeedMultiplier,
+            float ballSizeMultiplier,
             bool stickyPaddleEnabled,
             bool laserPaddleEnabled,
             bool phaseBallEnabled,
@@ -91,6 +92,7 @@ namespace GetBricked.Gameplay
             PaddleWidthMultiplier = paddleWidthMultiplier;
             WavyPaddleStrength = wavyPaddleStrength;
             TimedBallSpeedMultiplier = timedBallSpeedMultiplier;
+            BallSizeMultiplier = ballSizeMultiplier;
             StickyPaddleEnabled = stickyPaddleEnabled;
             LaserPaddleEnabled = laserPaddleEnabled;
             PhaseBallEnabled = phaseBallEnabled;
@@ -113,6 +115,8 @@ namespace GetBricked.Gameplay
         public float WavyPaddleStrength { get; }
 
         public float TimedBallSpeedMultiplier { get; }
+
+        public float BallSizeMultiplier { get; }
 
         public bool StickyPaddleEnabled { get; }
 
@@ -163,6 +167,7 @@ namespace GetBricked.Gameplay
         private float paddleWidthMultiplier;
         private float wavyPaddleStrength;
         private float timedBallSpeedMultiplier;
+        private float ballSizeMultiplier;
         private bool stickyPaddleEnabled;
         private bool laserPaddleEnabled;
         private bool phaseBallEnabled;
@@ -184,6 +189,7 @@ namespace GetBricked.Gameplay
             paddleWidthMultiplier = Mathf.Max(0.1f, basePaddleWidthMultiplier);
             wavyPaddleStrength = Mathf.Clamp01(baseWavyPaddleStrength);
             timedBallSpeedMultiplier = 1f;
+            ballSizeMultiplier = 1f;
             stickyPaddleEnabled = false;
             laserPaddleEnabled = false;
             phaseBallEnabled = false;
@@ -219,6 +225,9 @@ namespace GetBricked.Gameplay
                     break;
                 case PowerUpEffectType.BallSpeedMultiplier:
                     timedBallSpeedMultiplier *= Mathf.Pow(powerUpDefinition.Scalar, effectStrength);
+                    break;
+                case PowerUpEffectType.BallSizeMultiplier:
+                    ballSizeMultiplier *= Mathf.Pow(powerUpDefinition.Scalar, effectStrength);
                     break;
                 case PowerUpEffectType.WavyPaddle:
                     wavyPaddleStrength = Mathf.Max(wavyPaddleStrength, Mathf.Clamp01(powerUpDefinition.Scalar * effectStrength));
@@ -279,6 +288,7 @@ namespace GetBricked.Gameplay
                 paddleWidthMultiplier,
                 wavyPaddleStrength,
                 timedBallSpeedMultiplier,
+                Mathf.Max(0.1f, ballSizeMultiplier),
                 stickyPaddleEnabled,
                 laserPaddleEnabled,
                 phaseBallEnabled,

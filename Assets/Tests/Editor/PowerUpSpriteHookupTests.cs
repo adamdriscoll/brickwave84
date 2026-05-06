@@ -22,6 +22,7 @@ public sealed class PowerUpSpriteHookupTests
     [TestCase("PowerUps/Blackout", "Sprites/blackout")]
     [TestCase("PowerUps/HotPotatoBall", "Sprites/hot-potato-ball")]
     [TestCase("PowerUps/BoomBall", "Sprites/boom-ball")]
+    [TestCase("PowerUps/MegaBall", "Sprites/mega-ball")]
     [TestCase("PowerUps/NeonShield", "Sprites/neon-shield")]
     public void PickupAssetResolvesImportedSprite(string powerUpAssetPath, string spriteResourcePath)
     {

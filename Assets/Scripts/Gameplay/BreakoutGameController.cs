@@ -3859,6 +3859,7 @@ namespace GetBricked.Gameplay
                     (activeRunSettings?.PaddleWidthMultiplier ?? 1f) * persistentModifiers.PaddleWidthMultiplier,
                     persistentModifiers.WavyPaddleStrength,
                     1f,
+                    1f,
                     false,
                     false,
                     false,
@@ -3897,6 +3898,7 @@ namespace GetBricked.Gameplay
             {
                 serveBall.SetMovementSpeed(currentBallSpeed);
                 serveBall.SetPhaseThroughBricks(activeEffectModifiers.PhaseBallEnabled);
+                serveBall.SetSizeMultiplier(activeEffectModifiers.BallSizeMultiplier);
                 serveBall.SetGravityWell(gravityWellCenter, activeEffectModifiers.GravityWellStrength);
                 serveBall.SetHotPotatoStrength(activeEffectModifiers.HotPotatoStrength);
                 serveBall.SetExplosiveBallStrength(activeEffectModifiers.ExplosiveBallStrength);
@@ -3914,6 +3916,7 @@ namespace GetBricked.Gameplay
 
                 activeBall.SetMovementSpeed(currentBallSpeed);
                 activeBall.SetPhaseThroughBricks(activeEffectModifiers.PhaseBallEnabled);
+                activeBall.SetSizeMultiplier(activeEffectModifiers.BallSizeMultiplier);
                 activeBall.SetGravityWell(gravityWellCenter, activeEffectModifiers.GravityWellStrength);
                 activeBall.SetHotPotatoStrength(activeEffectModifiers.HotPotatoStrength);
                 activeBall.SetExplosiveBallStrength(activeEffectModifiers.ExplosiveBallStrength);
@@ -4299,6 +4302,7 @@ namespace GetBricked.Gameplay
             {
                 PowerUpEffectType.PaddleWidthMultiplier => $"Paddle x{definition.Scalar:0.00} for {definition.DurationSeconds:0.#}s",
                 PowerUpEffectType.BallSpeedMultiplier => $"Ball x{definition.Scalar:0.00} for {definition.DurationSeconds:0.#}s",
+                PowerUpEffectType.BallSizeMultiplier => $"Ball size x{definition.Scalar:0.00} for {definition.DurationSeconds:0.#}s",
                 PowerUpEffectType.MultiBallBurst => $"+{Mathf.Max(1, definition.ExtraBallCount)} balls",
                 PowerUpEffectType.WavyPaddle => $"Wave {definition.Scalar:0.00} for {definition.DurationSeconds:0.#}s",
                 PowerUpEffectType.StickyPaddle => $"Catch ball for {definition.DurationSeconds:0.#}s",

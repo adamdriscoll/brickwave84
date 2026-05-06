@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
+  <title id="title">Mega Ball</title>
+  <desc id="desc">A monochrome neon icon showing one oversized ball dwarfing a regular ball.</desc>
+  <defs>
+    <filter id="softGlow" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="2" result="blur"/>
+      <feColorMatrix in="blur" type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 .7 0" result="glow"/>
+      <feMerge><feMergeNode in="glow"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <style><![CDATA[
+      .icon{fill:none;stroke:#fff;stroke-linecap:round;stroke-linejoin:round;filter:url(#softGlow)}
+      .main{stroke-width:12;opacity:.96}
+      .mid{stroke-width:7;opacity:.72}
+      .thin{stroke-width:4;opacity:.36}
+      .fill{fill:#fff;stroke:none;opacity:.16}
+    ]]></style>
+  </defs>
+  <g class="icon">
+    <circle class="main" cx="142" cy="126" r="70"/>
+    <circle class="fill" cx="142" cy="126" r="48"/>
+    <circle class="mid" cx="66" cy="186" r="14"/>
+    <path class="mid" d="M76 176 96 156M88 188h34M64 174v-28"/>
+    <path class="thin" d="M142 36v-16M142 232v-16M52 126H32M224 126h-20"/>
+    <path class="thin" d="M78 62 64 48M206 48l-14 14M78 190l-14 14M206 204l-14-14"/>
+    <path class="mid" d="M118 92c12-11 31-13 46-4M113 151c16 18 47 20 67 4"/>
+  </g>
+</svg>

@@ -43,6 +43,8 @@ MonoBehaviour:
     weight: 1
   - powerUpDefinition: {fileID: 11400000, guid: e7095a36566041f8a74ef5cd22025653, type: 2}
     weight: 1
+  - powerUpDefinition: {fileID: 11400000, guid: 2f084073d8fa4320b37b4d7d282bb625, type: 2}
+    weight: 1
   baseColor: {r: 1, g: 0.19, b: 0.28, a: 1}
   damagedColor: {r: 0.7, g: 0.05, b: 0.18, a: 1}
   spriteResourcePath: Sprites/jelly-block

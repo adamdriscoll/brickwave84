@@ -16,6 +16,8 @@ namespace GetBricked.Gameplay
         private float minimumVerticalDirection;
         private float lossThresholdY;
         private float paddleFollowOffset;
+        private Vector3 baseScale = Vector3.one;
+        private float sizeMultiplier = 1f;
         private float speedBurstMultiplier = 1f;
         private float speedBurstTimeRemaining;
         private float jellySlowMultiplier = 1f;
@@ -65,6 +67,7 @@ namespace GetBricked.Gameplay
             lossThresholdY = lossY;
             paddleFollowOffset = followOffset;
             followsPaddleWhenIdle = followPaddleWhenIdle;
+            baseScale = transform.localScale;
             ballBody = GetComponent<Rigidbody2D>();
             spriteRenderer = GetComponent<SpriteRenderer>();
             glowRenderer = GetComponent<BreakoutGlowRenderer>();
@@ -91,7 +94,7 @@ namespace GetBricked.Gameplay
                 return;
             }
 
-            SetWorldPosition((Vector2)paddle.transform.position + (Vector2.up * paddleFollowOffset));
+            SetWorldPosition((Vector2)paddle.transform.position + (Vector2.up * ResolvePaddleFollowOffset()));
         }
 
         public void Launch()
@@ -142,6 +145,20 @@ namespace GetBricked.Gameplay
         public void SetPhaseThroughBricks(bool enabled)
         {
             phaseThroughBricks = enabled;
+        }
+
+        public void SetSizeMultiplier(float multiplier)
+        {
+            sizeMultiplier = multiplier > 0.001f ? Mathf.Max(0.1f, multiplier) : 1f;
+            transform.localScale = new Vector3(
+                baseScale.x * sizeMultiplier,
+                baseScale.y * sizeMultiplier,
+                baseScale.z);
+
+            if (!hasLaunched && paddle != null && (attachedToPaddle || followsPaddleWhenIdle))
+            {
+                SetWorldPosition((Vector2)paddle.transform.position + (Vector2.up * ResolvePaddleFollowOffset()));
+            }
         }
 
         public void ApplyVisualStyle(ThemeVisualStyle visualStyle)
@@ -199,7 +216,7 @@ namespace GetBricked.Gameplay
 
             if (paddle != null)
             {
-                SetWorldPosition((Vector2)paddle.transform.position + (Vector2.up * paddleFollowOffset));
+                SetWorldPosition((Vector2)paddle.transform.position + (Vector2.up * ResolvePaddleFollowOffset()));
             }
         }
 
@@ -339,7 +356,7 @@ namespace GetBricked.Gameplay
                     return;
                 }
 
-                var targetPosition = (Vector2)paddle.transform.position + (Vector2.up * paddleFollowOffset);
+                var targetPosition = (Vector2)paddle.transform.position + (Vector2.up * ResolvePaddleFollowOffset());
                 ballBody.MovePosition(targetPosition);
                 return;
             }
@@ -525,6 +542,12 @@ namespace GetBricked.Gameplay
                 * Mathf.Max(1f, speedBurstMultiplier)
                 * Mathf.Max(1f, hotPotatoSpeedMultiplier)
                 * Mathf.Clamp(jellySlowMultiplier, 0.2f, 1f);
+        }
+
+        private float ResolvePaddleFollowOffset()
+        {
+            var baseRadius = Mathf.Max(baseScale.x, baseScale.y) * 0.5f;
+            return paddleFollowOffset + (baseRadius * (sizeMultiplier - 1f));
         }
 
         private void ContinueThroughBrickImpact()
