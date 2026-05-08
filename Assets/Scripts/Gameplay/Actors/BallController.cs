@@ -408,6 +408,13 @@ namespace GetBricked.Gameplay
                 return;
             }
 
+            if (collision.collider.TryGetComponent<BreakoutMainframeManiacNode>(out var mainframeNode)
+                && gameController != null
+                && gameController.TryHandleMainframeManiacCollision(this, mainframeNode, collision))
+            {
+                return;
+            }
+
             if (collision.collider.TryGetComponent<BreakoutPaddlePunkBoss>(out var bossPaddle)
                 && gameController != null
                 && gameController.TryHandleBossPaddleCollision(this, bossPaddle, collision))

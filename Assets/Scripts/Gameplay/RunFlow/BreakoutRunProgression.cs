@@ -7,6 +7,7 @@ namespace GetBricked.Gameplay
     {
         PaddlePunk = 0,
         BrickosaurusWrecks = 1,
+        MainframeManiac = 2,
     }
 
     internal readonly struct BreakoutBossGate
@@ -27,6 +28,7 @@ namespace GetBricked.Gameplay
         public string DisplayName => BossType switch
         {
             BreakoutBossGateType.BrickosaurusWrecks => $"Boss Gate {GateIndex + 1} - Brickosaurus Wrecks",
+            BreakoutBossGateType.MainframeManiac => $"Boss Gate {GateIndex + 1} - Mainframe Maniac",
             BreakoutBossGateType.PaddlePunk => $"Boss Gate {GateIndex + 1} - The Paddle Punk",
             _ => $"Boss Gate {GateIndex + 1}",
         };
@@ -34,6 +36,7 @@ namespace GetBricked.Gameplay
         public string HudLabel => BossType switch
         {
             BreakoutBossGateType.BrickosaurusWrecks => "BRICKOSAURUS",
+            BreakoutBossGateType.MainframeManiac => "MAINFRAME",
             BreakoutBossGateType.PaddlePunk => "PADDLE PUNK",
             _ => "BOSS GATE",
         };
@@ -113,9 +116,12 @@ namespace GetBricked.Gameplay
 
         private static BreakoutBossGateType ResolveBossGateType(int gateIndex)
         {
-            return gateIndex == 1
-                ? BreakoutBossGateType.BrickosaurusWrecks
-                : BreakoutBossGateType.PaddlePunk;
+            return gateIndex switch
+            {
+                1 => BreakoutBossGateType.BrickosaurusWrecks,
+                2 => BreakoutBossGateType.MainframeManiac,
+                _ => BreakoutBossGateType.PaddlePunk,
+            };
         }
 
         public static float GetBossGateBallSpeedMultiplier(BreakoutBossGate bossGate)

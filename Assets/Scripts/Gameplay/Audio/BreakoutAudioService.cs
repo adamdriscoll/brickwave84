@@ -144,6 +144,7 @@ namespace GetBricked.Gameplay
             var track = bossType switch
             {
                 BreakoutBossGateType.BrickosaurusWrecks => BreakoutMusicTrack.BrickosaurusBoss,
+                BreakoutBossGateType.MainframeManiac => BreakoutMusicTrack.MainframeManiacBoss,
                 _ => BreakoutMusicTrack.PaddlePunkBoss,
             };
             PlayMusic(track);
