@@ -231,6 +231,90 @@ namespace GetBricked.Gameplay
                 texture.width);
         }
 
+        public static Sprite CreateRingSprite()
+        {
+            const int textureSize = 128;
+            var texture = new Texture2D(textureSize, textureSize, TextureFormat.RGBA32, false)
+            {
+                filterMode = FilterMode.Bilinear,
+                wrapMode = TextureWrapMode.Clamp,
+                name = "RuntimeRingTexture",
+            };
+
+            var pixels = new Color[textureSize * textureSize];
+            var center = new Vector2((textureSize - 1) * 0.5f, (textureSize - 1) * 0.5f);
+            var radius = textureSize * 0.5f;
+
+            for (var y = 0; y < textureSize; y++)
+            {
+                for (var x = 0; x < textureSize; x++)
+                {
+                    var index = x + (y * textureSize);
+                    var normalizedDistance = Vector2.Distance(new Vector2(x, y), center) / radius;
+                    var ring = 1f - Mathf.Abs(normalizedDistance - 0.68f) / 0.12f;
+                    var rim = 1f - Mathf.Abs(normalizedDistance - 0.92f) / 0.055f;
+                    var alpha = Mathf.Clamp01(Mathf.Max(ring * 0.9f, rim * 0.42f));
+                    pixels[index] = new Color(1f, 1f, 1f, alpha);
+                }
+            }
+
+            texture.SetPixels(pixels);
+            texture.Apply();
+
+            return Sprite.Create(
+                texture,
+                new Rect(0f, 0f, texture.width, texture.height),
+                new Vector2(0.5f, 0.5f),
+                texture.width);
+        }
+
+        public static Sprite CreateVortexSprite()
+        {
+            const int textureSize = 128;
+            var texture = new Texture2D(textureSize, textureSize, TextureFormat.RGBA32, false)
+            {
+                filterMode = FilterMode.Bilinear,
+                wrapMode = TextureWrapMode.Clamp,
+                name = "RuntimeVortexTexture",
+            };
+
+            var pixels = new Color[textureSize * textureSize];
+            var center = new Vector2((textureSize - 1) * 0.5f, (textureSize - 1) * 0.5f);
+            var radius = textureSize * 0.5f;
+
+            for (var y = 0; y < textureSize; y++)
+            {
+                for (var x = 0; x < textureSize; x++)
+                {
+                    var offset = new Vector2(x, y) - center;
+                    var normalizedDistance = offset.magnitude / radius;
+                    var index = x + (y * textureSize);
+
+                    if (normalizedDistance >= 1f || normalizedDistance <= 0.14f)
+                    {
+                        pixels[index] = Color.clear;
+                        continue;
+                    }
+
+                    var angle = Mathf.Atan2(offset.y, offset.x);
+                    var spiral = Mathf.Sin((angle * 3f) + (normalizedDistance * 15.5f));
+                    var spiralAlpha = Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(0.48f, 1f, spiral));
+                    var radialAlpha = Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(0.18f, 0.42f, normalizedDistance))
+                        * (1f - Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(0.78f, 1f, normalizedDistance)));
+                    pixels[index] = new Color(1f, 1f, 1f, Mathf.Clamp01(spiralAlpha * radialAlpha));
+                }
+            }
+
+            texture.SetPixels(pixels);
+            texture.Apply();
+
+            return Sprite.Create(
+                texture,
+                new Rect(0f, 0f, texture.width, texture.height),
+                new Vector2(0.5f, 0.5f),
+                texture.width);
+        }
+
         public static Sprite CreateTriangleSprite()
         {
             const int textureSize = 64;

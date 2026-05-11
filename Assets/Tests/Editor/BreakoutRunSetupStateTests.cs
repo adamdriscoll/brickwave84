@@ -28,6 +28,7 @@ public sealed class BreakoutRunSetupStateTests
                 0,
                 DropPoolMode.Mixed,
                 true,
+                false,
                 string.Empty,
             });
 
@@ -93,6 +94,7 @@ public sealed class BreakoutRunSetupStateTests
                 0,
                 DropPoolMode.Mixed,
                 false,
+                false,
                 string.Empty,
             });
 
@@ -135,6 +137,7 @@ public sealed class BreakoutRunSetupStateTests
                 0,
                 DropPoolMode.Mixed,
                 true,
+                false,
                 string.Empty,
             });
 
@@ -157,6 +160,49 @@ public sealed class BreakoutRunSetupStateTests
         Assert.That(runSettings.LifeLossScorePenalty, Is.EqualTo(600));
         Assert.That(runSettings.UsesLifeLossScorePenalty, Is.True);
         Assert.That(runSettings.ScoringModeLabel, Is.EqualTo("High Score"));
+    }
+
+    [Test]
+    public void BuildRunSettingsCarriesLevelGlitchToggle()
+    {
+        var state = CreateRunSetupState();
+        var stateType = state.GetType();
+
+        stateType.GetMethod("Restore", InstanceFlags)?.Invoke(
+            state,
+            new object[]
+            {
+                1984,
+                "1984",
+                RunDifficultyPreset.Standard,
+                RunScoringMode.Classic,
+                1,
+                0,
+                0,
+                0,
+                DropPoolMode.Mixed,
+                true,
+                true,
+                string.Empty,
+            });
+
+        var buildRunSettings = stateType.GetMethod("BuildRunSettings", InstanceFlags);
+        Assert.That(buildRunSettings, Is.Not.Null);
+
+        var args = new object[]
+        {
+            3,
+            500,
+            null,
+            new Func<int>(() => 1984),
+            null,
+            true,
+        };
+
+        var runSettings = (RunSettings)buildRunSettings.Invoke(state, args);
+
+        Assert.That(runSettings.LevelGlitchesEnabled, Is.True);
+        Assert.That(runSettings.LevelGlitchLabel, Is.EqualTo("Warp Gates Armed"));
     }
 
     private static object CreateRunSetupState()

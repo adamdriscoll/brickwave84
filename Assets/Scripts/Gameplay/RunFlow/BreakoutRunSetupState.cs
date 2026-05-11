@@ -18,12 +18,13 @@ namespace GetBricked.Gameplay
         BrickDurability = 6,
         DropPool = 7,
         CapsuleParty = 8,
-        Theme = 9,
-        PlayerCount = 10,
-        HotSeatMode = 11,
-        HotSeatTurnLimit = 12,
-        HotSeatLives = 13,
-        HotSeatDifficulty = 14,
+        LevelGlitches = 9,
+        Theme = 10,
+        PlayerCount = 11,
+        HotSeatMode = 12,
+        HotSeatTurnLimit = 13,
+        HotSeatLives = 14,
+        HotSeatDifficulty = 15,
     }
 
     internal sealed class BreakoutRunSetupState
@@ -51,6 +52,8 @@ namespace GetBricked.Gameplay
 
         public bool IsCapsulePartyEnabled { get; private set; }
 
+        public bool AreLevelGlitchesEnabled { get; private set; }
+
         public string ThemeId { get; private set; } = string.Empty;
 
         public string PendingSeedText { get; private set; } = string.Empty;
@@ -65,6 +68,7 @@ namespace GetBricked.Gameplay
             BrickDurabilityStep = 0;
             DropPoolMode = DropPoolMode.Mixed;
             IsCapsulePartyEnabled = true;
+            AreLevelGlitchesEnabled = false;
             ThemeId = defaultThemeId ?? string.Empty;
             Seed = generateNewSeed ? GenerateSeed(seedGenerator) : Seed;
             PendingSeedText = Seed.ToString(CultureInfo.InvariantCulture);
@@ -81,6 +85,7 @@ namespace GetBricked.Gameplay
             int brickDurabilityStep,
             DropPoolMode dropPoolMode,
             bool isCapsulePartyEnabled,
+            bool areLevelGlitchesEnabled,
             string themeId)
         {
             Seed = Mathf.Max(0, seed);
@@ -93,6 +98,7 @@ namespace GetBricked.Gameplay
             BrickDurabilityStep = Mathf.Clamp(brickDurabilityStep, -2, 2);
             DropPoolMode = dropPoolMode;
             IsCapsulePartyEnabled = isCapsulePartyEnabled;
+            AreLevelGlitchesEnabled = areLevelGlitchesEnabled;
             ThemeId = themeId ?? string.Empty;
         }
 
@@ -141,6 +147,9 @@ namespace GetBricked.Gameplay
                     break;
                 case BreakoutRunSetupField.CapsuleParty:
                     IsCapsulePartyEnabled = !IsCapsulePartyEnabled;
+                    break;
+                case BreakoutRunSetupField.LevelGlitches:
+                    AreLevelGlitchesEnabled = !AreLevelGlitchesEnabled;
                     break;
                 case BreakoutRunSetupField.Theme:
                     ThemeId = shiftThemeId != null ? shiftThemeId(ThemeId, direction) : ThemeId;
@@ -255,6 +264,11 @@ namespace GetBricked.Gameplay
                 warnings.Add("Capsule Party live: every eligible brick drops a capsule.");
             }
 
+            if (AreLevelGlitchesEnabled)
+            {
+                warnings.Add("Warp Gates armed: glitched stages pay bonus score.");
+            }
+
             validationMessage = warnings.Count > 0
                 ? string.Join(" ", warnings)
                 : "Run validated. Same seed will replay the same level transforms, launch rolls, and drop rolls.";
@@ -272,7 +286,8 @@ namespace GetBricked.Gameplay
                 dropChanceMultiplier,
                 DropPoolMode,
                 IsCapsulePartyEnabled,
-                selectedTheme);
+                selectedTheme,
+                levelGlitchesEnabled: AreLevelGlitchesEnabled);
         }
 
         public int ParsePendingSeed(bool commitSeedText, Func<int> seedGenerator)

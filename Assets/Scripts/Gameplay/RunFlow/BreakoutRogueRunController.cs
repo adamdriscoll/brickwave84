@@ -57,7 +57,9 @@ namespace GetBricked.Gameplay
                 RunGameMode.Rogue,
                 intensity,
                 selectedPaddle.DisplayName,
-                selectedPaddle.SpeedMultiplier);
+                selectedPaddle.SpeedMultiplier,
+                levelGlitchesEnabled: true,
+                levelGlitchChanceMultiplier: 1f);
         }
 
         public void InitializeRunState(BreakoutRunState runState)

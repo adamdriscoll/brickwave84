@@ -50,7 +50,9 @@ namespace GetBricked.Gameplay.Data
             int rogueIntensity = 1,
             string selectedPaddleLabel = null,
             float paddleSpeedMultiplier = 1f,
-            string difficultyLabel = null)
+            string difficultyLabel = null,
+            bool levelGlitchesEnabled = false,
+            float levelGlitchChanceMultiplier = 1f)
         {
             Seed = seed == int.MinValue ? int.MaxValue : Mathf.Abs(seed);
             DifficultyPreset = difficultyPreset;
@@ -74,6 +76,8 @@ namespace GetBricked.Gameplay.Data
             DropPoolMode = dropPoolMode;
             ForcePickupDropsOnBreak = forcePickupDropsOnBreak;
             ThemeDefinition = themeDefinition;
+            LevelGlitchesEnabled = levelGlitchesEnabled;
+            LevelGlitchChanceMultiplier = Mathf.Clamp(levelGlitchChanceMultiplier, 0f, 3f);
         }
 
         public int Seed { get; }
@@ -111,6 +115,10 @@ namespace GetBricked.Gameplay.Data
         public bool ForcePickupDropsOnBreak { get; }
 
         public ThemeDefinition ThemeDefinition { get; }
+
+        public bool LevelGlitchesEnabled { get; }
+
+        public float LevelGlitchChanceMultiplier { get; }
 
         public string DifficultyLabel => !string.IsNullOrWhiteSpace(CustomDifficultyLabel)
             ? CustomDifficultyLabel
@@ -152,5 +160,7 @@ namespace GetBricked.Gameplay.Data
         public string DropCadenceLabel => ForcePickupDropsOnBreak ? "Capsule Party" : "Standard";
 
         public string ThemeLabel => ThemeDefinition != null ? ThemeDefinition.DisplayName : "Fallback";
+
+        public string LevelGlitchLabel => LevelGlitchesEnabled ? "Warp Gates Armed" : "Clean Walls";
     }
 }

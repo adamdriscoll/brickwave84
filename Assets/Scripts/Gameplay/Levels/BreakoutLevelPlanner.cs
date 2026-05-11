@@ -21,6 +21,7 @@ namespace GetBricked.Gameplay
         public int UniqueBrickTypeCount;
         public int AvailableDropTypeCount;
         public int MovingBrickCount;
+        public BreakoutLevelGlitchPlan GlitchPlan = BreakoutLevelGlitchPlan.None;
         public string VariationSummary = "Variation: unavailable";
     }
 
@@ -185,6 +186,7 @@ namespace GetBricked.Gameplay
             }
 
             RecalculatePlanStats(plan);
+            plan.GlitchPlan = BreakoutLevelGlitchPlanner.BuildPlan(planner.Fork(15485863), activeRunSettings, levelIndex);
             plan.CompletionRule = LevelCompletionRule.ClearRequiredBricks;
             plan.TargetScore = 0;
             plan.VariationSummary = BuildVariationSummary(plan);
@@ -947,9 +949,12 @@ namespace GetBricked.Gameplay
             }
 
             var orientationLabel = plan.MirrorLayout ? "mirrored" : "asymmetric";
+            var glitchLabel = plan.GlitchPlan != null && plan.GlitchPlan.IsActive
+                ? $", glitch {plan.GlitchPlan.DisplayName}"
+                : string.Empty;
             return
                 $"Variation: {plan.PatternLabel}, {orientationLabel}, {shiftedRows} shifted rows, " +
-                $"{plan.UniqueBrickTypeCount} brick types, {plan.AvailableDropTypeCount} drops, {plan.MovingBrickCount} movers";
+                $"{plan.UniqueBrickTypeCount} brick types, {plan.AvailableDropTypeCount} drops, {plan.MovingBrickCount} movers{glitchLabel}";
         }
     }
 }

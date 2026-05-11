@@ -143,6 +143,7 @@ namespace GetBricked.Gameplay
         private Transform bricksRoot;
         private Transform pickupsRoot;
         private Transform effectsRoot;
+        private Transform glitchesRoot;
         private Transform bossRoot;
         private PaddleController paddle;
         private Collider2D paddleCollider;
@@ -158,6 +159,8 @@ namespace GetBricked.Gameplay
         private Sprite paddleSprite;
         private Sprite bossPaddleSprite;
         private Sprite powerUpSprite;
+        private Sprite warpGateRingSprite;
+        private Sprite warpGateVortexSprite;
         private PhysicsMaterial2D bounceMaterial;
         private Material spriteUnlitMaterial;
         private Material additiveSpriteMaterial;
@@ -224,6 +227,8 @@ namespace GetBricked.Gameplay
         private BreakoutPaddlePunkBoss activePaddlePunkBoss;
         private BreakoutBrickosaurusWrecksBoss activeBrickosaurusBoss;
         private BreakoutMainframeManiacBoss activeMainframeManiacBoss;
+        private BreakoutLevelGlitchPlan activeLevelGlitchPlan = BreakoutLevelGlitchPlan.None;
+        private BreakoutWarpGateController activeWarpGateController;
         private int bossShieldSpawnIndex;
         private bool isDeveloperRunActive;
 
@@ -292,6 +297,16 @@ namespace GetBricked.Gameplay
             if (triangleSprite != null)
             {
                 Destroy(triangleSprite);
+            }
+
+            if (warpGateRingSprite != null)
+            {
+                Destroy(warpGateRingSprite);
+            }
+
+            if (warpGateVortexSprite != null)
+            {
+                Destroy(warpGateVortexSprite);
             }
 
             if (backgroundHazeSprite != null)
@@ -1031,6 +1046,7 @@ namespace GetBricked.Gameplay
             ClearPickups();
             ClearTimedEffects();
             ClearBossEncounter();
+            ClearLevelGlitches();
             StopAllBalls();
             DestroyAdditionalBalls();
             activeBalls.Clear();
@@ -1473,7 +1489,8 @@ namespace GetBricked.Gameplay
                     RunGameMode.Rogue,
                     intensity,
                     selectedPaddle.DisplayName,
-                    selectedPaddle.SpeedMultiplier);
+                    selectedPaddle.SpeedMultiplier,
+                    levelGlitchesEnabled: true);
             pendingValidationMessage = $"Rogue tape loaded: {activeRunSettings.SelectedPaddleLabel}, Heat {activeRunSettings.RogueIntensity:00}/50, 10 stages, 3 balls, draft rewards, growing drop pool.";
             StartNewRun();
         }
@@ -1502,7 +1519,8 @@ namespace GetBricked.Gameplay
                     RunGameMode.Rogue,
                     intensity,
                     selectedPaddle.DisplayName,
-                    selectedPaddle.SpeedMultiplier);
+                    selectedPaddle.SpeedMultiplier,
+                    levelGlitchesEnabled: true);
 
             var encounter = developerLaunchState.ResolveEncounter();
             pendingValidationMessage = $"Dev jump loaded: {encounter.DisplayName} with {activeRunSettings.SelectedPaddleLabel} at Heat {activeRunSettings.RogueIntensity:00}.";
@@ -1849,6 +1867,8 @@ namespace GetBricked.Gameplay
             var dropChanceMultiplier = 1f;
             var dropPoolMode = DropPoolMode.Mixed;
             var capsuleParty = false;
+            var levelGlitchesEnabled = false;
+            var levelGlitchChanceMultiplier = 1f;
             var difficultyLabel = turnBasedMultiplayerController?.GetSelectedDifficultyLabel() ?? "Gnarly";
 
             switch (difficulty)
@@ -1874,6 +1894,8 @@ namespace GetBricked.Gameplay
                     brickDurabilityMultiplier = 1.16f;
                     dropChanceMultiplier = 1.05f;
                     capsuleParty = true;
+                    levelGlitchesEnabled = true;
+                    levelGlitchChanceMultiplier = 1f;
                     break;
                 case BreakoutHotSeatDifficulty.Bogus:
                     paddleWidthMultiplier = 0.88f;
@@ -1882,12 +1904,16 @@ namespace GetBricked.Gameplay
                     dropChanceMultiplier = 1.2f;
                     dropPoolMode = DropPoolMode.HarmfulOnly;
                     capsuleParty = true;
+                    levelGlitchesEnabled = true;
+                    levelGlitchChanceMultiplier = 1.35f;
                     break;
                 default:
                     ballSpeedMultiplier = 1f;
                     brickDurabilityMultiplier = 1f;
                     dropChanceMultiplier = 1f;
                     dropPoolMode = DropPoolMode.Mixed;
+                    levelGlitchesEnabled = difficulty == BreakoutHotSeatDifficulty.Gnarly;
+                    levelGlitchChanceMultiplier = 0.65f;
                     break;
             }
 
@@ -1909,7 +1935,9 @@ namespace GetBricked.Gameplay
                 1,
                 "Classic Paddle",
                 1f,
-                difficultyLabel);
+                difficultyLabel,
+                levelGlitchesEnabled,
+                levelGlitchChanceMultiplier);
         }
 
         private int ParsePendingSeed(bool commitSeedText)
@@ -2049,6 +2077,7 @@ namespace GetBricked.Gameplay
             ClearPickups();
             stickyCaughtBall = null;
             ClearTimedEffects();
+            ClearLevelGlitches();
             scoreService?.ResetComboTracking(clearPopups: true);
 
             if (loadedLevels.Count == 0 || levelIndex < 0)
@@ -2090,6 +2119,7 @@ namespace GetBricked.Gameplay
 
             ApplyLevelTuning(levelPlan);
             BuildBrickWall(levelPlan);
+            ApplyLevelGlitchPlan(levelPlan.GlitchPlan);
             PrepareServe(serveState);
             EvaluateLevelCompletion();
         }
@@ -2144,6 +2174,8 @@ namespace GetBricked.Gameplay
             squareSprite = BreakoutRuntimeVisualFactory.CreateSquareSprite();
             circleSprite = BreakoutRuntimeVisualFactory.CreateCircleSprite();
             triangleSprite = BreakoutRuntimeVisualFactory.CreateTriangleSprite();
+            warpGateRingSprite = BreakoutRuntimeVisualFactory.CreateRingSprite();
+            warpGateVortexSprite = BreakoutRuntimeVisualFactory.CreateVortexSprite();
             backgroundHazeSprite = BreakoutRuntimeVisualFactory.CreateBackgroundHazeSprite();
             backgroundScanlineSprite = BreakoutRuntimeVisualFactory.CreateBackgroundScanlineSprite();
             backgroundLibrary = new BreakoutBackgroundLibrary();
@@ -2216,6 +2248,9 @@ namespace GetBricked.Gameplay
 
             effectsRoot = new GameObject("Effects").transform;
             effectsRoot.SetParent(runtimeRoot, false);
+
+            glitchesRoot = new GameObject("Level Glitches").transform;
+            glitchesRoot.SetParent(runtimeRoot, false);
 
             bossRoot = new GameObject("Bosses").transform;
             bossRoot.SetParent(runtimeRoot, false);
@@ -2422,6 +2457,111 @@ namespace GetBricked.Gameplay
                 : 0;
         }
 
+        private void ApplyLevelGlitchPlan(BreakoutLevelGlitchPlan glitchPlan)
+        {
+            ClearLevelGlitches();
+            activeLevelGlitchPlan = glitchPlan ?? BreakoutLevelGlitchPlan.None;
+
+            if (!activeLevelGlitchPlan.IsActive)
+            {
+                return;
+            }
+
+            if (activeLevelGlitchPlan.GlitchType == BreakoutLevelGlitchType.WarpGates)
+            {
+                CreateWarpGates(activeLevelGlitchPlan);
+                powerUpService?.ShowStatusBanner("WARP GATES!", new Color(0.03f, 0.93f, 0.98f, 1f), 2.2f);
+            }
+        }
+
+        private void ClearLevelGlitches()
+        {
+            activeLevelGlitchPlan = BreakoutLevelGlitchPlan.None;
+
+            if (activeWarpGateController == null)
+            {
+                return;
+            }
+
+            DestroyRuntimeObject(activeWarpGateController.gameObject);
+            activeWarpGateController = null;
+        }
+
+        private void CreateWarpGates(BreakoutLevelGlitchPlan glitchPlan)
+        {
+            if (glitchPlan == null || glitchPlan.WarpGates.Length < 2 || squareSprite == null)
+            {
+                return;
+            }
+
+            var gateRoot = new GameObject("Warp Gates");
+            gateRoot.transform.SetParent(glitchesRoot != null ? glitchesRoot : runtimeRoot, false);
+
+            activeWarpGateController = gateRoot.AddComponent<BreakoutWarpGateController>();
+            activeWarpGateController.Configure(this);
+
+            for (var index = 0; index < glitchPlan.WarpGates.Length; index++)
+            {
+                CreateWarpGatePortal(gateRoot.transform, index, glitchPlan.WarpGates[index]);
+            }
+        }
+
+        private void CreateWarpGatePortal(Transform gateRoot, int portalIndex, BreakoutWarpGateSpec spec)
+        {
+            var portalObject = new GameObject($"Warp Gate {portalIndex + 1:00}");
+            portalObject.transform.SetParent(gateRoot, false);
+            portalObject.transform.position = ResolveWarpGatePosition(spec);
+
+            var portal = portalObject.AddComponent<BreakoutWarpGatePortal>();
+            portal.Configure(activeWarpGateController, portalIndex, spec.Wall, ResolveWarpGateExitPosition(spec));
+            activeWarpGateController?.RegisterPortal(portal);
+
+            var collider = portalObject.AddComponent<BoxCollider2D>();
+            collider.isTrigger = true;
+            collider.size = ResolveWarpGateTriggerSize(spec.Wall);
+
+            var visual = portalObject.AddComponent<BreakoutWarpGateVisual>();
+            visual.Configure(
+                circleSprite,
+                warpGateVortexSprite,
+                warpGateRingSprite,
+                spriteUnlitMaterial,
+                additiveSpriteMaterial,
+                spec.Wall,
+                portalIndex);
+        }
+
+        private Vector2 ResolveWarpGatePosition(BreakoutWarpGateSpec spec)
+        {
+            return spec.Wall switch
+            {
+                BreakoutWarpGateWall.Left => new Vector2(arenaLeft + 0.18f, Mathf.Lerp(arenaBottom + 1.45f, arenaTop - 0.8f, spec.NormalizedPosition)),
+                BreakoutWarpGateWall.Right => new Vector2(arenaRight - 0.18f, Mathf.Lerp(arenaBottom + 1.45f, arenaTop - 0.8f, spec.NormalizedPosition)),
+                BreakoutWarpGateWall.Top => new Vector2(Mathf.Lerp(arenaLeft + 0.95f, arenaRight - 0.95f, spec.NormalizedPosition), arenaTop - 0.18f),
+                _ => Vector2.zero,
+            };
+        }
+
+        private Vector2 ResolveWarpGateExitPosition(BreakoutWarpGateSpec spec)
+        {
+            var position = ResolveWarpGatePosition(spec);
+
+            return spec.Wall switch
+            {
+                BreakoutWarpGateWall.Left => new Vector2(arenaLeft + 0.58f, position.y),
+                BreakoutWarpGateWall.Right => new Vector2(arenaRight - 0.58f, position.y),
+                BreakoutWarpGateWall.Top => new Vector2(position.x, arenaTop - 0.58f),
+                _ => position,
+            };
+        }
+
+        private static Vector2 ResolveWarpGateTriggerSize(BreakoutWarpGateWall wall)
+        {
+            return wall == BreakoutWarpGateWall.Top
+                ? new Vector2(0.78f, 0.54f)
+                : new Vector2(0.54f, 0.78f);
+        }
+
         private void LoadBossGate(BreakoutBossGate bossGate)
         {
             ClearBossEncounter();
@@ -2429,6 +2569,7 @@ namespace GetBricked.Gameplay
             ClearPickups();
             stickyCaughtBall = null;
             ClearTimedEffects();
+            ClearLevelGlitches();
             scoreService?.ResetComboTracking(clearPopups: true);
 
             activeBossGate = bossGate;
@@ -3472,7 +3613,7 @@ namespace GetBricked.Gameplay
                         $"Heat Level: {turnBasedMultiplayerController?.GetSelectedDifficultyLabel() ?? "Gnarly"}",
                     },
                     SelectedFieldIndex = Mathf.Max(0, Array.IndexOf(hotSeatFields, selectedRunSetupField)),
-                    PreviewLine = $"Preview: {turnBasedMultiplayerController?.BuildSetupPreviewLine() ?? "02 players"} | Drops {BuildDropSummaryLabel(previewSettings)} | Ball x{previewSettings.BallSpeedMultiplier:0.00} | Random Tape ID",
+                    PreviewLine = $"Preview: {turnBasedMultiplayerController?.BuildSetupPreviewLine() ?? "02 players"} | Drops {BuildDropSummaryLabel(previewSettings)} | {previewSettings.LevelGlitchLabel} | Ball x{previewSettings.BallSpeedMultiplier:0.00} | Random Tape ID",
                     ValidationText = previewValidation,
                     HintText = "Up/Down selects. Left/Right adjusts. N resets defaults. Esc returns to menu. Space launches.",
                 };
@@ -3489,6 +3630,7 @@ namespace GetBricked.Gameplay
                 $"Brick Durability Bias: {FormatSignedStep(pendingRunSetup.BrickDurabilityStep)}",
                 $"Drop Pool: {previewSettings.DropPoolLabel}",
                 $"Capsule Party: {(previewSettings.ForcePickupDropsOnBreak ? "On" : "Off")}",
+                $"Glitches: {(previewSettings.LevelGlitchesEnabled ? "Warp Gates" : "Off")}",
                 $"Theme: {previewSettings.ThemeLabel}",
             };
 
@@ -3498,7 +3640,7 @@ namespace GetBricked.Gameplay
                 Subtitle = "Dial in the cabinet before launch. The same Tape ID preserves the run while score mode, modifiers, and palette reshape the pressure curve.",
                 FieldLines = fieldLines.ToArray(),
                 SelectedFieldIndex = (int)selectedRunSetupField,
-                PreviewLine = $"Preview: {BuildScoreModeSummaryLabel(previewSettings)} | {BuildRetrySummaryLabel(previewSettings)} | Paddle x{previewSettings.PaddleWidthMultiplier:0.00} | Ball speed x{previewSettings.BallSpeedMultiplier:0.00} | Brick durability x{previewSettings.BrickDurabilityMultiplier:0.00} | Drops {BuildDropSummaryLabel(previewSettings)}",
+                PreviewLine = $"Preview: {BuildScoreModeSummaryLabel(previewSettings)} | {BuildRetrySummaryLabel(previewSettings)} | Paddle x{previewSettings.PaddleWidthMultiplier:0.00} | Ball speed x{previewSettings.BallSpeedMultiplier:0.00} | Brick durability x{previewSettings.BrickDurabilityMultiplier:0.00} | Drops {BuildDropSummaryLabel(previewSettings)} | {previewSettings.LevelGlitchLabel}",
                 ValidationText = previewValidation,
                 HintText = "Up/Down selects. Left/Right adjusts. Type digits for the Tape ID. Backspace edits. T randomizes. N resets defaults. Esc returns to menu. Space launches.",
             };
@@ -4025,13 +4167,16 @@ namespace GetBricked.Gameplay
         private string BuildGameplayStatusLine()
         {
             var progressLabel = BuildRemainingBricksLabel();
+            var glitchLabel = activeLevelGlitchPlan != null && activeLevelGlitchPlan.IsActive
+                ? $" | {activeLevelGlitchPlan.HudLabel}"
+                : string.Empty;
 
             if (activeRunState == null || !activeRunState.HasActiveBuild)
             {
-                return progressLabel;
+                return $"{progressLabel}{glitchLabel}";
             }
 
-            return $"{progressLabel} | {BuildUpgradeSummaryLabel(2)}";
+            return $"{progressLabel}{glitchLabel} | {BuildUpgradeSummaryLabel(2)}";
         }
 
         private string BuildReadyToServeMessage()
@@ -4145,7 +4290,7 @@ namespace GetBricked.Gameplay
             var currentSpeed = GetDisplayedBallSpeed();
             var maxSpeed = GetMaximumBallSpeed();
             var speedScoreMultiplier = scoreService?.GetScoreMultiplierForSpeed(currentSpeed, ballSpeed) ?? 1f;
-            var scoreMultiplier = speedScoreMultiplier * Mathf.Max(0.1f, activeEffectModifiers.ScoreMultiplier);
+            var scoreMultiplier = speedScoreMultiplier * GetActiveScoreMultiplier();
             return
                 $"Ball Speed {currentSpeed:0.00} | Score x{scoreMultiplier:0.00} | Base {baseSpeed:0.00} | Manual x{manualBallSpeedMultiplier:0.00} | Cap {maxSpeed:0.00}";
         }
@@ -4175,7 +4320,7 @@ namespace GetBricked.Gameplay
             var heatSummary = activeRunSettings.IsRogueMode ? $" | Heat {activeRunSettings.RogueIntensity:00}" : string.Empty;
             var summary =
                 $"{activeRunSettings.GameModeLabel} | Tape ID: {activeRunSettings.Seed} | {activeRunSettings.DifficultyLabel} | {BuildScoreModeSummaryLabel(activeRunSettings)} | {BuildRetrySummaryLabel(activeRunSettings)} | Balls/Serve {GetEffectiveBallsPerServe()} | " +
-                $"Theme: {activeRunSettings.ThemeLabel} | Drops: {BuildDropSummaryLabel(activeRunSettings)}{heatSummary} | {activeRunSettings.SelectedPaddleLabel} x{activeRunSettings.PaddleWidthMultiplier:0.00} speed x{activeRunSettings.PaddleSpeedMultiplier:0.00} | Ball x{activeRunSettings.BallSpeedMultiplier:0.00} | Build {GetChosenUpgradeCount():00}";
+                $"Theme: {activeRunSettings.ThemeLabel} | Drops: {BuildDropSummaryLabel(activeRunSettings)} | {activeRunSettings.LevelGlitchLabel}{heatSummary} | {activeRunSettings.SelectedPaddleLabel} x{activeRunSettings.PaddleWidthMultiplier:0.00} speed x{activeRunSettings.PaddleSpeedMultiplier:0.00} | Ball x{activeRunSettings.BallSpeedMultiplier:0.00} | Build {GetChosenUpgradeCount():00}";
             return summary;
         }
 
@@ -4692,7 +4837,15 @@ namespace GetBricked.Gameplay
                 GetDisplayedBallSpeed(),
                 ballSpeed,
                 Time.time,
-                activeEffectModifiers.ScoreMultiplier);
+                GetActiveScoreMultiplier());
+        }
+
+        private float GetActiveScoreMultiplier()
+        {
+            var glitchMultiplier = activeLevelGlitchPlan != null && activeLevelGlitchPlan.IsActive
+                ? activeLevelGlitchPlan.ScoreMultiplier
+                : 1f;
+            return Mathf.Max(0.1f, activeEffectModifiers.ScoreMultiplier) * Mathf.Max(1f, glitchMultiplier);
         }
 
         private float GetDisplayedBallSpeed()

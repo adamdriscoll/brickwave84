@@ -1,0 +1,80 @@
+using GetBricked.Gameplay;
+using GetBricked.Gameplay.Data;
+using NUnit.Framework;
+
+public sealed class BreakoutLevelGlitchPlannerTests
+{
+    [Test]
+    public void CustomRunsOnlyRollGlitchesWhenEnabled()
+    {
+        var cleanSettings = CreateSettings(levelGlitchesEnabled: false);
+        var glitchedSettings = CreateSettings(levelGlitchesEnabled: true);
+
+        Assert.That(BreakoutLevelGlitchPlanner.GetGlitchChance(cleanSettings, levelIndex: 5), Is.Zero);
+        Assert.That(BreakoutLevelGlitchPlanner.GetGlitchChance(glitchedSettings, levelIndex: 5), Is.GreaterThan(0f));
+    }
+
+    [Test]
+    public void RogueGlitchesStartAtHigherHeat()
+    {
+        var earlySettings = CreateRogueSettings(rogueIntensity: 7);
+        var harderSettings = CreateRogueSettings(rogueIntensity: 30);
+
+        Assert.That(BreakoutLevelGlitchPlanner.GetGlitchChance(earlySettings, levelIndex: 5), Is.Zero);
+        Assert.That(BreakoutLevelGlitchPlanner.GetGlitchChance(harderSettings, levelIndex: 5), Is.GreaterThan(0f));
+    }
+
+    [Test]
+    public void ForcedWarpGatePlanBuildsSmallPortalSetAndScoreBonus()
+    {
+        var settings = CreateSettings(levelGlitchesEnabled: true, chanceMultiplier: 3f);
+
+        var plan = BreakoutLevelGlitchPlanner.BuildPlan(new DeterministicRandomService(2), settings, levelIndex: 9);
+
+        Assert.That(plan.IsActive, Is.True);
+        Assert.That(plan.GlitchType, Is.EqualTo(BreakoutLevelGlitchType.WarpGates));
+        Assert.That(plan.WarpGates.Length, Is.InRange(2, 4));
+        Assert.That(plan.ScoreMultiplier, Is.GreaterThan(1f));
+    }
+
+    private static RunSettings CreateSettings(bool levelGlitchesEnabled, float chanceMultiplier = 1f)
+    {
+        return new RunSettings(
+            1234,
+            RunDifficultyPreset.Standard,
+            RunScoringMode.Classic,
+            3,
+            500,
+            1,
+            1f,
+            1f,
+            1f,
+            1f,
+            DropPoolMode.Mixed,
+            false,
+            null,
+            levelGlitchesEnabled: levelGlitchesEnabled,
+            levelGlitchChanceMultiplier: chanceMultiplier);
+    }
+
+    private static RunSettings CreateRogueSettings(int rogueIntensity)
+    {
+        return new RunSettings(
+            1234,
+            RunDifficultyPreset.Standard,
+            RunScoringMode.Classic,
+            3,
+            500,
+            1,
+            1f,
+            1f,
+            1f,
+            1f,
+            DropPoolMode.Mixed,
+            false,
+            null,
+            RunGameMode.Rogue,
+            rogueIntensity,
+            levelGlitchesEnabled: true);
+    }
+}
