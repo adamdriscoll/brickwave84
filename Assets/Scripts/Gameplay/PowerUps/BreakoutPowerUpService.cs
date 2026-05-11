@@ -613,6 +613,29 @@ namespace GetBricked.Gameplay
             return removedCount;
         }
 
+        public int RemoveBeneficialBallSizeEffects()
+        {
+            var removedCount = 0;
+
+            for (var index = ActiveTimedEffects.Count - 1; index >= 0; index--)
+            {
+                var definition = ActiveTimedEffects[index]?.Definition;
+
+                if (definition == null
+                    || definition.EffectType != PowerUpEffectType.BallSizeMultiplier
+                    || !definition.IsBeneficial
+                    || definition.Scalar <= 1f)
+                {
+                    continue;
+                }
+
+                ActiveTimedEffects.RemoveAt(index);
+                removedCount++;
+            }
+
+            return removedCount;
+        }
+
         public void ShowStatusBanner(string text, Color color, float durationSeconds = 1.8f)
         {
             PickupBannerText = text ?? string.Empty;

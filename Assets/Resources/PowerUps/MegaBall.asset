@@ -19,7 +19,7 @@ MonoBehaviour:
   effectType: 21
   beneficial: 1
   durationSeconds: 10
-  scalar: 5
+  scalar: 1.8
   extraBallCount: 0
   pickupColor: {r: 1, g: 0.88, b: 0.28, a: 1}
   themeSlot: 0

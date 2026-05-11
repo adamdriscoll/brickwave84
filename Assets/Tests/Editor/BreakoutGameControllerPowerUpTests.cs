@@ -228,6 +228,38 @@ public sealed class BreakoutGameControllerPowerUpTests
     }
 
     [Test]
+    public void ApplyingStackedMegaBallPowerUpsPopsBallBackToRegularSize()
+    {
+        var controller = CreateControllerHarness(out var paddle);
+        var serveBall = CreateBallHarness(controller, paddle);
+        SetPrivateField(controller, "serveBall", serveBall);
+        GetPrivateField<List<BallController>>(controller, "activeBalls").Add(serveBall);
+        var megaBallPowerUp = CreatePowerUp(
+            "Mega Ball",
+            PowerUpEffectType.BallSizeMultiplier,
+            beneficial: true,
+            durationSeconds: 10f,
+            scalar: 1.8f);
+
+        InvokePrivateMethod(controller, "ApplyPowerUp", megaBallPowerUp);
+
+        Assert.That(serveBall.transform.localScale.x, Is.EqualTo(1.8f).Within(0.0001f));
+
+        InvokePrivateMethod(controller, "ApplyPowerUp", megaBallPowerUp);
+
+        var powerUpService = GetPrivateField<object>(controller, "powerUpService");
+        var activeTimedEffects = GetPropertyValue<System.Collections.IList>(powerUpService, "ActiveTimedEffects");
+        var activeEffectModifiers = GetPrivateField<object>(controller, "activeEffectModifiers");
+        var pickupBannerView = InvokePrivateMethodWithResult(controller, "BuildPickupBannerView");
+
+        Assert.That(activeTimedEffects.Count, Is.Zero);
+        Assert.That(GetPropertyValue<float>(activeEffectModifiers, "BallSizeMultiplier"), Is.EqualTo(1f).Within(0.0001f));
+        Assert.That(serveBall.transform.localScale.x, Is.EqualTo(1f).Within(0.0001f));
+        Assert.That(serveBall.transform.localScale.y, Is.EqualTo(1f).Within(0.0001f));
+        Assert.That(GetFieldValue<string>(pickupBannerView, "Text"), Is.EqualTo("MEGA POP!"));
+    }
+
+    [Test]
     public void ApplyingSameTimedPowerUpTwiceShowsStackCountInUiLabels()
     {
         var controller = CreateControllerHarness(out _);

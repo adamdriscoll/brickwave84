@@ -7,6 +7,8 @@ namespace GetBricked.Gameplay
     [RequireComponent(typeof(Rigidbody2D))]
     public sealed class BallController : MonoBehaviour
     {
+        public const float MaximumSizeMultiplier = 1.8f;
+
         [SerializeField] private float maxPaddleBounceAngle = 70f;
 
         private BreakoutGameController gameController;
@@ -149,7 +151,7 @@ namespace GetBricked.Gameplay
 
         public void SetSizeMultiplier(float multiplier)
         {
-            sizeMultiplier = multiplier > 0.001f ? Mathf.Max(0.1f, multiplier) : 1f;
+            sizeMultiplier = multiplier > 0.001f ? Mathf.Clamp(multiplier, 0.1f, MaximumSizeMultiplier) : 1f;
             transform.localScale = new Vector3(
                 baseScale.x * sizeMultiplier,
                 baseScale.y * sizeMultiplier,

@@ -75,7 +75,7 @@ public sealed class BreakoutPowerUpServiceTests
         var jammer = CreatePowerUp("Brick Jammer", PowerUpEffectType.BrickJammer, false, 8f, 0.75f);
         var hotPotato = CreatePowerUp("Hot Potato Ball", PowerUpEffectType.HotPotatoBall, true, 9f, 1.28f);
         var boomBall = CreatePowerUp("Boom Ball", PowerUpEffectType.ExplosiveBall, true, 10f, 1f);
-        var megaBall = CreatePowerUp("Mega Ball", PowerUpEffectType.BallSizeMultiplier, true, 10f, 5f);
+        var megaBall = CreatePowerUp("Mega Ball", PowerUpEffectType.BallSizeMultiplier, true, 10f, 1.8f);
 
         service.ApplyPowerUp(magnet, null);
         service.ApplyPowerUp(scoreSurge, null);
@@ -92,9 +92,30 @@ public sealed class BreakoutPowerUpServiceTests
         Assert.That(modifiers.PaddleCloneEnabled, Is.True);
         Assert.That(modifiers.BrickJammerStrength, Is.EqualTo(0.75f).Within(0.0001f));
         Assert.That(modifiers.TimedBallSpeedMultiplier, Is.EqualTo(1.28f).Within(0.0001f));
-        Assert.That(modifiers.BallSizeMultiplier, Is.EqualTo(5f).Within(0.0001f));
+        Assert.That(modifiers.BallSizeMultiplier, Is.EqualTo(1.8f).Within(0.0001f));
         Assert.That(modifiers.HotPotatoStrength, Is.GreaterThan(0f));
         Assert.That(modifiers.ExplosiveBallStrength, Is.EqualTo(1f).Within(0.0001f));
+    }
+
+    [Test]
+    public void RemoveBeneficialBallSizeEffectsCancelsMegaDropsOnly()
+    {
+        var service = CreateService();
+        var megaBall = CreatePowerUp("Mega Ball", PowerUpEffectType.BallSizeMultiplier, true, 10f, 1.8f);
+        var microBall = CreatePowerUp("Micro Ball", PowerUpEffectType.BallSizeMultiplier, false, 10f, 0.6f);
+        var slowBall = CreatePowerUp("Slow Ball", PowerUpEffectType.BallSpeedMultiplier, true, 10f, 0.8f);
+
+        service.ApplyPowerUp(megaBall, null);
+        service.ApplyPowerUp(microBall, null);
+        service.ApplyPowerUp(slowBall, null);
+
+        var removedCount = service.RemoveBeneficialBallSizeEffects();
+        var modifiers = service.CalculateEffectModifiers(1f, 0f);
+
+        Assert.That(removedCount, Is.EqualTo(1));
+        Assert.That(service.ActiveTimedEffects, Has.Count.EqualTo(2));
+        Assert.That(modifiers.BallSizeMultiplier, Is.EqualTo(0.6f).Within(0.0001f));
+        Assert.That(modifiers.TimedBallSpeedMultiplier, Is.EqualTo(0.8f).Within(0.0001f));
     }
 
     [Test]

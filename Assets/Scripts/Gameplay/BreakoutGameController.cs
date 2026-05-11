@@ -3999,6 +3999,14 @@ namespace GetBricked.Gameplay
                 return;
             }
 
+            if (activeEffectModifiers.BallSizeMultiplier > BallController.MaximumSizeMultiplier
+                && TryPopMegaBall())
+            {
+                ApplyActiveEffects();
+                TriggerMegaBallPopFeedback();
+                return;
+            }
+
             paddle.SetWavyStrength(activeEffectModifiers.WavyPaddleStrength);
             paddle.SetControlsReversed(activeEffectModifiers.ReverseControlsEnabled);
             paddle.SetSplitGapWidthNormalized(activeEffectModifiers.SplitPaddleGapNormalized);
@@ -4051,11 +4059,22 @@ namespace GetBricked.Gameplay
             return powerUpService != null && powerUpService.RemoveBeneficialPaddleWidthEffects() > 0;
         }
 
+        private bool TryPopMegaBall()
+        {
+            return powerUpService != null && powerUpService.RemoveBeneficialBallSizeEffects() > 0;
+        }
+
         private void TriggerWidePaddleBreakFeedback()
         {
             paddle?.StartBreakWiggle();
             audioService?.PlayPowerDown();
             powerUpService?.ShowStatusBanner("RAIL BUSTED!", new Color(1f, 0.28f, 0.32f, 1f), 1.4f);
+        }
+
+        private void TriggerMegaBallPopFeedback()
+        {
+            audioService?.PlayMegaBallPop();
+            powerUpService?.ShowStatusBanner("MEGA POP!", new Color(1f, 0.88f, 0.28f, 1f), 1.4f);
         }
 
         private void SpawnMultiBall(PowerUpDefinition powerUpDefinition)
