@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using Unity.VectorGraphics;
 using UnityEngine;
 
 namespace GetBricked.Gameplay
@@ -6,7 +8,10 @@ namespace GetBricked.Gameplay
     internal sealed class BreakoutUiRenderer
     {
         private const int RetroUiFontSize = 18;
+        private const int IconTextureSize = 256;
         private static readonly string[] RetroUiFontNames = { "Consolas", "Courier New", "monospace" };
+
+        private readonly Dictionary<Sprite, Texture2D> iconTextureCache = new Dictionary<Sprite, Texture2D>();
 
         private GUIStyle hudStyle;
         private GUIStyle messageStyle;
@@ -18,6 +23,10 @@ namespace GetBricked.Gameplay
         private GUIStyle overlayBodyStyle;
         private GUIStyle overlayActionStyle;
         private GUIStyle overlaySelectedActionStyle;
+        private GUIStyle draftOptionTitleStyle;
+        private GUIStyle draftOptionBodyStyle;
+        private GUIStyle draftOptionDetailStyle;
+        private GUIStyle draftHintStyle;
         private GUIStyle hudButtonStyle;
         private GUIStyle hudActiveButtonStyle;
         private GUIStyle speedMeterCaptionStyle;
@@ -32,6 +41,7 @@ namespace GetBricked.Gameplay
         private GUIStyle floatingScoreTagStyle;
         private GUIStyle capsuleMadnessStyle;
         private Font retroUiFont;
+        private Material vectorIconMaterial;
         private BreakoutUiThemePalette palette = new BreakoutUiThemePalette();
 
         public void ConfigureTheme(BreakoutUiThemePalette themePalette)
@@ -305,24 +315,29 @@ namespace GetBricked.Gameplay
                 return;
             }
 
-            var boxRect = new Rect((Screen.width * 0.5f) - 520f, (Screen.height * 0.5f) - 266f, 1040f, 532f);
+            var boxWidth = Mathf.Min(1180f, Mathf.Max(980f, Screen.width - 64f));
+            var boxHeight = Mathf.Min(650f, Mathf.Max(560f, Screen.height - 56f));
+            var boxRect = new Rect((Screen.width * 0.5f) - (boxWidth * 0.5f), (Screen.height * 0.5f) - (boxHeight * 0.5f), boxWidth, boxHeight);
             DrawPanel(boxRect, palette.AccentSecondary, palette.AccentPrimary, true);
-            DrawTextWithShadow(new Rect(boxRect.x + 30f, boxRect.y + 22f, boxRect.width - 60f, 40f), view.Title, overlayTitleStyle, palette.TextPrimary);
-            DrawTextWithShadow(new Rect(boxRect.x + 30f, boxRect.y + 64f, boxRect.width - 60f, 26f), view.Subtitle, setupHintStyle, palette.TextMuted, 0.35f);
-            DrawTextWithShadow(new Rect(boxRect.x + 30f, boxRect.y + 96f, boxRect.width - 60f, 26f), view.BuildLine, hudStyle, palette.TextPrimary, 0.25f);
+            DrawTextWithShadow(new Rect(boxRect.x + 36f, boxRect.y + 24f, boxRect.width - 72f, 42f), view.Title, overlayTitleStyle, palette.TextPrimary);
+            DrawTextWithShadow(new Rect(boxRect.x + 36f, boxRect.y + 68f, boxRect.width - 72f, 28f), view.Subtitle, setupHintStyle, palette.TextMuted, 0.35f);
+            DrawTextWithShadow(new Rect(boxRect.x + 36f, boxRect.y + 102f, boxRect.width - 72f, 28f), view.BuildLine, hudStyle, palette.TextPrimary, 0.25f);
 
             var optionCount = view.Options.Length;
-            var optionWidth = 300f;
-            var optionSpacing = 20f;
+            var optionSpacing = 24f;
+            var optionWidth = Mathf.Min(340f, (boxRect.width - 112f - ((optionCount - 1) * optionSpacing)) / optionCount);
             var totalWidth = (optionCount * optionWidth) + ((optionCount - 1) * optionSpacing);
             var startX = boxRect.x + ((boxRect.width - totalWidth) * 0.5f);
-            var optionY = boxRect.y + 142f;
+            var optionY = boxRect.y + 148f;
+            var hintHeight = 78f;
+            var hintY = boxRect.yMax - hintHeight - 34f;
+            var optionHeight = Mathf.Max(268f, hintY - optionY - 26f);
 
             for (var index = 0; index < optionCount; index++)
             {
                 var option = view.Options[index];
                 var isSelected = index == Mathf.Clamp(view.SelectedOptionIndex, 0, optionCount - 1);
-                var optionRect = new Rect(startX + (index * (optionWidth + optionSpacing)), optionY, optionWidth, 246f);
+                var optionRect = new Rect(startX + (index * (optionWidth + optionSpacing)), optionY, optionWidth, optionHeight);
                 var accent = option.Accent;
                 accent.a = 1f;
 
@@ -338,15 +353,16 @@ namespace GetBricked.Gameplay
                     onOptionClicked?.Invoke(index);
                 }
 
-                var iconRect = new Rect(optionRect.x + 18f, optionRect.y + 42f, 58f, 58f);
-                DrawSectionLabel(new Rect(optionRect.x + 16f, optionRect.y + 14f, optionRect.width - 32f, 18f), $"PICK {index + 1}", accent);
+                var iconRect = new Rect(optionRect.x + 20f, optionRect.y + 48f, 68f, 68f);
+                DrawSectionLabel(new Rect(optionRect.x + 18f, optionRect.y + 16f, optionRect.width - 36f, 20f), $"PICK {index + 1}", accent);
                 DrawIconTile(iconRect, option.Icon, accent, isSelected);
-                DrawTextWithShadow(new Rect(optionRect.x + 86f, optionRect.y + 42f, optionRect.width - 102f, 52f), option.Title, overlayActionStyle, palette.TextPrimary, 0.3f);
-                DrawTextWithShadow(new Rect(optionRect.x + 16f, optionRect.y + 100f, optionRect.width - 32f, 92f), option.Description, overlayBodyStyle, palette.TextMuted, 0.22f);
-                DrawTextWithShadow(new Rect(optionRect.x + 16f, optionRect.y + 200f, optionRect.width - 32f, 28f), option.Detail, setupHintStyle, palette.TextPrimary, 0.25f);
+                DrawTextWithShadow(new Rect(optionRect.x + 104f, optionRect.y + 42f, optionRect.width - 124f, 78f), option.Title, draftOptionTitleStyle, palette.TextPrimary, 0.3f);
+                DrawTextWithShadow(new Rect(optionRect.x + 20f, optionRect.y + 132f, optionRect.width - 40f, Mathf.Max(96f, optionRect.height - 254f)), option.Description, draftOptionBodyStyle, palette.TextMuted, 0.22f);
+                DrawHorizontalGradient(new Rect(optionRect.x + 20f, optionRect.yMax - 110f, optionRect.width - 40f, 2f), WithAlpha(accent, 0.55f), WithAlpha(palette.AccentPrimary, 0.18f), 12);
+                DrawTextWithShadow(new Rect(optionRect.x + 20f, optionRect.yMax - 98f, optionRect.width - 40f, 84f), FormatDraftCardDetail(option.Detail), draftOptionDetailStyle, palette.TextPrimary, 0.25f);
             }
 
-            DrawHintBand(new Rect(boxRect.x + 30f, boxRect.y + 418f, boxRect.width - 60f, 72f), view.HintText);
+            DrawHintBand(new Rect(boxRect.x + 36f, hintY, boxRect.width - 72f, hintHeight), view.HintText, draftHintStyle);
         }
 
         public void DrawMessageOverlay(string message)
@@ -657,6 +673,30 @@ namespace GetBricked.Gameplay
                 fontStyle = FontStyle.Bold,
             };
             overlaySelectedActionStyle ??= new GUIStyle(overlayActionStyle);
+            draftOptionTitleStyle ??= new GUIStyle(overlayActionStyle)
+            {
+                alignment = TextAnchor.MiddleLeft,
+                fontSize = 21,
+                wordWrap = true,
+            };
+            draftOptionBodyStyle ??= new GUIStyle(overlayBodyStyle)
+            {
+                fontSize = 18,
+                wordWrap = true,
+            };
+            draftOptionDetailStyle ??= new GUIStyle(setupHintStyle)
+            {
+                alignment = TextAnchor.UpperLeft,
+                fontSize = 17,
+                fontStyle = FontStyle.Bold,
+                wordWrap = true,
+            };
+            draftHintStyle ??= new GUIStyle(setupHintStyle)
+            {
+                alignment = TextAnchor.MiddleCenter,
+                fontSize = 17,
+                wordWrap = true,
+            };
             hudButtonStyle ??= new GUIStyle(overlayActionStyle)
             {
                 fontSize = 14,
@@ -739,6 +779,10 @@ namespace GetBricked.Gameplay
             overlayBodyStyle.normal.textColor = palette.TextMuted;
             overlayActionStyle.normal.textColor = palette.TextMuted;
             overlaySelectedActionStyle.normal.textColor = palette.TextPrimary;
+            draftOptionTitleStyle.normal.textColor = palette.TextPrimary;
+            draftOptionBodyStyle.normal.textColor = palette.TextMuted;
+            draftOptionDetailStyle.normal.textColor = palette.TextPrimary;
+            draftHintStyle.normal.textColor = palette.TextMuted;
             hudButtonStyle.normal.textColor = palette.TextMuted;
             hudActiveButtonStyle.normal.textColor = palette.TextPrimary;
             speedMeterCaptionStyle.normal.textColor = palette.TextPrimary;
@@ -771,6 +815,10 @@ namespace GetBricked.Gameplay
             overlayBodyStyle.font = retroUiFont;
             overlayActionStyle.font = retroUiFont;
             overlaySelectedActionStyle.font = retroUiFont;
+            draftOptionTitleStyle.font = retroUiFont;
+            draftOptionBodyStyle.font = retroUiFont;
+            draftOptionDetailStyle.font = retroUiFont;
+            draftHintStyle.font = retroUiFont;
             hudButtonStyle.font = retroUiFont;
             hudActiveButtonStyle.font = retroUiFont;
             speedMeterCaptionStyle.font = retroUiFont;
@@ -954,7 +1002,9 @@ namespace GetBricked.Gameplay
             DrawSolidRect(rect, WithAlpha(palette.BezelDark, 0.72f));
             DrawOutline(rect, WithAlpha(accent, emphasize ? 0.75f : 0.42f), emphasize ? 2f : 1f);
 
-            if (icon == null || icon.texture == null)
+            var iconTexture = ResolveIconTexture(icon, out var textureCoords);
+
+            if (iconTexture == null)
             {
                 DrawSolidRect(new Rect(rect.x + 13f, rect.y + 13f, rect.width - 26f, rect.height - 26f), WithAlpha(accent, 0.86f));
                 return;
@@ -962,7 +1012,7 @@ namespace GetBricked.Gameplay
 
             var previousGuiColor = GUI.color;
             GUI.color = accent;
-            GUI.DrawTextureWithTexCoords(new Rect(rect.x + 7f, rect.y + 7f, rect.width - 14f, rect.height - 14f), icon.texture, GetSpriteTexCoords(icon), true);
+            GUI.DrawTextureWithTexCoords(new Rect(rect.x + 7f, rect.y + 7f, rect.width - 14f, rect.height - 14f), iconTexture, textureCoords, true);
             GUI.color = previousGuiColor;
         }
 
@@ -1052,10 +1102,10 @@ namespace GetBricked.Gameplay
             }
         }
 
-        private void DrawHintBand(Rect rect, string text)
+        private void DrawHintBand(Rect rect, string text, GUIStyle textStyle = null)
         {
             DrawPanel(rect, palette.AccentPrimary, palette.AccentSecondary, false, 1f);
-            DrawTextWithShadow(rect, text, setupHintStyle, palette.TextMuted, 0.2f);
+            DrawTextWithShadow(rect, text, textStyle ?? setupHintStyle, palette.TextMuted, 0.2f);
         }
 
         private void DrawSectionLabel(Rect rect, string text, Color accent)
@@ -1090,6 +1140,99 @@ namespace GetBricked.Gameplay
                 textureRect.height / sprite.texture.height);
         }
 
+        private Texture ResolveIconTexture(Sprite sprite, out Rect textureCoords)
+        {
+            textureCoords = new Rect(0f, 0f, 1f, 1f);
+
+            if (sprite == null)
+            {
+                return null;
+            }
+
+            var rasterizedTexture = ResolveRasterizedIconTexture(sprite);
+
+            if (rasterizedTexture != null)
+            {
+                return rasterizedTexture;
+            }
+
+            if (sprite.texture == null)
+            {
+                return null;
+            }
+
+            textureCoords = GetSpriteTexCoords(sprite);
+            return sprite.texture;
+        }
+
+        private Texture2D ResolveRasterizedIconTexture(Sprite sprite)
+        {
+            if (sprite == null)
+            {
+                return null;
+            }
+
+            if (iconTextureCache.TryGetValue(sprite, out var cachedTexture))
+            {
+                return cachedTexture;
+            }
+
+            var material = ResolveVectorIconMaterial();
+
+            if (material == null)
+            {
+                iconTextureCache[sprite] = null;
+                return null;
+            }
+
+            Texture2D renderedTexture = null;
+
+            try
+            {
+                renderedTexture = VectorUtils.RenderSpriteToTexture2D(sprite, IconTextureSize, IconTextureSize, material, 4);
+            }
+            catch (Exception exception)
+            {
+                Debug.LogWarning($"Could not rasterize UI icon sprite '{sprite.name}': {exception.Message}");
+            }
+
+            if (renderedTexture != null)
+            {
+                renderedTexture.name = $"{sprite.name}UiIconTexture";
+                renderedTexture.hideFlags = HideFlags.DontSave;
+            }
+
+            iconTextureCache[sprite] = renderedTexture;
+            return renderedTexture;
+        }
+
+        private Material ResolveVectorIconMaterial()
+        {
+            if (vectorIconMaterial != null)
+            {
+                return vectorIconMaterial;
+            }
+
+            var shader = Shader.Find("Unlit/Vector");
+
+            if (shader == null)
+            {
+                shader = Shader.Find("Sprites/Default");
+            }
+
+            if (shader == null)
+            {
+                return null;
+            }
+
+            vectorIconMaterial = new Material(shader)
+            {
+                name = "RuntimeUiIconVectorMaterial",
+                hideFlags = HideFlags.DontSave,
+            };
+            return vectorIconMaterial;
+        }
+
         private static Color WithAlpha(Color color, float alpha)
         {
             return new Color(color.r, color.g, color.b, alpha);
@@ -1098,6 +1241,11 @@ namespace GetBricked.Gameplay
         private static string ToArcadeLabel(string text)
         {
             return string.IsNullOrWhiteSpace(text) ? string.Empty : text.ToUpperInvariant();
+        }
+
+        private static string FormatDraftCardDetail(string text)
+        {
+            return string.IsNullOrWhiteSpace(text) ? string.Empty : text.Replace(" | ", "\n");
         }
 
         private void DrawTextWithShadow(Rect rect, string text, GUIStyle style, Color color, float shadowAlpha = 0.5f)

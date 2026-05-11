@@ -117,6 +117,7 @@ namespace GetBricked.Gameplay
         private readonly List<SpriteRenderer> wallRenderers = new List<SpriteRenderer>();
         private readonly List<Brick> paddlePunkShieldBricks = new List<Brick>();
         private readonly Dictionary<string, Sprite> runUpgradeSpriteCache = new Dictionary<string, Sprite>(StringComparer.OrdinalIgnoreCase);
+        private readonly Dictionary<string, Sprite> powerUpIconSpriteCache = new Dictionary<string, Sprite>(StringComparer.OrdinalIgnoreCase);
         private readonly BreakoutBrickEffectResolver brickEffectResolver = new BreakoutBrickEffectResolver();
 
         private Camera activeCamera;
@@ -4558,9 +4559,37 @@ namespace GetBricked.Gameplay
 
         private Sprite ResolvePowerUpIcon(PowerUpDefinition definition)
         {
-            return themeService != null
+            if (definition == null)
+            {
+                return powerUpSprite != null ? powerUpSprite : squareSprite;
+            }
+
+            var resourcePath = definition.ResolvePickupSpriteResourcePath();
+
+            if (!string.IsNullOrWhiteSpace(resourcePath))
+            {
+                if (!powerUpIconSpriteCache.TryGetValue(resourcePath, out var cachedSprite))
+                {
+                    cachedSprite = Resources.Load<Sprite>(resourcePath);
+                    powerUpIconSpriteCache[resourcePath] = cachedSprite;
+                }
+
+                if (cachedSprite != null)
+                {
+                    return cachedSprite;
+                }
+            }
+
+            var styledSprite = themeService != null
                 ? themeService.ResolvePowerUpStyle(definition).Sprite
-                : powerUpSprite;
+                : null;
+
+            if (styledSprite != null)
+            {
+                return styledSprite;
+            }
+
+            return powerUpSprite != null ? powerUpSprite : squareSprite;
         }
 
         private Color ResolveDraftOfferAccentColor(BreakoutRunDraftOffer offer)

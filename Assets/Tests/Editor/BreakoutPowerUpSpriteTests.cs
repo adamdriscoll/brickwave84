@@ -65,6 +65,58 @@ public sealed class BreakoutPowerUpSpriteTests
         }
     }
 
+    [Test]
+    public void PowerUpIconResolverUsesPickupSpriteResourceWhenThemeServiceIsUnavailable()
+    {
+        var powerUp = Resources.Load<PowerUpDefinition>("PowerUps/FastBall");
+        var expectedSprite = Resources.Load<Sprite>("Sprites/fast-ball");
+        Assert.That(powerUp, Is.Not.Null);
+        Assert.That(expectedSprite, Is.Not.Null);
+
+        var controllerObject = new GameObject("Controller");
+        controllerObject.SetActive(false);
+        var fallbackTexture = new Texture2D(8, 8);
+        var fallbackSprite = Sprite.Create(fallbackTexture, new Rect(0f, 0f, 8f, 8f), new Vector2(0.5f, 0.5f), 8f);
+
+        try
+        {
+            var controller = controllerObject.AddComponent<BreakoutGameController>();
+            SetPrivateField(controller, "powerUpSprite", fallbackSprite);
+            SetPrivateField(controller, "squareSprite", fallbackSprite);
+            SetPrivateField(controller, "themeService", null);
+
+            var resolvedSprite = (Sprite)typeof(BreakoutGameController)
+                .GetMethod("ResolvePowerUpIcon", InstanceFlags)
+                .Invoke(controller, new object[] { powerUp });
+
+            Assert.That(resolvedSprite, Is.SameAs(expectedSprite));
+        }
+        finally
+        {
+            UnityEngine.Object.DestroyImmediate(controllerObject);
+            UnityEngine.Object.DestroyImmediate(fallbackSprite);
+            UnityEngine.Object.DestroyImmediate(fallbackTexture);
+        }
+    }
+
+    [Test]
+    public void UiIconResolverRasterizesPickupSpriteForImgui()
+    {
+        var sprite = Resources.Load<Sprite>("Sprites/fast-ball");
+        Assert.That(sprite, Is.Not.Null);
+
+        var rendererType = GetGameplayType("GetBricked.Gameplay.BreakoutUiRenderer");
+        var renderer = Activator.CreateInstance(rendererType, nonPublic: true);
+        var arguments = new object[] { sprite, default(Rect) };
+
+        var texture = (Texture)rendererType
+            .GetMethod("ResolveIconTexture", InstanceFlags)
+            .Invoke(renderer, arguments);
+
+        Assert.That(texture, Is.Not.Null);
+        Assert.That(texture, Is.Not.SameAs(sprite.texture));
+    }
+
     private static PowerUpDefinition CreatePowerUp(string displayName)
     {
         var powerUp = ScriptableObject.CreateInstance<PowerUpDefinition>();
