@@ -5,6 +5,37 @@ using UnityEngine;
 
 namespace GetBricked.Gameplay
 {
+    internal readonly struct BreakoutBrickState
+    {
+        public BreakoutBrickState(
+            BrickDefinition definition,
+            Vector2 position,
+            int row,
+            int column,
+            int hitPointsRemaining,
+            BreakoutBrickMotionConfig motionConfig)
+        {
+            Definition = definition;
+            Position = position;
+            Row = Mathf.Max(0, row);
+            Column = Mathf.Max(0, column);
+            HitPointsRemaining = Mathf.Max(0, hitPointsRemaining);
+            MotionConfig = motionConfig;
+        }
+
+        public BrickDefinition Definition { get; }
+
+        public Vector2 Position { get; }
+
+        public int Row { get; }
+
+        public int Column { get; }
+
+        public int HitPointsRemaining { get; }
+
+        public BreakoutBrickMotionConfig MotionConfig { get; }
+    }
+
     internal sealed class BreakoutBrickService
     {
         private const int BrickSortingOrder = 5;
@@ -91,6 +122,37 @@ namespace GetBricked.Gameplay
             return requiredBrickCount;
         }
 
+        public int BuildBrickWall(IReadOnlyList<BreakoutBrickState> brickStates)
+        {
+            if (brickStates == null || brickStates.Count == 0)
+            {
+                return 0;
+            }
+
+            var requiredBrickCount = 0;
+
+            for (var index = 0; index < brickStates.Count; index++)
+            {
+                var state = brickStates[index];
+                var definition = state.Definition;
+
+                if (definition == null || (definition.IsBreakable && state.HitPointsRemaining <= 0))
+                {
+                    continue;
+                }
+
+                var brick = CreateBrick(state.Position, definition, state.Row, state.Column, state.MotionConfig);
+                brick?.RestoreHitPoints(state.HitPointsRemaining);
+
+                if (brick != null && brick.CountsTowardLevelCompletion)
+                {
+                    requiredBrickCount++;
+                }
+            }
+
+            return requiredBrickCount;
+        }
+
         public Brick CreateBrick(
             Vector2 position,
             BrickDefinition definition,
@@ -130,10 +192,41 @@ namespace GetBricked.Gameplay
                 GetEffectiveHitPoints(definition),
                 styleResolver(definition),
                 motionConfig.Speed,
-                motionConfig.InitialDirection);
+                motionConfig.InitialDirection,
+                row,
+                column);
             brick.SetMovementBounds(movementBoundsResolver());
             bricks.Add(brick);
             return brick;
+        }
+
+        public BreakoutBrickState[] CaptureBrickStates()
+        {
+            if (bricks.Count == 0)
+            {
+                return Array.Empty<BreakoutBrickState>();
+            }
+
+            var states = new List<BreakoutBrickState>(bricks.Count);
+
+            for (var index = 0; index < bricks.Count; index++)
+            {
+                var brick = bricks[index];
+
+                if (brick == null || brick.Definition == null)
+                {
+                    continue;
+                }
+
+                if (brick.Definition.IsBreakable && brick.HitPointsRemaining <= 0)
+                {
+                    continue;
+                }
+
+                states.Add(brick.CaptureState());
+            }
+
+            return states.ToArray();
         }
 
         public bool RemoveBrick(Brick brick)

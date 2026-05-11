@@ -275,6 +275,12 @@ namespace GetBricked.Gameplay
         {
             EnsureStyles();
 
+            if (HasLeaderboardRows(view))
+            {
+                DrawSplitOverlay(view, onActionClicked);
+                return;
+            }
+
             var boxWidth = view.IsCompact ? 780f : 760f;
             var minBoxHeight = view.IsCompact ? 470f : 404f;
             var boxHeight = Mathf.Max(
@@ -327,6 +333,209 @@ namespace GetBricked.Gameplay
                     palette.TextMuted,
                     0.3f);
             }
+        }
+
+        private void DrawSplitOverlay(BreakoutUiOverlayView view, Action<int> onActionClicked)
+        {
+            if (view == null)
+            {
+                return;
+            }
+
+            var useStackedLayout = Screen.width < 1060f;
+            var outerPadding = 28f;
+            var gap = 22f;
+            var availableWidth = Mathf.Min(Screen.width - 48f, 1160f);
+            var roundInfoWidth = useStackedLayout
+                ? availableWidth
+                : Mathf.Clamp(availableWidth * 0.48f, 440f, 540f);
+            var leaderboardWidth = useStackedLayout
+                ? availableWidth
+                : availableWidth - roundInfoWidth - gap;
+            var lineHeight = 27f;
+            var leaderboardRowCount = GetLeaderboardRowCount(view);
+            var leaderboardHeight = 104f + (leaderboardRowCount * lineHeight);
+            var roundInfoHeight = 212f
+                + (view.SummaryLines.Length * 30f)
+                + (view.ActionLabels.Length * 44f)
+                + (view.FooterLines.Length * 34f);
+
+            if (useStackedLayout)
+            {
+                var stackedHeight = Mathf.Min(
+                    Screen.height - 96f,
+                    84f + roundInfoHeight + leaderboardHeight + gap);
+                var stackRect = new Rect(
+                    (Screen.width - availableWidth) * 0.5f,
+                    (Screen.height - stackedHeight) * 0.5f,
+                    availableWidth,
+                    stackedHeight);
+                DrawTextWithShadow(new Rect(stackRect.x, stackRect.y, stackRect.width, 48f), view.Title, overlayTitleStyle, palette.TextPrimary);
+
+                var infoHeight = Mathf.Min(roundInfoHeight, (stackRect.height - 78f - gap) * 0.56f);
+                var infoRect = new Rect(stackRect.x, stackRect.y + 60f, stackRect.width, infoHeight);
+                var boardRect = new Rect(stackRect.x, infoRect.yMax + gap, stackRect.width, stackRect.yMax - infoRect.yMax - gap);
+                DrawRoundInfoPanel(infoRect, view, outerPadding, onActionClicked);
+                DrawLeaderboardPanel(boardRect, view, outerPadding, lineHeight);
+                return;
+            }
+
+            var panelHeight = Mathf.Min(Screen.height - 132f, Mathf.Max(486f, Mathf.Max(roundInfoHeight, leaderboardHeight)));
+            var totalWidth = roundInfoWidth + gap + leaderboardWidth;
+            var left = (Screen.width - totalWidth) * 0.5f;
+            var top = (Screen.height - panelHeight) * 0.5f;
+            var titleRect = new Rect(left, top - 54f, totalWidth, 46f);
+            DrawTextWithShadow(titleRect, view.Title, overlayTitleStyle, palette.TextPrimary);
+
+            var infoRectWide = new Rect(left, top, roundInfoWidth, panelHeight);
+            var leaderboardRectWide = new Rect(infoRectWide.xMax + gap, top, leaderboardWidth, panelHeight);
+            DrawRoundInfoPanel(infoRectWide, view, outerPadding, onActionClicked);
+            DrawLeaderboardPanel(leaderboardRectWide, view, outerPadding, lineHeight);
+        }
+
+        private void DrawRoundInfoPanel(Rect rect, BreakoutUiOverlayView view, float padding, Action<int> onActionClicked)
+        {
+            DrawPanel(rect, palette.AccentSecondary, palette.AccentPrimary, true);
+
+            var y = rect.y + 22f;
+            var title = string.IsNullOrWhiteSpace(view.SummaryTitle) ? "Round Info" : view.SummaryTitle;
+            DrawTextWithShadow(new Rect(rect.x + padding, y, rect.width - (padding * 2f), 24f), title, hudStyle, palette.AccentPrimary, 0.28f);
+            y += 38f;
+
+            for (var index = 0; index < view.SummaryLines.Length; index++)
+            {
+                DrawTextWithShadow(
+                    new Rect(rect.x + padding, y + (index * 30f), rect.width - (padding * 2f), 26f),
+                    view.SummaryLines[index],
+                    overlayBodyStyle,
+                    index == 0 ? palette.TextPrimary : palette.TextMuted,
+                    0.35f);
+            }
+
+            y += (view.SummaryLines.Length * 30f) + 18f;
+            DrawActionList(
+                view.ActionLabels,
+                view.SelectedActionIndex,
+                rect.x + padding,
+                y,
+                rect.width - (padding * 2f),
+                42f,
+                onActionClicked);
+
+            y += (view.ActionLabels.Length * 42f) + 16f;
+
+            for (var index = 0; index < view.FooterLines.Length; index++)
+            {
+                DrawTextWithShadow(
+                    new Rect(rect.x + padding, y + (index * 32f), rect.width - (padding * 2f), 30f),
+                    view.FooterLines[index],
+                    setupHintStyle,
+                    palette.TextMuted,
+                    0.3f);
+            }
+        }
+
+        private void DrawLeaderboardPanel(Rect rect, BreakoutUiOverlayView view, float padding, float lineHeight)
+        {
+            DrawPanel(rect, palette.AccentPrimary, palette.AccentWarm, true);
+
+            var title = string.IsNullOrWhiteSpace(view.LeaderboardTitle) ? "Scoreboard" : view.LeaderboardTitle;
+            DrawTextWithShadow(new Rect(rect.x + padding, rect.y + 22f, rect.width - (padding * 2f), 32f), title, overlayTitleStyle, palette.TextPrimary, 0.32f);
+            var headerRect = new Rect(rect.x + 18f, rect.y + 64f, rect.width - 36f, 22f);
+            DrawLeaderboardHeader(headerRect);
+
+            var firstLineY = headerRect.yMax + 8f;
+            var leaderboardRowCount = GetLeaderboardRowCount(view);
+            var visibleCount = Mathf.Min(leaderboardRowCount, Mathf.Max(1, Mathf.FloorToInt((rect.yMax - firstLineY - 18f) / lineHeight)));
+
+            for (var index = 0; index < visibleCount; index++)
+            {
+                var rowRect = new Rect(rect.x + 18f, firstLineY + (index * lineHeight), rect.width - 36f, lineHeight - 2f);
+                var isLeader = index == 0;
+
+                if (isLeader)
+                {
+                    DrawSolidRect(rowRect, WithAlpha(palette.AccentWarm, 0.12f));
+                    DrawOutline(rowRect, WithAlpha(palette.AccentWarm, 0.72f), 1f);
+                }
+                else if ((index & 1) == 1)
+                {
+                    DrawSolidRect(rowRect, WithAlpha(palette.BezelDark, 0.2f));
+                }
+
+                if (view.LeaderboardEntries != null && view.LeaderboardEntries.Length > index)
+                {
+                    DrawLeaderboardEntry(rowRect, view.LeaderboardEntries[index], isLeader);
+                }
+                else
+                {
+                    DrawTextWithShadow(
+                        new Rect(rowRect.x + 10f, rowRect.y + 2f, rowRect.width - 20f, rowRect.height),
+                        view.LeaderboardLines[index],
+                        overlayBodyStyle,
+                        isLeader ? palette.TextPrimary : palette.TextMuted,
+                        isLeader ? 0.36f : 0.22f);
+                }
+            }
+        }
+
+        private static bool HasLeaderboardRows(BreakoutUiOverlayView view)
+        {
+            if (view == null)
+            {
+                return false;
+            }
+
+            return (view.LeaderboardEntries != null && view.LeaderboardEntries.Length > 0)
+                || (view.LeaderboardLines != null && view.LeaderboardLines.Length > 0);
+        }
+
+        private static int GetLeaderboardRowCount(BreakoutUiOverlayView view)
+        {
+            if (view == null)
+            {
+                return 0;
+            }
+
+            return view.LeaderboardEntries != null && view.LeaderboardEntries.Length > 0
+                ? view.LeaderboardEntries.Length
+                : view.LeaderboardLines?.Length ?? 0;
+        }
+
+        private void DrawLeaderboardHeader(Rect contentRect)
+        {
+            DrawLeaderboardCell(contentRect, 0f, 0.14f, "RANK", 0.22f, TextAnchor.MiddleCenter, palette.AccentWarm);
+            DrawLeaderboardCell(contentRect, 0.14f, 0.58f, "PLAYER", 0.22f, TextAnchor.MiddleLeft, palette.AccentWarm);
+            DrawLeaderboardCell(contentRect, 0.72f, 0.28f, "SCORE", 0.22f, TextAnchor.MiddleRight, palette.AccentWarm);
+        }
+
+        private void DrawLeaderboardEntry(Rect rowRect, BreakoutTurnLeaderboardEntry entry, bool isLeader)
+        {
+            var color = isLeader ? palette.TextPrimary : palette.TextMuted;
+            var shadow = isLeader ? 0.36f : 0.22f;
+            DrawLeaderboardCell(rowRect, 0f, 0.14f, entry.IsCurrentPlayer ? $">{entry.Rank:00}" : $"{entry.Rank:00}", shadow, TextAnchor.MiddleCenter, color);
+            DrawLeaderboardCell(rowRect, 0.14f, 0.58f, entry.PlayerName, shadow, TextAnchor.MiddleLeft, color);
+            DrawLeaderboardCell(rowRect, 0.72f, 0.28f, FormatScoreValueForLeaderboard(entry.Score), shadow, TextAnchor.MiddleRight, color);
+        }
+
+        private void DrawLeaderboardCell(Rect rowRect, float normalizedX, float normalizedWidth, string text, float shadowAlpha, TextAnchor alignment, Color color)
+        {
+            var rect = new Rect(
+                rowRect.x + (rowRect.width * normalizedX) + 6f,
+                rowRect.y + 2f,
+                (rowRect.width * normalizedWidth) - 12f,
+                rowRect.height - 2f);
+            var previousAlignment = overlayBodyStyle.alignment;
+            overlayBodyStyle.alignment = alignment;
+            DrawTextWithShadow(rect, text, overlayBodyStyle, color, shadowAlpha);
+            overlayBodyStyle.alignment = previousAlignment;
+        }
+
+        private static string FormatScoreValueForLeaderboard(int score)
+        {
+            return score >= 100000
+                ? score.ToString("000000", System.Globalization.CultureInfo.InvariantCulture)
+                : score.ToString("0000", System.Globalization.CultureInfo.InvariantCulture);
         }
 
         public void DrawUpgradeDraft(BreakoutUiUpgradeDraftView view, Action<int> onOptionClicked)

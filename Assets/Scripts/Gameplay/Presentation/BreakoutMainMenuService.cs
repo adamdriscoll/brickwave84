@@ -92,7 +92,7 @@ namespace GetBricked.Gameplay
                 BreakoutMainMenuAction.Rogue => "Rogue mode is staged for progression, unlocks, intensities, and cabinet heat.",
                 BreakoutMainMenuAction.DualSticks => "Dual Sticks is staged for side-by-side versus runs, sabotage drops, and brick sends.",
                 BreakoutMainMenuAction.Coop => "Co-op is staged for two paddles, two balls, and one-keyboard shared survival.",
-                BreakoutMainMenuAction.TurnBased => "Hot Seat opens the custom-game bench with player-count setup.",
+                BreakoutMainMenuAction.TurnBased => "Hot Seat opens player count, match mode, and heat setup.",
                 BreakoutMainMenuAction.SoundSettings => "Sound Settings are staged for master, music, and cabinet SFX volume controls.",
                 BreakoutMainMenuAction.GraphicsSettings => "Graphics Settings are staged for future display, glow, scanline, and readability controls.",
                 _ => string.Empty,
@@ -212,10 +212,10 @@ namespace GetBricked.Gameplay
                 case BreakoutMainMenuAction.TurnBased:
                     return new[]
                     {
-                        "Hot Seat custom game.",
-                        "2-10 generated player names.",
-                        "Switch turns on ball losses and stage clears.",
-                        "Leaderboard appears between every handoff.",
+                        "Pass-the-cabinet play for 2-10 players.",
+                        "Top Score: most points after fixed turns.",
+                        "Outlast: last player with balls wins.",
+                        "Random Tape ID and shared heat level per match.",
                     };
                 case BreakoutMainMenuAction.SoundSettings:
                     return new[]
@@ -266,7 +266,7 @@ namespace GetBricked.Gameplay
                 BreakoutMainMenuAction.Rogue => "Rogue launches a fixed 10-stage mixtape with draft rewards and saved results.",
                 BreakoutMainMenuAction.SoundSettings => "Sound controls are staged here for mixer work.",
                 BreakoutMainMenuAction.GraphicsSettings => "Graphics controls are staged here for display, glow, and readability options.",
-                BreakoutMainMenuAction.TurnBased => "Hot Seat opens the custom-game bench with player count and switch leaderboards.",
+                BreakoutMainMenuAction.TurnBased => "Hot Seat opens player count, mode, and heat setup before the match starts.",
                 BreakoutMainMenuAction.DeveloperMode => "Developer Mode opens the local jump bench for Rogue stages, boss gates, and tuning.",
                 _ => "This cabinet channel is staged for later.",
             };

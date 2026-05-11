@@ -93,7 +93,11 @@ namespace GetBricked.Gameplay
     internal sealed class BreakoutUiOverlayView
     {
         public string Title = string.Empty;
+        public string SummaryTitle = string.Empty;
         public string[] SummaryLines = Array.Empty<string>();
+        public string LeaderboardTitle = string.Empty;
+        public BreakoutTurnLeaderboardEntry[] LeaderboardEntries = Array.Empty<BreakoutTurnLeaderboardEntry>();
+        public string[] LeaderboardLines = Array.Empty<string>();
         public string[] ActionLabels = Array.Empty<string>();
         public int SelectedActionIndex;
         public string[] FooterLines = Array.Empty<string>();

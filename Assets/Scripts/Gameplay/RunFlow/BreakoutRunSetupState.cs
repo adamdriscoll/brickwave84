@@ -20,6 +20,10 @@ namespace GetBricked.Gameplay
         CapsuleParty = 8,
         Theme = 9,
         PlayerCount = 10,
+        HotSeatMode = 11,
+        HotSeatTurnLimit = 12,
+        HotSeatLives = 13,
+        HotSeatDifficulty = 14,
     }
 
     internal sealed class BreakoutRunSetupState

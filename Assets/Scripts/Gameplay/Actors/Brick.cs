@@ -38,6 +38,8 @@ namespace GetBricked.Gameplay
         private float jellyWobbleTimer;
         private float jellyWobbleDuration;
         private float jellyWobbleDirection = 1f;
+        private int layoutRow;
+        private int layoutColumn;
 
         public BrickDefinition Definition => definition;
 
@@ -47,24 +49,57 @@ namespace GetBricked.Gameplay
 
         public bool IsExplosive => definition != null && definition.IsExplosive;
 
+        public int HitPointsRemaining => hitPointsRemaining;
+
         public void Initialize(
             BreakoutGameController controller,
             BrickDefinition brickDefinition,
             int effectiveHitPoints,
             ThemeVisualStyle visualStyle,
             float motionSpeed,
-            Vector2 motionDirection)
+            Vector2 motionDirection,
+            int row = 0,
+            int column = 0)
         {
             gameController = controller;
             definition = brickDefinition;
             spriteRenderer = GetComponentInChildren<SpriteRenderer>();
             glowRenderer = GetComponentInChildren<BreakoutGlowRenderer>();
+            layoutRow = Mathf.Max(0, row);
+            layoutColumn = Mathf.Max(0, column);
             maxHitPoints = definition != null && definition.IsBreakable
                 ? Mathf.Max(1, effectiveHitPoints)
                 : 0;
             hitPointsRemaining = maxHitPoints;
             ApplyTheme(visualStyle);
             ConfigureMotion(motionSpeed, motionDirection);
+        }
+
+        internal BreakoutBrickState CaptureState()
+        {
+            var motionConfig = hasMotion
+                ? new BreakoutBrickMotionConfig(movementSpeed, lastMovementDirection)
+                : default;
+            return new BreakoutBrickState(
+                definition,
+                transform.position,
+                layoutRow,
+                layoutColumn,
+                hitPointsRemaining,
+                motionConfig);
+        }
+
+        internal void RestoreHitPoints(int restoredHitPoints)
+        {
+            if (definition == null || !definition.IsBreakable)
+            {
+                hitPointsRemaining = 0;
+                RefreshVisual();
+                return;
+            }
+
+            hitPointsRemaining = Mathf.Clamp(restoredHitPoints, 1, maxHitPoints);
+            RefreshVisual();
         }
 
         public void ApplyTheme(ThemeVisualStyle visualStyle)

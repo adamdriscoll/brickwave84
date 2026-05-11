@@ -49,10 +49,14 @@ namespace GetBricked.Gameplay.Data
             RunGameMode gameMode = RunGameMode.CustomGame,
             int rogueIntensity = 1,
             string selectedPaddleLabel = null,
-            float paddleSpeedMultiplier = 1f)
+            float paddleSpeedMultiplier = 1f,
+            string difficultyLabel = null)
         {
             Seed = seed == int.MinValue ? int.MaxValue : Mathf.Abs(seed);
             DifficultyPreset = difficultyPreset;
+            CustomDifficultyLabel = string.IsNullOrWhiteSpace(difficultyLabel)
+                ? string.Empty
+                : difficultyLabel.Trim();
             ScoringMode = scoringMode;
             GameMode = gameMode;
             RogueIntensity = Mathf.Clamp(rogueIntensity, 1, 50);
@@ -75,6 +79,8 @@ namespace GetBricked.Gameplay.Data
         public int Seed { get; }
 
         public RunDifficultyPreset DifficultyPreset { get; }
+
+        private string CustomDifficultyLabel { get; }
 
         public RunScoringMode ScoringMode { get; }
 
@@ -106,7 +112,15 @@ namespace GetBricked.Gameplay.Data
 
         public ThemeDefinition ThemeDefinition { get; }
 
-        public string DifficultyLabel => DifficultyPreset.ToString();
+        public string DifficultyLabel => !string.IsNullOrWhiteSpace(CustomDifficultyLabel)
+            ? CustomDifficultyLabel
+            : DifficultyPreset switch
+            {
+                RunDifficultyPreset.Casual => "Chill",
+                RunDifficultyPreset.Standard => "Rad",
+                RunDifficultyPreset.Brutal => "Bogus",
+                _ => DifficultyPreset.ToString(),
+            };
 
         public string ScoringModeLabel => ScoringMode switch
         {
@@ -117,7 +131,7 @@ namespace GetBricked.Gameplay.Data
         public string GameModeLabel => GameMode switch
         {
             RunGameMode.Rogue => "Rogue",
-            RunGameMode.TurnBased => "Hot Seat Custom",
+            RunGameMode.TurnBased => "Hot Seat",
             _ => "Custom Game",
         };
 
