@@ -208,6 +208,11 @@ namespace GetBricked.Gameplay
             var fieldX = listRect.x + 16f;
             var fieldWidth = listRect.width - 32f;
             var lineHeight = Mathf.Clamp((listRect.height - 56f) / Mathf.Max(1, view.FieldLines.Length), 30f, 38f);
+            if (view.FieldLines.Length > 10)
+            {
+                lineHeight = Mathf.Clamp((listRect.height - 56f) / Mathf.Max(1, view.FieldLines.Length), 26f, 34f);
+            }
+
             var startY = listRect.y + 44f;
 
             for (var index = 0; index < view.FieldLines.Length; index++)
@@ -392,9 +397,12 @@ namespace GetBricked.Gameplay
                 return;
             }
 
-            var boxRect = new Rect((Screen.width * 0.5f) - 274f, (Screen.height * 0.5f) - 42f, 548f, 84f);
+            var lineCount = Mathf.Max(1, message.Split('\n').Length);
+            var boxWidth = Mathf.Min(720f, Screen.width - 48f);
+            var boxHeight = Mathf.Clamp(46f + (lineCount * 28f), 84f, Screen.height - 104f);
+            var boxRect = new Rect((Screen.width * 0.5f) - (boxWidth * 0.5f), (Screen.height * 0.5f) - (boxHeight * 0.5f), boxWidth, boxHeight);
             DrawPanel(boxRect, palette.AccentWarm, palette.AccentSecondary, false);
-            DrawTextWithShadow(boxRect, message, messageStyle, palette.TextPrimary);
+            DrawTextWithShadow(new Rect(boxRect.x + 18f, boxRect.y + 12f, boxRect.width - 36f, boxRect.height - 24f), message, messageStyle, palette.TextPrimary);
         }
 
         public void DrawDiagnosticsOverlay(BreakoutUiDiagnosticsView view)

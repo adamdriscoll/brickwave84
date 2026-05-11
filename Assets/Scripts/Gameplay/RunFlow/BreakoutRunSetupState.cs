@@ -19,6 +19,7 @@ namespace GetBricked.Gameplay
         DropPool = 7,
         CapsuleParty = 8,
         Theme = 9,
+        PlayerCount = 10,
     }
 
     internal sealed class BreakoutRunSetupState

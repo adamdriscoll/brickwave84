@@ -162,6 +162,7 @@ namespace GetBricked.Gameplay
         private BreakoutRunState activeRunState;
         private BreakoutUpgradeDraftService upgradeDraftService;
         private BreakoutRogueRunController rogueRunController;
+        private BreakoutTurnBasedMultiplayerController turnBasedMultiplayerController;
         private RoundState roundState;
         private int livesRemaining;
         private int lifeLossCount;
@@ -195,6 +196,7 @@ namespace GetBricked.Gameplay
         private bool isDiagnosticsOverlayVisible;
         private int selectedUpgradeDraftIndex;
         private bool activeRunResultRecorded;
+        private bool isTurnBasedSetupActive;
         private BreakoutEffectModifiers activeEffectModifiers;
         private BallController stickyCaughtBall;
         private SpriteRenderer shieldWallRenderer;
@@ -242,6 +244,7 @@ namespace GetBricked.Gameplay
             developerLaunchState = new BreakoutDeveloperLaunchState();
             upgradeDraftService = new BreakoutUpgradeDraftService(loadedRunUpgradeDefinitions);
             rogueRunController = new BreakoutRogueRunController(loadedRunUpgradeDefinitions, loadedPowerUpDefinitions);
+            turnBasedMultiplayerController = new BreakoutTurnBasedMultiplayerController();
             CreateRuntimeRoots();
             CreateAudioService();
             CreateActorSpawnServices();
@@ -523,6 +526,7 @@ namespace GetBricked.Gameplay
                     DestroyRuntimeObject(lostBall.gameObject);
                 }
 
+                CompleteTurnBasedTurn(BreakoutTurnSwitchReason.BallLost);
                 PrepareServe(RoundState.LifeLost);
                 return;
             }
@@ -534,6 +538,7 @@ namespace GetBricked.Gameplay
 
             if (livesRemaining <= 0)
             {
+                CompleteTurnBasedTurn(BreakoutTurnSwitchReason.GameOver);
                 roundState = RoundState.GameOver;
                 selectedOverlayActionIndex = 0;
                 SetSimulationPaused(false);
@@ -553,6 +558,7 @@ namespace GetBricked.Gameplay
                 DestroyRuntimeObject(lostBall.gameObject);
             }
 
+            CompleteTurnBasedTurn(BreakoutTurnSwitchReason.BallLost);
             PrepareServe(RoundState.LifeLost);
         }
 
@@ -869,6 +875,15 @@ namespace GetBricked.Gameplay
             lifeLossCount = 0;
             score = 0;
             activeRunResultRecorded = false;
+            if (activeRunSettings.IsTurnBasedMode)
+            {
+                turnBasedMultiplayerController?.StartRun(activeRunSettings.Seed, score);
+            }
+            else
+            {
+                turnBasedMultiplayerController?.ClearRun();
+            }
+
             currentLevelIndex = developerEncounter?.LevelIndex ?? 0;
             currentLevelVariationLabel = "Variation: pending";
             pendingBossGate = null;
@@ -918,6 +933,8 @@ namespace GetBricked.Gameplay
             currentLevelVariationLabel = "Variation: pending";
             isDiagnosticsOverlayVisible = false;
             isDeveloperRunActive = false;
+            isTurnBasedSetupActive = false;
+            turnBasedMultiplayerController?.ClearRun();
             activeRunState?.Reset();
             ResetRuntimeForMetaFlow();
             ApplyPendingThemePreview();
@@ -936,7 +953,7 @@ namespace GetBricked.Gameplay
             return gameplayRandom != null ? gameplayRandom.NextBool() : UnityEngine.Random.value < 0.5f;
         }
 
-        private void EnterRunSetup()
+        private void EnterRunSetup(bool turnBased = false)
         {
             if (pendingRunSetup == null)
             {
@@ -945,10 +962,12 @@ namespace GetBricked.Gameplay
 
             roundState = RoundState.RunSetup;
             selectedRunSetupField = BreakoutRunSetupField.Seed;
+            isTurnBasedSetupActive = turnBased;
             pendingValidationMessage = string.Empty;
             currentLevelVariationLabel = "Variation: pending";
             isDiagnosticsOverlayVisible = false;
             isDeveloperRunActive = false;
+            turnBasedMultiplayerController?.ClearRun();
             activeRunState?.Reset();
             ResetRuntimeForMetaFlow();
             ApplyPendingThemePreview();
@@ -960,6 +979,7 @@ namespace GetBricked.Gameplay
             developerLaunchState ??= new BreakoutDeveloperLaunchState();
             roundState = RoundState.DeveloperMenu;
             selectedDeveloperLaunchField = BreakoutDeveloperLaunchField.Encounter;
+            isTurnBasedSetupActive = false;
             pendingValidationMessage = string.Empty;
             currentLevelVariationLabel = "Variation: pending";
             isDiagnosticsOverlayVisible = false;
@@ -1031,7 +1051,7 @@ namespace GetBricked.Gameplay
 
             if (keyboard.downArrowKey.wasPressedThisFrame || keyboard.sKey.wasPressedThisFrame)
             {
-                selectedRunSetupField = (BreakoutRunSetupField)Mathf.Min((int)BreakoutRunSetupField.Theme, (int)selectedRunSetupField + 1);
+                selectedRunSetupField = (BreakoutRunSetupField)Mathf.Min(GetLastRunSetupFieldIndex(), (int)selectedRunSetupField + 1);
             }
 
             if (keyboard.leftArrowKey.wasPressedThisFrame || keyboard.aKey.wasPressedThisFrame)
@@ -1368,6 +1388,12 @@ namespace GetBricked.Gameplay
                 return;
             }
 
+            if (action == BreakoutMainMenuAction.TurnBased)
+            {
+                EnterRunSetup(turnBased: true);
+                return;
+            }
+
             if (action == BreakoutMainMenuAction.DeveloperMode)
             {
                 EnterDeveloperMenu();
@@ -1385,7 +1411,7 @@ namespace GetBricked.Gameplay
                 return;
             }
 
-            EnterRunSetup();
+            EnterRunSetup(activeRunSettings != null && activeRunSettings.IsTurnBasedMode);
         }
 
         private void StartRogueRun()
@@ -1568,7 +1594,20 @@ namespace GetBricked.Gameplay
                 return;
             }
 
+            if (selectedRunSetupField == BreakoutRunSetupField.PlayerCount)
+            {
+                turnBasedMultiplayerController?.AdjustSelectedPlayerCount(direction);
+                return;
+            }
+
             pendingRunSetup.AdjustField(selectedRunSetupField, direction, GenerateSeed, ShiftThemeId);
+        }
+
+        private int GetLastRunSetupFieldIndex()
+        {
+            return isTurnBasedSetupActive
+                ? (int)BreakoutRunSetupField.PlayerCount
+                : (int)BreakoutRunSetupField.Theme;
         }
 
         private void AdjustSelectedRoguePaddle(int direction)
@@ -1687,7 +1726,32 @@ namespace GetBricked.Gameplay
         {
             pendingRunSetup ??= new BreakoutRunSetupState(GetDefaultThemeId(), GenerateSeed);
             var selectedTheme = ResolvePendingThemeDefinition();
-            return pendingRunSetup.BuildRunSettings(startingLives, lifeLossScorePenalty, selectedTheme, GenerateSeed, out validationMessage, commitSeedText);
+            var settings = pendingRunSetup.BuildRunSettings(startingLives, lifeLossScorePenalty, selectedTheme, GenerateSeed, out validationMessage, commitSeedText);
+
+            if (!isTurnBasedSetupActive)
+            {
+                return settings;
+            }
+
+            validationMessage = $"{validationMessage} Hot Seat live: {turnBasedMultiplayerController?.BuildSetupPreviewLine() ?? "02 players"}.";
+            return new RunSettings(
+                settings.Seed,
+                settings.DifficultyPreset,
+                settings.ScoringMode,
+                settings.StartingLives,
+                settings.LifeLossScorePenalty,
+                settings.BallsPerServe,
+                settings.PaddleWidthMultiplier,
+                settings.BallSpeedMultiplier,
+                settings.BrickDurabilityMultiplier,
+                settings.DropChanceMultiplier,
+                settings.DropPoolMode,
+                settings.ForcePickupDropsOnBreak,
+                settings.ThemeDefinition,
+                RunGameMode.TurnBased,
+                settings.RogueIntensity,
+                settings.SelectedPaddleLabel,
+                settings.PaddleSpeedMultiplier);
         }
 
         private int ParsePendingSeed(bool commitSeedText)
@@ -2635,6 +2699,14 @@ namespace GetBricked.Gameplay
             stickyCaughtBall = null;
             audioService?.PlayLevelComplete();
 
+            if (activeRunSettings != null && activeRunSettings.IsTurnBasedMode)
+            {
+                CompleteTurnBasedTurn(BreakoutTurnSwitchReason.LevelCleared);
+                roundState = RoundState.LevelComplete;
+                selectedOverlayActionIndex = 0;
+                return;
+            }
+
             if (activeRunSettings != null
                 && activeRunSettings.IsRogueMode
                 && BreakoutRunProgression.TryGetBossGateAfterLevel(currentLevelIndex, out var bossGate))
@@ -3111,14 +3183,8 @@ namespace GetBricked.Gameplay
 
             var message = roundState switch
             {
-                RoundState.ReadyToServe => "Press Space to launch the ball. Up/Down tunes speed.",
-                RoundState.LifeLost => GetLifeLossScorePenalty() > 0
-                    ? UsesHighScoreMode()
-                        ? $"Ball lost. -{GetLifeLossScorePenalty():0000} score. Losses {lifeLossCount:00}. Press Space to serve again. Up/Down tunes speed."
-                        : $"Life lost. -{GetLifeLossScorePenalty():0000} score. {livesRemaining} remaining. Press Space to serve again. Up/Down tunes speed."
-                    : UsesHighScoreMode()
-                        ? $"Ball lost. Losses {lifeLossCount:00}. Press Space to serve again. Up/Down tunes speed."
-                        : $"Life lost. {livesRemaining} remaining. Press Space to serve again. Up/Down tunes speed.",
+                RoundState.ReadyToServe => BuildReadyToServeMessage(),
+                RoundState.LifeLost => BuildLifeLostMessage(),
                 _ => string.Empty,
             };
             uiRenderer.DrawMessageOverlay(message);
@@ -3181,23 +3247,32 @@ namespace GetBricked.Gameplay
         private BreakoutUiRunSetupView BuildRunSetupView()
         {
             var previewSettings = BuildRunSettingsFromPending(out var previewValidation);
+            var fieldLines = new List<string>
+            {
+                $"Tape ID: {GetPendingSeedDisplay()}",
+                $"Difficulty: {pendingRunSetup.DifficultyPreset}",
+                $"Score Mode: {previewSettings.ScoringModeLabel}",
+                $"Balls Per Serve: {pendingRunSetup.BallsPerServe}",
+                $"Paddle Width Bias: {FormatSignedStep(pendingRunSetup.PaddleWidthStep)}",
+                $"Ball Speed Bias: {FormatSignedStep(pendingRunSetup.BallSpeedStep)}",
+                $"Brick Durability Bias: {FormatSignedStep(pendingRunSetup.BrickDurabilityStep)}",
+                $"Drop Pool: {previewSettings.DropPoolLabel}",
+                $"Capsule Party: {(previewSettings.ForcePickupDropsOnBreak ? "On" : "Off")}",
+                $"Theme: {previewSettings.ThemeLabel}",
+            };
+
+            if (isTurnBasedSetupActive)
+            {
+                fieldLines.Add($"Players: {turnBasedMultiplayerController?.SelectedPlayerCount ?? BreakoutTurnBasedMultiplayerController.MinimumPlayerCount:00}");
+            }
+
             return new BreakoutUiRunSetupView
             {
-                Title = "Run Setup",
-                Subtitle = "Dial in the cabinet before launch. The same Tape ID preserves the run while score mode, modifiers, and palette reshape the pressure curve.",
-                FieldLines = new[]
-                {
-                    $"Tape ID: {GetPendingSeedDisplay()}",
-                    $"Difficulty: {pendingRunSetup.DifficultyPreset}",
-                    $"Score Mode: {previewSettings.ScoringModeLabel}",
-                    $"Balls Per Serve: {pendingRunSetup.BallsPerServe}",
-                    $"Paddle Width Bias: {FormatSignedStep(pendingRunSetup.PaddleWidthStep)}",
-                    $"Ball Speed Bias: {FormatSignedStep(pendingRunSetup.BallSpeedStep)}",
-                    $"Brick Durability Bias: {FormatSignedStep(pendingRunSetup.BrickDurabilityStep)}",
-                    $"Drop Pool: {previewSettings.DropPoolLabel}",
-                    $"Capsule Party: {(previewSettings.ForcePickupDropsOnBreak ? "On" : "Off")}",
-                    $"Theme: {previewSettings.ThemeLabel}",
-                },
+                Title = isTurnBasedSetupActive ? "Hot Seat Setup" : "Run Setup",
+                Subtitle = isTurnBasedSetupActive
+                    ? "Dial in a custom-game tape, pick the player count, and pass the cabinet on every miss or stage clear."
+                    : "Dial in the cabinet before launch. The same Tape ID preserves the run while score mode, modifiers, and palette reshape the pressure curve.",
+                FieldLines = fieldLines.ToArray(),
                 SelectedFieldIndex = (int)selectedRunSetupField,
                 PreviewLine = $"Preview: {BuildScoreModeSummaryLabel(previewSettings)} | {BuildRetrySummaryLabel(previewSettings)} | Paddle x{previewSettings.PaddleWidthMultiplier:0.00} | Ball speed x{previewSettings.BallSpeedMultiplier:0.00} | Brick durability x{previewSettings.BrickDurabilityMultiplier:0.00} | Drops {BuildDropSummaryLabel(previewSettings)}",
                 ValidationText = previewValidation,
@@ -3246,9 +3321,17 @@ namespace GetBricked.Gameplay
                 ? BreakoutRunProgression.ClampRogueIntensity(activeRunSettings.RogueIntensity)
                 : BreakoutRunProgression.MinRogueIntensity;
             var intensityProgress = BreakoutRunProgression.GetRogueIntensityProgress(intensity);
+            var playerHudLabel = BuildTurnBasedPlayerHudPrefix();
+            var topLine = $"{GetScoreDisplayLabel().ToUpperInvariant()} {FormatScoreValue(score)}   {GetLifeCounterLabel().ToUpperInvariant()} {GetLifeCounterValue():00}   {BuildLevelLabel().ToUpperInvariant()}";
+
+            if (!string.IsNullOrWhiteSpace(playerHudLabel))
+            {
+                topLine = $"{playerHudLabel.ToUpperInvariant()}   {topLine}";
+            }
+
             return new BreakoutUiHudView
             {
-                TopLine = $"{GetScoreDisplayLabel().ToUpperInvariant()} {FormatScoreValue(score)}   {GetLifeCounterLabel().ToUpperInvariant()} {GetLifeCounterValue():00}   {BuildLevelLabel().ToUpperInvariant()}",
+                TopLine = topLine,
                 BottomLine = BuildGameplayStatusLine().ToUpperInvariant(),
                 ShowMenuButton = CanPauseRoundState(roundState) || roundState == RoundState.Paused,
                 IsPaused = roundState == RoundState.Paused,
@@ -3344,6 +3427,36 @@ namespace GetBricked.Gameplay
 
         private BreakoutUiOverlayView BuildEndStateOverlayView()
         {
+            if (activeRunSettings != null && activeRunSettings.IsTurnBasedMode)
+            {
+                var isTurnGameOver = roundState == RoundState.GameOver;
+                var summaryLines = new List<string>
+                {
+                    isTurnGameOver
+                        ? $"Final score {FormatScoreValue(score)} | Reached {BuildLevelLabel()}"
+                        : turnBasedMultiplayerController?.BuildSwitchSummaryLine() ?? "Stage clear. Next player is on deck.",
+                    BuildRunSummaryLabel(),
+                };
+                summaryLines.AddRange(BuildTurnBasedLeaderboardLines(10));
+
+                return new BreakoutUiOverlayView
+                {
+                    Title = isTurnGameOver
+                        ? "Hot Seat Over"
+                        : turnBasedMultiplayerController?.BuildSwitchTitle() ?? "Up Next",
+                    SummaryLines = summaryLines.ToArray(),
+                    ActionLabels = BuildOverlayActionLabels(GetOverlayActionsForState(roundState)),
+                    SelectedActionIndex = selectedOverlayActionIndex,
+                    FooterLines = new[]
+                    {
+                        isTurnGameOver
+                            ? "Restart the hot seat tape, jump back to setup, or return to the main menu."
+                            : "Leaderboard locked for the switch. Advance when the next player is ready.",
+                    },
+                    IsCompact = false,
+                };
+            }
+
             var isGameOver = roundState == RoundState.GameOver;
             var title = isGameOver
                 ? (activeRunSettings != null && activeRunSettings.IsRogueMode ? "Rogue Wiped Out" : "Run Over")
@@ -3678,9 +3791,59 @@ namespace GetBricked.Gameplay
             return $"{progressLabel} | {BuildUpgradeSummaryLabel(2)}";
         }
 
+        private string BuildReadyToServeMessage()
+        {
+            if (activeRunSettings == null || !activeRunSettings.IsTurnBasedMode)
+            {
+                return "Press Space to launch the ball. Up/Down tunes speed.";
+            }
+
+            return $"{turnBasedMultiplayerController?.BuildSwitchTitle() ?? "Up Next"}\nPress Space to launch. Up/Down tunes speed.";
+        }
+
+        private string BuildLifeLostMessage()
+        {
+            if (activeRunSettings != null && activeRunSettings.IsTurnBasedMode)
+            {
+                var lines = new List<string>
+                {
+                    turnBasedMultiplayerController?.BuildSwitchTitle() ?? "Up Next",
+                    turnBasedMultiplayerController?.BuildSwitchSummaryLine() ?? "Ball lost. Next player is on deck.",
+                };
+                lines.AddRange(BuildTurnBasedLeaderboardLines(5));
+                lines.Add("Press Space to serve.");
+                return string.Join("\n", lines);
+            }
+
+            if (GetLifeLossScorePenalty() > 0)
+            {
+                return UsesHighScoreMode()
+                    ? $"Ball lost. -{GetLifeLossScorePenalty():0000} score. Losses {lifeLossCount:00}. Press Space to serve again. Up/Down tunes speed."
+                    : $"Life lost. -{GetLifeLossScorePenalty():0000} score. {livesRemaining} remaining. Press Space to serve again. Up/Down tunes speed.";
+            }
+
+            return UsesHighScoreMode()
+                ? $"Ball lost. Losses {lifeLossCount:00}. Press Space to serve again. Up/Down tunes speed."
+                : $"Life lost. {livesRemaining} remaining. Press Space to serve again. Up/Down tunes speed.";
+        }
+
         private string BuildPauseSummaryLabel()
         {
             return $"{GetScoreDisplayLabel()} {FormatScoreValue(score)} | {GetLifeCounterLabel()} {GetLifeCounterValue():00} | Balls {Mathf.Max(0, activeBalls.Count):00} | {BuildLevelLabel()}";
+        }
+
+        private string BuildTurnBasedPlayerHudPrefix()
+        {
+            return activeRunSettings != null && activeRunSettings.IsTurnBasedMode
+                ? turnBasedMultiplayerController?.BuildCurrentPlayerHudLabel() ?? string.Empty
+                : string.Empty;
+        }
+
+        private string[] BuildTurnBasedLeaderboardLines(int maxLines)
+        {
+            return activeRunSettings != null && activeRunSettings.IsTurnBasedMode
+                ? turnBasedMultiplayerController?.BuildLeaderboardLines(maxLines) ?? Array.Empty<string>()
+                : Array.Empty<string>();
         }
 
         private string BuildUpgradeSummaryLabel(int maxNames)
@@ -4177,6 +4340,16 @@ namespace GetBricked.Gameplay
             return activeRunSettings != null && activeRunSettings.UsesLifeLossScorePenalty
                 ? activeRunSettings.LifeLossScorePenalty
                 : 0;
+        }
+
+        private void CompleteTurnBasedTurn(BreakoutTurnSwitchReason reason)
+        {
+            if (activeRunSettings == null || !activeRunSettings.IsTurnBasedMode)
+            {
+                return;
+            }
+
+            turnBasedMultiplayerController?.CompleteTurnAndAdvance(score, reason);
         }
 
         private bool UsesHighScoreMode()
