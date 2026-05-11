@@ -45,8 +45,6 @@ namespace GetBricked.Gameplay
         {
             BreakoutMainMenuAction.Rogue,
             BreakoutMainMenuAction.CustomGame,
-            BreakoutMainMenuAction.DualSticks,
-            BreakoutMainMenuAction.Coop,
             BreakoutMainMenuAction.TurnBased,
             BreakoutMainMenuAction.SoundSettings,
             BreakoutMainMenuAction.GraphicsSettings,
@@ -77,7 +75,7 @@ namespace GetBricked.Gameplay
                 PreviewLines = BuildPreviewLines(selectedAction, context),
                 ValidationText = BuildValidationText(selectedAction, context),
                 FooterText = BuildFooterText(selectedAction),
-                HintText = "Up/Down selects. Left/Right changes Rogue paddle. Space confirms. Custom Game opens setup. Dev opens the jump bench.",
+                HintText = "Up/Down selects. Left/Right swaps Rogue paddle. Space confirms. Custom Game opens setup.",
             };
         }
 
@@ -174,10 +172,10 @@ namespace GetBricked.Gameplay
                     return new[]
                     {
                         $"Paddle: {context.SelectedRoguePaddleLabel} ({context.UnlockedRoguePaddleCount}/{context.TotalRoguePaddleCount} unlocked).",
-                        $"{context.SelectedRoguePaddleIdentity}. {context.SelectedRoguePaddleStrength}",
+                        context.SelectedRoguePaddleIdentity,
+                        context.SelectedRoguePaddleStrength,
                         $"Tradeoff: {context.SelectedRoguePaddleDrawback}",
-                        $"Heat {context.AvailableRogueIntensity:00}/50. 10 stages. 3 balls. One fresh Tape ID.",
-                        "Draft run upgrades or unlock new capsules after each cleared stage.",
+                        $"Heat {context.AvailableRogueIntensity:00}/50. 10 stages. Draft rewards after clears.",
                         unlockLine,
                         string.IsNullOrWhiteSpace(context.LastRogueResultSummary)
                             ? "Last Run: no Rogue tape recorded yet."
@@ -264,12 +262,12 @@ namespace GetBricked.Gameplay
         {
             return action switch
             {
-                BreakoutMainMenuAction.CustomGame => "Custom Game is the current playable setup path with Tape ID editing, score mode tuning, modifier tweaks, and theme cycling.",
-                BreakoutMainMenuAction.Rogue => "Rogue launches the first progression-forward singleplayer run: fixed rules, seeded stages, draft rewards, and a saved result.",
-                BreakoutMainMenuAction.SoundSettings => "Sound controls are staged here so mixer work has a clear home.",
-                BreakoutMainMenuAction.GraphicsSettings => "Graphics controls are staged here so display and readability options have a clear home.",
-                BreakoutMainMenuAction.DeveloperMode => "Developer Mode is a subtle local jump bench for testing Rogue stages, boss gates, paddles, lives, upgrades, and drop unlocks.",
-                _ => "Multiplayer channels are staged as menu shells until the shared-screen architecture is ready.",
+                BreakoutMainMenuAction.CustomGame => "Custom Game opens the full tape-tuning bench: Tape ID, score rules, modifiers, drops, and theme.",
+                BreakoutMainMenuAction.Rogue => "Rogue launches a fixed 10-stage mixtape with draft rewards and saved results.",
+                BreakoutMainMenuAction.SoundSettings => "Sound controls are staged here for mixer work.",
+                BreakoutMainMenuAction.GraphicsSettings => "Graphics controls are staged here for display, glow, and readability options.",
+                BreakoutMainMenuAction.DeveloperMode => "Developer Mode opens the local jump bench for Rogue stages, boss gates, and tuning.",
+                _ => "This cabinet channel is staged for later.",
             };
         }
     }

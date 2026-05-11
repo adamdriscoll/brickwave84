@@ -5,7 +5,7 @@ description: Run Unity batchmode compile checks for this repository and surface 
 
 # Unity Compile
 
-Use this skill to reproduce and diagnose Unity compile failures for `Get Bricked` without opening the editor UI.
+Use this skill to reproduce and diagnose Unity compile failures for `Get Bricked`. If this project is already open in Unity, the helper asks the open editor to run the check through `Assets/Editor/CodexUnityCommandBridge.cs`; otherwise it falls back to the legacy batchmode run.
 
 ## Quick Start
 
@@ -20,6 +20,8 @@ Use this skill to reproduce and diagnose Unity compile failures for `Get Bricked
 - Let the script discover the required Unity editor version from `ProjectSettings/ProjectVersion.txt`.
 - Use `--unity <path-to-Unity.exe>` only when the editor is installed outside the normal Unity Hub path.
 - Use `--log <path>` if a task needs a separate log artifact.
+- Leave Unity open when useful. The script detects the open editor through `Library/EditorInstance.json` and uses the editor bridge instead of launching a second Unity process.
+- Use `--force-batchmode` only when you intentionally want the old batchmode path and the project is not already open.
 - Treat a clean compile check as a fast pre-build guard, not a full player build.
 
 ## Expected Output
@@ -32,4 +34,4 @@ Use this skill to reproduce and diagnose Unity compile failures for `Get Bricked
 
 ### scripts/
 
-- `run_unity_compile.py`: Detect the project Unity version, locate `Unity.exe`, run batchmode compile, and summarize any build-blocking log errors.
+- `run_unity_compile.py`: Detect the project Unity version, locate `Unity.exe`, use the open-editor bridge when available, run batchmode compile otherwise, and summarize any build-blocking log errors.

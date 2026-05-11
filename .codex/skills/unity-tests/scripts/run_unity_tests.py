@@ -8,6 +8,9 @@ import sys
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
+sys.path.append(str(Path(__file__).resolve().parents[2]))
+from unity_editor_bridge import is_unity_editor_open, request_unity_editor
+
 
 def parse_args() -> argparse.Namespace:
     repo_root = Path(__file__).resolve().parents[4]
@@ -43,6 +46,17 @@ def parse_args() -> argparse.Namespace:
         type=Path,
         default=repo_root / "Logs",
         help="Directory where Unity test logs and XML results should be written.",
+    )
+    parser.add_argument(
+        "--editor-timeout",
+        type=int,
+        default=600,
+        help="Seconds to wait for an already-open Unity editor to answer each test request.",
+    )
+    parser.add_argument(
+        "--force-batchmode",
+        action="store_true",
+        help="Run the legacy batchmode test command even if the project is already open in Unity.",
     )
     return parser.parse_args()
 
@@ -124,6 +138,33 @@ def run_platform_tests(
 
     completed = subprocess.run(command, check=False)
     return completed.returncode, log_path, results_path
+
+
+def run_platform_tests_in_editor(
+    project_root: Path,
+    logs_dir: Path,
+    platform: str,
+    test_filter: str | None,
+    timeout_seconds: int,
+) -> tuple[int, Path, Path]:
+    logs_dir.mkdir(parents=True, exist_ok=True)
+    log_path = logs_dir / f"{platform}-tests-editor.log"
+    results_path = logs_dir / f"{platform}-test-results.xml"
+
+    if results_path.exists():
+        results_path.unlink()
+
+    response = request_unity_editor(
+        project_root,
+        "tests",
+        platform=platform,
+        test_filter=test_filter,
+        results_path=results_path,
+        timeout_seconds=timeout_seconds,
+    )
+
+    log_path.write_text(response.get("message", ""), encoding="utf-8")
+    return 0 if response.get("success") else 1, log_path, results_path
 
 
 def parse_results(results_path: Path) -> dict[str, object] | None:
@@ -210,15 +251,33 @@ def main() -> int:
     unity_executable = find_unity_executable(editor_version, args.unity)
 
     overall_success = True
+    use_open_editor = not args.force_batchmode and is_unity_editor_open(project_root)
+    if use_open_editor:
+        print("Open Unity editor detected; requesting in-editor test runs.")
 
     for platform in resolve_platforms(args.platform):
-        exit_code, log_path, results_path = run_platform_tests(
-            unity_executable,
-            project_root,
-            logs_dir,
-            platform,
-            args.test_filter,
-        )
+        try:
+            if use_open_editor:
+                exit_code, log_path, results_path = run_platform_tests_in_editor(
+                    project_root,
+                    logs_dir,
+                    platform,
+                    args.test_filter,
+                    args.editor_timeout,
+                )
+            else:
+                exit_code, log_path, results_path = run_platform_tests(
+                    unity_executable,
+                    project_root,
+                    logs_dir,
+                    platform,
+                    args.test_filter,
+                )
+        except TimeoutError as exception:
+            print(str(exception))
+            overall_success = False
+            continue
+
         results = parse_results(results_path)
         platform_success = print_summary(
             project_root,

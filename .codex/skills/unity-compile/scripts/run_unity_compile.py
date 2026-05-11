@@ -8,6 +8,9 @@ import subprocess
 import sys
 from pathlib import Path
 
+sys.path.append(str(Path(__file__).resolve().parents[2]))
+from unity_editor_bridge import is_unity_editor_open, request_unity_editor
+
 
 DEFAULT_LOG_NAME = "codex-unity-compile.log"
 ERROR_PATTERNS = (
@@ -48,6 +51,17 @@ def parse_args() -> argparse.Namespace:
         type=int,
         default=25,
         help="Maximum number of relevant error lines to print on failure.",
+    )
+    parser.add_argument(
+        "--editor-timeout",
+        type=int,
+        default=180,
+        help="Seconds to wait for an already-open Unity editor to answer the compile request.",
+    )
+    parser.add_argument(
+        "--force-batchmode",
+        action="store_true",
+        help="Run the legacy batchmode check even if the project is already open in Unity.",
     )
     return parser.parse_args()
 
@@ -140,6 +154,30 @@ def main() -> int:
     print(f"Unity version: {editor_version}")
     print(f"Unity editor: {unity_executable}")
     print(f"Log file: {log_path}")
+
+    if not args.force_batchmode and is_unity_editor_open(project_root):
+        print("Open Unity editor detected; requesting an in-editor compile check.")
+        try:
+            response = request_unity_editor(
+                project_root,
+                "compile",
+                timeout_seconds=args.editor_timeout,
+            )
+        except TimeoutError as exception:
+            print(str(exception))
+            return 1
+
+        if response.get("success"):
+            print(response.get("message", "Unity editor compile check passed."))
+            return 0
+
+        print(response.get("message", "Unity editor compile check failed."))
+        errors = response.get("errors", "")
+        if errors:
+            print("Relevant log lines:")
+            for line in errors.splitlines()[-args.tail:]:
+                print(line)
+        return 1
 
     exit_code = run_compile(unity_executable, project_root, log_path)
     log_lines = read_log(log_path)

@@ -5,7 +5,7 @@ description: Run Unity Test Framework suites for this repository and summarize t
 
 # Unity Tests
 
-Use this skill to run targeted Unity tests without opening the editor UI and to keep test coverage moving alongside behavior changes.
+Use this skill to run targeted Unity tests and keep test coverage moving alongside behavior changes. If this project is already open in Unity, the helper asks the open editor to run the tests through `Assets/Editor/CodexUnityCommandBridge.cs`; otherwise it falls back to the legacy batchmode run.
 
 ## Quick Start
 
@@ -47,10 +47,12 @@ Important: this project's Unity 6 batchmode test command must not pass `-quit`. 
 - Start with a filtered run for the touched fixture when possible.
 - Run the broader platform suite when the change affects shared systems or when a focused run passes but confidence is still low.
 - Pair test execution with `python .codex/skills/unity-compile/scripts/run_unity_compile.py` for script changes.
+- Leave Unity open when useful. The script detects the open editor through `Library/EditorInstance.json` and uses the editor bridge instead of launching a second Unity process.
+- Use `--force-batchmode` only when you intentionally want the old batchmode path and the project is not already open.
 - If Unity exits successfully but no XML file is produced, check the command and log for an accidental `-quit` argument before debugging tests.
 
 ## Resources
 
 ### scripts/
 
-- `run_unity_tests.py`: Detect the project Unity version, locate `Unity.exe`, run Edit Mode and/or Play Mode tests in batchmode, and summarize pass/fail counts plus failing test names.
+- `run_unity_tests.py`: Detect the project Unity version, locate `Unity.exe`, use the open-editor bridge when available, run Edit Mode and/or Play Mode tests in batchmode otherwise, and summarize pass/fail counts plus failing test names.
