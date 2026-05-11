@@ -28,6 +28,8 @@ namespace GetBricked.Gameplay
         private const float ExplosiveBallMinimumSpeedBurstMultiplier = 1.1f;
         private const float ExplosiveBallMaximumSpeedBurstMultiplier = 1.22f;
         private const float ExplosiveBallSpeedBurstDuration = 1.45f;
+        private const float TurboRailSpeedBurstMultiplier = 1.25f;
+        private const float TurboRailSpeedBurstDuration = 4f;
         private const string DefaultRoguePaddleLabel = BreakoutRogueRunResultStore.DefaultPaddleLabel;
         private static readonly BreakoutRunSetupField[] HotSeatTopScoreSetupFields =
         {
@@ -229,6 +231,7 @@ namespace GetBricked.Gameplay
         private BreakoutMainframeManiacBoss activeMainframeManiacBoss;
         private BreakoutLevelGlitchPlan activeLevelGlitchPlan = BreakoutLevelGlitchPlan.None;
         private BreakoutWarpGateController activeWarpGateController;
+        private BreakoutTurboRailSection activeTurboRailSection;
         private int bossShieldSpawnIndex;
         private bool isDeveloperRunActive;
 
@@ -2472,19 +2475,28 @@ namespace GetBricked.Gameplay
                 CreateWarpGates(activeLevelGlitchPlan);
                 powerUpService?.ShowStatusBanner("WARP GATES!", new Color(0.03f, 0.93f, 0.98f, 1f), 2.2f);
             }
+            else if (activeLevelGlitchPlan.GlitchType == BreakoutLevelGlitchType.TurboRail)
+            {
+                CreateTurboRail(activeLevelGlitchPlan);
+                powerUpService?.ShowStatusBanner("TURBO RAIL!", new Color(1f, 0.22f, 0.84f, 1f), 2.2f);
+            }
         }
 
         private void ClearLevelGlitches()
         {
             activeLevelGlitchPlan = BreakoutLevelGlitchPlan.None;
 
-            if (activeWarpGateController == null)
+            if (activeWarpGateController != null)
             {
-                return;
+                DestroyRuntimeObject(activeWarpGateController.gameObject);
+                activeWarpGateController = null;
             }
 
-            DestroyRuntimeObject(activeWarpGateController.gameObject);
-            activeWarpGateController = null;
+            if (activeTurboRailSection != null)
+            {
+                DestroyRuntimeObject(activeTurboRailSection.gameObject);
+                activeTurboRailSection = null;
+            }
         }
 
         private void CreateWarpGates(BreakoutLevelGlitchPlan glitchPlan)
@@ -2560,6 +2572,60 @@ namespace GetBricked.Gameplay
             return wall == BreakoutWarpGateWall.Top
                 ? new Vector2(0.78f, 0.54f)
                 : new Vector2(0.54f, 0.78f);
+        }
+
+        private void CreateTurboRail(BreakoutLevelGlitchPlan glitchPlan)
+        {
+            if (glitchPlan == null || squareSprite == null)
+            {
+                return;
+            }
+
+            var railObject = new GameObject("Turbo Rail");
+            railObject.transform.SetParent(glitchesRoot != null ? glitchesRoot : runtimeRoot, false);
+            railObject.transform.position = ResolveTurboRailPosition(glitchPlan.TurboRail);
+
+            var collider = railObject.AddComponent<BoxCollider2D>();
+            collider.size = ResolveTurboRailSize(glitchPlan.TurboRail);
+            collider.sharedMaterial = bounceMaterial;
+
+            var visual = railObject.AddComponent<BreakoutTurboRailVisual>();
+            visual.Configure(
+                squareSprite,
+                spriteUnlitMaterial,
+                additiveSpriteMaterial,
+                glitchPlan.TurboRail.Wall,
+                collider.size,
+                0);
+
+            activeTurboRailSection = railObject.AddComponent<BreakoutTurboRailSection>();
+            activeTurboRailSection.Configure(
+                this,
+                glitchPlan.TurboRail.Wall,
+                TurboRailSpeedBurstMultiplier,
+                TurboRailSpeedBurstDuration,
+                visual);
+        }
+
+        private Vector2 ResolveTurboRailPosition(BreakoutTurboRailSpec spec)
+        {
+            return spec.Wall switch
+            {
+                BreakoutWarpGateWall.Left => new Vector2(arenaLeft + 0.06f, Mathf.Lerp(arenaBottom + 1.35f, arenaTop - 0.95f, spec.NormalizedPosition)),
+                BreakoutWarpGateWall.Right => new Vector2(arenaRight - 0.06f, Mathf.Lerp(arenaBottom + 1.35f, arenaTop - 0.95f, spec.NormalizedPosition)),
+                BreakoutWarpGateWall.Top => new Vector2(Mathf.Lerp(arenaLeft + 1.05f, arenaRight - 1.05f, spec.NormalizedPosition), arenaTop - 0.06f),
+                _ => Vector2.zero,
+            };
+        }
+
+        private Vector2 ResolveTurboRailSize(BreakoutTurboRailSpec spec)
+        {
+            if (spec.Wall == BreakoutWarpGateWall.Top)
+            {
+                return new Vector2(Mathf.Lerp(1.9f, 3.1f, spec.NormalizedLength), 0.22f);
+            }
+
+            return new Vector2(0.22f, Mathf.Lerp(1.7f, 2.85f, spec.NormalizedLength));
         }
 
         private void LoadBossGate(BreakoutBossGate bossGate)
@@ -3630,7 +3696,7 @@ namespace GetBricked.Gameplay
                 $"Brick Durability Bias: {FormatSignedStep(pendingRunSetup.BrickDurabilityStep)}",
                 $"Drop Pool: {previewSettings.DropPoolLabel}",
                 $"Capsule Party: {(previewSettings.ForcePickupDropsOnBreak ? "On" : "Off")}",
-                $"Glitches: {(previewSettings.LevelGlitchesEnabled ? "Warp Gates" : "Off")}",
+                $"Glitches: {FormatLevelGlitchSelectionLabel(pendingRunSetup.SelectedLevelGlitch)}",
                 $"Theme: {previewSettings.ThemeLabel}",
             };
 
@@ -4334,6 +4400,17 @@ namespace GetBricked.Gameplay
             return settings.ForcePickupDropsOnBreak
                 ? $"{settings.DropPoolLabel} | {settings.DropCadenceLabel}"
                 : settings.DropPoolLabel;
+        }
+
+        private static string FormatLevelGlitchSelectionLabel(LevelGlitchSelection selection)
+        {
+            return selection switch
+            {
+                LevelGlitchSelection.Random => "Random",
+                LevelGlitchSelection.WarpGates => "Warp Gates",
+                LevelGlitchSelection.TurboRail => "Turbo Rail",
+                _ => "Off",
+            };
         }
 
         private void ToggleHudMenuOverlay()

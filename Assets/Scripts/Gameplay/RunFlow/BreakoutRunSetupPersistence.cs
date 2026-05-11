@@ -7,7 +7,7 @@ namespace GetBricked.Gameplay
     internal static class BreakoutRunSetupPersistence
     {
         private const string PersistedRunSetupKey = "GetBricked.RunSetup";
-        private const int PersistedRunSetupVersion = 4;
+        private const int PersistedRunSetupVersion = 5;
 
         [Serializable]
         private sealed class PersistedRunSetup
@@ -24,6 +24,7 @@ namespace GetBricked.Gameplay
             public int DropPoolModeValue = (int)DropPoolMode.Mixed;
             public bool IsCapsulePartyEnabled;
             public bool AreLevelGlitchesEnabled;
+            public int LevelGlitchSelection = (int)Gameplay.Data.LevelGlitchSelection.Off;
             public string ThemeId = string.Empty;
         }
 
@@ -52,12 +53,13 @@ namespace GetBricked.Gameplay
                     || (persistedRunSetup.Version != 1
                         && persistedRunSetup.Version != 2
                         && persistedRunSetup.Version != 3
+                        && persistedRunSetup.Version != 4
                         && persistedRunSetup.Version != PersistedRunSetupVersion))
                 {
                     return;
                 }
 
-                runSetupState.Restore(
+                runSetupState.RestoreWithLevelGlitchSelection(
                     persistedRunSetup.Seed > 0 ? persistedRunSetup.Seed : GenerateSeed(seedGenerator),
                     persistedRunSetup.PendingSeedText ?? string.Empty,
                     (RunDifficultyPreset)Mathf.Clamp(
@@ -79,7 +81,14 @@ namespace GetBricked.Gameplay
                         (int)DropPoolMode.Mixed,
                         (int)DropPoolMode.Disabled),
                     persistedRunSetup.Version >= 2 && persistedRunSetup.IsCapsulePartyEnabled,
-                    persistedRunSetup.Version >= 4 && persistedRunSetup.AreLevelGlitchesEnabled,
+                    persistedRunSetup.Version >= 5
+                        ? (LevelGlitchSelection)Mathf.Clamp(
+                            persistedRunSetup.LevelGlitchSelection,
+                            (int)LevelGlitchSelection.Off,
+                            (int)LevelGlitchSelection.Random)
+                        : persistedRunSetup.Version >= 4 && persistedRunSetup.AreLevelGlitchesEnabled
+                            ? LevelGlitchSelection.WarpGates
+                            : LevelGlitchSelection.Off,
                     resolveThemeIdOrDefault != null
                         ? resolveThemeIdOrDefault(persistedRunSetup.ThemeId)
                         : persistedRunSetup.ThemeId);
@@ -113,6 +122,7 @@ namespace GetBricked.Gameplay
                 DropPoolModeValue = (int)runSetupState.DropPoolMode,
                 IsCapsulePartyEnabled = runSetupState.IsCapsulePartyEnabled,
                 AreLevelGlitchesEnabled = runSetupState.AreLevelGlitchesEnabled,
+                LevelGlitchSelection = (int)runSetupState.SelectedLevelGlitch,
                 ThemeId = resolveThemeIdOrDefault != null
                     ? resolveThemeIdOrDefault(runSetupState.ThemeId)
                     : runSetupState.ThemeId,

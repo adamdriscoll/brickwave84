@@ -52,7 +52,9 @@ namespace GetBricked.Gameplay
 
         public bool IsCapsulePartyEnabled { get; private set; }
 
-        public bool AreLevelGlitchesEnabled { get; private set; }
+        public bool AreLevelGlitchesEnabled => SelectedLevelGlitch != LevelGlitchSelection.Off;
+
+        public LevelGlitchSelection SelectedLevelGlitch { get; private set; }
 
         public string ThemeId { get; private set; } = string.Empty;
 
@@ -68,7 +70,7 @@ namespace GetBricked.Gameplay
             BrickDurabilityStep = 0;
             DropPoolMode = DropPoolMode.Mixed;
             IsCapsulePartyEnabled = true;
-            AreLevelGlitchesEnabled = false;
+            SelectedLevelGlitch = LevelGlitchSelection.Off;
             ThemeId = defaultThemeId ?? string.Empty;
             Seed = generateNewSeed ? GenerateSeed(seedGenerator) : Seed;
             PendingSeedText = Seed.ToString(CultureInfo.InvariantCulture);
@@ -88,6 +90,35 @@ namespace GetBricked.Gameplay
             bool areLevelGlitchesEnabled,
             string themeId)
         {
+            RestoreWithLevelGlitchSelection(
+                seed,
+                pendingSeedText,
+                difficultyPreset,
+                scoringMode,
+                ballsPerServe,
+                paddleWidthStep,
+                ballSpeedStep,
+                brickDurabilityStep,
+                dropPoolMode,
+                isCapsulePartyEnabled,
+                areLevelGlitchesEnabled ? LevelGlitchSelection.WarpGates : LevelGlitchSelection.Off,
+                themeId);
+        }
+
+        public void RestoreWithLevelGlitchSelection(
+            int seed,
+            string pendingSeedText,
+            RunDifficultyPreset difficultyPreset,
+            RunScoringMode scoringMode,
+            int ballsPerServe,
+            int paddleWidthStep,
+            int ballSpeedStep,
+            int brickDurabilityStep,
+            DropPoolMode dropPoolMode,
+            bool isCapsulePartyEnabled,
+            LevelGlitchSelection levelGlitchSelection,
+            string themeId)
+        {
             Seed = Mathf.Max(0, seed);
             PendingSeedText = pendingSeedText ?? string.Empty;
             DifficultyPreset = difficultyPreset;
@@ -98,7 +129,7 @@ namespace GetBricked.Gameplay
             BrickDurabilityStep = Mathf.Clamp(brickDurabilityStep, -2, 2);
             DropPoolMode = dropPoolMode;
             IsCapsulePartyEnabled = isCapsulePartyEnabled;
-            AreLevelGlitchesEnabled = areLevelGlitchesEnabled;
+            SelectedLevelGlitch = ClampLevelGlitchSelection(levelGlitchSelection);
             ThemeId = themeId ?? string.Empty;
         }
 
@@ -149,7 +180,10 @@ namespace GetBricked.Gameplay
                     IsCapsulePartyEnabled = !IsCapsulePartyEnabled;
                     break;
                 case BreakoutRunSetupField.LevelGlitches:
-                    AreLevelGlitchesEnabled = !AreLevelGlitchesEnabled;
+                    SelectedLevelGlitch = (LevelGlitchSelection)Mathf.Clamp(
+                        (int)SelectedLevelGlitch + direction,
+                        (int)LevelGlitchSelection.Off,
+                        (int)LevelGlitchSelection.Random);
                     break;
                 case BreakoutRunSetupField.Theme:
                     ThemeId = shiftThemeId != null ? shiftThemeId(ThemeId, direction) : ThemeId;
@@ -266,7 +300,7 @@ namespace GetBricked.Gameplay
 
             if (AreLevelGlitchesEnabled)
             {
-                warnings.Add("Warp Gates armed: glitched stages pay bonus score.");
+                warnings.Add($"{BuildLevelGlitchWarningLabel(SelectedLevelGlitch)} armed: glitched stages pay bonus score.");
             }
 
             validationMessage = warnings.Count > 0
@@ -287,7 +321,8 @@ namespace GetBricked.Gameplay
                 DropPoolMode,
                 IsCapsulePartyEnabled,
                 selectedTheme,
-                levelGlitchesEnabled: AreLevelGlitchesEnabled);
+                levelGlitchesEnabled: AreLevelGlitchesEnabled,
+                levelGlitchSelection: SelectedLevelGlitch);
         }
 
         public int ParsePendingSeed(bool commitSeedText, Func<int> seedGenerator)
@@ -318,6 +353,24 @@ namespace GetBricked.Gameplay
         private static int GenerateSeed(Func<int> seedGenerator)
         {
             return seedGenerator != null ? seedGenerator() : 0;
+        }
+
+        private static LevelGlitchSelection ClampLevelGlitchSelection(LevelGlitchSelection selection)
+        {
+            return (LevelGlitchSelection)Mathf.Clamp(
+                (int)selection,
+                (int)LevelGlitchSelection.Off,
+                (int)LevelGlitchSelection.Random);
+        }
+
+        private static string BuildLevelGlitchWarningLabel(LevelGlitchSelection selection)
+        {
+            return selection switch
+            {
+                LevelGlitchSelection.WarpGates => "Warp Gates",
+                LevelGlitchSelection.TurboRail => "Turbo Rail",
+                _ => "Random glitches",
+            };
         }
 
         private static bool TryGetPressedDigit(Keyboard keyboard, out char digit)

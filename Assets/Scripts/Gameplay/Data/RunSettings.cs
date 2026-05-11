@@ -30,6 +30,14 @@ namespace GetBricked.Gameplay.Data
         TurnBased = 2,
     }
 
+    public enum LevelGlitchSelection
+    {
+        Off = 0,
+        WarpGates = 1,
+        TurboRail = 2,
+        Random = 3,
+    }
+
     public sealed class RunSettings
     {
         public RunSettings(
@@ -52,7 +60,8 @@ namespace GetBricked.Gameplay.Data
             float paddleSpeedMultiplier = 1f,
             string difficultyLabel = null,
             bool levelGlitchesEnabled = false,
-            float levelGlitchChanceMultiplier = 1f)
+            float levelGlitchChanceMultiplier = 1f,
+            LevelGlitchSelection levelGlitchSelection = LevelGlitchSelection.Random)
         {
             Seed = seed == int.MinValue ? int.MaxValue : Mathf.Abs(seed);
             DifficultyPreset = difficultyPreset;
@@ -76,7 +85,8 @@ namespace GetBricked.Gameplay.Data
             DropPoolMode = dropPoolMode;
             ForcePickupDropsOnBreak = forcePickupDropsOnBreak;
             ThemeDefinition = themeDefinition;
-            LevelGlitchesEnabled = levelGlitchesEnabled;
+            SelectedLevelGlitch = NormalizeLevelGlitchSelection(levelGlitchesEnabled, levelGlitchSelection);
+            LevelGlitchesEnabled = SelectedLevelGlitch != LevelGlitchSelection.Off;
             LevelGlitchChanceMultiplier = Mathf.Clamp(levelGlitchChanceMultiplier, 0f, 3f);
         }
 
@@ -117,6 +127,8 @@ namespace GetBricked.Gameplay.Data
         public ThemeDefinition ThemeDefinition { get; }
 
         public bool LevelGlitchesEnabled { get; }
+
+        public LevelGlitchSelection SelectedLevelGlitch { get; }
 
         public float LevelGlitchChanceMultiplier { get; }
 
@@ -161,6 +173,31 @@ namespace GetBricked.Gameplay.Data
 
         public string ThemeLabel => ThemeDefinition != null ? ThemeDefinition.DisplayName : "Fallback";
 
-        public string LevelGlitchLabel => LevelGlitchesEnabled ? "Warp Gates Armed" : "Clean Walls";
+        public string LevelGlitchLabel => SelectedLevelGlitch switch
+        {
+            LevelGlitchSelection.Random => "Random Glitches",
+            LevelGlitchSelection.WarpGates => "Warp Gates Armed",
+            LevelGlitchSelection.TurboRail => "Turbo Rail Armed",
+            _ => "Clean Walls",
+        };
+
+        private static LevelGlitchSelection NormalizeLevelGlitchSelection(
+            bool levelGlitchesEnabled,
+            LevelGlitchSelection levelGlitchSelection)
+        {
+            var normalized = (LevelGlitchSelection)Mathf.Clamp(
+                (int)levelGlitchSelection,
+                (int)LevelGlitchSelection.Off,
+                (int)LevelGlitchSelection.Random);
+
+            if (!levelGlitchesEnabled && normalized == LevelGlitchSelection.Random)
+            {
+                return LevelGlitchSelection.Off;
+            }
+
+            return normalized == LevelGlitchSelection.Off && levelGlitchesEnabled
+                ? LevelGlitchSelection.Random
+                : normalized;
+        }
     }
 }

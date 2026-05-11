@@ -37,7 +37,67 @@ public sealed class BreakoutLevelGlitchPlannerTests
         Assert.That(plan.ScoreMultiplier, Is.GreaterThan(1f));
     }
 
-    private static RunSettings CreateSettings(bool levelGlitchesEnabled, float chanceMultiplier = 1f)
+    [Test]
+    public void ForcedTurboRailPlanBuildsWallSectionAndScoreBonus()
+    {
+        var settings = CreateSettings(levelGlitchesEnabled: true, chanceMultiplier: 3f);
+
+        var plan = BreakoutLevelGlitchPlanner.BuildPlan(new DeterministicRandomService(3), settings, levelIndex: 9);
+
+        Assert.That(plan.IsActive, Is.True);
+        Assert.That(plan.GlitchType, Is.EqualTo(BreakoutLevelGlitchType.TurboRail));
+        Assert.That(plan.DisplayName, Is.EqualTo("Turbo Rail"));
+        Assert.That(plan.TurboRail.NormalizedPosition, Is.InRange(0.18f, 0.82f));
+        Assert.That(plan.TurboRail.NormalizedLength, Is.InRange(0.18f, 0.32f));
+        Assert.That(plan.ScoreMultiplier, Is.EqualTo(1.25f).Within(0.0001f));
+        Assert.That(plan.WarpGates, Is.Empty);
+    }
+
+    [Test]
+    public void SelectedTurboRailAlwaysBuildsTurboRailEvenWhenChanceIsDisabled()
+    {
+        var settings = CreateSettings(
+            levelGlitchesEnabled: true,
+            chanceMultiplier: 0f,
+            levelGlitchSelection: LevelGlitchSelection.TurboRail);
+
+        var plan = BreakoutLevelGlitchPlanner.BuildPlan(new DeterministicRandomService(2), settings, levelIndex: 9);
+
+        Assert.That(plan.IsActive, Is.True);
+        Assert.That(plan.GlitchType, Is.EqualTo(BreakoutLevelGlitchType.TurboRail));
+    }
+
+    [Test]
+    public void SelectedWarpGatesAlwaysBuildsWarpGatesEvenWhenChanceIsDisabled()
+    {
+        var settings = CreateSettings(
+            levelGlitchesEnabled: true,
+            chanceMultiplier: 0f,
+            levelGlitchSelection: LevelGlitchSelection.WarpGates);
+
+        var plan = BreakoutLevelGlitchPlanner.BuildPlan(new DeterministicRandomService(3), settings, levelIndex: 9);
+
+        Assert.That(plan.IsActive, Is.True);
+        Assert.That(plan.GlitchType, Is.EqualTo(BreakoutLevelGlitchType.WarpGates));
+    }
+
+    [Test]
+    public void RandomSelectionStillUsesGlitchChance()
+    {
+        var settings = CreateSettings(
+            levelGlitchesEnabled: true,
+            chanceMultiplier: 0f,
+            levelGlitchSelection: LevelGlitchSelection.Random);
+
+        var plan = BreakoutLevelGlitchPlanner.BuildPlan(new DeterministicRandomService(3), settings, levelIndex: 9);
+
+        Assert.That(plan.IsActive, Is.False);
+    }
+
+    private static RunSettings CreateSettings(
+        bool levelGlitchesEnabled,
+        float chanceMultiplier = 1f,
+        LevelGlitchSelection levelGlitchSelection = LevelGlitchSelection.Random)
     {
         return new RunSettings(
             1234,
@@ -54,7 +114,8 @@ public sealed class BreakoutLevelGlitchPlannerTests
             false,
             null,
             levelGlitchesEnabled: levelGlitchesEnabled,
-            levelGlitchChanceMultiplier: chanceMultiplier);
+            levelGlitchChanceMultiplier: chanceMultiplier,
+            levelGlitchSelection: levelGlitchSelection);
     }
 
     private static RunSettings CreateRogueSettings(int rogueIntensity)

@@ -202,7 +202,52 @@ public sealed class BreakoutRunSetupStateTests
         var runSettings = (RunSettings)buildRunSettings.Invoke(state, args);
 
         Assert.That(runSettings.LevelGlitchesEnabled, Is.True);
+        Assert.That(runSettings.SelectedLevelGlitch, Is.EqualTo(LevelGlitchSelection.WarpGates));
         Assert.That(runSettings.LevelGlitchLabel, Is.EqualTo("Warp Gates Armed"));
+    }
+
+    [Test]
+    public void BuildRunSettingsCarriesSelectedTurboRailGlitch()
+    {
+        var state = CreateRunSetupState();
+        var stateType = state.GetType();
+
+        stateType.GetMethod("RestoreWithLevelGlitchSelection", InstanceFlags)?.Invoke(
+            state,
+            new object[]
+            {
+                1984,
+                "1984",
+                RunDifficultyPreset.Standard,
+                RunScoringMode.Classic,
+                1,
+                0,
+                0,
+                0,
+                DropPoolMode.Mixed,
+                true,
+                LevelGlitchSelection.TurboRail,
+                string.Empty,
+            });
+
+        var buildRunSettings = stateType.GetMethod("BuildRunSettings", InstanceFlags);
+        Assert.That(buildRunSettings, Is.Not.Null);
+
+        var args = new object[]
+        {
+            3,
+            500,
+            null,
+            new Func<int>(() => 1984),
+            null,
+            true,
+        };
+
+        var runSettings = (RunSettings)buildRunSettings.Invoke(state, args);
+
+        Assert.That(runSettings.LevelGlitchesEnabled, Is.True);
+        Assert.That(runSettings.SelectedLevelGlitch, Is.EqualTo(LevelGlitchSelection.TurboRail));
+        Assert.That(runSettings.LevelGlitchLabel, Is.EqualTo("Turbo Rail Armed"));
     }
 
     private static object CreateRunSetupState()

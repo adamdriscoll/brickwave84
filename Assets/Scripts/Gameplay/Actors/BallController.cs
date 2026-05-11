@@ -431,6 +431,16 @@ namespace GetBricked.Gameplay
                 return;
             }
 
+            if (collision.collider.TryGetComponent<BreakoutTurboRailSection>(out var turboRail))
+            {
+                RegisterRicochet();
+
+                if (turboRail.TryHandleBallCollision(this))
+                {
+                    return;
+                }
+            }
+
             if (collision.collider.TryGetComponent<PaddleController>(out var hitPaddle))
             {
                 gameController?.HandleBallHitPaddle();
