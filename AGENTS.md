@@ -64,6 +64,7 @@
   - `Assets/Resources/Sprites/`
   - `Assets/Resources/Backgrounds/`
 - If prefabs, art, or audio are introduced later, prefer `Assets/Prefabs/`, `Assets/Art/`, and `Assets/Audio/`.
+- When authored unlock content changes, update the README `Unlock Progression` table in the same pass. This includes adding, removing, renaming, or retuning drop unlocks, level glitches, placeholder progression cards, or run upgrades, plus changes to default status, unlock heat, rarity, polarity, description, effect type, or implementation status.
 - Do not edit generated folders for durable changes: `Library/`, `Logs/`, `Temp/`, or `UserSettings/`.
 - Be cautious with large manual edits to `.unity`, `.prefab`, or other YAML assets because Unity references assets by GUID.
 

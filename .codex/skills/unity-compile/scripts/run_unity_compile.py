@@ -55,7 +55,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--editor-timeout",
         type=int,
-        default=180,
+        default=600,
         help="Seconds to wait for an already-open Unity editor to answer the compile request.",
     )
     parser.add_argument(

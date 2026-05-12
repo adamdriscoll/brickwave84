@@ -10,8 +10,8 @@
 - Scene structure: the playable board is runtime-generated, not prefab-driven yet
 - Current content counts:
   - `4` authored level profiles
-  - `7` brick definitions
-  - `16` pickup definitions
+  - `9` brick definitions
+  - `28` pickup definitions
   - `6` permanent run upgrades
   - `3` themes
   - `3` authored Rogue paddle definitions (alternate types are currently disabled)
@@ -157,45 +157,71 @@ Difficulty presets already change more than labels:
 | `Fortified Brick` | `3` | `250` | High-durability breakable brick | `Fast Ball`, `Multi-Ball`, `Wide Paddle`, `Narrow Paddle`, `Slow Ball`, `Wavy Paddle`, `Phase Ball`, `Gravity Well`, `Fog of War` |
 | `Tiny Brick` | `1` | `325` | Quarter-scale breakable precision brick that is rarer in procedural mixes and pays out extra score for the smaller hitbox | `Wide Paddle`, `Slow Ball`, `Multi-Ball`, `Narrow Paddle`, `Wavy Paddle`, `Sticky Paddle`, `Shield Wall` |
 | `Spinner Brick` | `2` | `225` | Breakable rotor brick that starts spinning when hit, is rotation-anchored at its center, and kicks the ball into stranger ricochet angles while nearby bricks can physically limit its spin | `Wide Paddle`, `Slow Ball`, `Fast Ball`, `Reverse Controls`, `Split Paddle` |
+| `Jelly Block` | `2` | `190` | Breakable squish brick that slows the ball briefly on contact and adds a wobble read to the impact | `Slow Ball`, `Sticky Paddle`, `Multi-Ball`, `Score Surge`, `Mega Ball` |
+| `Split Brick` | `2` | `175` | Breakable brick that splits into `Tiny Brick` pieces when destroyed | `Wide Paddle`, `Slow Ball`, `Fast Ball`, `Multi-Ball`, `Mondo Multi`, `Bogus Multi`, `Mega Ball` |
 | `Explosive Brick` | `1` | `250` | Breakable brick with an explosion burst and temporary speed boost on direct impact kills | `Narrow Paddle`, `Slow Ball`, `Wavy Paddle`, `Chain Lightning`, `Laser Paddle` |
 | `Steel Brick` | Indestructible | `0` | Obstacle brick that does not count toward completion | None |
 
-### Helpful Capsules
+### Unlock Progression
 
-| Capsule | Duration | What it does |
-| --- | --- | --- |
-| `Wide Paddle` | `12s` | Multiplies paddle width by `1.45` |
-| `Slow Ball` | `10s` | Multiplies ball speed by `0.78` |
-| `Multi-Ball` | Instant | Spawns `2` extra balls from an active ball |
-| `Sticky Paddle` | `15s` | The first ball caught on the paddle sticks until you relaunch it |
-| `Laser Paddle` | `15s` | `Space` fires two upward brick hits from the paddle |
-| `Shield Wall` | Instant | Adds a bottom-edge rescue charge |
-| `Phase Ball` | `12s` | Lets balls travel through breakable bricks while still damaging them |
-| `Chain Lightning` | `14s` | Destroyed bricks arc follow-up damage into nearby breakable bricks |
+Permanent run upgrades are always available in the between-stage draft pool. Drop unlocks enter the Neon Ladder ecosystem by default status or rarity gate: `Common` at Heat `01`, `Uncommon` at Heat `08`, `Rare` at Heat `18`, and `Epic` at Heat `32`. Default drops start unlocked for Neon Ladder runs. Implementation status tracks whether the item has live runtime gameplay behavior or is currently only a progression-screen placeholder.
 
-### Harmful Capsules
-
-| Capsule | Duration | What it does |
-| --- | --- | --- |
-| `Narrow Paddle` | `10s` | Multiplies paddle width by `0.72` |
-| `Fast Ball` | `10s` | Multiplies ball speed by `1.28` |
-| `Wavy Paddle` | `12s` | Adds a disruptive paddle sway/drift effect |
-| `Reverse Controls` | `8s` | Inverts paddle movement input |
-| `Split Paddle` | `12s` | Opens a center gap that balls can slip through |
-| `Gravity Well` | `12s` | Pulls balls toward the arena midpoint |
-| `Fog of War` | `10s` | Reduces brick and pickup visibility |
-| `Lag Spike` | `8s` | Intermittently stalls paddle response |
-
-### Upgrade Draft Pool
-
-| Upgrade | Stack cap | Permanent effect |
-| --- | --- | --- |
-| `Wide Loader` | `3` | Paddle width x`1.15` |
-| `Afterburn Coil` | `4` | Ball speed x`1.08` |
-| `Lucky Circuit` | `3` | Drop chance x`1.20` |
-| `Repair Stock` | `2` | `+1` life immediately |
-| `Split Serve` | `2` | `+1` extra ball on every serve |
-| `Flux Line` | `1` | Paddle width x`1.08` plus permanent mild wave strength |
+| Name | Description | Default / unlock level | Rarity | Polarity | Type | Implementation |
+| --- | --- | --- | --- | --- | --- | --- |
+| `Multi-Ball` | +2 balls from an active ball. | Default | Common | Helpful | Multi-ball | Implemented |
+| `Shield Wall` | Adds 1 bottom-edge rescue charge. | Default | Common | Helpful | Shield | Implemented |
+| `Slow Ball` | Ball speed x0.78 for 10s. | Default | Common | Helpful | Ball speed | Implemented |
+| `Wide Paddle` | Paddle width x1.45 for 12s. | Default | Common | Helpful | Paddle width | Implemented |
+| `Fast Ball` | Ball speed x1.28 for 10s. | Heat 01 | Common | Hazard | Ball speed | Implemented |
+| `Narrow Paddle` | Paddle width x0.72 for 10s. | Heat 01 | Common | Hazard | Paddle width | Implemented |
+| `Wavy Paddle` | Adds paddle sway for 12s. | Heat 01 | Common | Hazard | Paddle drift | Implemented |
+| `Bogus Tape` | Looks helpful, then rolls a random hazard. | Heat 08 | Uncommon | Hazard | Disguised hazard | Implemented |
+| `Fog of War` | Reduces brick and pickup visibility for 10s. | Heat 08 | Uncommon | Hazard | Visibility | Implemented |
+| `Lag Spike` | Intermittently stalls paddle response for 8s. | Heat 08 | Uncommon | Hazard | Input lag | Implemented |
+| `Laser Paddle` | Enables paddle laser fire for 15s. | Heat 08 | Uncommon | Helpful | Laser paddle | Implemented |
+| `Mondo Multi` | Multiplies active timed effects by x2.00. | Heat 08 | Uncommon | Helpful | Active-effect multiplier | Implemented |
+| `Neon Shield` | Adds 1 bottom-edge rescue charge. | Heat 08 | Uncommon | Helpful | Shield | Implemented |
+| `Reverse Controls` | Reverses paddle controls for 8s. | Heat 08 | Uncommon | Hazard | Reverse controls | Implemented |
+| `Split Paddle` | Opens a center paddle gap for 12s. | Heat 08 | Uncommon | Hazard | Split paddle | Implemented |
+| `Sticky Paddle` | Catches the next paddle ball until relaunch for 10s. | Heat 08 | Uncommon | Helpful | Sticky paddle | Implemented |
+| `Blackout` | Blacks out brick visibility for 8s. | Heat 18 | Rare | Hazard | Visibility | Implemented |
+| `Bogus Multi` | Cuts active timed effects to x0.50. | Heat 18 | Rare | Hazard | Active-effect multiplier | Implemented |
+| `Brick Jammer` | Weakens brick readability/response for 7s. | Heat 18 | Rare | Hazard | Brick jam | Implemented |
+| `Brick Magnet` | Pulls the ball toward nearby bricks for 10s. | Heat 18 | Rare | Helpful | Brick pull | Implemented |
+| `Chain Lightning` | Broken bricks chain damage to nearby bricks for 14s. | Heat 18 | Rare | Helpful | Chain damage | Implemented |
+| `Ghost Ball` | Lets balls phase through breakable bricks for 8s. | Heat 18 | Rare | Helpful | Phase ball | Implemented |
+| `Gravity Well` | Pulls balls toward the arena midpoint for 12s. | Heat 18 | Rare | Hazard | Gravity well | Implemented |
+| `Mega Ball` | Ball size x1.80 for 10s. | Heat 18 | Rare | Helpful | Ball size | Implemented |
+| `Phase Ball` | Lets balls phase through breakable bricks for 12s. | Heat 18 | Rare | Helpful | Phase ball | Implemented |
+| `Score Surge` | Score x2.00 for 10s. | Heat 18 | Rare | Helpful | Score multiplier | Implemented |
+| `Signal Drift` | Intermittently stalls paddle response for 8s. | Heat 18 | Rare | Hazard | Input lag | Implemented |
+| `Boom Ball` | Ball explosions damage nearby bricks for 10s. | Heat 32 | Epic | Helpful | Explosive ball | Implemented |
+| `Hot Potato Ball` | Ball speed and score x1.28 for 9s. | Heat 32 | Epic | Helpful | Speed/score risk | Implemented |
+| `Laser Grid` | Enables paddle laser fire for 10s. | Heat 32 | Epic | Helpful | Laser paddle | Implemented |
+| `Paddle Clone` | Adds a clone rail for 10s. | Heat 32 | Epic | Helpful | Paddle clone | Implemented |
+| `Warp Gates` | Linked portals reroute ball paths. | Default | Common | Glitch | Level glitch | Implemented |
+| `Turbo Rail` | A hot wall rail accelerates rebounds. | Heat 18 | Rare | Glitch | Level glitch | Implemented |
+| `Chrome Rail` | Paddle widens slightly and sends cleaner bank angles. | Heat 02 | N/A | Helpful | Control drop | Not implemented (UI placeholder) |
+| `Clean Catch` | Next paddle hit catches, then releases with stronger aim. | Heat 04 | N/A | Helpful | Control drop | Not implemented (UI placeholder) |
+| `Vector Sight` | Shows a short aim preview near the paddle. | Heat 06 | N/A | Helpful | Control drop | Not implemented (UI placeholder) |
+| `Bank Bonus` | Wall bounces charge bonus points until the next brick hit. | Heat 08 | N/A | Helpful | Precision drop | Not implemented (UI placeholder) |
+| `Solar Shot` | Ball burns through the next weak brick it touches. | Heat 12 | N/A | Helpful | Damage drop | Not implemented (UI placeholder) |
+| `Prism Pop` | First brick hit splits a short-lived copy ball. | Heat 14 | N/A | Helpful | Split drop | Not implemented (UI placeholder) |
+| `Capsule Magnet` | Nearby helpful capsules drift toward the paddle. | Heat 18 | N/A | Helpful | Pickup drop | Not implemented (UI placeholder) |
+| `Mirror Grid` | Brick layout mirrors horizontally halfway through the stage. | Heat 08 | N/A | Glitch | Layout glitch | Not implemented (UI placeholder) |
+| `Row Rewrite` | One row rerolls into a new brick pattern after a timer. | Heat 10 | N/A | Glitch | Layout glitch | Not implemented (UI placeholder) |
+| `Prism Lanes` | Marked lanes refract the ball into sharper angles. | Heat 16 | N/A | Glitch | Precision glitch | Not implemented (UI placeholder) |
+| `Token Storm` | More capsules spawn, but fall at mixed speeds. | Heat 20 | N/A | Glitch | Pickup glitch | Not implemented (UI placeholder) |
+| `Gravity Pocket` | A visible pocket bends nearby ball paths. | Heat 26 | N/A | Glitch | Speed glitch | Not implemented (UI placeholder) |
+| `Static Wall` | One side wall flickers between normal and weak bounce. | Heat 34 | N/A | Glitch | Paddle glitch | Not implemented (UI placeholder) |
+| `Future Drop Slot` | Future drop signal pending. | Hidden | N/A | TBD | Hidden slot | Not implemented (reserved) |
+| `Future Glitch Slot` | Future glitch signal pending. | Hidden | N/A | TBD | Hidden slot | Not implemented (reserved) |
+| `Afterburn Coil` | The cabinet overclocks every serve, keeping the ball hotter for all remaining levels. | Draft pool | N/A | Build | Run upgrade | Implemented |
+| `Flux Line` | The paddle develops a gentle permanent drift pattern that trades chaos for wider coverage arcs. | Draft pool | N/A | Build | Run upgrade | Implemented |
+| `Lucky Circuit` | Pickup routing stays juiced, raising permanent drop odds for the rest of the cabinet run. | Draft pool | N/A | Build | Run upgrade | Implemented |
+| `Repair Stock` | A stocked service bay grants an immediate extra life and keeps the cabinet run alive longer. | Draft pool | N/A | Build | Run upgrade | Implemented |
+| `Split Serve` | Every new serve launches an extra ball, letting the run snowball faster between resets. | Draft pool | N/A | Build | Run upgrade | Implemented |
+| `Wide Loader` | Your paddle chassis expands for the rest of the run, opening more forgiving save angles. | Draft pool | N/A | Build | Run upgrade | Implemented |
 
 ### Themes
 

@@ -135,8 +135,8 @@ namespace GetBricked.Gameplay
             cards.Add(BuildDefaultGlitchCard("Turbo Rail", "Speed", "A hot wall rail accelerates rebounds.", SplitAccent));
             AppendPlaceholderCards(cards, PlaceholderDrops, highestCompletedIntensity);
             AppendPlaceholderCards(cards, PlaceholderGlitches, highestCompletedIntensity);
-            cards.Add(BuildHiddenSlotCard("Future Drop Slot", "Drop", "Hidden", "Reserved for later Ladder bands or bundle work."));
-            cards.Add(BuildHiddenSlotCard("Future Glitch Slot", "Glitch", "Hidden", "Reserved for later Ladder bands or surprise content."));
+            cards.Add(BuildHiddenSlotCard("Future Drop Slot", "Drop", "Hidden", "Future drop signal pending."));
+            cards.Add(BuildHiddenSlotCard("Future Glitch Slot", "Glitch", "Hidden", "Future glitch signal pending."));
             return cards.ToArray();
         }
 
@@ -169,7 +169,7 @@ namespace GetBricked.Gameplay
                     Title = definition.DisplayName,
                     Kind = "Drop",
                     Family = $"{definition.RarityLabel} {(definition.IsBeneficial ? "Helpful" : "Hazard")}",
-                    Description = BuildDropDescription(definition, isDefault),
+                    Description = BuildDropDescription(definition),
                     UnlockHint = isDefault
                         ? "Default content"
                         : isUnlocked
@@ -204,28 +204,42 @@ namespace GetBricked.Gameplay
             return new ThemeVisualStyle(definition.PickupColor, definition.PickupColor, ResolvePowerUpSprite(definition));
         }
 
-        private static string BuildDropDescription(PowerUpDefinition definition, bool isDefault)
+        private static string BuildDropDescription(PowerUpDefinition definition)
         {
             if (definition == null)
             {
                 return string.Empty;
             }
 
-            if (isDefault)
+            return definition.EffectType switch
             {
-                return definition.IsBeneficial
-                    ? "Starting ladder capsule. Available when the mode allows helpful drops."
-                    : "Starting ladder hazard. Available when the mode allows harmful drops.";
-            }
-
-            if (definition.EffectType == PowerUpEffectType.RandomHarmfulDrop)
-            {
-                return "Looks helpful until collected, then rolls an unlocked hazard.";
-            }
-
-            return definition.IsBeneficial
-                ? "Ladder capsule. Unlocks into the run drop pool at its rarity gate."
-                : "Ladder hazard. Unlocks into the run drop pool at its rarity gate.";
+                PowerUpEffectType.PaddleWidthMultiplier => $"Paddle width x{definition.Scalar:0.00} for {definition.DurationSeconds:0.#}s.",
+                PowerUpEffectType.BallSpeedMultiplier => $"Ball speed x{definition.Scalar:0.00} for {definition.DurationSeconds:0.#}s.",
+                PowerUpEffectType.BallSizeMultiplier => $"Ball size x{definition.Scalar:0.00} for {definition.DurationSeconds:0.#}s.",
+                PowerUpEffectType.MultiBallBurst => $"+{Mathf.Max(1, definition.ExtraBallCount)} balls from an active ball.",
+                PowerUpEffectType.WavyPaddle => $"Adds paddle sway for {definition.DurationSeconds:0.#}s.",
+                PowerUpEffectType.StickyPaddle => $"Catch and relaunch the next paddle ball for {definition.DurationSeconds:0.#}s.",
+                PowerUpEffectType.LaserPaddle => $"Paddle fires lasers for {definition.DurationSeconds:0.#}s.",
+                PowerUpEffectType.ShieldWall => $"Adds {Mathf.Max(1, definition.ExtraBallCount > 0 ? definition.ExtraBallCount : Mathf.RoundToInt(definition.Scalar))} bottom rescue charge.",
+                PowerUpEffectType.PhaseBall => $"Ball phases through breakable bricks for {definition.DurationSeconds:0.#}s.",
+                PowerUpEffectType.ChainLightning => $"Broken bricks chain damage nearby bricks for {definition.DurationSeconds:0.#}s.",
+                PowerUpEffectType.ReverseControls => $"Reverses paddle controls for {definition.DurationSeconds:0.#}s.",
+                PowerUpEffectType.SplitPaddle => $"Opens a center paddle gap for {definition.DurationSeconds:0.#}s.",
+                PowerUpEffectType.GravityWell => $"Pulls balls toward the arena midpoint for {definition.DurationSeconds:0.#}s.",
+                PowerUpEffectType.FogOfWar => definition.VisibilityScalar <= 0f
+                    ? $"Blacks out brick visibility for {definition.DurationSeconds:0.#}s."
+                    : $"Reduces brick and pickup visibility for {definition.DurationSeconds:0.#}s.",
+                PowerUpEffectType.LagSpike => $"Stalls paddle response in bursts for {definition.DurationSeconds:0.#}s.",
+                PowerUpEffectType.ActiveDropMultiplier => $"Active timed effects x{definition.Scalar:0.00}.",
+                PowerUpEffectType.BrickMagnet => $"Pulls the ball toward nearby bricks for {definition.DurationSeconds:0.#}s.",
+                PowerUpEffectType.ScoreMultiplier => $"Score x{definition.Scalar:0.00} for {definition.DurationSeconds:0.#}s.",
+                PowerUpEffectType.PaddleClone => $"Adds a clone rail for {definition.DurationSeconds:0.#}s.",
+                PowerUpEffectType.BrickJammer => $"Jams brick response for {definition.DurationSeconds:0.#}s.",
+                PowerUpEffectType.HotPotatoBall => $"Ball speed and score x{definition.Scalar:0.00} for {definition.DurationSeconds:0.#}s.",
+                PowerUpEffectType.ExplosiveBall => $"Ball explosions damage nearby bricks for {definition.DurationSeconds:0.#}s.",
+                PowerUpEffectType.RandomHarmfulDrop => "Looks helpful, then rolls a random hazard.",
+                _ => $"{definition.HudLabel} for {definition.DurationSeconds:0.#}s.",
+            };
         }
 
         private Sprite ResolvePowerUpSprite(PowerUpDefinition definition)

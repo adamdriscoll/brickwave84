@@ -64,6 +64,11 @@ def request_unity_editor(
 
         time.sleep(0.25)
 
+    try:
+        request_path.unlink()
+    except OSError:
+        pass
+
     raise TimeoutError(
         f"The open Unity editor did not answer the Codex {command} request within {timeout_seconds} seconds. "
         "Wait for Unity to finish importing/compiling and try again."

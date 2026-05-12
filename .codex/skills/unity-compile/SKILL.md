@@ -21,6 +21,7 @@ Use this skill to reproduce and diagnose Unity compile failures for `Get Bricked
 - Use `--unity <path-to-Unity.exe>` only when the editor is installed outside the normal Unity Hub path.
 - Use `--log <path>` if a task needs a separate log artifact.
 - Leave Unity open when useful. The script detects the open editor through `Library/EditorInstance.json` and uses the editor bridge instead of launching a second Unity process.
+- The open-editor bridge defaults to a 600-second wait, matching the test helper, because Unity imports and domain reloads can take longer than a normal script compile.
 - Use `--force-batchmode` only when you intentionally want the old batchmode path and the project is not already open.
 - Treat a clean compile check as a fast pre-build guard, not a full player build.
 
