@@ -291,6 +291,159 @@ Every new upgrade or drop should answer:
 | Risk-Speed Build | Comet Paddle, Turbo Ball, score multipliers, precision rewards. | Can punish average players too hard if speed stacks uncapped. |
 | Hazard Harvest Build | Fake Tape manipulation, power-down conversion, corrupted drops. | Needs clear pickup polarity so choices feel fair. |
 
+### Content Growth Contract
+
+Drops and glitches should grow as connected content families, not as isolated one-off mechanics.
+
+Before any drop or glitch leaves backlog, it needs:
+
+- a synergy family: what build, paddle, brick type, boss, or scoring rule wants this content
+- an intensity band: when it can start appearing and when stronger variants can unlock
+- a tradeoff: why the player might skip the reward, dodge the capsule, or choose a cleaner route
+- a readable counter: how the player can respond through aim, timing, pickup routing, or draft choice
+- at least one partner: another drop, glitch, brick behavior, upgrade, or boss phase that makes it more interesting
+
+Ship new content in bundles, not singles. A good bundle is usually `2-3 drops`, `1-2 glitches`, and `1 upgrade, brick, or boss interaction` that all reinforce the same build story.
+
+### Growth Families
+
+Every item in the drop and glitch backlogs belongs to one of these families. The point is to make the game widen over time: early bands teach a rule, middle bands create draft tension, and late bands combine families into high-score or survival pressure.
+
+| Family | First Band | Drop Candidates | Glitch Candidates | Growth Purpose |
+| --- | --- | --- | --- | --- |
+| Control And Recovery | 1-10 | Chrome Rail, Clean Catch, Vector Sight, Chill Bubble, Rewind Tap, Soft Serve, Magno Nudge, Wall Hugger, Angle Lock, Second Chance, Life Line | Cold Corners, Soft Walls, Escape Hatch, Spiral Serve | Gives new players stability, then lets skilled players convert control into precise clears. |
+| Precision And Score | 1-20 | Bank Bonus, Ricochet Charge, Weak Spot, Combo Saver, Score Tape, Jackpot Jolt, Score Leak | Prism Lanes, Hot Corners, Wide Open, Score Surge Stage, Bogus Bonus Stage, Final Input Lock | Makes angle mastery and risk scoring matter without turning every reward into raw damage. |
+| Damage, Pierce, And Boss Tech | 11-30 | Solar Shot, Thunder Tag, Core Drill, Firecracker, Laser Burst, Chrome Comet, Sweep Beam | Lockout Tiles, Core Shield Pulse, Armor Surge, Boss Static Cameo | Creates answers to armor, cores, shielded bricks, and boss gates. |
+| Split And Clone | 11-30 | Prism Pop, Twin Flicker, Spare Spark, Clone Chip | Jelly Grid, Split Orbit, Clone Tax | Supports multiball builds while adding readability checks and score tradeoffs. |
+| Pickup Economy And Hazard Harvest | 11-40 | Capsule Magnet, Bonus Mint, Bogus Tape, Drop Tax, Sour Magnet, Glitch Debt, Hazard Bloom | Dead Air, Token Storm, Capsule Flood, Hazard Flood, Label Noise, Drop Delay | Turns capsules into a route-planning layer, including builds that profit from dodging or converting danger. |
+| Layout Rewrite And Corruption | 21-40 | Blind Lane, Brick Rain, Noise Floor, Ball Static | Mirror Grid, Row Rewrite, Scanline Sweep, Rewind Row, Brick Shuffle, Ceiling Drop, Ghost Bricks, Flicker Field, Conveyor Wall, Crossfade Bricks, Seed Fracture | Makes stages feel corrupted without hiding the rules; best for Seed Breaker and late Rogue. |
+| Speed, Momentum, And Gravity | 21-50 | Turbo Trouble, Wobble Ball, Bad Bounce, Black Ice | Gravity Pocket, VCR Skip, Fast Forward Floor, Pause Blink, Low Ceiling, Tight Squeeze, Magnetic North, Mondo Gravity, Hard Walls | Raises tempo and recovery pressure while rewarding players who drafted control tools earlier. |
+| Paddle And Input Disruption | 31-50 | Skinny Signal, Wrong-Way Ray, Static Shoes, Sticky Miss, Dead Zone, Mirror Hands | Static Wall, Side Swap, Input Echo, Pulse Bumpers, Switchback Rails, Tilt Warning, Wall Phase | Late-band disruption for confident players; should be used sparingly and always telegraphed. |
+
+### Intensity Growth Rules
+
+| Band | New Content Shape | Synergy Requirement |
+| --- | --- | --- |
+| 1-10 | Control, recovery, simple score hooks, and low-pressure arena rules. | Each new drop should help a basic build survive or aim better. Glitches should teach one visible rule. |
+| 11-20 | Pickup economy, precision scoring, first harmful draft choices, and boss-answer drops. | Each hazard should have at least one reward or upgrade that can exploit it. |
+| 21-30 | Split builds, damage routing, moving layouts, and armor/core pressure. | Each damage or split drop should have a boss, brick, or glitch that makes it shine. |
+| 31-40 | Corrupted layouts, hazard harvest, drop manipulation, and Seed Breaker pressure. | Each glitch should change draft priorities, not just make the board harder. |
+| 41-50 | Combined families, elite disruption, and high-risk score premiums. | Every late-band modifier should pair one upside with one readable threat. |
+
+### Drop Backlog: 50 More Capsules
+
+The current pool has 30 authored drops. Use these as expansion candidates, not all-at-once additions. Early bands should favor readable variants of existing systems; later bands can add new mechanics once pickup polarity, timers, and draft intent are clear.
+
+| # | Drop | Lane | Idea |
+| ---: | --- | --- | --- |
+| 1 | Chrome Rail | Control | Paddle widens slightly and sends cleaner bank angles for a short time. |
+| 2 | Clean Catch | Control | Next paddle hit catches the ball, then releases with a stronger aimed launch. |
+| 3 | Vector Sight | Control | Shows a short aim preview while the ball is near the paddle. |
+| 4 | Chill Bubble | Control | Slows the nearest active ball without changing other ball speeds. |
+| 5 | Rewind Tap | Recovery | Saves one bad rebound by snapping the ball back to its last safe lane. |
+| 6 | Bank Bonus | Score | Wall bounces charge bonus points until the next brick hit. |
+| 7 | Soft Serve | Recovery | Next serve starts slower and with a wider launch window. |
+| 8 | Magno Nudge | Control | Paddle gently pulls the nearest ball toward its center. |
+| 9 | Wall Hugger | Recovery | Side walls save one steep miss by bending the ball back inward. |
+| 10 | Angle Lock | Precision | Paddle hits clamp to readable low, mid, or steep angles for a short time. |
+| 11 | Solar Shot | Damage | Ball burns through the next weak brick it touches. |
+| 12 | Prism Pop | Split | First brick hit splits a short-lived copy ball at a mirrored angle. |
+| 13 | Thunder Tag | Damage | Marks one brick so the next hit zaps nearby bricks. |
+| 14 | Core Drill | Boss | Ball deals extra damage to armor, core, and boss bricks. |
+| 15 | Firecracker | Explosive | Next brick hit creates a small, readable blast. |
+| 16 | Laser Burst | Damage | Fires one vertical laser volley from the paddle. |
+| 17 | Ricochet Charge | Precision | Each clean wall bounce adds damage to the next brick hit. |
+| 18 | Chrome Comet | Pierce | Ball pierces one brick, then returns to normal bouncing. |
+| 19 | Sweep Beam | Damage | Clears a thin horizontal scanline through damaged bricks. |
+| 20 | Weak Spot | Precision | Highlights one valuable target and boosts points for hitting it. |
+| 21 | Twin Flicker | Split | Adds a faint helper paddle that blocks one miss, then burns out. |
+| 22 | Capsule Magnet | Pickup | Nearby helpful capsules drift toward the paddle. |
+| 23 | Bonus Mint | Pickup | The next few helpful drops last slightly longer. |
+| 24 | Second Chance | Recovery | Arms a one-shot bottom shield if no shield is already active. |
+| 25 | Spare Spark | Recovery | Adds one tiny backup ball with low damage and short lifetime. |
+| 26 | Clone Chip | Synergy | Copies the strongest active helpful effect at half duration. |
+| 27 | Combo Saver | Score | Prevents the current combo from dropping once. |
+| 28 | Score Tape | Score | Stores bonus points and pays them out if the stage is cleared. |
+| 29 | Jackpot Jolt | Score | Next special brick hit is worth extra points. |
+| 30 | Life Line | Recovery | Grants a life only if the player clears the current stage without another miss. |
+| 31 | Skinny Signal | Hazard | Paddle narrows for a short time. |
+| 32 | Turbo Trouble | Hazard | Ball speed spikes briefly. |
+| 33 | Wrong-Way Ray | Hazard | Paddle controls reverse briefly. |
+| 34 | Static Shoes | Hazard | Paddle acceleration drops and stopping distance increases. |
+| 35 | Bogus Tape | Hazard | Looks helpful until collected, then rolls a minor hazard. |
+| 36 | Drop Tax | Hazard | Helpful capsules fall faster and expire sooner for a short time. |
+| 37 | Score Leak | Hazard | Score multiplier slowly drains until the next brick clear. |
+| 38 | Blind Lane | Hazard | A narrow screen band hides bricks until the ball enters it. |
+| 39 | Sour Magnet | Hazard | Helpful capsules drift slightly away from the paddle. |
+| 40 | Brick Rain | Hazard | Spawns a few low-health junk bricks near the top. |
+| 41 | Sticky Miss | Hazard | Paddle catches the next ball but releases it at a fixed awkward angle. |
+| 42 | Wobble Ball | Hazard | Ball angle jitters lightly after each wall bounce. |
+| 43 | Bad Bounce | Hazard | Next paddle hit exaggerates the bounce angle. |
+| 44 | Dead Zone | Hazard | A small center strip of the paddle gives weak rebounds. |
+| 45 | Glitch Debt | Risk | Next helpful pickup is delayed, but pays a stronger effect if collected. |
+| 46 | Noise Floor | Hazard | Active effect timers become less readable and tick down faster. |
+| 47 | Hazard Bloom | Hazard | Harmful drops are weighted higher until one is collected or missed. |
+| 48 | Ball Static | Hazard | Ball trail gets noisier, making fast rebounds harder to read. |
+| 49 | Mirror Hands | Hazard | Horizontal input flickers between normal and reversed. |
+| 50 | Black Ice | Hazard | Paddle slides with low friction for a short time. |
+
+### Level Glitch Backlog: 50 More Stage Corruptions
+
+The current implemented archetypes are `Warp Gates` and `Turbo Rail`. Future glitches should behave like stage rules with score premiums, clear setup labels, and obvious visual language before the first serve.
+
+| # | Glitch | Lane | Idea |
+| ---: | --- | --- | --- |
+| 1 | Mirror Grid | Layout | The brick layout mirrors horizontally halfway through the stage. |
+| 2 | Row Rewrite | Layout | One row rerolls into a new brick pattern after a timer. |
+| 3 | Scanline Sweep | Hazard | A moving scanline briefly hides or reveals bricks as it passes. |
+| 4 | Static Wall | Arena | One side wall flickers between normal bounce and weak bounce. |
+| 5 | Gravity Pocket | Ball | A visible pocket bends nearby ball paths. |
+| 6 | Prism Lanes | Ball | Marked lanes refract the ball into sharper angles. |
+| 7 | VCR Skip | Timing | The ball stutters forward on a fixed beat, then resumes normal motion. |
+| 8 | Rewind Row | Layout | A damaged row restores once unless fully cleared quickly. |
+| 9 | Fast Forward Floor | Arena | Ball speed increases near the bottom of the playfield. |
+| 10 | Pause Blink | Timing | Bricks blink invulnerable for a short readable pulse. |
+| 11 | Dead Air | Arena | A small no-drop zone prevents capsules from spawning inside it. |
+| 12 | Token Storm | Drops | More capsules spawn, but fall at mixed speeds. |
+| 13 | Brick Shuffle | Layout | Surviving bricks shift one column after every few hits. |
+| 14 | Ceiling Drop | Layout | A new row descends from the top after a timer. |
+| 15 | Side Swap | Arena | Left and right wall effects swap positions mid-stage. |
+| 16 | Input Echo | Paddle | Paddle repeats a faint delayed movement after sharp turns. |
+| 17 | Ghost Bricks | Layout | Some bricks are visible but only become solid after the first hit nearby. |
+| 18 | Flicker Field | Layout | A cluster alternates between hittable and pass-through states. |
+| 19 | Jelly Grid | Ball | Brick impacts absorb speed, then rebound the ball harder. |
+| 20 | Lockout Tiles | Layout | Certain bricks open only after their paired lock brick is hit. |
+| 21 | Hot Corners | Arena | Corner rebounds add speed and bonus points. |
+| 22 | Cold Corners | Arena | Corner rebounds slow the ball but reduce bonus scoring. |
+| 23 | Pulse Bumpers | Arena | Temporary bumpers appear on a beat near the side walls. |
+| 24 | Switchback Rails | Arena | Short angled rails redirect shots through the brick field. |
+| 25 | Tilt Warning | Paddle | Repeated edge hits tilt the paddle response until a center hit resets it. |
+| 26 | Low Ceiling | Arena | Top wall drops lower, shrinking recovery space. |
+| 27 | Tight Squeeze | Arena | Side walls move inward for a denser, riskier stage. |
+| 28 | Wide Open | Arena | Side walls move outward, rewarding precision over safety. |
+| 29 | Conveyor Wall | Layout | Brick columns drift horizontally like a conveyor belt. |
+| 30 | Crossfade Bricks | Layout | Two brick groups trade visibility and collision on a beat. |
+| 31 | Score Surge Stage | Score | Stage score multiplier rises while the ball stays alive. |
+| 32 | Bogus Bonus Stage | Score | Score premium is high, but misses remove the premium. |
+| 33 | Capsule Flood | Drops | Helpful and harmful capsules both spawn more often. |
+| 34 | Hazard Flood | Drops | Harmful capsules are common but worth bonus score when dodged. |
+| 35 | Label Noise | Drops | Capsule labels flicker, so polarity color must carry readability. |
+| 36 | Split Orbit | Ball | Extra balls orbit briefly before launching outward. |
+| 37 | Magnetic North | Ball | The ball is pulled slightly toward the top-center wall. |
+| 38 | Clone Tax | Split | Extra balls score less until only one remains. |
+| 39 | Mondo Gravity | Ball | Ball paths bend downward more strongly near the paddle. |
+| 40 | Soft Walls | Arena | Wall rebounds lose speed but grant safer angles. |
+| 41 | Hard Walls | Arena | Wall rebounds gain speed and score value. |
+| 42 | Wall Phase | Arena | One side wall becomes pass-through, with a visible return portal. |
+| 43 | Escape Hatch | Recovery | A bottom hatch opens once as a save, then becomes a hazard slot. |
+| 44 | Spiral Serve | Serve | Serves launch through a rotating aim cone. |
+| 45 | Core Shield Pulse | Boss | Boss or core bricks shield and unshield on a readable beat. |
+| 46 | Armor Surge | Bricks | A few bricks gain temporary armor after nearby bricks break. |
+| 47 | Drop Delay | Drops | Capsules pause in midair, then resume falling together. |
+| 48 | Boss Static Cameo | Boss | A boss pattern briefly interrupts a normal stage. |
+| 49 | Final Input Lock | Paddle | The last brick requires a clean aimed hit while paddle assists are disabled. |
+| 50 | Seed Fracture | Risk | The stage combines two minor glitches for a high score premium. |
+
 ## Recommended Build Sequence
 
 ### 1. Rogue Run MVP
@@ -315,7 +468,7 @@ Add paddle selection and unlock the first alternate paddle, probably `Comet Padd
 
 ### 6. Content Bands
 
-Start releasing upgrades, drops, power-downs, brick behaviors, and boss variants into intensity bands. Favor content that creates synergy stories before adding raw count.
+Start releasing upgrades, drops, power-downs, brick behaviors, glitches, and boss variants into intensity bands as small synergy bundles. Favor content that creates build stories before adding raw count, and do not ship orphan drops or orphan glitches.
 
 ### 7. Boss Roster Completion
 
