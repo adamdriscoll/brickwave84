@@ -18,6 +18,7 @@ MonoBehaviour:
   iconResourcePath: Sprites/slow-ball
   effectType: 1
   beneficial: 1
+  rarity: 0
   durationSeconds: 10
   scalar: 0.78
   extraBallCount: 0

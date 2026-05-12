@@ -89,7 +89,7 @@ namespace GetBricked.Gameplay
             return new BreakoutUiProgressionView
             {
                 Title = "Progression",
-                Subtitle = "Neon Ladder history, placeholder unlock slots, and where earned content will appear later.",
+                Subtitle = "Neon Ladder history, rarity gates, and where earned content appears next.",
                 LadderTitle = "Ladder Progress",
                 LadderLines = new[]
                 {
@@ -102,12 +102,12 @@ namespace GetBricked.Gameplay
                 {
                     $"Drops: {defaultDropCount:00} Default | {unlockedPlaceholderDrops:00} Placeholder Unlocked | {lockedDropCount:00} Locked",
                     $"Glitches: {DefaultGlitchCount:00} Default | {unlockedPlaceholderGlitches:00} Placeholder Unlocked | {lockedGlitchCount:00} Locked",
-                    "Modes: Ladder earns progress. Marathon and multiplayer will read earned content.",
+                    "Modes: Ladder rarity affects unlock order and capsule odds.",
                 },
                 NextSignal = BuildNextSignal(selectedPaddle.DisplayName, selectedAvailable, selectedBestStage),
                 Paddles = BuildPaddleViews(selectedPaddle.DisplayName),
                 Cards = BuildCards(loadedPowerUps, selectedHighest),
-                FooterText = "Esc returns to Mode Select. This page is presentation-only: locked placeholders do not alter drops, glitches, or mode pools yet.",
+                FooterText = "Esc returns to Mode Select. Rarity gates live drops and glitches; placeholder cards mark future content.",
             };
         }
 
@@ -176,7 +176,7 @@ namespace GetBricked.Gameplay
                 {
                     Title = definition.DisplayName,
                     Kind = "Drop",
-                    Family = definition.IsBeneficial ? "Default Helpful" : "Default Hazard",
+                    Family = $"{definition.RarityLabel} {(definition.IsBeneficial ? "Helpful" : "Hazard")}",
                     Description = definition.IsBeneficial
                         ? "Authored default capsule. Always available when the mode allows helpful drops."
                         : "Authored default hazard. Always available when the mode allows harmful drops.",

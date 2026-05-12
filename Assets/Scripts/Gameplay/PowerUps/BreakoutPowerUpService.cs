@@ -783,7 +783,11 @@ namespace GetBricked.Gameplay
 
             for (var index = 0; index < dropTable.Length; index++)
             {
-                authoredCandidates[index] = new BreakoutPowerUpDropCandidate(dropTable[index].PowerUpDefinition, dropTable[index].Weight);
+                var definition = dropTable[index].PowerUpDefinition;
+                var rarityMultiplier = definition != null
+                    ? BreakoutRarityRules.GetDropWeightMultiplier(definition.Rarity)
+                    : 0f;
+                authoredCandidates[index] = new BreakoutPowerUpDropCandidate(definition, dropTable[index].Weight * rarityMultiplier);
             }
 
             return authoredCandidates;
@@ -800,9 +804,11 @@ namespace GetBricked.Gameplay
                 ? BreakoutRunProgression.GetRogueIntensityProgress(activeRunSettings.RogueIntensity)
                 : 0f;
 
-            return definition.IsBeneficial
+            var polarityWeight = definition.IsBeneficial
                 ? Mathf.Lerp(1.08f, 0.86f, heatProgress)
                 : Mathf.Lerp(0.38f, 1.35f, heatProgress);
+
+            return polarityWeight * BreakoutRarityRules.GetDropWeightMultiplier(definition.Rarity);
         }
 
         private PowerUpPickup CreatePickup(

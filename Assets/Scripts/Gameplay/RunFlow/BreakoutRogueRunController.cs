@@ -89,10 +89,10 @@ namespace GetBricked.Gameplay
                 return 0;
             }
 
-            var hazards = BuildSortedHazardDropPool();
             var intensity = runSettings != null
                 ? runSettings.RogueIntensity
                 : BreakoutRunProgression.MinRogueIntensity;
+            var hazards = BuildSortedHazardDropPool(intensity);
             var targetHazardCount = Mathf.Min(hazards.Count, GetAutoHazardUnlockCount(runState.ClearedLevelCount, intensity));
             var unlockedCount = 0;
 
@@ -159,7 +159,7 @@ namespace GetBricked.Gameplay
             return startingDrops;
         }
 
-        private List<PowerUpDefinition> BuildSortedHazardDropPool()
+        private List<PowerUpDefinition> BuildSortedHazardDropPool(int intensity)
         {
             var hazards = new List<PowerUpDefinition>();
 
@@ -167,17 +167,43 @@ namespace GetBricked.Gameplay
             {
                 var definition = loadedPowerUpDefinitions[index];
 
-                if (definition != null && !definition.IsBeneficial)
+                if (definition != null
+                    && !definition.IsBeneficial
+                    && BreakoutRarityRules.IsUnlockedForLadderIntensity(definition.Rarity, intensity))
                 {
                     hazards.Add(definition);
                 }
             }
 
-            hazards.Sort((left, right) => string.Compare(
-                BreakoutPowerUpIdentity.GetStableId(left),
-                BreakoutPowerUpIdentity.GetStableId(right),
-                StringComparison.OrdinalIgnoreCase));
+            hazards.Sort(CompareHazardUnlockOrder);
             return hazards;
+        }
+
+        private static int CompareHazardUnlockOrder(PowerUpDefinition left, PowerUpDefinition right)
+        {
+            if (ReferenceEquals(left, right))
+            {
+                return 0;
+            }
+
+            if (left == null)
+            {
+                return 1;
+            }
+
+            if (right == null)
+            {
+                return -1;
+            }
+
+            var rarityComparison = left.Rarity.CompareTo(right.Rarity);
+
+            return rarityComparison != 0
+                ? rarityComparison
+                : string.Compare(
+                    BreakoutPowerUpIdentity.GetStableId(left),
+                    BreakoutPowerUpIdentity.GetStableId(right),
+                    StringComparison.OrdinalIgnoreCase);
         }
 
         internal static int GetAutoHazardUnlockCount(int clearedLevelCount, int intensity)

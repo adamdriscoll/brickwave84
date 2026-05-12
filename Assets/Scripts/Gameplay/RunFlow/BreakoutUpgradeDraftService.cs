@@ -61,7 +61,8 @@ namespace GetBricked.Gameplay
                 return 0f;
             }
 
-            return definition.IsBeneficial ? HelpfulDropUnlockDraftWeight : HarmfulDropUnlockDraftWeight;
+            var polarityWeight = definition.IsBeneficial ? HelpfulDropUnlockDraftWeight : HarmfulDropUnlockDraftWeight;
+            return polarityWeight * BreakoutRarityRules.GetDraftWeightMultiplier(definition.Rarity);
         }
     }
 
@@ -168,7 +169,8 @@ namespace GetBricked.Gameplay
                 return false;
             }
 
-            return definition.IsBeneficial;
+            return definition.IsBeneficial
+                && BreakoutRarityRules.IsUnlockedForLadderIntensity(definition.Rarity, runSettings.RogueIntensity);
         }
 
         private static bool IsUpgradeCompatibleWithRun(RunUpgradeDefinition definition, RunSettings runSettings)

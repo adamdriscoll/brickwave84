@@ -18,6 +18,7 @@ MonoBehaviour:
   iconResourcePath: Sprites/ghost-ball
   effectType: 7
   beneficial: 1
+  rarity: 2
   durationSeconds: 8
   scalar: 1
   extraBallCount: 0

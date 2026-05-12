@@ -4872,7 +4872,7 @@ namespace GetBricked.Gameplay
 
             var dropUnlock = offer.DropUnlockDefinition;
             return dropUnlock != null
-                ? $"Adds {dropUnlock.DisplayName} capsules to this Neon Ladder run's drop pool."
+                ? $"Adds {dropUnlock.RarityLabel} {dropUnlock.DisplayName} capsules to this Neon Ladder run's drop pool."
                 : "This drop unlock failed to load.";
         }
 
@@ -4884,7 +4884,7 @@ namespace GetBricked.Gameplay
             }
 
             var polarity = definition.IsBeneficial ? "Helpful Drop" : "Hazard Drop";
-            return $"Drop Unlock | {polarity} | {BuildPowerUpMechanicalSummary(definition)}";
+            return $"Drop Unlock | {definition.RarityLabel} | {polarity} | {BuildPowerUpMechanicalSummary(definition)}";
         }
 
         private string BuildPowerUpMechanicalSummary(PowerUpDefinition definition)

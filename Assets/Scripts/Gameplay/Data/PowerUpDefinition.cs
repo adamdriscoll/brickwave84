@@ -4,6 +4,71 @@ using UnityEngine;
 
 namespace GetBricked.Gameplay.Data
 {
+    public enum BreakoutContentRarity
+    {
+        Common = 0,
+        Uncommon = 1,
+        Rare = 2,
+        Epic = 3,
+    }
+
+    public static class BreakoutRarityRules
+    {
+        public static BreakoutContentRarity Clamp(BreakoutContentRarity rarity)
+        {
+            return (BreakoutContentRarity)Mathf.Clamp((int)rarity, (int)BreakoutContentRarity.Common, (int)BreakoutContentRarity.Epic);
+        }
+
+        public static int GetLadderUnlockIntensity(BreakoutContentRarity rarity)
+        {
+            return Clamp(rarity) switch
+            {
+                BreakoutContentRarity.Uncommon => 8,
+                BreakoutContentRarity.Rare => 18,
+                BreakoutContentRarity.Epic => 32,
+                _ => BreakoutRunProgression.MinRogueIntensity,
+            };
+        }
+
+        public static bool IsUnlockedForLadderIntensity(BreakoutContentRarity rarity, int intensity)
+        {
+            return BreakoutRunProgression.ClampRogueIntensity(intensity) >= GetLadderUnlockIntensity(rarity);
+        }
+
+        public static float GetDropWeightMultiplier(BreakoutContentRarity rarity)
+        {
+            return Clamp(rarity) switch
+            {
+                BreakoutContentRarity.Uncommon => 0.62f,
+                BreakoutContentRarity.Rare => 0.32f,
+                BreakoutContentRarity.Epic => 0.16f,
+                _ => 1f,
+            };
+        }
+
+        public static float GetDraftWeightMultiplier(BreakoutContentRarity rarity)
+        {
+            return Clamp(rarity) switch
+            {
+                BreakoutContentRarity.Uncommon => 0.72f,
+                BreakoutContentRarity.Rare => 0.45f,
+                BreakoutContentRarity.Epic => 0.28f,
+                _ => 1f,
+            };
+        }
+
+        public static string GetLabel(BreakoutContentRarity rarity)
+        {
+            return Clamp(rarity) switch
+            {
+                BreakoutContentRarity.Uncommon => "Uncommon",
+                BreakoutContentRarity.Rare => "Rare",
+                BreakoutContentRarity.Epic => "Epic",
+                _ => "Common",
+            };
+        }
+    }
+
     public enum PowerUpEffectType
     {
         PaddleWidthMultiplier = 0,
@@ -39,6 +104,7 @@ namespace GetBricked.Gameplay.Data
         [SerializeField] private string iconResourcePath = string.Empty;
         [SerializeField] private PowerUpEffectType effectType = PowerUpEffectType.PaddleWidthMultiplier;
         [SerializeField] private bool beneficial = true;
+        [SerializeField] private BreakoutContentRarity rarity = BreakoutContentRarity.Common;
         [SerializeField, Min(0f)] private float durationSeconds = 10f;
         [SerializeField, Min(0.1f)] private float scalar = 1.25f;
         [SerializeField, Min(0)] private int extraBallCount = 2;
@@ -54,6 +120,10 @@ namespace GetBricked.Gameplay.Data
         public PowerUpEffectType EffectType => effectType;
 
         public bool IsBeneficial => beneficial;
+
+        public BreakoutContentRarity Rarity => BreakoutRarityRules.Clamp(rarity);
+
+        public string RarityLabel => BreakoutRarityRules.GetLabel(Rarity);
 
         public float DurationSeconds => Mathf.Max(0f, durationSeconds);
 

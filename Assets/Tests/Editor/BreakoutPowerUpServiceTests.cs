@@ -431,6 +431,41 @@ public sealed class BreakoutPowerUpServiceTests
         Assert.That(pickup.Definition, Is.SameAs(wide));
     }
 
+    [Test]
+    public void TrySpawnPickupAppliesRarityWeightsToAuthoredDropTable()
+    {
+        var service = CreateService();
+        var common = CreatePowerUp("Common Drop", PowerUpEffectType.PaddleWidthMultiplier, true, 10f, 1.2f);
+        var rare = CreatePowerUp("Rare Drop", PowerUpEffectType.LaserPaddle, true, 10f, 1f, BreakoutContentRarity.Rare);
+        var brick = CreateBrick(CreateBrickDefinition(dropChance: 1f, common, rare));
+        var pickupsRoot = CreateRuntimeRoot("Pickups");
+        var selectionTotalWeight = 0f;
+
+        var pickup = service.TrySpawnPickup(
+            brick,
+            activeRunSettings: null,
+            activeRunState: null,
+            effectiveDropChanceMultiplier: 1f,
+            nextGameplayRandomFloat: (_, max) =>
+            {
+                if (Mathf.Approximately(max, 1f))
+                {
+                    return 0f;
+                }
+
+                selectionTotalWeight = max;
+                return 1.05f;
+            },
+            pickupsRoot,
+            arenaBottom: -4f,
+            themeService: null,
+            controller: null);
+
+        Assert.That(selectionTotalWeight, Is.EqualTo(1f + BreakoutRarityRules.GetDropWeightMultiplier(BreakoutContentRarity.Rare)).Within(0.0001f));
+        Assert.That(pickup, Is.Not.Null);
+        Assert.That(pickup.Definition, Is.SameAs(rare));
+    }
+
     private BreakoutPowerUpService CreateService(float multiBallSpreadAngle = 18f)
     {
         return new BreakoutPowerUpService(new Vector2(0.55f, 0.55f), 3.2f, multiBallSpreadAngle, null);
@@ -480,7 +515,8 @@ public sealed class BreakoutPowerUpServiceTests
         PowerUpEffectType effectType,
         bool beneficial,
         float durationSeconds,
-        float scalar)
+        float scalar,
+        BreakoutContentRarity rarity = BreakoutContentRarity.Common)
     {
         var powerUp = ScriptableObject.CreateInstance<PowerUpDefinition>();
         runtimeObjects.Add(powerUp);
@@ -488,6 +524,7 @@ public sealed class BreakoutPowerUpServiceTests
         SetPrivateField(powerUp, "hudLabel", displayName.ToUpperInvariant());
         SetPrivateField(powerUp, "effectType", effectType);
         SetPrivateField(powerUp, "beneficial", beneficial);
+        SetPrivateField(powerUp, "rarity", rarity);
         SetPrivateField(powerUp, "durationSeconds", durationSeconds);
         SetPrivateField(powerUp, "scalar", scalar);
         SetPrivateField(powerUp, "extraBallCount", 0);

@@ -18,6 +18,7 @@ MonoBehaviour:
   iconResourcePath: Sprites/paddle-clone
   effectType: 17
   beneficial: 1
+  rarity: 3
   durationSeconds: 10
   scalar: 1
   extraBallCount: 0

@@ -230,6 +230,40 @@ public sealed class BreakoutRogueRunTests
     }
 
     [Test]
+    public void RogueRunControllerOnlyAutoUnlocksHazardsInCurrentRarityBand()
+    {
+        var commonHazard = CreatePowerUp("Common Hazard", "common_hazard", beneficial: false);
+        var rareHazard = CreatePowerUp("Rare Hazard", "rare_hazard", beneficial: false, BreakoutContentRarity.Rare);
+
+        try
+        {
+            var controller = new BreakoutRogueRunController(
+                new List<RunUpgradeDefinition>(),
+                new List<PowerUpDefinition> { rareHazard, commonHazard });
+            var runState = new BreakoutRunState();
+            var lowHeatSettings = CreateRogueSettings(1010, intensity: 8);
+            var rareHeatSettings = CreateRogueSettings(1010, intensity: 18);
+
+            for (var index = 0; index < 6; index++)
+            {
+                runState.RegisterLevelClear();
+            }
+
+            Assert.That(controller.UnlockHazardsForClearedLevel(runState, lowHeatSettings), Is.EqualTo(1));
+            Assert.That(runState.IsDropUnlocked(commonHazard), Is.True);
+            Assert.That(runState.IsDropUnlocked(rareHazard), Is.False);
+
+            Assert.That(controller.UnlockHazardsForClearedLevel(runState, rareHeatSettings), Is.EqualTo(1));
+            Assert.That(runState.IsDropUnlocked(rareHazard), Is.True);
+        }
+        finally
+        {
+            Object.DestroyImmediate(commonHazard);
+            Object.DestroyImmediate(rareHazard);
+        }
+    }
+
+    [Test]
     public void DeveloperRunsDoNotRecordRogueResults()
     {
         var settings = new RunSettings(
@@ -353,13 +387,18 @@ public sealed class BreakoutRogueRunTests
             intensity);
     }
 
-    private static PowerUpDefinition CreatePowerUp(string displayName, string powerUpId, bool beneficial)
+    private static PowerUpDefinition CreatePowerUp(
+        string displayName,
+        string powerUpId,
+        bool beneficial,
+        BreakoutContentRarity rarity = BreakoutContentRarity.Common)
     {
         var powerUp = ScriptableObject.CreateInstance<PowerUpDefinition>();
         SetPrivateField(powerUp, "displayName", displayName);
         SetPrivateField(powerUp, "hudLabel", displayName.ToUpperInvariant());
         SetPrivateField(powerUp, "powerUpId", powerUpId);
         SetPrivateField(powerUp, "beneficial", beneficial);
+        SetPrivateField(powerUp, "rarity", rarity);
         SetPrivateField(powerUp, "durationSeconds", 10f);
         SetPrivateField(powerUp, "scalar", 1f);
         return powerUp;

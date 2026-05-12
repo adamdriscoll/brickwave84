@@ -125,6 +125,38 @@ public sealed class BreakoutUpgradeDraftServiceTests
     }
 
     [Test]
+    public void RogueDraftOnlyOffersDropsUnlockedForCurrentRarityBand()
+    {
+        var common = CreatePowerUp("Common Drop", "common_drop", beneficial: true);
+        var rare = CreatePowerUp("Rare Drop", "rare_drop", beneficial: true, BreakoutContentRarity.Rare);
+        var runState = new BreakoutRunState();
+        var service = new BreakoutUpgradeDraftService(
+            new List<RunUpgradeDefinition>(),
+            new List<PowerUpDefinition> { common, rare });
+
+        runState.SetInitialDropUnlocks(new[] { common });
+
+        var earlyDraft = service.GenerateDraft(
+            runState,
+            CreateRunSettings(RunScoringMode.Classic, RunGameMode.Rogue, rogueIntensity: 8),
+            runSeed: 123,
+            levelIndex: 1,
+            offerCount: 3);
+
+        Assert.That(earlyDraft, Is.Empty);
+
+        var laterDraft = service.GenerateDraft(
+            runState,
+            CreateRunSettings(RunScoringMode.Classic, RunGameMode.Rogue, rogueIntensity: 18),
+            runSeed: 123,
+            levelIndex: 1,
+            offerCount: 3);
+
+        Assert.That(laterDraft, Has.Length.EqualTo(1));
+        Assert.That(laterDraft[0].DropUnlockDefinition, Is.EqualTo(rare));
+    }
+
+    [Test]
     public void CustomGameDraftDoesNotOfferDropUnlocks()
     {
         var laser = CreatePowerUp("Laser Paddle", "laser_paddle", beneficial: true);
@@ -143,7 +175,10 @@ public sealed class BreakoutUpgradeDraftServiceTests
         Assert.That(draft, Is.Empty);
     }
 
-    private static RunSettings CreateRunSettings(RunScoringMode scoringMode, RunGameMode gameMode = RunGameMode.CustomGame)
+    private static RunSettings CreateRunSettings(
+        RunScoringMode scoringMode,
+        RunGameMode gameMode = RunGameMode.CustomGame,
+        int rogueIntensity = 1)
     {
         return new RunSettings(
             1234,
@@ -159,7 +194,8 @@ public sealed class BreakoutUpgradeDraftServiceTests
             DropPoolMode.Mixed,
             false,
             null,
-            gameMode);
+            gameMode,
+            rogueIntensity);
     }
 
     private RunUpgradeDefinition CreateUpgrade(
@@ -185,7 +221,11 @@ public sealed class BreakoutUpgradeDraftServiceTests
         return upgrade;
     }
 
-    private PowerUpDefinition CreatePowerUp(string displayName, string powerUpId, bool beneficial)
+    private PowerUpDefinition CreatePowerUp(
+        string displayName,
+        string powerUpId,
+        bool beneficial,
+        BreakoutContentRarity rarity = BreakoutContentRarity.Common)
     {
         var powerUp = ScriptableObject.CreateInstance<PowerUpDefinition>();
         runtimeObjects.Add(powerUp);
@@ -193,6 +233,7 @@ public sealed class BreakoutUpgradeDraftServiceTests
         SetPrivateField(powerUp, "hudLabel", displayName.ToUpperInvariant());
         SetPrivateField(powerUp, "powerUpId", powerUpId);
         SetPrivateField(powerUp, "beneficial", beneficial);
+        SetPrivateField(powerUp, "rarity", rarity);
         SetPrivateField(powerUp, "durationSeconds", 10f);
         SetPrivateField(powerUp, "scalar", 1f);
         return powerUp;

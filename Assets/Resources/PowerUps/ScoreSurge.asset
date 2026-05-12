@@ -18,6 +18,7 @@ MonoBehaviour:
   iconResourcePath: Sprites/score-surge
   effectType: 16
   beneficial: 1
+  rarity: 2
   durationSeconds: 10
   scalar: 2
   extraBallCount: 0

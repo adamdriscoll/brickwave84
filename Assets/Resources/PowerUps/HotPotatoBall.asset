@@ -18,6 +18,7 @@ MonoBehaviour:
   iconResourcePath: Sprites/hot-potato-ball
   effectType: 19
   beneficial: 1
+  rarity: 3
   durationSeconds: 9
   scalar: 1.28
   extraBallCount: 0

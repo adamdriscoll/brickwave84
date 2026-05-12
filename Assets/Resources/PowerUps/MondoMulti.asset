@@ -18,6 +18,7 @@ MonoBehaviour:
   iconResourcePath: Sprites/mondo-multi
   effectType: 14
   beneficial: 1
+  rarity: 1
   durationSeconds: 0
   scalar: 2
   extraBallCount: 0

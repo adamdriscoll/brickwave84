@@ -18,6 +18,7 @@ MonoBehaviour:
   iconResourcePath: Sprites/small-paddle
   effectType: 0
   beneficial: 0
+  rarity: 0
   durationSeconds: 10
   scalar: 0.72
   extraBallCount: 0

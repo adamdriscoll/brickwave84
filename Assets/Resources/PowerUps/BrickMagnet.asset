@@ -18,6 +18,7 @@ MonoBehaviour:
   iconResourcePath: Sprites/brick-magnet
   effectType: 15
   beneficial: 1
+  rarity: 2
   durationSeconds: 10
   scalar: 0.38
   extraBallCount: 0

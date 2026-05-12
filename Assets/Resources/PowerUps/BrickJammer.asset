@@ -18,6 +18,7 @@ MonoBehaviour:
   iconResourcePath: Sprites/brick-jammer
   effectType: 18
   beneficial: 0
+  rarity: 2
   durationSeconds: 7
   scalar: 0.75
   extraBallCount: 0

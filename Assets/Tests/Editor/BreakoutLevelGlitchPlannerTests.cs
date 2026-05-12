@@ -36,9 +36,27 @@ public sealed class BreakoutLevelGlitchPlannerTests
     }
 
     [Test]
+    public void RogueGlitchRarityControlsWhenTurboRailCanUnlock()
+    {
+        var lockedSettings = CreateRogueSettings(rogueIntensity: 8, levelGlitchSelection: LevelGlitchSelection.TurboRail);
+        var unlockedSettings = CreateRogueSettings(rogueIntensity: 18, levelGlitchSelection: LevelGlitchSelection.TurboRail);
+
+        var lockedPlan = BreakoutLevelGlitchPlanner.BuildPlan(new DeterministicRandomService(7), lockedSettings, levelIndex: 9);
+        var unlockedPlan = BreakoutLevelGlitchPlanner.BuildPlan(new DeterministicRandomService(7), unlockedSettings, levelIndex: 9);
+
+        Assert.That(lockedPlan.IsActive, Is.False);
+        Assert.That(unlockedPlan.IsActive, Is.True);
+        Assert.That(unlockedPlan.GlitchType, Is.EqualTo(BreakoutLevelGlitchType.TurboRail));
+        Assert.That(unlockedPlan.Rarity, Is.EqualTo(BreakoutContentRarity.Rare));
+    }
+
+    [Test]
     public void ForcedWarpGatePlanBuildsSmallPortalSetAndScoreBonus()
     {
-        var settings = CreateSettings(levelGlitchesEnabled: true, chanceMultiplier: 3f);
+        var settings = CreateSettings(
+            levelGlitchesEnabled: true,
+            chanceMultiplier: 3f,
+            levelGlitchSelection: LevelGlitchSelection.WarpGates);
 
         var plan = BreakoutLevelGlitchPlanner.BuildPlan(new DeterministicRandomService(2), settings, levelIndex: 9);
 
@@ -51,7 +69,10 @@ public sealed class BreakoutLevelGlitchPlannerTests
     [Test]
     public void ForcedTurboRailPlanBuildsWallSectionAndScoreBonus()
     {
-        var settings = CreateSettings(levelGlitchesEnabled: true, chanceMultiplier: 3f);
+        var settings = CreateSettings(
+            levelGlitchesEnabled: true,
+            chanceMultiplier: 3f,
+            levelGlitchSelection: LevelGlitchSelection.TurboRail);
 
         var plan = BreakoutLevelGlitchPlanner.BuildPlan(new DeterministicRandomService(3), settings, levelIndex: 9);
 
@@ -129,7 +150,9 @@ public sealed class BreakoutLevelGlitchPlannerTests
             levelGlitchSelection: levelGlitchSelection);
     }
 
-    private static RunSettings CreateRogueSettings(int rogueIntensity)
+    private static RunSettings CreateRogueSettings(
+        int rogueIntensity,
+        LevelGlitchSelection levelGlitchSelection = LevelGlitchSelection.Random)
     {
         return new RunSettings(
             1234,
@@ -147,6 +170,7 @@ public sealed class BreakoutLevelGlitchPlannerTests
             null,
             RunGameMode.Rogue,
             rogueIntensity,
-            levelGlitchesEnabled: true);
+            levelGlitchesEnabled: true,
+            levelGlitchSelection: levelGlitchSelection);
     }
 }

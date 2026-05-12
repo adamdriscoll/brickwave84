@@ -18,6 +18,7 @@ MonoBehaviour:
   iconResourcePath: 
   effectType: 5
   beneficial: 1
+  rarity: 1
   durationSeconds: 15
   scalar: 1
   extraBallCount: 0

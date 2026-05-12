@@ -18,6 +18,7 @@ MonoBehaviour:
   iconResourcePath: Sprites/fast-ball
   effectType: 1
   beneficial: 0
+  rarity: 0
   durationSeconds: 10
   scalar: 1.28
   extraBallCount: 0

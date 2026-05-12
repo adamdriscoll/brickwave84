@@ -18,6 +18,7 @@ MonoBehaviour:
   iconResourcePath: Sprites/blackout
   effectType: 12
   beneficial: 0
+  rarity: 2
   durationSeconds: 8
   scalar: 0
   extraBallCount: 0
