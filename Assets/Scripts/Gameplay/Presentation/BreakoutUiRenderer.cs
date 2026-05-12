@@ -9,6 +9,11 @@ namespace GetBricked.Gameplay
     {
         private const int RetroUiFontSize = 18;
         private const int IconTextureSize = 256;
+        private const float SplitOverlaySummaryMinHeight = 26f;
+        private const float SplitOverlaySummaryGap = 4f;
+        private const float SplitOverlayFooterMinHeight = 30f;
+        private const float SplitOverlayFooterGap = 4f;
+        private const float SplitOverlayActionLineHeight = 42f;
         private static readonly string[] RetroUiFontNames = { "Consolas", "Courier New", "monospace" };
 
         private readonly Dictionary<Sprite, Texture2D> iconTextureCache = new Dictionary<Sprite, Texture2D>();
@@ -414,10 +419,8 @@ namespace GetBricked.Gameplay
             var lineHeight = 27f;
             var leaderboardRowCount = GetLeaderboardRowCount(view);
             var leaderboardHeight = 104f + (leaderboardRowCount * lineHeight);
-            var roundInfoHeight = 212f
-                + (view.SummaryLines.Length * 30f)
-                + (view.ActionLabels.Length * 44f)
-                + (view.FooterLines.Length * 34f);
+            var roundInfoContentWidth = (useStackedLayout ? availableWidth : roundInfoWidth) - (outerPadding * 2f);
+            var roundInfoHeight = CalculateSplitRoundInfoHeight(view, roundInfoContentWidth);
 
             if (useStackedLayout)
             {
@@ -458,40 +461,119 @@ namespace GetBricked.Gameplay
 
             var y = rect.y + 22f;
             var title = string.IsNullOrWhiteSpace(view.SummaryTitle) ? "Round Info" : view.SummaryTitle;
+            var contentWidth = rect.width - (padding * 2f);
             DrawTextWithShadow(new Rect(rect.x + padding, y, rect.width - (padding * 2f), 24f), title, hudStyle, palette.AccentPrimary, 0.28f);
             y += 38f;
 
             for (var index = 0; index < view.SummaryLines.Length; index++)
             {
+                var lineHeight = CalculateWrappedTextHeight(
+                    overlayBodyStyle,
+                    view.SummaryLines[index],
+                    contentWidth,
+                    SplitOverlaySummaryMinHeight);
                 DrawTextWithShadow(
-                    new Rect(rect.x + padding, y + (index * 30f), rect.width - (padding * 2f), 26f),
+                    new Rect(rect.x + padding, y, contentWidth, lineHeight),
                     view.SummaryLines[index],
                     overlayBodyStyle,
                     index == 0 ? palette.TextPrimary : palette.TextMuted,
                     0.35f);
+                y += lineHeight + SplitOverlaySummaryGap;
             }
 
-            y += (view.SummaryLines.Length * 30f) + 18f;
+            y += 14f;
             DrawActionList(
                 view.ActionLabels,
                 view.SelectedActionIndex,
                 rect.x + padding,
                 y,
-                rect.width - (padding * 2f),
-                42f,
+                contentWidth,
+                SplitOverlayActionLineHeight,
                 onActionClicked);
 
-            y += (view.ActionLabels.Length * 42f) + 16f;
+            y += (view.ActionLabels.Length * SplitOverlayActionLineHeight) + 16f;
 
             for (var index = 0; index < view.FooterLines.Length; index++)
             {
+                var lineHeight = CalculateWrappedTextHeight(
+                    setupHintStyle,
+                    view.FooterLines[index],
+                    contentWidth,
+                    SplitOverlayFooterMinHeight);
                 DrawTextWithShadow(
-                    new Rect(rect.x + padding, y + (index * 32f), rect.width - (padding * 2f), 30f),
+                    new Rect(rect.x + padding, y, contentWidth, lineHeight),
                     view.FooterLines[index],
                     setupHintStyle,
                     palette.TextMuted,
                     0.3f);
+                y += lineHeight + SplitOverlayFooterGap;
             }
+        }
+
+        private float CalculateSplitRoundInfoHeight(BreakoutUiOverlayView view, float contentWidth)
+        {
+            if (view == null)
+            {
+                return 486f;
+            }
+
+            var summaryHeight = CalculateWrappedTextStackHeight(
+                view.SummaryLines,
+                overlayBodyStyle,
+                contentWidth,
+                SplitOverlaySummaryMinHeight,
+                SplitOverlaySummaryGap);
+            var footerHeight = CalculateWrappedTextStackHeight(
+                view.FooterLines,
+                setupHintStyle,
+                contentWidth,
+                SplitOverlayFooterMinHeight,
+                SplitOverlayFooterGap);
+            var legacyHeight = 212f
+                + (view.SummaryLines.Length * 30f)
+                + ((view.ActionLabels?.Length ?? 0) * 44f)
+                + (view.FooterLines.Length * 34f);
+            var measuredHeight = 134f
+                + summaryHeight
+                + ((view.ActionLabels?.Length ?? 0) * SplitOverlayActionLineHeight)
+                + footerHeight;
+
+            return Mathf.Max(legacyHeight, measuredHeight);
+        }
+
+        private static float CalculateWrappedTextStackHeight(
+            string[] lines,
+            GUIStyle style,
+            float width,
+            float minLineHeight,
+            float lineGap)
+        {
+            if (lines == null || lines.Length == 0)
+            {
+                return 0f;
+            }
+
+            var height = 0f;
+
+            for (var index = 0; index < lines.Length; index++)
+            {
+                height += CalculateWrappedTextHeight(style, lines[index], width, minLineHeight) + lineGap;
+            }
+
+            return height;
+        }
+
+        private static float CalculateWrappedTextHeight(GUIStyle style, string text, float width, float minHeight)
+        {
+            if (style == null)
+            {
+                return minHeight;
+            }
+
+            var measuredHeight = style.CalcHeight(
+                new GUIContent(text ?? string.Empty),
+                Mathf.Max(1f, width));
+            return Mathf.Max(minHeight, measuredHeight);
         }
 
         private void DrawLeaderboardPanel(Rect rect, BreakoutUiOverlayView view, float padding, float lineHeight)
