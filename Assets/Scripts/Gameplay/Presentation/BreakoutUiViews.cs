@@ -158,6 +158,7 @@ namespace GetBricked.Gameplay
         public int SelectedActionIndex;
         public string[] FooterLines = Array.Empty<string>();
         public bool IsCompact;
+        public bool EmphasizeSummary;
     }
 
     internal sealed class BreakoutUiUpgradeDraftOptionView

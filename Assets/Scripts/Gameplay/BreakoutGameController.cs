@@ -3981,11 +3981,32 @@ namespace GetBricked.Gameplay
                     : (activeRunSettings != null && activeRunSettings.IsRogueMode ? "Ladder Cleared" : "Final Layout Cleared");
             var summary = isGameOver
                 ? activeRunSettings != null && activeRunSettings.IsSoloMarathonMode
-                    ? $"{GetScoreDisplayLabel()} {FormatScoreValue(score)} | Best {FormatScoreValue(activeSoloMarathonRecord?.Score ?? score)} | Reached {BuildLevelLabel()} | Tape ID {activeRunSettings.Seed.ToString(CultureInfo.InvariantCulture)}"
-                    : $"{GetScoreDisplayLabel()} {FormatScoreValue(score)} | Reached {BuildLevelLabel()} | Tape ID {activeRunSettings?.Seed.ToString(CultureInfo.InvariantCulture) ?? GetPendingSeedDisplay()}"
+                    ? new[]
+                    {
+                        $"{GetScoreDisplayLabel()} {FormatScoreValue(score)}",
+                        $"Best {FormatScoreValue(activeSoloMarathonRecord?.Score ?? score)}",
+                        $"Reached {BuildLevelLabel()}",
+                        $"Tape ID {activeRunSettings.Seed.ToString(CultureInfo.InvariantCulture)}",
+                    }
+                    : new[]
+                    {
+                        $"{GetScoreDisplayLabel()} {FormatScoreValue(score)}",
+                        $"Reached {BuildLevelLabel()}",
+                        $"Tape ID {activeRunSettings?.Seed.ToString(CultureInfo.InvariantCulture) ?? GetPendingSeedDisplay()}",
+                    }
                 : HasNextLevel()
-                    ? $"{GetScoreDisplayLabel()} {FormatScoreValue(score)} | {GetLifeCounterLabel()} {GetLifeCounterValue():00} | Next up: level {currentLevelIndex + 2:00}"
-                    : $"{GetScoreDisplayLabel()} {FormatScoreValue(score)} | {GetLifeCounterLabel()} {GetLifeCounterValue():00} | Tape ID {activeRunSettings?.Seed.ToString(CultureInfo.InvariantCulture) ?? GetPendingSeedDisplay()}";
+                    ? new[]
+                    {
+                        $"{GetScoreDisplayLabel()} {FormatScoreValue(score)}",
+                        $"{GetLifeCounterLabel()} {GetLifeCounterValue():00}",
+                        $"Next Stage {currentLevelIndex + 2:00}",
+                    }
+                    : new[]
+                    {
+                        $"{GetScoreDisplayLabel()} {FormatScoreValue(score)}",
+                        $"{GetLifeCounterLabel()} {GetLifeCounterValue():00}",
+                        $"Tape ID {activeRunSettings?.Seed.ToString(CultureInfo.InvariantCulture) ?? GetPendingSeedDisplay()}",
+                    };
             var footer = isGameOver
                 ? activeRunSettings != null && activeRunSettings.IsSoloMarathonMode
                     ? (activeSoloMarathonNewHighScore
@@ -4002,11 +4023,7 @@ namespace GetBricked.Gameplay
             return new BreakoutUiOverlayView
             {
                 Title = title,
-                SummaryLines = new[]
-                {
-                    summary,
-                    BuildRunSummaryLabel(),
-                },
+                SummaryLines = summary,
                 LeaderboardTitle = isGameOver && activeRunSettings != null && activeRunSettings.IsSoloMarathonMode
                     ? "Top Scores By Heat"
                     : string.Empty,
@@ -4017,6 +4034,7 @@ namespace GetBricked.Gameplay
                 SelectedActionIndex = selectedOverlayActionIndex,
                 FooterLines = new[] { footer },
                 IsCompact = false,
+                EmphasizeSummary = true,
             };
         }
 

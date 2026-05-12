@@ -22,6 +22,7 @@ namespace GetBricked.Gameplay
         private GUIStyle setupHintStyle;
         private GUIStyle overlayTitleStyle;
         private GUIStyle overlayBodyStyle;
+        private GUIStyle overlayMetricStyle;
         private GUIStyle overlayActionStyle;
         private GUIStyle overlaySelectedActionStyle;
         private GUIStyle draftOptionTitleStyle;
@@ -329,9 +330,12 @@ namespace GetBricked.Gameplay
 
             var boxWidth = view.IsCompact ? 780f : 760f;
             var minBoxHeight = view.IsCompact ? 470f : 404f;
+            var summarySpacing = view.EmphasizeSummary ? 36f : 28f;
+            var summaryLineHeight = view.EmphasizeSummary ? 32f : 24f;
+            var footerLineHeight = 34f;
             var boxHeight = Mathf.Max(
                 minBoxHeight,
-                164f + (view.SummaryLines.Length * 30f) + (view.ActionLabels.Length * 44f) + (view.FooterLines.Length * 38f));
+                174f + (view.SummaryLines.Length * summarySpacing) + (view.ActionLabels.Length * 44f) + (view.FooterLines.Length * footerLineHeight));
             boxWidth = Mathf.Min(boxWidth, Screen.width - 56f);
             boxHeight = Mathf.Min(boxHeight, Screen.height - 132f);
 
@@ -344,20 +348,29 @@ namespace GetBricked.Gameplay
             var outerPadding = 30f;
             var titleY = boxRect.y + 24f;
             var summaryY = boxRect.y + 72f;
-            var summarySpacing = 28f;
-            var actionStartY = summaryY + (view.SummaryLines.Length * summarySpacing) + 18f;
             var actionLineHeight = 44f;
-            var footerStartY = actionStartY + (view.ActionLabels.Length * actionLineHeight) + 18f;
+            var footerBlockHeight = view.FooterLines.Length * footerLineHeight;
+            var footerStartY = boxRect.yMax - outerPadding - footerBlockHeight;
+            var actionBlockHeight = view.ActionLabels.Length * actionLineHeight;
+            var actionStartY = footerStartY - 18f - actionBlockHeight;
+            var summaryBottomY = summaryY + (view.SummaryLines.Length * summarySpacing) + 18f;
+
+            if (actionStartY < summaryBottomY)
+            {
+                actionStartY = summaryBottomY;
+                footerStartY = actionStartY + actionBlockHeight + 18f;
+            }
+
             DrawPanel(boxRect, palette.AccentSecondary, palette.AccentPrimary, true);
             DrawTextWithShadow(new Rect(boxRect.x + outerPadding, titleY, boxRect.width - (outerPadding * 2f), 40f), view.Title, overlayTitleStyle, palette.TextPrimary);
 
             for (var index = 0; index < view.SummaryLines.Length; index++)
             {
                 DrawTextWithShadow(
-                    new Rect(boxRect.x + 36f, summaryY + (index * summarySpacing), boxRect.width - 72f, 24f),
+                    new Rect(boxRect.x + 36f, summaryY + (index * summarySpacing), boxRect.width - 72f, summaryLineHeight),
                     view.SummaryLines[index],
-                    overlayBodyStyle,
-                    index == 0 ? palette.TextPrimary : palette.TextMuted,
+                    view.EmphasizeSummary ? overlayMetricStyle : overlayBodyStyle,
+                    view.EmphasizeSummary || index == 0 ? palette.TextPrimary : palette.TextMuted,
                     0.35f);
             }
 
@@ -373,7 +386,7 @@ namespace GetBricked.Gameplay
             for (var index = 0; index < view.FooterLines.Length; index++)
             {
                 DrawTextWithShadow(
-                    new Rect(boxRect.x + 34f, footerStartY + (index * 34f), boxRect.width - 68f, 34f),
+                    new Rect(boxRect.x + 34f, footerStartY + (index * footerLineHeight), boxRect.width - 68f, footerLineHeight),
                     view.FooterLines[index],
                     setupHintStyle,
                     palette.TextMuted,
@@ -947,6 +960,13 @@ namespace GetBricked.Gameplay
                 alignment = TextAnchor.MiddleLeft,
                 wordWrap = true,
             };
+            overlayMetricStyle ??= new GUIStyle(hudStyle)
+            {
+                alignment = TextAnchor.MiddleCenter,
+                fontSize = 22,
+                fontStyle = FontStyle.Bold,
+                wordWrap = true,
+            };
             overlayActionStyle ??= new GUIStyle(hudStyle)
             {
                 alignment = TextAnchor.MiddleCenter,
@@ -1070,6 +1090,7 @@ namespace GetBricked.Gameplay
             setupHintStyle.normal.textColor = palette.TextMuted;
             overlayTitleStyle.normal.textColor = palette.TextPrimary;
             overlayBodyStyle.normal.textColor = palette.TextMuted;
+            overlayMetricStyle.normal.textColor = palette.TextPrimary;
             overlayActionStyle.normal.textColor = palette.TextMuted;
             overlaySelectedActionStyle.normal.textColor = palette.TextPrimary;
             draftOptionTitleStyle.normal.textColor = palette.TextPrimary;
@@ -1108,6 +1129,7 @@ namespace GetBricked.Gameplay
             setupHintStyle.font = retroUiFont;
             overlayTitleStyle.font = retroUiFont;
             overlayBodyStyle.font = retroUiFont;
+            overlayMetricStyle.font = retroUiFont;
             overlayActionStyle.font = retroUiFont;
             overlaySelectedActionStyle.font = retroUiFont;
             draftOptionTitleStyle.font = retroUiFont;
