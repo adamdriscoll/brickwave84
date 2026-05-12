@@ -151,7 +151,7 @@ namespace GetBricked.Gameplay.Data
 
         public string GameModeLabel => GameMode switch
         {
-            RunGameMode.Rogue => "Rogue",
+            RunGameMode.Rogue => "Neon Ladder",
             RunGameMode.TurnBased => "Hot Seat",
             RunGameMode.SoloMarathon => "Neon Marathon",
             _ => "Custom Game",

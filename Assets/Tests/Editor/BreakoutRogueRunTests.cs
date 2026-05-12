@@ -45,7 +45,7 @@ public sealed class BreakoutRogueRunTests
             RunGameMode.Rogue);
 
         Assert.That(settings.IsRogueMode, Is.True);
-        Assert.That(settings.GameModeLabel, Is.EqualTo("Rogue"));
+        Assert.That(settings.GameModeLabel, Is.EqualTo("Neon Ladder"));
         Assert.That(settings.StartingLives, Is.EqualTo(3));
         Assert.That(settings.ScoringMode, Is.EqualTo(RunScoringMode.Classic));
     }
@@ -383,17 +383,28 @@ public sealed class BreakoutRogueRunTests
             controller.InitializeRunState(runState);
             Assert.That(runState.IsDropUnlocked(blackout), Is.False);
 
+            var lowHeatSettings = CreateRogueSettings(1010, intensity: 1);
+            var highHeatSettings = CreateRogueSettings(1010, intensity: 50);
+
             runState.RegisterLevelClear();
-            Assert.That(controller.UnlockHazardsForClearedLevel(runState), Is.EqualTo(1));
+            Assert.That(controller.UnlockHazardsForClearedLevel(runState, lowHeatSettings), Is.Zero);
+            Assert.That(runState.IsDropUnlocked(blackout), Is.False);
+
+            runState.RegisterLevelClear();
+            Assert.That(controller.UnlockHazardsForClearedLevel(runState, lowHeatSettings), Is.Zero);
+            Assert.That(runState.IsDropUnlocked(blackout), Is.False);
+
+            runState.RegisterLevelClear();
+            Assert.That(controller.UnlockHazardsForClearedLevel(runState, lowHeatSettings), Is.EqualTo(1));
             Assert.That(runState.IsDropUnlocked(blackout), Is.True);
             Assert.That(runState.IsDropUnlocked(jammer), Is.False);
 
             runState.RegisterLevelClear();
-            Assert.That(controller.UnlockHazardsForClearedLevel(runState), Is.Zero);
+            Assert.That(controller.UnlockHazardsForClearedLevel(runState, lowHeatSettings), Is.Zero);
 
-            runState.RegisterLevelClear();
-            Assert.That(controller.UnlockHazardsForClearedLevel(runState), Is.EqualTo(1));
+            Assert.That(controller.UnlockHazardsForClearedLevel(runState, highHeatSettings), Is.EqualTo(2));
             Assert.That(runState.IsDropUnlocked(jammer), Is.True);
+            Assert.That(runState.IsDropUnlocked(drift), Is.True);
         }
         finally
         {

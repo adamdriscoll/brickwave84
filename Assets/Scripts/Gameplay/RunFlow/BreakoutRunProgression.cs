@@ -87,6 +87,16 @@ namespace GetBricked.Gameplay
             return Mathf.Lerp(1f, 1.18f, GetRogueIntensityProgress(intensity));
         }
 
+        public static int GetRogueHeatComplexityOffset(int intensity)
+        {
+            return Mathf.FloorToInt(GetRogueIntensityProgress(intensity) * 5.01f);
+        }
+
+        public static bool IsFinalStage(int levelIndex)
+        {
+            return levelIndex >= TargetLevelCount - 1;
+        }
+
         public static Color GetRogueIntensityGaugeColor(int intensity)
         {
             var progress = GetRogueIntensityProgress(intensity);

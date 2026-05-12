@@ -98,13 +98,18 @@ namespace GetBricked.Gameplay
             var profileIndex = Mathf.Abs(levelIndex % templateCount);
             var cycleIndex = levelIndex / templateCount;
             var levelProgress = BreakoutRunProgression.GetLevelProgress(levelIndex);
+            var heatComplexityOffset = activeRunSettings != null && activeRunSettings.IsRogueMode
+                ? BreakoutRunProgression.GetRogueHeatComplexityOffset(activeRunSettings.RogueIntensity)
+                : 0;
+            var difficultyLevelIndex = levelIndex + heatComplexityOffset;
+            var difficultyProgress = Mathf.Clamp01(difficultyLevelIndex / (float)(BreakoutRunProgression.TargetLevelCount - 1));
             var isBrutalRun = activeRunSettings != null && activeRunSettings.DifficultyPreset == RunDifficultyPreset.Brutal;
             var planner = gameplayRandom != null
                 ? gameplayRandom.Fork((levelIndex + 1) * 7919)
                 : new DeterministicRandomService(seedGenerator());
             var pattern = (ProceduralPatternType)planner.Range(0, Enum.GetValues(typeof(ProceduralPatternType)).Length);
-            var minimumRowsForProgress = 3 + Mathf.FloorToInt(levelProgress * 4.01f);
-            var minimumColumnsForProgress = 8 + Mathf.FloorToInt(levelProgress * 3.01f);
+            var minimumRowsForProgress = 3 + Mathf.FloorToInt(difficultyProgress * 4.01f);
+            var minimumColumnsForProgress = 8 + Mathf.FloorToInt(difficultyProgress * 3.01f);
             var rowCount = Mathf.Clamp(
                 Mathf.Max(minimumRowsForProgress, Mathf.Max(3, level.LayoutRows.Length) + (profileIndex >= 2 ? 1 : 0)),
                 3,
@@ -141,12 +146,12 @@ namespace GetBricked.Gameplay
 
                 for (var columnIndex = 0; columnIndex < generatedColumns; columnIndex++)
                 {
-                    if (!ShouldPlaceProceduralBrick(planner, pattern, rowIndex, columnIndex, rowCount, columnCount, levelIndex))
+                    if (!ShouldPlaceProceduralBrick(planner, pattern, rowIndex, columnIndex, rowCount, columnCount, difficultyLevelIndex))
                     {
                         continue;
                     }
 
-                    var definition = SelectProceduralBrickDefinition(planner, rowIndex, columnIndex, rowCount, columnCount, levelIndex, isBrutalRun);
+                    var definition = SelectProceduralBrickDefinition(planner, rowIndex, columnIndex, rowCount, columnCount, difficultyLevelIndex, isBrutalRun);
 
                     if (definition == null)
                     {
@@ -171,8 +176,8 @@ namespace GetBricked.Gameplay
                     }
                 }
 
-                EnsureProceduralRowHasBricks(cells, symbols, planner, rowIndex, rowCount, columnCount, levelIndex, profileIndex, cycleIndex, isBrutalRun);
-                var rowShift = BuildLevelPlanRowShift(planner, rowIndex, levelIndex, columnCount, CountOccupiedCells(symbols));
+                EnsureProceduralRowHasBricks(cells, symbols, planner, rowIndex, rowCount, columnCount, difficultyLevelIndex, profileIndex, cycleIndex, isBrutalRun);
+                var rowShift = BuildLevelPlanRowShift(planner, rowIndex, difficultyLevelIndex, columnCount, CountOccupiedCells(symbols));
                 plan.RowShifts[rowIndex] = rowShift;
                 cells = RotateCells(cells, rowShift);
                 symbols = RotateCharacters(symbols, rowShift);

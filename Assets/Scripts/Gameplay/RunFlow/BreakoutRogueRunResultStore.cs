@@ -110,7 +110,7 @@ namespace GetBricked.Gameplay
             }
             catch (Exception exception)
             {
-                Debug.LogWarning($"Unable to load last Rogue result. {exception.Message}");
+                Debug.LogWarning($"Unable to load last Neon Ladder result. {exception.Message}");
                 return false;
             }
         }
@@ -119,7 +119,7 @@ namespace GetBricked.Gameplay
         {
             if (result == null)
             {
-                return "Last Run: no Rogue tape recorded yet.";
+                return "Last Run: no Neon Ladder tape recorded yet.";
             }
 
             var outcome = result.Completed ? "Cleared" : "Wiped Out";
@@ -240,7 +240,7 @@ namespace GetBricked.Gameplay
             }
             catch (Exception exception)
             {
-                Debug.LogWarning($"Unable to load Rogue intensity progress. {exception.Message}");
+                Debug.LogWarning($"Unable to load Neon Ladder intensity progress. {exception.Message}");
                 return new BreakoutRogueIntensityProgress();
             }
         }

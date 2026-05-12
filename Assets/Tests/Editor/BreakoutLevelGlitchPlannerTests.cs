@@ -25,6 +25,17 @@ public sealed class BreakoutLevelGlitchPlannerTests
     }
 
     [Test]
+    public void RogueFinalStageAlwaysRollsGlitch()
+    {
+        var settings = CreateRogueSettings(rogueIntensity: 1);
+
+        var plan = BreakoutLevelGlitchPlanner.BuildPlan(new DeterministicRandomService(7), settings, levelIndex: 9);
+
+        Assert.That(BreakoutLevelGlitchPlanner.GetGlitchChance(settings, levelIndex: 9), Is.EqualTo(1f));
+        Assert.That(plan.IsActive, Is.True);
+    }
+
+    [Test]
     public void ForcedWarpGatePlanBuildsSmallPortalSetAndScoreBonus()
     {
         var settings = CreateSettings(levelGlitchesEnabled: true, chanceMultiplier: 3f);

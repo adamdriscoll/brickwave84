@@ -72,7 +72,7 @@ namespace GetBricked.Gameplay
             return new BreakoutUiMenuView
             {
                 Title = "Brickwave '84",
-                Subtitle = "Choose the cabinet channel. Neon Marathon opens heat select and top scores; Rogue starts a fixed 10-stage mixtape; Custom Game keeps the full tape-tuning bench.",
+                Subtitle = "Choose the cabinet channel. Neon Ladder climbs a fixed 10-stage unlock run; Neon Marathon opens heat select and top scores; Custom Game keeps the full tape-tuning bench.",
                 SectionTitle = "Mode Select",
                 ActionLabels = BuildActionLabels(actions),
                 ActionGroupLabels = BuildActionGroupLabels(actions),
@@ -95,7 +95,7 @@ namespace GetBricked.Gameplay
         {
             return action switch
             {
-                BreakoutMainMenuAction.Rogue => "Rogue mode is staged for progression, unlocks, intensities, and cabinet heat.",
+                BreakoutMainMenuAction.Rogue => "Neon Ladder climbs 10 stages with draft rewards, unlocks, and cabinet heat.",
                 BreakoutMainMenuAction.SoloMarathon => "Neon Marathon opens heat select, top scores, and a solo high-score chase.",
                 BreakoutMainMenuAction.DualSticks => "Dual Sticks is staged for side-by-side versus runs, sabotage drops, and brick sends.",
                 BreakoutMainMenuAction.Coop => "Co-op is staged for two paddles, two balls, and one-keyboard shared survival.",
@@ -114,7 +114,7 @@ namespace GetBricked.Gameplay
             {
                 labels[index] = actions[index] switch
                 {
-                    BreakoutMainMenuAction.Rogue => "Rogue",
+                    BreakoutMainMenuAction.Rogue => "Neon Ladder",
                     BreakoutMainMenuAction.SoloMarathon => "Neon Marathon",
                     BreakoutMainMenuAction.CustomGame => "Custom Game",
                     BreakoutMainMenuAction.DualSticks => "Dual Sticks",
@@ -158,7 +158,7 @@ namespace GetBricked.Gameplay
         {
             return action switch
             {
-                BreakoutMainMenuAction.Rogue => "Rogue Run",
+                BreakoutMainMenuAction.Rogue => "Neon Ladder",
                 BreakoutMainMenuAction.SoloMarathon => "Neon Marathon",
                 BreakoutMainMenuAction.CustomGame => "Custom Game Loadout",
                 BreakoutMainMenuAction.DualSticks => "Versus Shell",
@@ -185,10 +185,10 @@ namespace GetBricked.Gameplay
                         context.SelectedRoguePaddleIdentity,
                         context.SelectedRoguePaddleStrength,
                         $"Tradeoff: {context.SelectedRoguePaddleDrawback}",
-                        $"Heat {context.AvailableRogueIntensity:00}/50. 10 stages. Draft rewards after clears.",
+                        $"Heat {context.AvailableRogueIntensity:00}/50. 10-stage ladder. Draft rewards after clears.",
                         unlockLine,
                         string.IsNullOrWhiteSpace(context.LastRogueResultSummary)
-                            ? "Last Run: no Rogue tape recorded yet."
+                            ? "Last Run: no Neon Ladder tape recorded yet."
                             : context.LastRogueResultSummary,
                     };
                 case BreakoutMainMenuAction.SoloMarathon:
@@ -260,7 +260,7 @@ namespace GetBricked.Gameplay
                 case BreakoutMainMenuAction.DeveloperMode:
                     return new[]
                     {
-                        "Jump directly into Rogue stages or boss gates.",
+                        "Jump directly into Neon Ladder stages or boss test gates.",
                         "Pick paddle, lives, run upgrades, and drop unlocks before launch.",
                         "For local tuning only. No progression result is protected here yet.",
                         "Status: active debug bench.",
@@ -287,12 +287,12 @@ namespace GetBricked.Gameplay
             return action switch
             {
                 BreakoutMainMenuAction.CustomGame => "Custom Game opens the full tape-tuning bench: Tape ID, score rules, modifiers, drops, and theme.",
-                BreakoutMainMenuAction.Rogue => "Rogue launches a fixed 10-stage mixtape with draft rewards and saved results.",
+                BreakoutMainMenuAction.Rogue => "Neon Ladder launches a fixed 10-stage climb with draft rewards and saved unlock progress.",
                 BreakoutMainMenuAction.SoloMarathon => "Neon Marathon opens its heat bench with top scores for each heat level.",
                 BreakoutMainMenuAction.SoundSettings => "Sound controls are staged here for mixer work.",
                 BreakoutMainMenuAction.GraphicsSettings => "Graphics controls are staged here for display, glow, and readability options.",
                 BreakoutMainMenuAction.TurnBased => "Hot Seat opens player count, mode, and heat setup before the match starts.",
-                BreakoutMainMenuAction.DeveloperMode => "Developer Mode opens the local jump bench for Rogue stages, boss gates, and tuning.",
+                BreakoutMainMenuAction.DeveloperMode => "Developer Mode opens the local jump bench for stages, boss test gates, and tuning.",
                 _ => "This cabinet channel is staged for later.",
             };
         }

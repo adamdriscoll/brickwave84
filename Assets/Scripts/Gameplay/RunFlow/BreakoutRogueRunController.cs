@@ -82,7 +82,7 @@ namespace GetBricked.Gameplay
             return draftService.GenerateDraft(runState, runSettings, runSettings.Seed, levelIndex, DraftOfferCount);
         }
 
-        public int UnlockHazardsForClearedLevel(BreakoutRunState runState)
+        public int UnlockHazardsForClearedLevel(BreakoutRunState runState, RunSettings runSettings)
         {
             if (runState == null)
             {
@@ -90,7 +90,10 @@ namespace GetBricked.Gameplay
             }
 
             var hazards = BuildSortedHazardDropPool();
-            var targetHazardCount = Mathf.Min(hazards.Count, GetAutoHazardUnlockCount(runState.ClearedLevelCount));
+            var intensity = runSettings != null
+                ? runSettings.RogueIntensity
+                : BreakoutRunProgression.MinRogueIntensity;
+            var targetHazardCount = Mathf.Min(hazards.Count, GetAutoHazardUnlockCount(runState.ClearedLevelCount, intensity));
             var unlockedCount = 0;
 
             for (var index = 0; index < targetHazardCount; index++)
@@ -177,9 +180,16 @@ namespace GetBricked.Gameplay
             return hazards;
         }
 
-        private static int GetAutoHazardUnlockCount(int clearedLevelCount)
+        internal static int GetAutoHazardUnlockCount(int clearedLevelCount, int intensity)
         {
-            return clearedLevelCount <= 0 ? 0 : 1 + ((clearedLevelCount - 1) / 2);
+            if (clearedLevelCount <= 0)
+            {
+                return 0;
+            }
+
+            var stagePressure = clearedLevelCount / 3;
+            var heatPressure = Mathf.FloorToInt(BreakoutRunProgression.GetRogueIntensityProgress(intensity) * 3.01f);
+            return stagePressure + heatPressure;
         }
 
         private static bool IsStartingDrop(PowerUpDefinition definition)

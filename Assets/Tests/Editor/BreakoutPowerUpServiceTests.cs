@@ -421,7 +421,7 @@ public sealed class BreakoutPowerUpServiceTests
             rogueSettings,
             runState,
             effectiveDropChanceMultiplier: 1f,
-            nextGameplayRandomFloat: (_, max) => max > 1f ? 1.5f : 0f,
+            nextGameplayRandomFloat: (_, max) => max > 1f ? max * 0.5f : 0f,
             pickupsRoot,
             arenaBottom: -4f,
             themeService: null,

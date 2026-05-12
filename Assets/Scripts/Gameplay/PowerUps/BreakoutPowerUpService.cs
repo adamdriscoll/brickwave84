@@ -772,7 +772,7 @@ namespace GetBricked.Gameplay
                         continue;
                     }
 
-                    candidates.Add(new BreakoutPowerUpDropCandidate(definition, definition.IsBeneficial ? 1f : 0.72f));
+                    candidates.Add(new BreakoutPowerUpDropCandidate(definition, ResolveRogueDropWeight(definition, activeRunSettings)));
                 }
 
                 return candidates.ToArray();
@@ -787,6 +787,22 @@ namespace GetBricked.Gameplay
             }
 
             return authoredCandidates;
+        }
+
+        private static float ResolveRogueDropWeight(PowerUpDefinition definition, RunSettings activeRunSettings)
+        {
+            if (definition == null)
+            {
+                return 0f;
+            }
+
+            var heatProgress = activeRunSettings != null
+                ? BreakoutRunProgression.GetRogueIntensityProgress(activeRunSettings.RogueIntensity)
+                : 0f;
+
+            return definition.IsBeneficial
+                ? Mathf.Lerp(1.08f, 0.86f, heatProgress)
+                : Mathf.Lerp(0.38f, 1.35f, heatProgress);
         }
 
         private PowerUpPickup CreatePickup(

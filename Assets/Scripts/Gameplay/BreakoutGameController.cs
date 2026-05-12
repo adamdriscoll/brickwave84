@@ -1620,7 +1620,7 @@ namespace GetBricked.Gameplay
                     selectedPaddle.DisplayName,
                     selectedPaddle.SpeedMultiplier,
                     levelGlitchesEnabled: true);
-            pendingValidationMessage = $"Rogue tape loaded: {activeRunSettings.SelectedPaddleLabel}, Heat {activeRunSettings.RogueIntensity:00}/50, 10 stages, 3 balls, draft rewards, growing drop pool.";
+            pendingValidationMessage = $"Neon Ladder loaded: {activeRunSettings.SelectedPaddleLabel}, Heat {activeRunSettings.RogueIntensity:00}/50, 10 stages, 3 balls, draft rewards, hotter drops.";
             StartNewRun();
         }
 
@@ -2293,7 +2293,7 @@ namespace GetBricked.Gameplay
 
             if (loadedPowerUpDefinitions.Count == 0)
             {
-                Debug.LogWarning("No power-up definitions were found in Resources/PowerUps. Rogue drop unlocks will be skipped.");
+                Debug.LogWarning("No power-up definitions were found in Resources/PowerUps. Neon Ladder drop unlocks will be skipped.");
             }
         }
 
@@ -3309,21 +3309,6 @@ namespace GetBricked.Gameplay
                 return;
             }
 
-            if (activeRunSettings != null
-                && activeRunSettings.IsRogueMode
-                && BreakoutRunProgression.TryGetBossGateAfterLevel(currentLevelIndex, out var bossGate))
-            {
-                pendingBossGate = bossGate;
-
-                if (TryOpenUpgradeDraft())
-                {
-                    return;
-                }
-
-                LoadBossGate(bossGate);
-                return;
-            }
-
             if (HasNextLevel() && TryOpenUpgradeDraft())
             {
                 return;
@@ -3987,7 +3972,7 @@ namespace GetBricked.Gameplay
                 },
                 SelectedFieldIndex = (int)selectedDeveloperLaunchField,
                 PreviewLine = $"Preview: {FormatDeveloperEncounterLabel(encounter)} | {selectedPaddle.DisplayName} | Heat {developerLaunchState.Intensity:00} | Balls {developerLaunchState.LivesRemaining:00} | Paddle x{selectedPaddle.WidthMultiplier:0.00} speed x{selectedPaddle.SpeedMultiplier:0.00} | Build {developerLaunchState.SelectedUpgradeCount:00} upgrades, {developerLaunchState.SelectedDropUnlockCount:00} drops | Theme {ResolvePendingThemeDefinition()?.DisplayName ?? "Fallback"}",
-                ValidationText = "Encounter cycles through Stage 01-10, then Boss Gate 1-3. Dev runs do not update the saved Rogue result.",
+                ValidationText = "Encounter cycles through Stage 01-10, then Boss Gate 1-3. Dev runs do not update the saved Neon Ladder result.",
                 HintText = "Up/Down selects. Left/Right changes. T toggles build picks. N clears build. Esc returns to menu. Space launches.",
             };
         }
@@ -4065,6 +4050,15 @@ namespace GetBricked.Gameplay
                     Progress = intensityProgress,
                     PulseRate = Mathf.Lerp(1.6f, 8.6f, intensityProgress),
                     Color = BreakoutRunProgression.GetRogueIntensityGaugeColor(intensity),
+                },
+                StageLadder = new BreakoutUiStageLadderView
+                {
+                    IsVisible = isRogueRun,
+                    CurrentStage = Mathf.Clamp(currentLevelIndex + 1, 1, BreakoutRunProgression.TargetLevelCount),
+                    TotalStages = BreakoutRunProgression.TargetLevelCount,
+                    CompletedStages = roundState == RoundState.LevelComplete && !HasNextLevel()
+                        ? BreakoutRunProgression.TargetLevelCount
+                        : Mathf.Clamp(currentLevelIndex, 0, BreakoutRunProgression.TargetLevelCount),
                 },
             };
         }
@@ -4180,10 +4174,10 @@ namespace GetBricked.Gameplay
             var title = isGameOver
                 ? activeRunSettings != null && activeRunSettings.IsSoloMarathonMode
                     ? activeSoloMarathonNewHighScore ? "Hall of Rad!" : "Neon Marathon Over"
-                    : activeRunSettings != null && activeRunSettings.IsRogueMode ? "Rogue Wiped Out" : "Run Over"
+                    : activeRunSettings != null && activeRunSettings.IsRogueMode ? "Ladder Wiped Out" : "Run Over"
                 : HasNextLevel()
                     ? "Level Cleared"
-                    : (activeRunSettings != null && activeRunSettings.IsRogueMode ? "Mixtape Cleared" : "Final Layout Cleared");
+                    : (activeRunSettings != null && activeRunSettings.IsRogueMode ? "Ladder Cleared" : "Final Layout Cleared");
             var summary = isGameOver
                 ? activeRunSettings != null && activeRunSettings.IsSoloMarathonMode
                     ? $"{GetScoreDisplayLabel()} {FormatScoreValue(score)} | Best {FormatScoreValue(activeSoloMarathonRecord?.Score ?? score)} | Reached {BuildLevelLabel()} | Tape ID {activeRunSettings.Seed.ToString(CultureInfo.InvariantCulture)}"
@@ -4197,12 +4191,12 @@ namespace GetBricked.Gameplay
                         ? "New Neon Marathon best saved. Restart the chase or return to the main menu."
                         : "Restart the chase or return to the main menu.")
                     : activeRunSettings != null && activeRunSettings.IsRogueMode
-                    ? "Restart the run or return to the main menu."
+                    ? "Restart the climb or return to the main menu."
                     : "Restart the run, jump back to setup, or return to the main menu."
                 : HasNextLevel()
                     ? "Advance to the next stage, restart the run, or return to the menu."
                     : activeRunSettings != null && activeRunSettings.IsRogueMode
-                        ? "The 10-stage mixtape is complete. Restart or head back to the menu."
+                        ? "The 10-stage ladder is complete. Restart or head back to the menu."
                         : "The 10-stage run is complete. Restart, tune a new setup, or head back to the menu.";
             return new BreakoutUiOverlayView
             {
@@ -4314,7 +4308,7 @@ namespace GetBricked.Gameplay
                 {
                     Label = dropUnlock.HudLabel,
                     Title = $"Drop Unlock: {dropUnlock.DisplayName}",
-                    Description = $"Adds {dropUnlock.DisplayName} capsules to this Rogue run's drop pool.",
+                    Description = $"Adds {dropUnlock.DisplayName} capsules to this Neon Ladder run's drop pool.",
                     Detail = BuildDropUnlockDetail(dropUnlock),
                     StackCount = 1,
                     Icon = ResolvePowerUpIcon(dropUnlock),
@@ -5447,7 +5441,7 @@ namespace GetBricked.Gameplay
             activeRunState.RegisterLevelClear();
             if (activeRunSettings.IsRogueMode)
             {
-                rogueRunController?.UnlockHazardsForClearedLevel(activeRunState);
+                rogueRunController?.UnlockHazardsForClearedLevel(activeRunState, activeRunSettings);
             }
 
             var offers = activeRunSettings.IsRogueMode && rogueRunController != null
@@ -5560,7 +5554,7 @@ namespace GetBricked.Gameplay
 
             var dropUnlock = offer.DropUnlockDefinition;
             return dropUnlock != null
-                ? $"Adds {dropUnlock.DisplayName} capsules to this Rogue run's drop pool."
+                ? $"Adds {dropUnlock.DisplayName} capsules to this Neon Ladder run's drop pool."
                 : "This drop unlock failed to load.";
         }
 

@@ -251,12 +251,14 @@ namespace GetBricked.Gameplay
             var gaugeRect = new Rect(buttonsX - 100f, 12f, 84f, 84f);
             var statusMaxX = showIntensityGauge ? gaugeRect.x - 14f : buttonsX - 18f;
             var statusRect = new Rect(18f, 18f, Mathf.Max(320f, statusMaxX - 18f), 72f);
+            var ladderRect = new Rect(statusRect.x, statusRect.yMax + 8f, statusRect.width, 44f);
             var diagnosticsLabel = view.IsDiagnosticsVisible ? "DBG ON" : "DBG";
             var menuLabel = view.IsPaused ? "RESUME" : "MENU";
 
             DrawPanel(statusRect, palette.AccentPrimary, palette.AccentSecondary, false);
             DrawTextWithShadow(new Rect(statusRect.x + 20f, statusRect.y + 14f, statusRect.width - 40f, 24f), view.TopLine, hudStyle, palette.TextPrimary, 0.35f);
             DrawTextWithShadow(new Rect(statusRect.x + 20f, statusRect.y + 40f, statusRect.width - 40f, 22f), view.BottomLine, overlayBodyStyle, palette.TextMuted, 0.3f);
+            DrawStageLadder(ladderRect, view.StageLadder);
             DrawBallSpeedMeter(view.SpeedMeter);
             DrawIntensityGauge(gaugeRect, view.IntensityGauge);
 
@@ -1146,6 +1148,56 @@ namespace GetBricked.Gameplay
 
             DrawTextWithShadow(new Rect(rect.x, rect.y + 5f, rect.width, 18f), "HEAT", speedMeterCaptionStyle, gaugeColor, 0.25f);
             DrawTextWithShadow(new Rect(rect.x, center.y - 16f, rect.width, 34f), $"{Mathf.Clamp(view.Intensity, 1, Mathf.Max(1, view.MaxIntensity)):00}", pickupStyle, palette.TextPrimary, 0.28f);
+        }
+
+        private void DrawStageLadder(Rect rect, BreakoutUiStageLadderView view)
+        {
+            if (view == null || !view.IsVisible)
+            {
+                return;
+            }
+
+            var totalStages = Mathf.Clamp(view.TotalStages, 1, 20);
+            var currentStage = Mathf.Clamp(view.CurrentStage, 1, totalStages);
+            var completedStages = Mathf.Clamp(view.CompletedStages, 0, totalStages);
+            DrawPanel(rect, palette.AccentSecondary, palette.AccentPrimary, false, 1.5f);
+            DrawTextWithShadow(new Rect(rect.x + 14f, rect.y + 5f, 112f, 16f), "LADDER", speedMeterCaptionStyle, palette.AccentWarm, 0.22f);
+            DrawTextWithShadow(new Rect(rect.xMax - 96f, rect.y + 5f, 82f, 16f), $"{currentStage:00}/{totalStages:00}", speedMeterCaptionStyle, palette.TextPrimary, 0.22f);
+
+            var trackX = rect.x + 126f;
+            var trackWidth = rect.width - 236f;
+
+            if (trackWidth < 180f)
+            {
+                trackX = rect.x + 14f;
+                trackWidth = rect.width - 28f;
+            }
+
+            var gap = 5f;
+            var stepWidth = Mathf.Max(14f, (trackWidth - (gap * (totalStages - 1))) / totalStages);
+            var stepHeight = 14f;
+            var stepY = rect.y + 23f;
+
+            for (var index = 0; index < totalStages; index++)
+            {
+                var stepRect = new Rect(trackX + (index * (stepWidth + gap)), stepY, stepWidth, stepHeight);
+                var stageNumber = index + 1;
+                var isComplete = stageNumber <= completedStages;
+                var isCurrent = stageNumber == currentStage;
+                var fillColor = isComplete
+                    ? palette.Success
+                    : isCurrent
+                        ? palette.AccentWarm
+                        : WithAlpha(palette.TextMuted, 0.18f);
+                var outlineColor = isCurrent
+                    ? palette.AccentWarm
+                    : isComplete
+                        ? palette.Success
+                        : WithAlpha(palette.TextMuted, 0.26f);
+
+                DrawSolidRect(stepRect, WithAlpha(fillColor, isCurrent ? 0.9f : isComplete ? 0.72f : 0.34f));
+                DrawOutline(stepRect, outlineColor, isCurrent ? 2f : 1f);
+            }
         }
 
         private void DrawActionList(string[] labels, int selectedIndex, float x, float y, float width, float lineHeight, Action<int> onActionClicked)

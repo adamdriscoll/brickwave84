@@ -103,6 +103,11 @@ namespace GetBricked.Gameplay
                 return BreakoutLevelGlitchPlan.None;
             }
 
+            if (settings.IsRogueMode && BreakoutRunProgression.IsFinalStage(levelIndex))
+            {
+                return BuildSelectedGlitchPlan(random, settings.SelectedLevelGlitch);
+            }
+
             if (IsForcedLevelGlitchSelection(settings.SelectedLevelGlitch))
             {
                 return BuildSelectedGlitchPlan(random, settings.SelectedLevelGlitch);
@@ -166,6 +171,11 @@ namespace GetBricked.Gameplay
             if (settings.IsRogueMode)
             {
                 var intensity = BreakoutRunProgression.ClampRogueIntensity(settings.RogueIntensity);
+
+                if (BreakoutRunProgression.IsFinalStage(levelIndex))
+                {
+                    return 1f;
+                }
 
                 if (intensity < 8)
                 {

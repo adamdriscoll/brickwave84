@@ -79,6 +79,14 @@ namespace GetBricked.Gameplay
         public Color Color = Color.white;
     }
 
+    internal sealed class BreakoutUiStageLadderView
+    {
+        public bool IsVisible;
+        public int CurrentStage = 1;
+        public int TotalStages = 10;
+        public int CompletedStages;
+    }
+
     internal sealed class BreakoutUiHudView
     {
         public string TopLine = string.Empty;
@@ -88,6 +96,7 @@ namespace GetBricked.Gameplay
         public bool IsDiagnosticsVisible;
         public BreakoutUiSpeedMeterView SpeedMeter = new BreakoutUiSpeedMeterView();
         public BreakoutUiIntensityGaugeView IntensityGauge = new BreakoutUiIntensityGaugeView();
+        public BreakoutUiStageLadderView StageLadder = new BreakoutUiStageLadderView();
     }
 
     internal sealed class BreakoutUiOverlayView
