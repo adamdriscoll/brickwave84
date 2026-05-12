@@ -99,6 +99,16 @@ public sealed class BreakoutSoloMarathonScoreStoreTests
         Assert.That(BreakoutSoloMarathonScoreStore.BuildSummary(best), Does.Contain("Best Score: 1800"));
     }
 
+    [Test]
+    public void HeatScoreMultiplierPaysMoreAtHigherHeat()
+    {
+        Assert.That(BreakoutGameController.GetSoloMarathonHeatScoreMultiplier(BreakoutHotSeatDifficulty.Chill), Is.EqualTo(1f));
+        Assert.That(BreakoutGameController.GetSoloMarathonHeatScoreMultiplier(BreakoutHotSeatDifficulty.Rad), Is.GreaterThan(1f));
+        Assert.That(BreakoutGameController.GetSoloMarathonHeatScoreMultiplier(BreakoutHotSeatDifficulty.Gnarly), Is.GreaterThan(BreakoutGameController.GetSoloMarathonHeatScoreMultiplier(BreakoutHotSeatDifficulty.Rad)));
+        Assert.That(BreakoutGameController.GetSoloMarathonHeatScoreMultiplier(BreakoutHotSeatDifficulty.Mondo), Is.GreaterThan(BreakoutGameController.GetSoloMarathonHeatScoreMultiplier(BreakoutHotSeatDifficulty.Gnarly)));
+        Assert.That(BreakoutGameController.GetSoloMarathonHeatScoreMultiplier(BreakoutHotSeatDifficulty.Bogus), Is.GreaterThan(BreakoutGameController.GetSoloMarathonHeatScoreMultiplier(BreakoutHotSeatDifficulty.Mondo)));
+    }
+
     private static void ClearRecords()
     {
         for (var value = (int)BreakoutHotSeatDifficulty.Chill; value <= (int)BreakoutHotSeatDifficulty.Bogus; value++)

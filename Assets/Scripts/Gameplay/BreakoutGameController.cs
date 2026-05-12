@@ -51,9 +51,22 @@ namespace GetBricked.Gameplay
             BreakoutRunSetupField.HotSeatDifficulty,
         };
 
+        private static readonly BreakoutHotSeatDifficulty[] SoloMarathonHeatLevels =
+        {
+            BreakoutHotSeatDifficulty.Chill,
+            BreakoutHotSeatDifficulty.Rad,
+            BreakoutHotSeatDifficulty.Gnarly,
+            BreakoutHotSeatDifficulty.Mondo,
+            BreakoutHotSeatDifficulty.Bogus,
+        };
+
+        private const int SoloMarathonLaunchActionIndex = 5;
+        private const int SoloMarathonBackActionIndex = 6;
+
         private enum RoundState
         {
             MainMenu,
+            SoloMarathonSetup,
             RunSetup,
             DeveloperMenu,
             UpgradeDraft,
@@ -212,6 +225,7 @@ namespace GetBricked.Gameplay
         private int selectedMainMenuActionIndex;
         private int selectedRoguePaddleIndex;
         private BreakoutHotSeatDifficulty selectedSoloMarathonDifficulty = BreakoutHotSeatDifficulty.Gnarly;
+        private int selectedSoloMarathonSetupActionIndex = (int)BreakoutHotSeatDifficulty.Gnarly;
         private int selectedOverlayActionIndex;
         private string currentLevelVariationLabel = "Variation: not started";
         private string pendingValidationMessage = string.Empty;
@@ -376,6 +390,7 @@ namespace GetBricked.Gameplay
             }
 
             if (roundState == RoundState.MainMenu
+                || roundState == RoundState.SoloMarathonSetup
                 || roundState == RoundState.Paused
                 || roundState == RoundState.LevelComplete
                 || roundState == RoundState.GameOver)
@@ -993,6 +1008,7 @@ namespace GetBricked.Gameplay
             roundState = RoundState.MainMenu;
             selectedMainMenuActionIndex = 0;
             selectedOverlayActionIndex = 0;
+            selectedSoloMarathonSetupActionIndex = GetSoloMarathonHeatIndex(selectedSoloMarathonDifficulty);
             pendingValidationMessage = string.Empty;
             currentLevelVariationLabel = "Variation: pending";
             isDiagnosticsOverlayVisible = false;
@@ -1027,6 +1043,23 @@ namespace GetBricked.Gameplay
             roundState = RoundState.RunSetup;
             selectedRunSetupField = turnBased ? BreakoutRunSetupField.PlayerCount : BreakoutRunSetupField.Seed;
             isTurnBasedSetupActive = turnBased;
+            pendingValidationMessage = string.Empty;
+            currentLevelVariationLabel = "Variation: pending";
+            isDiagnosticsOverlayVisible = false;
+            isDeveloperRunActive = false;
+            turnBasedMultiplayerController?.ClearRun();
+            activeRunState?.Reset();
+            ResetRuntimeForMetaFlow();
+            ApplyPendingThemePreview();
+            audioService?.PlayMusic(BreakoutMusicTrack.Menu);
+        }
+
+        private void EnterSoloMarathonSetup()
+        {
+            roundState = RoundState.SoloMarathonSetup;
+            selectedSoloMarathonSetupActionIndex = GetSoloMarathonHeatIndex(selectedSoloMarathonDifficulty);
+            selectedOverlayActionIndex = 0;
+            isTurnBasedSetupActive = false;
             pendingValidationMessage = string.Empty;
             currentLevelVariationLabel = "Variation: pending";
             isDiagnosticsOverlayVisible = false;
@@ -1229,6 +1262,12 @@ namespace GetBricked.Gameplay
                 return;
             }
 
+            if (roundState == RoundState.SoloMarathonSetup)
+            {
+                HandleSoloMarathonSetupInput(keyboard);
+                return;
+            }
+
             var actions = GetOverlayActionsForState(roundState);
 
             if (actions.Length == 0)
@@ -1256,6 +1295,51 @@ namespace GetBricked.Gameplay
             {
                 selectedOverlayActionIndex = Mathf.Clamp(selectedOverlayActionIndex, 0, actions.Length - 1);
                 PerformOverlayAction(actions[selectedOverlayActionIndex]);
+            }
+        }
+
+        private void HandleSoloMarathonSetupInput(Keyboard keyboard)
+        {
+            if (keyboard == null)
+            {
+                return;
+            }
+
+            var actionCount = SoloMarathonBackActionIndex + 1;
+
+            if (keyboard.escapeKey.wasPressedThisFrame)
+            {
+                EnterMainMenu();
+                return;
+            }
+
+            if (keyboard.upArrowKey.wasPressedThisFrame || keyboard.wKey.wasPressedThisFrame)
+            {
+                selectedSoloMarathonSetupActionIndex = (selectedSoloMarathonSetupActionIndex + actionCount - 1) % actionCount;
+            }
+
+            if (keyboard.downArrowKey.wasPressedThisFrame || keyboard.sKey.wasPressedThisFrame)
+            {
+                selectedSoloMarathonSetupActionIndex = (selectedSoloMarathonSetupActionIndex + 1) % actionCount;
+            }
+
+            if (keyboard.leftArrowKey.wasPressedThisFrame || keyboard.aKey.wasPressedThisFrame)
+            {
+                AdjustSelectedSoloMarathonDifficulty(-1);
+                selectedSoloMarathonSetupActionIndex = GetSoloMarathonHeatIndex(selectedSoloMarathonDifficulty);
+                pendingValidationMessage = BuildSoloMarathonHeatSelectionMessage();
+            }
+
+            if (keyboard.rightArrowKey.wasPressedThisFrame || keyboard.dKey.wasPressedThisFrame)
+            {
+                AdjustSelectedSoloMarathonDifficulty(1);
+                selectedSoloMarathonSetupActionIndex = GetSoloMarathonHeatIndex(selectedSoloMarathonDifficulty);
+                pendingValidationMessage = BuildSoloMarathonHeatSelectionMessage();
+            }
+
+            if (keyboard.spaceKey.wasPressedThisFrame || keyboard.enterKey.wasPressedThisFrame || keyboard.numpadEnterKey.wasPressedThisFrame)
+            {
+                HandleSoloMarathonSetupActionClick(selectedSoloMarathonSetupActionIndex);
             }
         }
 
@@ -1474,7 +1558,7 @@ namespace GetBricked.Gameplay
 
             if (action == BreakoutMainMenuAction.SoloMarathon)
             {
-                StartSoloMarathonRun();
+                EnterSoloMarathonSetup();
                 return;
             }
 
@@ -1543,7 +1627,7 @@ namespace GetBricked.Gameplay
         private void StartSoloMarathonRun()
         {
             activeRunSettings = BuildSoloMarathonRunSettings(GenerateSeed(), ResolvePendingThemeDefinition());
-            pendingValidationMessage = $"Neon Marathon loaded: Heat {activeRunSettings.DifficultyLabel}, 5 balls, random Tape ID {activeRunSettings.Seed}, high-score chase.";
+            pendingValidationMessage = $"Neon Marathon loaded: Heat {activeRunSettings.DifficultyLabel}, score x{GetSoloMarathonHeatScoreMultiplier(selectedSoloMarathonDifficulty):0.00}, 5 balls, random Tape ID {activeRunSettings.Seed}.";
             StartNewRun();
         }
 
@@ -3649,6 +3733,13 @@ namespace GetBricked.Gameplay
                 return;
             }
 
+            if (roundState == RoundState.SoloMarathonSetup)
+            {
+                uiRenderer.DrawCabinetBackdrop(BuildChromeView("Neon Marathon", "Heat Select", true));
+                uiRenderer.DrawOverlay(BuildSoloMarathonSetupView(), HandleSoloMarathonSetupActionClick);
+                return;
+            }
+
             if (roundState == RoundState.RunSetup)
             {
                 uiRenderer.DrawCabinetBackdrop(BuildChromeView("Run Setup", ResolvePendingThemeDefinition()?.DisplayName ?? "Theme Preview", true));
@@ -3791,6 +3882,7 @@ namespace GetBricked.Gameplay
                 LastRogueResultSummary = BreakoutRogueRunResultStore.BuildSummary(lastRogueResult),
                 AvailableRogueIntensity = BreakoutRogueIntensityProgressStore.GetAvailableIntensity(selectedPaddle.DisplayName),
                 SoloMarathonDifficultyLabel = FormatSoloMarathonDifficultyLabel(selectedSoloMarathonDifficulty),
+                SoloMarathonScoreMultiplierLabel = $"x{GetSoloMarathonHeatScoreMultiplier(selectedSoloMarathonDifficulty):0.00}",
                 SoloMarathonBestForHeatSummary = marathonHeatBest == null
                     ? "Selected Heat: no record yet."
                     : $"Selected Heat: {BreakoutSoloMarathonScoreStore.BuildSummary(marathonHeatBest)}",
@@ -3897,6 +3989,38 @@ namespace GetBricked.Gameplay
                 PreviewLine = $"Preview: {FormatDeveloperEncounterLabel(encounter)} | {selectedPaddle.DisplayName} | Heat {developerLaunchState.Intensity:00} | Balls {developerLaunchState.LivesRemaining:00} | Paddle x{selectedPaddle.WidthMultiplier:0.00} speed x{selectedPaddle.SpeedMultiplier:0.00} | Build {developerLaunchState.SelectedUpgradeCount:00} upgrades, {developerLaunchState.SelectedDropUnlockCount:00} drops | Theme {ResolvePendingThemeDefinition()?.DisplayName ?? "Fallback"}",
                 ValidationText = "Encounter cycles through Stage 01-10, then Boss Gate 1-3. Dev runs do not update the saved Rogue result.",
                 HintText = "Up/Down selects. Left/Right changes. T toggles build picks. N clears build. Esc returns to menu. Space launches.",
+            };
+        }
+
+        private BreakoutUiOverlayView BuildSoloMarathonSetupView()
+        {
+            var heatLabel = FormatSoloMarathonDifficultyLabel(selectedSoloMarathonDifficulty);
+            var selectedBest = BreakoutSoloMarathonScoreStore.Load(selectedSoloMarathonDifficulty);
+            var bestLine = selectedBest == null
+                ? $"Top Score: no {heatLabel} record yet."
+                : $"Top Score: {FormatScoreValue(selectedBest.Score)} | Stage {selectedBest.StageReached:00} | Tape ID {selectedBest.Seed}";
+
+            return new BreakoutUiOverlayView
+            {
+                Title = "Neon Marathon",
+                SummaryTitle = "Heat Select",
+                SummaryLines = new[]
+                {
+                    $"Selected Heat: {heatLabel} | Score x{GetSoloMarathonHeatScoreMultiplier(selectedSoloMarathonDifficulty):0.00}",
+                    bestLine,
+                    BuildSoloMarathonHeatRulesLine(selectedSoloMarathonDifficulty),
+                    "Five balls. Random Tape ID. High Score mode.",
+                },
+                LeaderboardTitle = "Top Scores By Heat",
+                LeaderboardEntries = BuildSoloMarathonLeaderboardEntries(),
+                ActionLabels = BuildSoloMarathonSetupActionLabels(),
+                SelectedActionIndex = Mathf.Clamp(selectedSoloMarathonSetupActionIndex, 0, SoloMarathonBackActionIndex),
+                FooterLines = new[]
+                {
+                    "Pick a heat, then start the chase. Higher heat pays bigger score multipliers.",
+                    "Up/Down selects. Left/Right changes heat. Space confirms. Esc returns to mode select.",
+                },
+                IsCompact = false,
             };
         }
 
@@ -4088,6 +4212,12 @@ namespace GetBricked.Gameplay
                     summary,
                     BuildRunSummaryLabel(),
                 },
+                LeaderboardTitle = isGameOver && activeRunSettings != null && activeRunSettings.IsSoloMarathonMode
+                    ? "Top Scores By Heat"
+                    : string.Empty,
+                LeaderboardEntries = isGameOver && activeRunSettings != null && activeRunSettings.IsSoloMarathonMode
+                    ? BuildSoloMarathonLeaderboardEntries()
+                    : Array.Empty<BreakoutTurnLeaderboardEntry>(),
                 ActionLabels = BuildOverlayActionLabels(GetOverlayActionsForState(roundState)),
                 SelectedActionIndex = selectedOverlayActionIndex,
                 FooterLines = new[] { footer },
@@ -4278,6 +4408,34 @@ namespace GetBricked.Gameplay
 
             selectedMainMenuActionIndex = actionIndex;
             PerformMainMenuAction(actions[actionIndex]);
+        }
+
+        private void HandleSoloMarathonSetupActionClick(int actionIndex)
+        {
+            if (actionIndex < 0 || actionIndex > SoloMarathonBackActionIndex)
+            {
+                return;
+            }
+
+            selectedSoloMarathonSetupActionIndex = actionIndex;
+
+            if (actionIndex < SoloMarathonHeatLevels.Length)
+            {
+                selectedSoloMarathonDifficulty = SoloMarathonHeatLevels[actionIndex];
+                pendingValidationMessage = BuildSoloMarathonHeatSelectionMessage();
+                return;
+            }
+
+            if (actionIndex == SoloMarathonLaunchActionIndex)
+            {
+                StartSoloMarathonRun();
+                return;
+            }
+
+            if (actionIndex == SoloMarathonBackActionIndex)
+            {
+                EnterMainMenu();
+            }
         }
 
         private void ToggleDiagnosticsOverlay()
@@ -4475,6 +4633,28 @@ namespace GetBricked.Gameplay
                 : Array.Empty<BreakoutTurnLeaderboardEntry>();
         }
 
+        private BreakoutTurnLeaderboardEntry[] BuildSoloMarathonLeaderboardEntries()
+        {
+            var entries = new BreakoutTurnLeaderboardEntry[SoloMarathonHeatLevels.Length];
+
+            for (var index = 0; index < SoloMarathonHeatLevels.Length; index++)
+            {
+                var heat = SoloMarathonHeatLevels[index];
+                var record = BreakoutSoloMarathonScoreStore.Load(heat);
+                entries[index] = new BreakoutTurnLeaderboardEntry(
+                    index + 1,
+                    heat == selectedSoloMarathonDifficulty,
+                    $"Heat {FormatSoloMarathonDifficultyLabel(heat)}",
+                    record?.Score ?? 0,
+                    record?.StageReached ?? 1,
+                    0,
+                    0,
+                    record == null ? "NO SCORE" : $"ST{record.StageReached:00}");
+            }
+
+            return entries;
+        }
+
         private string BuildUpgradeSummaryLabel(int maxNames)
         {
             if (activeRunState == null || !activeRunState.HasActiveBuild)
@@ -4534,6 +4714,7 @@ namespace GetBricked.Gameplay
             return roundState switch
             {
                 RoundState.ReadyToServe => "Ready to serve",
+                RoundState.SoloMarathonSetup => "Neon Marathon setup",
                 RoundState.Playing => "Ball in play",
                 RoundState.LifeLost => "Recovering from a loss",
                 RoundState.UpgradeDraft => "Choosing a run reward",
@@ -4551,7 +4732,11 @@ namespace GetBricked.Gameplay
                 return $"Tape ID: {GetPendingSeedDisplay()} | Theme: {ResolvePendingThemeDefinition()?.DisplayName ?? "Fallback"} | Preview only";
             }
 
-            var heatSummary = activeRunSettings.IsRogueMode ? $" | Heat {activeRunSettings.RogueIntensity:00}" : string.Empty;
+            var heatSummary = activeRunSettings.IsRogueMode
+                ? $" | Heat {activeRunSettings.RogueIntensity:00}"
+                : activeRunSettings.IsSoloMarathonMode
+                    ? $" | Heat Score x{GetSoloMarathonHeatScoreMultiplier(selectedSoloMarathonDifficulty):0.00}"
+                    : string.Empty;
             var summary =
                 $"{activeRunSettings.GameModeLabel} | Tape ID: {activeRunSettings.Seed} | {activeRunSettings.DifficultyLabel} | {BuildScoreModeSummaryLabel(activeRunSettings)} | {BuildRetrySummaryLabel(activeRunSettings)} | Balls/Serve {GetEffectiveBallsPerServe()} | " +
                 $"Theme: {activeRunSettings.ThemeLabel} | Drops: {BuildDropSummaryLabel(activeRunSettings)} | {activeRunSettings.LevelGlitchLabel}{heatSummary} | {activeRunSettings.SelectedPaddleLabel} x{activeRunSettings.PaddleWidthMultiplier:0.00} speed x{activeRunSettings.PaddleSpeedMultiplier:0.00} | Ball x{activeRunSettings.BallSpeedMultiplier:0.00} | Build {GetChosenUpgradeCount():00}";
@@ -4590,6 +4775,65 @@ namespace GetBricked.Gameplay
                 BreakoutHotSeatDifficulty.Mondo => "Mondo",
                 BreakoutHotSeatDifficulty.Bogus => "Bogus",
                 _ => "Gnarly",
+            };
+        }
+
+        internal static float GetSoloMarathonHeatScoreMultiplier(BreakoutHotSeatDifficulty difficulty)
+        {
+            return difficulty switch
+            {
+                BreakoutHotSeatDifficulty.Rad => 1.15f,
+                BreakoutHotSeatDifficulty.Gnarly => 1.35f,
+                BreakoutHotSeatDifficulty.Mondo => 1.65f,
+                BreakoutHotSeatDifficulty.Bogus => 2f,
+                _ => 1f,
+            };
+        }
+
+        private static int GetSoloMarathonHeatIndex(BreakoutHotSeatDifficulty difficulty)
+        {
+            for (var index = 0; index < SoloMarathonHeatLevels.Length; index++)
+            {
+                if (SoloMarathonHeatLevels[index] == difficulty)
+                {
+                    return index;
+                }
+            }
+
+            return (int)BreakoutHotSeatDifficulty.Gnarly;
+        }
+
+        private string[] BuildSoloMarathonSetupActionLabels()
+        {
+            var labels = new string[SoloMarathonBackActionIndex + 1];
+
+            for (var index = 0; index < SoloMarathonHeatLevels.Length; index++)
+            {
+                var heat = SoloMarathonHeatLevels[index];
+                labels[index] = heat == selectedSoloMarathonDifficulty
+                    ? $"{FormatSoloMarathonDifficultyLabel(heat)} [ON]"
+                    : FormatSoloMarathonDifficultyLabel(heat);
+            }
+
+            labels[SoloMarathonLaunchActionIndex] = "Start Neon Marathon";
+            labels[SoloMarathonBackActionIndex] = "Back To Mode Select";
+            return labels;
+        }
+
+        private string BuildSoloMarathonHeatSelectionMessage()
+        {
+            return $"Heat {FormatSoloMarathonDifficultyLabel(selectedSoloMarathonDifficulty)} selected. Score x{GetSoloMarathonHeatScoreMultiplier(selectedSoloMarathonDifficulty):0.00}.";
+        }
+
+        private static string BuildSoloMarathonHeatRulesLine(BreakoutHotSeatDifficulty difficulty)
+        {
+            return difficulty switch
+            {
+                BreakoutHotSeatDifficulty.Chill => "Chill: wider paddle, slower ball, helpful capsules.",
+                BreakoutHotSeatDifficulty.Rad => "Rad: light help, clean speed, friendly capsules.",
+                BreakoutHotSeatDifficulty.Mondo => "Mondo: faster ball, tougher bricks, glitched stages.",
+                BreakoutHotSeatDifficulty.Bogus => "Bogus: harmful capsules, hot speed, max payout.",
+                _ => "Gnarly: standard gear with glitched stages in the mix.",
             };
         }
 
@@ -5126,7 +5370,12 @@ namespace GetBricked.Gameplay
             var glitchMultiplier = activeLevelGlitchPlan != null && activeLevelGlitchPlan.IsActive
                 ? activeLevelGlitchPlan.ScoreMultiplier
                 : 1f;
-            return Mathf.Max(0.1f, activeEffectModifiers.ScoreMultiplier) * Mathf.Max(1f, glitchMultiplier);
+            var marathonHeatMultiplier = activeRunSettings != null && activeRunSettings.IsSoloMarathonMode
+                ? GetSoloMarathonHeatScoreMultiplier(selectedSoloMarathonDifficulty)
+                : 1f;
+            return Mathf.Max(0.1f, activeEffectModifiers.ScoreMultiplier)
+                * Mathf.Max(1f, glitchMultiplier)
+                * Mathf.Max(1f, marathonHeatMultiplier);
         }
 
         private float GetDisplayedBallSpeed()
