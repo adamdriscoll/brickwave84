@@ -1135,6 +1135,26 @@ namespace GetBricked.Gameplay
                 return;
             }
 
+            if (keyboard.downArrowKey.wasPressedThisFrame || keyboard.sKey.wasPressedThisFrame)
+            {
+                uiRenderer?.ScrollProgressionContent(128f);
+            }
+
+            if (keyboard.upArrowKey.wasPressedThisFrame || keyboard.wKey.wasPressedThisFrame)
+            {
+                uiRenderer?.ScrollProgressionContent(-128f);
+            }
+
+            if (keyboard.pageDownKey.wasPressedThisFrame)
+            {
+                uiRenderer?.ScrollProgressionContent(360f);
+            }
+
+            if (keyboard.pageUpKey.wasPressedThisFrame)
+            {
+                uiRenderer?.ScrollProgressionContent(-360f);
+            }
+
             if (keyboard.escapeKey.wasPressedThisFrame
                 || keyboard.spaceKey.wasPressedThisFrame
                 || keyboard.enterKey.wasPressedThisFrame
@@ -3287,7 +3307,7 @@ namespace GetBricked.Gameplay
         private BreakoutUiProgressionView BuildProgressionPageView()
         {
             progressionPageService ??= new BreakoutProgressionPageService();
-            return progressionPageService.BuildView(loadedPowerUpDefinitions);
+            return progressionPageService.BuildView(loadedPowerUpDefinitions, themeService);
         }
 
         private BreakoutUiRunSetupView BuildRunSetupView()

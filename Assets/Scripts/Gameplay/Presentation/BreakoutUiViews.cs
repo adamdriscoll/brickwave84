@@ -79,6 +79,8 @@ namespace GetBricked.Gameplay
         public string ModeAvailability = string.Empty;
         public BreakoutUiProgressionUnlockState UnlockState;
         public Color Accent = Color.white;
+        public Sprite Icon;
+        public Color IconColor = Color.white;
     }
 
     internal sealed class BreakoutUiProgressionView
@@ -89,6 +91,7 @@ namespace GetBricked.Gameplay
         public string[] LadderLines = Array.Empty<string>();
         public string[] MeterLines = Array.Empty<string>();
         public string NextSignal = string.Empty;
+        public BreakoutUiIntensityGaugeView IntensityGauge = new BreakoutUiIntensityGaugeView();
         public BreakoutUiProgressionPaddleView[] Paddles = Array.Empty<BreakoutUiProgressionPaddleView>();
         public BreakoutUiProgressionCardView[] Cards = Array.Empty<BreakoutUiProgressionCardView>();
         public string FooterText = string.Empty;

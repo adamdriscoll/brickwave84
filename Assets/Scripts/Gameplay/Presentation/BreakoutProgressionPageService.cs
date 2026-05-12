@@ -40,7 +40,6 @@ namespace GetBricked.Gameplay
         private const int PlannedDropUnlockCount = 50;
         private const int PlannedGlitchUnlockCount = 50;
         private const int DefaultGlitchCount = 2;
-        private const int VisibleDefaultDropCards = 4;
 
         private static readonly Color ControlAccent = new Color(0.45f, 0.95f, 0.72f, 1f);
         private static readonly Color PrecisionAccent = new Color(1f, 0.87f, 0.36f, 1f);
@@ -48,6 +47,8 @@ namespace GetBricked.Gameplay
         private static readonly Color SplitAccent = new Color(0.01f, 0.93f, 0.98f, 1f);
         private static readonly Color HazardAccent = new Color(0.99f, 0.27f, 0.31f, 1f);
         private static readonly Color LayoutAccent = new Color(0.72f, 0.62f, 1f, 1f);
+
+        private readonly Dictionary<string, Sprite> powerUpSpriteCache = new Dictionary<string, Sprite>();
 
         private static readonly BreakoutProgressionPlaceholderItem[] PlaceholderDrops =
         {
@@ -71,7 +72,7 @@ namespace GetBricked.Gameplay
             new BreakoutProgressionPlaceholderItem("Static Wall", "Glitch", "Paddle", "One side wall flickers between normal and weak bounce.", 34, HazardAccent),
         };
 
-        public BreakoutUiProgressionView BuildView(IReadOnlyList<PowerUpDefinition> loadedPowerUps)
+        public BreakoutUiProgressionView BuildView(IReadOnlyList<PowerUpDefinition> loadedPowerUps, BreakoutThemeService themeService = null)
         {
             var progressPaddleLabel = BreakoutRogueRunResultStore.DefaultPaddleLabel;
             var selectedHighest = BreakoutRogueIntensityProgressStore.GetHighestCompletedIntensity(progressPaddleLabel);
@@ -101,15 +102,27 @@ namespace GetBricked.Gameplay
                     "Modes: Ladder rarity affects unlock order and capsule odds.",
                 },
                 NextSignal = BuildNextSignal(selectedAvailable, selectedBestStage),
-                Cards = BuildCards(loadedPowerUps, selectedHighest),
-                FooterText = "Esc returns to Mode Select. Rarity gates live drops and glitches; placeholder cards mark future content.",
+                IntensityGauge = new BreakoutUiIntensityGaugeView
+                {
+                    IsVisible = true,
+                    Intensity = selectedAvailable,
+                    MaxIntensity = BreakoutRunProgression.MaxRogueIntensity,
+                    Progress = BreakoutRunProgression.GetRogueIntensityProgress(selectedAvailable),
+                    PulseRate = 1.35f,
+                    Color = BreakoutRunProgression.GetRogueIntensityGaugeColor(selectedAvailable),
+                },
+                Cards = BuildCards(loadedPowerUps, selectedHighest, themeService),
+                FooterText = "Esc returns to Mode Select. Scroll drops and glitches; rarity gates live content and placeholder cards.",
             };
         }
 
-        private static BreakoutUiProgressionCardView[] BuildCards(IReadOnlyList<PowerUpDefinition> loadedPowerUps, int highestCompletedIntensity)
+        private BreakoutUiProgressionCardView[] BuildCards(
+            IReadOnlyList<PowerUpDefinition> loadedPowerUps,
+            int highestCompletedIntensity,
+            BreakoutThemeService themeService)
         {
             var cards = new List<BreakoutUiProgressionCardView>();
-            AppendDefaultDropCards(cards, loadedPowerUps);
+            AppendDefaultDropCards(cards, loadedPowerUps, themeService);
             cards.Add(BuildDefaultGlitchCard("Warp Gates", "Layout", "Linked portals reroute ball paths.", LayoutAccent));
             cards.Add(BuildDefaultGlitchCard("Turbo Rail", "Speed", "A hot wall rail accelerates rebounds.", SplitAccent));
             AppendPlaceholderCards(cards, PlaceholderDrops, highestCompletedIntensity);
@@ -119,16 +132,17 @@ namespace GetBricked.Gameplay
             return cards.ToArray();
         }
 
-        private static void AppendDefaultDropCards(List<BreakoutUiProgressionCardView> cards, IReadOnlyList<PowerUpDefinition> loadedPowerUps)
+        private void AppendDefaultDropCards(
+            List<BreakoutUiProgressionCardView> cards,
+            IReadOnlyList<PowerUpDefinition> loadedPowerUps,
+            BreakoutThemeService themeService)
         {
             if (loadedPowerUps == null)
             {
                 return;
             }
 
-            var added = 0;
-
-            for (var index = 0; index < loadedPowerUps.Count && added < VisibleDefaultDropCards; index++)
+            for (var index = 0; index < loadedPowerUps.Count; index++)
             {
                 var definition = loadedPowerUps[index];
 
@@ -137,6 +151,7 @@ namespace GetBricked.Gameplay
                     continue;
                 }
 
+                var style = ResolvePowerUpStyle(definition, themeService);
                 cards.Add(new BreakoutUiProgressionCardView
                 {
                     Title = definition.DisplayName,
@@ -150,9 +165,48 @@ namespace GetBricked.Gameplay
                     ModeAvailability = "Ladder | Marathon | Multiplayer",
                     UnlockState = BreakoutUiProgressionUnlockState.Default,
                     Accent = definition.IsBeneficial ? ControlAccent : HazardAccent,
+                    Icon = style.Sprite,
+                    IconColor = style.PrimaryColor,
                 });
-                added++;
             }
+        }
+
+        private ThemeVisualStyle ResolvePowerUpStyle(PowerUpDefinition definition, BreakoutThemeService themeService)
+        {
+            if (definition == null)
+            {
+                return new ThemeVisualStyle(Color.white, Color.white, null);
+            }
+
+            if (themeService != null)
+            {
+                return themeService.ResolvePowerUpStyle(definition);
+            }
+
+            return new ThemeVisualStyle(definition.PickupColor, definition.PickupColor, ResolvePowerUpSprite(definition));
+        }
+
+        private Sprite ResolvePowerUpSprite(PowerUpDefinition definition)
+        {
+            if (definition == null)
+            {
+                return null;
+            }
+
+            var resourcePath = definition.ResolvePickupSpriteResourcePath();
+
+            if (string.IsNullOrWhiteSpace(resourcePath))
+            {
+                return null;
+            }
+
+            if (!powerUpSpriteCache.TryGetValue(resourcePath, out var cachedSprite))
+            {
+                cachedSprite = Resources.Load<Sprite>(resourcePath);
+                powerUpSpriteCache[resourcePath] = cachedSprite;
+            }
+
+            return cachedSprite;
         }
 
         private static BreakoutUiProgressionCardView BuildDefaultGlitchCard(string title, string family, string description, Color accent)

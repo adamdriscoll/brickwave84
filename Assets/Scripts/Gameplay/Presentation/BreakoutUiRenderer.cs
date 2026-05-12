@@ -12,6 +12,7 @@ namespace GetBricked.Gameplay
         private static readonly string[] RetroUiFontNames = { "Consolas", "Courier New", "monospace" };
 
         private readonly Dictionary<Sprite, Texture2D> iconTextureCache = new Dictionary<Sprite, Texture2D>();
+        private Vector2 progressionContentScroll;
 
         private GUIStyle hudStyle;
         private GUIStyle messageStyle;
@@ -34,6 +35,8 @@ namespace GetBricked.Gameplay
         private GUIStyle modifierPanelTitleStyle;
         private GUIStyle modifierPanelLabelStyle;
         private GUIStyle modifierPanelTimerStyle;
+        private GUIStyle progressionCardDescriptionStyle;
+        private GUIStyle progressionBadgeStyle;
         private GUIStyle upgradePanelStackStyle;
         private GUIStyle upgradeTooltipTitleStyle;
         private GUIStyle upgradeTooltipBodyStyle;
@@ -202,7 +205,7 @@ namespace GetBricked.Gameplay
             var rightRect = new Rect(leftRect.xMax + gap, contentTop, boxRect.xMax - padding - leftRect.xMax - gap, contentHeight);
 
             DrawPanel(boxRect, palette.AccentSecondary, palette.AccentPrimary, true);
-            DrawTextWithShadow(new Rect(boxRect.x + padding, boxRect.y + 24f, boxRect.width - (padding * 2f) - 126f, 36f), view.Title, overlayTitleStyle, palette.TextPrimary);
+            DrawTextWithShadow(new Rect(boxRect.x + padding, boxRect.y + 24f, boxRect.width - (padding * 2f) - 126f, 36f), view.Title, setupTitleStyle, palette.TextPrimary);
             DrawTextWithShadow(new Rect(boxRect.x + padding, boxRect.y + 62f, boxRect.width - (padding * 2f), 24f), view.Subtitle, setupHintStyle, palette.TextMuted, 0.35f);
 
             if (DrawArcadeButton(new Rect(boxRect.xMax - padding - 104f, boxRect.y + 27f, 104f, 38f), "Back", false))
@@ -215,6 +218,11 @@ namespace GetBricked.Gameplay
             DrawProgressionLadderPanel(leftRect, view);
             DrawProgressionContentGrid(rightRect, view.Cards);
             DrawHintBand(new Rect(boxRect.x + 28f, boxRect.yMax - footerHeight - 12f, boxRect.width - 56f, footerHeight), view.FooterText, draftHintStyle);
+        }
+
+        public void ScrollProgressionContent(float deltaY)
+        {
+            progressionContentScroll.y = Mathf.Max(0f, progressionContentScroll.y + deltaY);
         }
 
         public void DrawRunSetup(BreakoutUiRunSetupView view)
@@ -1018,6 +1026,18 @@ namespace GetBricked.Gameplay
                 alignment = TextAnchor.MiddleCenter,
                 fontSize = 10,
             };
+            progressionCardDescriptionStyle ??= new GUIStyle(setupHintStyle)
+            {
+                alignment = TextAnchor.MiddleLeft,
+                fontSize = 15,
+                wordWrap = true,
+            };
+            progressionBadgeStyle ??= new GUIStyle(speedMeterCaptionStyle)
+            {
+                alignment = TextAnchor.MiddleCenter,
+                fontSize = 11,
+                fontStyle = FontStyle.Bold,
+            };
             upgradePanelStackStyle ??= new GUIStyle(hudStyle)
             {
                 alignment = TextAnchor.MiddleCenter,
@@ -1077,6 +1097,8 @@ namespace GetBricked.Gameplay
             modifierPanelTitleStyle.normal.textColor = palette.TextMuted;
             modifierPanelLabelStyle.normal.textColor = palette.TextPrimary;
             modifierPanelTimerStyle.normal.textColor = palette.TextMuted;
+            progressionCardDescriptionStyle.normal.textColor = palette.TextMuted;
+            progressionBadgeStyle.normal.textColor = palette.TextPrimary;
             upgradePanelStackStyle.normal.textColor = palette.TextPrimary;
             upgradeTooltipTitleStyle.normal.textColor = palette.TextPrimary;
             upgradeTooltipBodyStyle.normal.textColor = palette.TextMuted;
@@ -1113,6 +1135,8 @@ namespace GetBricked.Gameplay
             modifierPanelTitleStyle.font = retroUiFont;
             modifierPanelLabelStyle.font = retroUiFont;
             modifierPanelTimerStyle.font = retroUiFont;
+            progressionCardDescriptionStyle.font = retroUiFont;
+            progressionBadgeStyle.font = retroUiFont;
             upgradePanelStackStyle.font = retroUiFont;
             upgradeTooltipTitleStyle.font = retroUiFont;
             upgradeTooltipBodyStyle.font = retroUiFont;
@@ -1269,25 +1293,19 @@ namespace GetBricked.Gameplay
                 y += index == 0 ? 30f : 25f;
             }
 
-            y += 8f;
+            y += 18f;
+            var gaugeSize = Mathf.Clamp(width * 0.52f, 138f, 188f);
+            var gaugeRect = new Rect(innerX + ((width - gaugeSize) * 0.5f), y, gaugeSize, gaugeSize);
+            DrawIntensityGauge(gaugeRect, view.IntensityGauge);
+            y = gaugeRect.yMax + 18f;
+
             DrawSelectionBar(new Rect(innerX, y, width, 36f));
             DrawTextWithShadow(new Rect(innerX + 12f, y + 6f, width - 24f, 24f), view.NextSignal, setupHintStyle, palette.TextPrimary, 0.25f);
-            y += 54f;
-
-            y = Mathf.Max(y + 4f, rect.yMax - 116f);
-            DrawSectionLabel(new Rect(innerX, y, width, 20f), "Unlock Meter", palette.AccentWarm);
-            y += 26f;
-
-            for (var index = 0; index < view.MeterLines.Length; index++)
-            {
-                DrawTextWithShadow(new Rect(innerX, y + (index * 24f), width, 22f), view.MeterLines[index], setupHintStyle, palette.TextMuted, 0.2f);
-            }
         }
 
         private void DrawProgressionContentGrid(Rect rect, BreakoutUiProgressionCardView[] cards)
         {
             DrawSectionLabel(new Rect(rect.x + 18f, rect.y + 16f, rect.width - 36f, 20f), "Drops And Glitches", palette.AccentPrimary);
-            DrawTextWithShadow(new Rect(rect.x + 18f, rect.y + 42f, rect.width - 36f, 20f), "Default content is live. Future unlock cards are placeholders until their mechanics exist.", setupHintStyle, palette.TextMuted, 0.22f);
 
             if (cards == null || cards.Length == 0)
             {
@@ -1295,33 +1313,46 @@ namespace GetBricked.Gameplay
             }
 
             var gridX = rect.x + 18f;
-            var gridY = rect.y + 76f;
+            var gridY = rect.y + 48f;
             var gridWidth = rect.width - 36f;
             var gridHeight = Mathf.Max(120f, rect.yMax - gridY - 18f);
-            var columnCount = gridWidth >= 640f ? 2 : 1;
-            var gap = 12f;
-            var cardWidth = (gridWidth - (gap * (columnCount - 1))) / columnCount;
-            var cardHeight = 76f;
-            var rowCount = Mathf.Max(1, Mathf.FloorToInt((gridHeight + gap) / (cardHeight + gap)));
-            var visibleCount = Mathf.Min(cards.Length, rowCount * columnCount);
+            var gap = 14f;
+            var cardHeight = 124f;
+            var needsScroll = cards.Length * (cardHeight + gap) > gridHeight;
+            var scrollbarWidth = needsScroll ? 18f : 0f;
+            var cardWidth = gridWidth - scrollbarWidth;
+            var contentHeight = Mathf.Max(gridHeight, (cards.Length * cardHeight) + ((cards.Length - 1) * gap));
+            var viewportRect = new Rect(gridX, gridY, gridWidth, gridHeight);
+            var contentRect = new Rect(0f, 0f, cardWidth, contentHeight);
 
-            for (var index = 0; index < visibleCount; index++)
+            progressionContentScroll.y = Mathf.Clamp(progressionContentScroll.y, 0f, Mathf.Max(0f, contentHeight - gridHeight));
+            progressionContentScroll = GUI.BeginScrollView(viewportRect, progressionContentScroll, contentRect, false, needsScroll);
+
+            for (var index = 0; index < cards.Length; index++)
             {
-                var column = index % columnCount;
-                var row = index / columnCount;
                 var cardRect = new Rect(
-                    gridX + (column * (cardWidth + gap)),
-                    gridY + (row * (cardHeight + gap)),
+                    0f,
+                    index * (cardHeight + gap),
                     cardWidth,
                     cardHeight);
                 DrawProgressionCard(cardRect, cards[index]);
             }
 
-            if (visibleCount < cards.Length)
+            GUI.EndScrollView();
+
+            if (needsScroll)
             {
-                var moreRect = new Rect(gridX, rect.yMax - 28f, gridWidth, 18f);
-                DrawTextWithShadow(moreRect, $"+{cards.Length - visibleCount} more planned slots as the page grows.", setupHintStyle, palette.TextMuted, 0.18f);
+                var scrollRatio = contentHeight <= gridHeight
+                    ? 0f
+                    : progressionContentScroll.y / (contentHeight - gridHeight);
+                var trackRect = new Rect(rect.xMax - 22f, gridY, 3f, gridHeight);
+                var thumbHeight = Mathf.Max(38f, gridHeight * (gridHeight / contentHeight));
+                var thumbY = Mathf.Lerp(trackRect.y, trackRect.yMax - thumbHeight, scrollRatio);
+                DrawSolidRect(trackRect, WithAlpha(palette.TextMuted, 0.16f));
+                DrawSolidRect(new Rect(trackRect.x - 2f, thumbY, 7f, thumbHeight), WithAlpha(palette.AccentPrimary, 0.72f));
             }
+
+            DrawProgressionBadgeTooltip();
         }
 
         private void DrawProgressionCard(Rect rect, BreakoutUiProgressionCardView card)
@@ -1345,11 +1376,260 @@ namespace GetBricked.Gameplay
                 : card.UnlockState == BreakoutUiProgressionUnlockState.Unlocked
                     ? palette.AccentWarm
                     : WithAlpha(palette.TextMuted, 0.82f);
-            DrawTextWithShadow(new Rect(rect.x + 12f, rect.y + 8f, rect.width - 112f, 18f), card.Title, hudStyle, palette.TextPrimary, 0.24f);
-            DrawTextWithShadow(new Rect(rect.xMax - 98f, rect.y + 8f, 84f, 16f), card.StateLabel, speedMeterCaptionStyle, stateColor, 0.18f);
-            DrawTextWithShadow(new Rect(rect.x + 12f, rect.y + 28f, rect.width - 24f, 17f), $"{card.Kind} | {card.Family}", modifierPanelTimerStyle, accent, 0.15f);
-            DrawTextWithShadow(new Rect(rect.x + 12f, rect.y + 45f, rect.width - 24f, 18f), card.Description, setupHintStyle, palette.TextMuted, 0.15f);
-            DrawTextWithShadow(new Rect(rect.x + 12f, rect.yMax - 18f, rect.width - 24f, 15f), $"{card.UnlockHint} | {card.ModeAvailability}", modifierPanelTimerStyle, stateColor, 0.14f);
+            var iconRect = new Rect(rect.x + 16f, rect.y + 24f, 76f, 76f);
+            var textX = iconRect.xMax + 18f;
+            var textWidth = rect.xMax - textX - 16f;
+            DrawProgressionUnlockIcon(iconRect, card.Icon, card.Icon != null ? card.IconColor : accent);
+            DrawTextWithShadow(new Rect(textX, rect.y + 12f, textWidth, 24f), card.Title, hudStyle, palette.TextPrimary, 0.24f);
+            DrawProgressionPropertyBadges(new Rect(textX, rect.y + 42f, textWidth, 24f), card, accent, stateColor);
+            DrawTextWithShadow(new Rect(textX, rect.y + 70f, textWidth, rect.height - 84f), card.Description, progressionCardDescriptionStyle, palette.TextMuted, 0.15f);
+        }
+
+        private void DrawProgressionUnlockIcon(Rect rect, Sprite icon, Color accent)
+        {
+            if (icon != null)
+            {
+                DrawIconTile(rect, icon, accent, false);
+                return;
+            }
+
+            DrawSolidRect(Inflate(rect, 3f), WithAlpha(accent, 0.06f));
+            DrawSolidRect(rect, WithAlpha(palette.BezelDark, 0.62f));
+            DrawOutline(rect, WithAlpha(accent, 0.45f), 1.5f);
+            DrawOutline(new Rect(rect.x + 9f, rect.y + 9f, rect.width - 18f, rect.height - 18f), WithAlpha(accent, 0.18f), 1f);
+            DrawScanlines(new Rect(rect.x + 8f, rect.y + 8f, rect.width - 16f, rect.height - 16f), 6f, WithAlpha(accent, 0.035f));
+        }
+
+        private void DrawProgressionPropertyBadges(Rect rect, BreakoutUiProgressionCardView card, Color accent, Color stateColor)
+        {
+            const float badgeWidth = 54f;
+            const float badgeHeight = 22f;
+            const float gap = 8f;
+
+            var x = rect.x;
+            x = DrawProgressionBadge(new Rect(x, rect.y, badgeWidth, badgeHeight), ResolveProgressionKindIcon(card.Kind), accent, ResolveProgressionKindLabel(card.Kind)) + gap;
+            x = DrawProgressionBadge(new Rect(x, rect.y, badgeWidth, badgeHeight), ResolveProgressionRarityIcon(card.Family), accent, ResolveProgressionRarityLabel(card.Family)) + gap;
+
+            var familyLabel = ResolveProgressionContentFamilyLabel(card.Family);
+            if (!string.IsNullOrWhiteSpace(familyLabel))
+            {
+                x = DrawProgressionBadge(new Rect(x, rect.y, badgeWidth, badgeHeight), ResolveProgressionContentFamilyIcon(familyLabel), accent, familyLabel) + gap;
+            }
+
+            x = DrawProgressionBadge(new Rect(x, rect.y, badgeWidth, badgeHeight), ResolveProgressionPolarityIcon(card), ResolveProgressionPolarityColor(card, accent), ResolveProgressionPolarityLabel(card)) + gap;
+            DrawProgressionBadge(new Rect(x, rect.y, badgeWidth + 10f, badgeHeight), ResolveProgressionStateIcon(card.UnlockState), stateColor, ResolveProgressionStateTooltip(card));
+        }
+
+        private float DrawProgressionBadge(Rect rect, string text, Color accent, string tooltip)
+        {
+            DrawSolidRect(Inflate(rect, 2f), WithAlpha(accent, 0.08f));
+            DrawSolidRect(rect, WithAlpha(palette.BezelDark, 0.58f));
+            DrawOutline(rect, WithAlpha(accent, 0.62f), 1f);
+            DrawTextWithShadow(rect, ToArcadeLabel(text), progressionBadgeStyle, accent, 0.16f);
+            GUI.Label(rect, new GUIContent(string.Empty, tooltip ?? string.Empty), GUIStyle.none);
+            return rect.xMax;
+        }
+
+        private void DrawProgressionBadgeTooltip()
+        {
+            if (string.IsNullOrWhiteSpace(GUI.tooltip))
+            {
+                return;
+            }
+
+            var mousePosition = Event.current?.mousePosition ?? Vector2.zero;
+            var tooltipWidth = Mathf.Min(360f, Screen.width - 36f);
+            var tooltipHeight = 58f;
+            var tooltipX = Mathf.Clamp(mousePosition.x + 18f, 18f, Mathf.Max(18f, Screen.width - tooltipWidth - 18f));
+            var tooltipY = Mathf.Clamp(mousePosition.y + 20f, 18f, Mathf.Max(18f, Screen.height - tooltipHeight - 18f));
+            var tooltipRect = new Rect(tooltipX, tooltipY, tooltipWidth, tooltipHeight);
+
+            DrawPanel(tooltipRect, palette.AccentPrimary, palette.AccentSecondary, false, 1.5f);
+            DrawTextWithShadow(new Rect(tooltipRect.x + 14f, tooltipRect.y + 9f, tooltipRect.width - 28f, tooltipRect.height - 18f), GUI.tooltip, setupHintStyle, palette.TextPrimary, 0.18f);
+        }
+
+        private static string ResolveProgressionKindIcon(string kind)
+        {
+            return string.Equals(kind, "Glitch", StringComparison.OrdinalIgnoreCase) ? "G" : "D";
+        }
+
+        private static string ResolveProgressionKindLabel(string kind)
+        {
+            return string.Equals(kind, "Glitch", StringComparison.OrdinalIgnoreCase) ? "Glitch" : "Drop";
+        }
+
+        private static string ResolveProgressionRarityIcon(string family)
+        {
+            return ResolveProgressionRarityLabel(family) switch
+            {
+                "Common" => "C",
+                "Uncommon" => "U",
+                "Rare" => "R",
+                "Epic" => "E",
+                _ => "-",
+            };
+        }
+
+        private static string ResolveProgressionRarityLabel(string family)
+        {
+            if (string.IsNullOrWhiteSpace(family))
+            {
+                return "No rarity";
+            }
+
+            var trimmedFamily = family.Trim();
+
+            if (trimmedFamily.StartsWith("Common", StringComparison.OrdinalIgnoreCase))
+            {
+                return "Common";
+            }
+
+            if (trimmedFamily.StartsWith("Uncommon", StringComparison.OrdinalIgnoreCase))
+            {
+                return "Uncommon";
+            }
+
+            if (trimmedFamily.StartsWith("Rare", StringComparison.OrdinalIgnoreCase))
+            {
+                return "Rare";
+            }
+
+            if (trimmedFamily.StartsWith("Epic", StringComparison.OrdinalIgnoreCase))
+            {
+                return "Epic";
+            }
+
+            return "No rarity";
+        }
+
+        private static string ResolveProgressionContentFamilyIcon(string family)
+        {
+            return string.IsNullOrWhiteSpace(family) ? "-" : family.Trim().Substring(0, 1);
+        }
+
+        private static string ResolveProgressionContentFamilyLabel(string family)
+        {
+            if (string.IsNullOrWhiteSpace(family))
+            {
+                return string.Empty;
+            }
+
+            var trimmedFamily = family.Trim();
+            var tokens = trimmedFamily.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+            var familyTokens = new List<string>();
+
+            for (var index = 0; index < tokens.Length; index++)
+            {
+                var token = tokens[index];
+
+                if (IsProgressionRarityToken(token) || IsProgressionPolarityToken(token))
+                {
+                    continue;
+                }
+
+                familyTokens.Add(token);
+            }
+
+            return familyTokens.Count == 0 ? string.Empty : string.Join(" ", familyTokens);
+        }
+
+        private static bool IsProgressionRarityToken(string token)
+        {
+            return string.Equals(token, "Common", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(token, "Uncommon", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(token, "Rare", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(token, "Epic", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static bool IsProgressionPolarityToken(string token)
+        {
+            return string.Equals(token, "Helpful", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(token, "Hazard", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static string ResolveProgressionPolarityIcon(BreakoutUiProgressionCardView card)
+        {
+            if (card == null || string.IsNullOrWhiteSpace(card.Family))
+            {
+                return "-";
+            }
+
+            if (card.Family.IndexOf("Hazard", StringComparison.OrdinalIgnoreCase) >= 0)
+            {
+                return "!";
+            }
+
+            if (card.Family.IndexOf("Helpful", StringComparison.OrdinalIgnoreCase) >= 0
+                || string.Equals(card.Kind, "Drop", StringComparison.OrdinalIgnoreCase))
+            {
+                return "+";
+            }
+
+            return "-";
+        }
+
+        private static string ResolveProgressionPolarityLabel(BreakoutUiProgressionCardView card)
+        {
+            if (card == null || string.IsNullOrWhiteSpace(card.Family))
+            {
+                return "Neutral";
+            }
+
+            if (card.Family.IndexOf("Hazard", StringComparison.OrdinalIgnoreCase) >= 0)
+            {
+                return "Hazard";
+            }
+
+            if (card.Family.IndexOf("Helpful", StringComparison.OrdinalIgnoreCase) >= 0
+                || string.Equals(card.Kind, "Drop", StringComparison.OrdinalIgnoreCase))
+            {
+                return "Helpful";
+            }
+
+            return "Neutral";
+        }
+
+        private Color ResolveProgressionPolarityColor(BreakoutUiProgressionCardView card, Color fallback)
+        {
+            if (card == null || string.IsNullOrWhiteSpace(card.Family))
+            {
+                return fallback;
+            }
+
+            if (card.Family.IndexOf("Hazard", StringComparison.OrdinalIgnoreCase) >= 0)
+            {
+                return palette.Danger;
+            }
+
+            if (card.Family.IndexOf("Helpful", StringComparison.OrdinalIgnoreCase) >= 0
+                || string.Equals(card.Kind, "Drop", StringComparison.OrdinalIgnoreCase))
+            {
+                return palette.Success;
+            }
+
+            return fallback;
+        }
+
+        private static string ResolveProgressionStateIcon(BreakoutUiProgressionUnlockState state)
+        {
+            return state switch
+            {
+                BreakoutUiProgressionUnlockState.Default => "DEF",
+                BreakoutUiProgressionUnlockState.Unlocked => "ON",
+                BreakoutUiProgressionUnlockState.SeenLocked => "LOCK",
+                BreakoutUiProgressionUnlockState.HiddenLocked => "???",
+                _ => "?",
+            };
+        }
+
+        private static string ResolveProgressionStateTooltip(BreakoutUiProgressionCardView card)
+        {
+            if (card == null)
+            {
+                return "Unknown";
+            }
+
+            return string.IsNullOrWhiteSpace(card.StateLabel) ? "Unknown" : card.StateLabel;
         }
 
         private Color ResolveProgressionCardAccent(BreakoutUiProgressionCardView card)
