@@ -12,6 +12,7 @@ namespace GetBricked.Gameplay
         Heat = 2,
         Upgrade = 3,
         DropUnlock = 4,
+        ForcedDrop = 5,
     }
 
     internal readonly struct BreakoutDeveloperEncounter
@@ -43,6 +44,10 @@ namespace GetBricked.Gameplay
 
         public int DropUnlockIndex { get; private set; }
 
+        public int ForcedDropIndex { get; private set; }
+
+        public bool ForcedDropEnabled { get; private set; }
+
         public int SelectedUpgradeCount => selectedUpgradeIds.Count;
 
         public int SelectedDropUnlockCount => selectedDropIds.Count;
@@ -54,6 +59,8 @@ namespace GetBricked.Gameplay
             Intensity = BreakoutRunProgression.MinRogueIntensity;
             UpgradeIndex = 0;
             DropUnlockIndex = 0;
+            ForcedDropIndex = 0;
+            ForcedDropEnabled = false;
             selectedUpgradeIds.Clear();
             selectedDropIds.Clear();
         }
@@ -86,6 +93,9 @@ namespace GetBricked.Gameplay
                 case BreakoutDeveloperLaunchField.DropUnlock:
                     DropUnlockIndex = Wrap(DropUnlockIndex + direction, Mathf.Max(1, drops?.Count ?? 0));
                     break;
+                case BreakoutDeveloperLaunchField.ForcedDrop:
+                    ForcedDropIndex = Wrap(ForcedDropIndex + direction, Mathf.Max(1, drops?.Count ?? 0));
+                    break;
             }
         }
 
@@ -112,6 +122,11 @@ namespace GetBricked.Gameplay
             }
 
             ToggleId(selectedDropIds, dropId);
+        }
+
+        public void ToggleForcedDrop()
+        {
+            ForcedDropEnabled = !ForcedDropEnabled;
         }
 
         public void ClearBuild()
@@ -151,6 +166,17 @@ namespace GetBricked.Gameplay
 
             DropUnlockIndex = Wrap(DropUnlockIndex, drops.Count);
             return drops[DropUnlockIndex];
+        }
+
+        public PowerUpDefinition ResolveForcedDrop(IReadOnlyList<PowerUpDefinition> drops)
+        {
+            if (drops == null || drops.Count == 0)
+            {
+                return null;
+            }
+
+            ForcedDropIndex = Wrap(ForcedDropIndex, drops.Count);
+            return drops[ForcedDropIndex];
         }
 
         public bool IsUpgradeSelected(RunUpgradeDefinition upgrade)

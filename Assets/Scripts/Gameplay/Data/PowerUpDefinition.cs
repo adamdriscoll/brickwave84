@@ -93,6 +93,7 @@ namespace GetBricked.Gameplay.Data
         HotPotatoBall = 19,
         ExplosiveBall = 20,
         BallSizeMultiplier = 21,
+        RandomHarmfulDrop = 22,
     }
 
     [CreateAssetMenu(menuName = "Get Bricked/Power-Up Definition", fileName = "PowerUpDefinition")]
@@ -137,6 +138,7 @@ namespace GetBricked.Gameplay.Data
 
         public bool IsTimed => effectType != PowerUpEffectType.MultiBallBurst
             && effectType != PowerUpEffectType.ActiveDropMultiplier
+            && effectType != PowerUpEffectType.RandomHarmfulDrop
             && DurationSeconds > 0f;
 
         public string ResolvePickupSpriteResourcePath()

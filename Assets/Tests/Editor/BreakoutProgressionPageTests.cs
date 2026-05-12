@@ -57,4 +57,21 @@ public sealed class BreakoutProgressionPageTests
         Assert.That(chromeRail.UnlockHint, Does.Contain("preview"));
         Assert.That(solarShot.UnlockHint, Does.Contain("Heat 12"));
     }
+
+    [Test]
+    public void ProgressionPageShowsBogusTapeAsLockedLadderHazard()
+    {
+        var bogusTape = Resources.Load<PowerUpDefinition>("PowerUps/BogusTape");
+        Assert.That(bogusTape, Is.Not.Null);
+
+        var view = new BreakoutProgressionPageService().BuildView(new[] { bogusTape });
+        var card = view.Cards.First(item => item.Title == "Bogus Tape");
+
+        Assert.That(card.UnlockState, Is.EqualTo(BreakoutUiProgressionUnlockState.SeenLocked));
+        Assert.That(card.StateLabel, Is.EqualTo("Locked"));
+        Assert.That(card.Family, Does.Contain("Hazard"));
+        Assert.That(card.Description, Does.Contain("unlocked hazard"));
+        Assert.That(card.UnlockHint, Does.Contain("Heat 08"));
+        Assert.That(view.MeterLines, Has.Some.Contains("Drops: 00 Default"));
+    }
 }

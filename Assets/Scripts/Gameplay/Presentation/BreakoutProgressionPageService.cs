@@ -41,6 +41,14 @@ namespace GetBricked.Gameplay
         private const int PlannedGlitchUnlockCount = 50;
         private const int DefaultGlitchCount = 2;
 
+        private static readonly string[] DefaultDropIds =
+        {
+            "large_paddle",
+            "multi_ball",
+            "slow_ball",
+            "shield_wall",
+        };
+
         private static readonly Color ControlAccent = new Color(0.45f, 0.95f, 0.72f, 1f);
         private static readonly Color PrecisionAccent = new Color(1f, 0.87f, 0.36f, 1f);
         private static readonly Color DamageAccent = new Color(1f, 0.49f, 0.86f, 1f);
@@ -59,7 +67,6 @@ namespace GetBricked.Gameplay
             new BreakoutProgressionPlaceholderItem("Solar Shot", "Drop", "Damage", "Ball burns through the next weak brick it touches.", 12, DamageAccent),
             new BreakoutProgressionPlaceholderItem("Prism Pop", "Drop", "Split", "First brick hit splits a short-lived copy ball.", 14, SplitAccent),
             new BreakoutProgressionPlaceholderItem("Capsule Magnet", "Drop", "Pickup", "Nearby helpful capsules drift toward the paddle.", 18, ControlAccent),
-            new BreakoutProgressionPlaceholderItem("Bogus Tape", "Drop", "Hazard", "Looks helpful until collected, then rolls a minor hazard.", 24, HazardAccent),
         };
 
         private static readonly BreakoutProgressionPlaceholderItem[] PlaceholderGlitches =
@@ -111,7 +118,7 @@ namespace GetBricked.Gameplay
                     PulseRate = 1.35f,
                     Color = BreakoutRunProgression.GetRogueIntensityGaugeColor(selectedAvailable),
                 },
-                Cards = BuildCards(loadedPowerUps, selectedHighest, themeService),
+                Cards = BuildCards(loadedPowerUps, selectedHighest, selectedAvailable, themeService),
                 FooterText = "Start launches Neon Ladder. Esc returns to the menu. Scroll drops and glitches; rarity gates live content and placeholder cards.",
             };
         }
@@ -119,10 +126,11 @@ namespace GetBricked.Gameplay
         private BreakoutUiProgressionCardView[] BuildCards(
             IReadOnlyList<PowerUpDefinition> loadedPowerUps,
             int highestCompletedIntensity,
+            int availableIntensity,
             BreakoutThemeService themeService)
         {
             var cards = new List<BreakoutUiProgressionCardView>();
-            AppendDefaultDropCards(cards, loadedPowerUps, themeService);
+            AppendDropCards(cards, loadedPowerUps, availableIntensity, themeService);
             cards.Add(BuildDefaultGlitchCard("Warp Gates", "Layout", "Linked portals reroute ball paths.", LayoutAccent));
             cards.Add(BuildDefaultGlitchCard("Turbo Rail", "Speed", "A hot wall rail accelerates rebounds.", SplitAccent));
             AppendPlaceholderCards(cards, PlaceholderDrops, highestCompletedIntensity);
@@ -132,9 +140,10 @@ namespace GetBricked.Gameplay
             return cards.ToArray();
         }
 
-        private void AppendDefaultDropCards(
+        private void AppendDropCards(
             List<BreakoutUiProgressionCardView> cards,
             IReadOnlyList<PowerUpDefinition> loadedPowerUps,
+            int availableIntensity,
             BreakoutThemeService themeService)
         {
             if (loadedPowerUps == null)
@@ -152,18 +161,27 @@ namespace GetBricked.Gameplay
                 }
 
                 var style = ResolvePowerUpStyle(definition, themeService);
+                var isDefault = IsDefaultDrop(definition);
+                var unlockIntensity = BreakoutRarityRules.GetLadderUnlockIntensity(definition.Rarity);
+                var isUnlocked = isDefault || BreakoutRarityRules.IsUnlockedForLadderIntensity(definition.Rarity, availableIntensity);
                 cards.Add(new BreakoutUiProgressionCardView
                 {
                     Title = definition.DisplayName,
                     Kind = "Drop",
                     Family = $"{definition.RarityLabel} {(definition.IsBeneficial ? "Helpful" : "Hazard")}",
-                    Description = definition.IsBeneficial
-                        ? "Authored default capsule. Always available when the mode allows helpful drops."
-                        : "Authored default hazard. Always available when the mode allows harmful drops.",
-                    UnlockHint = "Default content",
-                    StateLabel = "Default",
-                    ModeAvailability = "Ladder | Marathon | Multiplayer",
-                    UnlockState = BreakoutUiProgressionUnlockState.Default,
+                    Description = BuildDropDescription(definition, isDefault),
+                    UnlockHint = isDefault
+                        ? "Default content"
+                        : isUnlocked
+                            ? $"Unlocked at Heat {unlockIntensity:00}"
+                            : $"Reach Heat {unlockIntensity:00} in Neon Ladder",
+                    StateLabel = isDefault ? "Default" : isUnlocked ? "Unlocked" : "Locked",
+                    ModeAvailability = isUnlocked ? "Ladder | Marathon | Multiplayer" : "Ladder goal",
+                    UnlockState = isDefault
+                        ? BreakoutUiProgressionUnlockState.Default
+                        : isUnlocked
+                            ? BreakoutUiProgressionUnlockState.Unlocked
+                            : BreakoutUiProgressionUnlockState.SeenLocked,
                     Accent = definition.IsBeneficial ? ControlAccent : HazardAccent,
                     Icon = style.Sprite,
                     IconColor = style.PrimaryColor,
@@ -184,6 +202,30 @@ namespace GetBricked.Gameplay
             }
 
             return new ThemeVisualStyle(definition.PickupColor, definition.PickupColor, ResolvePowerUpSprite(definition));
+        }
+
+        private static string BuildDropDescription(PowerUpDefinition definition, bool isDefault)
+        {
+            if (definition == null)
+            {
+                return string.Empty;
+            }
+
+            if (isDefault)
+            {
+                return definition.IsBeneficial
+                    ? "Starting ladder capsule. Available when the mode allows helpful drops."
+                    : "Starting ladder hazard. Available when the mode allows harmful drops.";
+            }
+
+            if (definition.EffectType == PowerUpEffectType.RandomHarmfulDrop)
+            {
+                return "Looks helpful until collected, then rolls an unlocked hazard.";
+            }
+
+            return definition.IsBeneficial
+                ? "Ladder capsule. Unlocks into the run drop pool at its rarity gate."
+                : "Ladder hazard. Unlocks into the run drop pool at its rarity gate.";
         }
 
         private Sprite ResolvePowerUpSprite(PowerUpDefinition definition)
@@ -286,13 +328,33 @@ namespace GetBricked.Gameplay
 
             for (var index = 0; index < loadedPowerUps.Count; index++)
             {
-                if (loadedPowerUps[index] != null)
+                if (IsDefaultDrop(loadedPowerUps[index]))
                 {
                     count++;
                 }
             }
 
             return count;
+        }
+
+        private static bool IsDefaultDrop(PowerUpDefinition definition)
+        {
+            var candidateId = BreakoutPowerUpIdentity.GetStableId(definition);
+
+            if (string.IsNullOrWhiteSpace(candidateId))
+            {
+                return false;
+            }
+
+            for (var index = 0; index < DefaultDropIds.Length; index++)
+            {
+                if (string.Equals(candidateId, DefaultDropIds[index], System.StringComparison.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         private static int CountEarnedPlaceholders(BreakoutProgressionPlaceholderItem[] placeholders, int highestCompletedIntensity)

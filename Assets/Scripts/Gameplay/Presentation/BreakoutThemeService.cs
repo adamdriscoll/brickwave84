@@ -113,6 +113,16 @@ namespace GetBricked.Gameplay
                 ResolvePowerUpSprite(definition));
         }
 
+        public ThemeVisualStyle ResolveHelpfulPickupDisguiseStyle(PowerUpDefinition definition)
+        {
+            var baseStyle = ResolvePowerUpStyle(definition);
+            return ResolveThemeStyle(
+                ThemeVisualSlot.PickupBeneficial,
+                baseStyle.PrimaryColor,
+                baseStyle.SecondaryColor,
+                baseStyle.Sprite);
+        }
+
         public ThemeVisualStyle ResolveThemeStyle(ThemeVisualSlot slot, Color fallbackPrimary, Color fallbackSecondary, Sprite fallbackSprite)
         {
             var fallbackStyle = new ThemeVisualStyle(fallbackPrimary, fallbackSecondary, fallbackSprite);
@@ -248,7 +258,11 @@ namespace GetBricked.Gameplay
                     continue;
                 }
 
-                pickup.ApplyTheme(ResolvePowerUpStyle(pickup.Definition));
+                var visualDefinition = pickup.VisualDefinition;
+                var visualStyle = pickup.UsesHelpfulVisualDisguise
+                    ? ResolveHelpfulPickupDisguiseStyle(visualDefinition)
+                    : ResolvePowerUpStyle(visualDefinition);
+                pickup.ApplyTheme(visualStyle);
             }
         }
 

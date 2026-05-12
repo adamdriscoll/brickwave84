@@ -420,7 +420,9 @@ namespace GetBricked.Gameplay
             Transform pickupsRoot,
             float arenaBottom,
             BreakoutThemeService themeService,
-            BreakoutGameController controller)
+            BreakoutGameController controller,
+            PowerUpDefinition forcedDropDefinition = null,
+            IReadOnlyList<PowerUpDefinition> forcedDropCandidatePool = null)
         {
             if (brick == null || brick.Definition == null)
             {
@@ -429,20 +431,74 @@ namespace GetBricked.Gameplay
 
             var brickDefinition = brick.Definition;
             var dropTable = BuildDropCandidates(brickDefinition, activeRunSettings, activeRunState);
+            var forceSpecificDrop = forcedDropDefinition != null;
             var forcePickupDrops = activeRunSettings?.ForcePickupDropsOnBreak == true;
             var effectiveDropChance = forcePickupDrops
                 ? 1f
                 : Mathf.Clamp01(brickDefinition.DropChance * Mathf.Max(0f, effectiveDropChanceMultiplier));
 
-            if (dropTable.Length == 0
+            if (!forceSpecificDrop
+                && (dropTable.Length == 0
                 || effectiveDropChance <= 0f
                 || activeRunSettings?.DropPoolMode == DropPoolMode.Disabled
                 || nextGameplayRandomFloat == null
-                || (!forcePickupDrops && nextGameplayRandomFloat(0f, 1f) > effectiveDropChance))
+                || (!forcePickupDrops && nextGameplayRandomFloat(0f, 1f) > effectiveDropChance)))
             {
                 return null;
             }
 
+            PowerUpDefinition selectedPowerUp;
+
+            if (forceSpecificDrop)
+            {
+                selectedPowerUp = forcedDropDefinition;
+                dropTable = BuildForcedDropCandidateTable(forcedDropDefinition, forcedDropCandidatePool, activeRunSettings);
+            }
+            else
+            {
+                selectedPowerUp = SelectDropFromTable(dropTable, activeRunSettings, activeRunState, nextGameplayRandomFloat);
+            }
+
+            if (selectedPowerUp == null)
+            {
+                return null;
+            }
+
+            var visualPowerUp = selectedPowerUp;
+            var usesHelpfulVisualDisguise = false;
+
+            if (selectedPowerUp.EffectType == PowerUpEffectType.RandomHarmfulDrop
+                && !TryResolveRandomHarmfulDrop(
+                    selectedPowerUp,
+                    dropTable,
+                    activeRunSettings,
+                    activeRunState,
+                    nextGameplayRandomFloat,
+                    forceSpecificDrop,
+                    out selectedPowerUp,
+                    out visualPowerUp,
+                    out usesHelpfulVisualDisguise))
+            {
+                return null;
+            }
+
+            return CreatePickup(
+                (Vector2)brick.transform.position,
+                selectedPowerUp,
+                visualPowerUp,
+                usesHelpfulVisualDisguise,
+                pickupsRoot,
+                arenaBottom,
+                themeService,
+                controller);
+        }
+
+        private static PowerUpDefinition SelectDropFromTable(
+            BreakoutPowerUpDropCandidate[] dropTable,
+            RunSettings activeRunSettings,
+            BreakoutRunState activeRunState,
+            System.Func<float, float, float> nextGameplayRandomFloat)
+        {
             var totalWeight = 0f;
 
             for (var index = 0; index < dropTable.Length; index++)
@@ -461,7 +517,6 @@ namespace GetBricked.Gameplay
             }
 
             var roll = nextGameplayRandomFloat(0f, totalWeight);
-            PowerUpDefinition selectedPowerUp = null;
 
             for (var index = 0; index < dropTable.Length; index++)
             {
@@ -479,16 +534,10 @@ namespace GetBricked.Gameplay
                     continue;
                 }
 
-                selectedPowerUp = entry.Definition;
-                break;
+                return entry.Definition;
             }
 
-            if (selectedPowerUp == null)
-            {
-                return null;
-            }
-
-            return CreatePickup((Vector2)brick.transform.position, selectedPowerUp, pickupsRoot, arenaBottom, themeService, controller);
+            return null;
         }
 
         public BreakoutPowerUpApplicationResult ApplyPowerUp(PowerUpDefinition powerUpDefinition, BreakoutThemeService themeService)
@@ -814,6 +863,8 @@ namespace GetBricked.Gameplay
         private PowerUpPickup CreatePickup(
             Vector2 position,
             PowerUpDefinition powerUpDefinition,
+            PowerUpDefinition visualPowerUpDefinition,
+            bool usesHelpfulVisualDisguise,
             Transform pickupsRoot,
             float arenaBottom,
             BreakoutThemeService themeService,
@@ -833,9 +884,8 @@ namespace GetBricked.Gameplay
             pickupObject.AddComponent<Rigidbody2D>();
 
             var pickup = pickupObject.AddComponent<PowerUpPickup>();
-            var pickupStyle = themeService != null
-                ? themeService.ResolvePowerUpStyle(powerUpDefinition)
-                : new ThemeVisualStyle(powerUpDefinition.PickupColor, powerUpDefinition.PickupColor, null);
+            var resolvedVisualPowerUp = visualPowerUpDefinition != null ? visualPowerUpDefinition : powerUpDefinition;
+            var pickupStyle = ResolvePickupVisualStyle(resolvedVisualPowerUp, usesHelpfulVisualDisguise, themeService);
             pickup.Configure(
                 controller,
                 powerUpDefinition,
@@ -843,10 +893,170 @@ namespace GetBricked.Gameplay
                 arenaBottom - 0.9f,
                 ResolvePickupStartingRotation(powerUpDefinition),
                 ResolvePickupSpinDegreesPerSecond(powerUpDefinition),
-                pickupStyle);
+                pickupStyle,
+                resolvedVisualPowerUp,
+                usesHelpfulVisualDisguise);
             ActivePickups.Add(pickup);
             EvaluateCapsuleMadnessActivation();
             return pickup;
+        }
+
+        private static bool TryResolveRandomHarmfulDrop(
+            PowerUpDefinition bogusTapeDefinition,
+            BreakoutPowerUpDropCandidate[] dropTable,
+            RunSettings activeRunSettings,
+            BreakoutRunState activeRunState,
+            System.Func<float, float, float> nextGameplayRandomFloat,
+            bool ignoreDropAllowed,
+            out PowerUpDefinition harmfulDefinition,
+            out PowerUpDefinition visualDefinition,
+            out bool usesHelpfulVisualDisguise)
+        {
+            harmfulDefinition = null;
+            visualDefinition = null;
+            usesHelpfulVisualDisguise = false;
+
+            if (nextGameplayRandomFloat == null)
+            {
+                return false;
+            }
+
+            var harmfulCandidates = new List<BreakoutPowerUpDropCandidate>();
+            var helpfulCandidates = new List<BreakoutPowerUpDropCandidate>();
+
+            for (var index = 0; index < dropTable.Length; index++)
+            {
+                var candidate = dropTable[index];
+                var definition = candidate.Definition;
+
+                if (!ignoreDropAllowed && !IsDropAllowed(activeRunSettings, activeRunState, definition))
+                {
+                    continue;
+                }
+
+                if (definition.IsBeneficial)
+                {
+                    helpfulCandidates.Add(candidate);
+                    continue;
+                }
+
+                if (definition != bogusTapeDefinition
+                    && definition.EffectType != PowerUpEffectType.RandomHarmfulDrop)
+                {
+                    harmfulCandidates.Add(candidate);
+                }
+            }
+
+            if (harmfulCandidates.Count == 0 || helpfulCandidates.Count == 0)
+            {
+                return false;
+            }
+
+            harmfulDefinition = PickWeightedDefinition(harmfulCandidates, nextGameplayRandomFloat);
+            visualDefinition = PickWeightedDefinition(helpfulCandidates, nextGameplayRandomFloat);
+            usesHelpfulVisualDisguise = harmfulDefinition != null && visualDefinition != null;
+            return usesHelpfulVisualDisguise;
+        }
+
+        private static BreakoutPowerUpDropCandidate[] BuildForcedDropCandidateTable(
+            PowerUpDefinition forcedDropDefinition,
+            IReadOnlyList<PowerUpDefinition> forcedDropCandidatePool,
+            RunSettings activeRunSettings)
+        {
+            var candidates = new List<BreakoutPowerUpDropCandidate>();
+
+            if (forcedDropCandidatePool != null)
+            {
+                for (var index = 0; index < forcedDropCandidatePool.Count; index++)
+                {
+                    var definition = forcedDropCandidatePool[index];
+
+                    if (definition != null)
+                    {
+                        candidates.Add(new BreakoutPowerUpDropCandidate(definition, ResolveRogueDropWeight(definition, activeRunSettings)));
+                    }
+                }
+            }
+
+            var forcedDropId = BreakoutPowerUpIdentity.GetStableId(forcedDropDefinition);
+            var containsForcedDrop = false;
+
+            for (var index = 0; index < candidates.Count; index++)
+            {
+                if (string.Equals(
+                    BreakoutPowerUpIdentity.GetStableId(candidates[index].Definition),
+                    forcedDropId,
+                    System.StringComparison.OrdinalIgnoreCase))
+                {
+                    containsForcedDrop = true;
+                    break;
+                }
+            }
+
+            if (!containsForcedDrop && forcedDropDefinition != null)
+            {
+                candidates.Add(new BreakoutPowerUpDropCandidate(forcedDropDefinition, ResolveRogueDropWeight(forcedDropDefinition, activeRunSettings)));
+            }
+
+            return candidates.ToArray();
+        }
+
+        private static PowerUpDefinition PickWeightedDefinition(
+            List<BreakoutPowerUpDropCandidate> candidates,
+            System.Func<float, float, float> nextGameplayRandomFloat)
+        {
+            if (candidates == null || candidates.Count == 0)
+            {
+                return null;
+            }
+
+            if (candidates.Count == 1)
+            {
+                return candidates[0].Definition;
+            }
+
+            var totalWeight = 0f;
+
+            for (var index = 0; index < candidates.Count; index++)
+            {
+                totalWeight += Mathf.Max(0f, candidates[index].Weight);
+            }
+
+            if (totalWeight <= 0f)
+            {
+                return candidates[candidates.Count - 1].Definition;
+            }
+
+            var roll = nextGameplayRandomFloat(0f, totalWeight);
+
+            for (var index = 0; index < candidates.Count; index++)
+            {
+                roll -= Mathf.Max(0f, candidates[index].Weight);
+
+                if (roll <= 0f)
+                {
+                    return candidates[index].Definition;
+                }
+            }
+
+            return candidates[candidates.Count - 1].Definition;
+        }
+
+        private static ThemeVisualStyle ResolvePickupVisualStyle(
+            PowerUpDefinition visualPowerUpDefinition,
+            bool usesHelpfulVisualDisguise,
+            BreakoutThemeService themeService)
+        {
+            if (themeService != null)
+            {
+                return usesHelpfulVisualDisguise
+                    ? themeService.ResolveHelpfulPickupDisguiseStyle(visualPowerUpDefinition)
+                    : themeService.ResolvePowerUpStyle(visualPowerUpDefinition);
+            }
+
+            return visualPowerUpDefinition != null
+                ? new ThemeVisualStyle(visualPowerUpDefinition.PickupColor, visualPowerUpDefinition.PickupColor, null)
+                : new ThemeVisualStyle(Color.white, Color.white, null);
         }
 
         private void UpdateCapsuleMadnessThresholdArming()

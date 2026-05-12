@@ -10,6 +10,7 @@ namespace GetBricked.Gameplay
     {
         private BreakoutGameController gameController;
         private PowerUpDefinition definition;
+        private PowerUpDefinition visualDefinition;
         private SpriteRenderer spriteRenderer;
         private BreakoutGlowRenderer glowRenderer;
         private Rigidbody2D pickupBody;
@@ -24,6 +25,10 @@ namespace GetBricked.Gameplay
 
         public PowerUpDefinition Definition => definition;
 
+        public PowerUpDefinition VisualDefinition => visualDefinition != null ? visualDefinition : definition;
+
+        public bool UsesHelpfulVisualDisguise { get; private set; }
+
         public void Configure(
             BreakoutGameController controller,
             PowerUpDefinition powerUpDefinition,
@@ -31,10 +36,14 @@ namespace GetBricked.Gameplay
             float missY,
             float startingRotationDegrees,
             float spinDegreesPerSecond,
-            ThemeVisualStyle visualStyle)
+            ThemeVisualStyle visualStyle,
+            PowerUpDefinition pickupVisualDefinition = null,
+            bool usesHelpfulVisualDisguise = false)
         {
             gameController = controller;
             definition = powerUpDefinition;
+            visualDefinition = pickupVisualDefinition != null ? pickupVisualDefinition : powerUpDefinition;
+            UsesHelpfulVisualDisguise = usesHelpfulVisualDisguise;
             fallSpeed = Mathf.Max(0.1f, speed);
             missThresholdY = missY;
             currentRotationDegrees = startingRotationDegrees;

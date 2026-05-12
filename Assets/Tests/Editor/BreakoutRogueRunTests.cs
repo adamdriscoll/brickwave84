@@ -93,7 +93,9 @@ public sealed class BreakoutRogueRunTests
         var state = new BreakoutDeveloperLaunchState();
         var upgrade = ScriptableObject.CreateInstance<RunUpgradeDefinition>();
         var drop = ScriptableObject.CreateInstance<PowerUpDefinition>();
+        var forcedDrop = ScriptableObject.CreateInstance<PowerUpDefinition>();
         drop.name = "Debug Drop";
+        forcedDrop.name = "Forced Drop";
 
         try
         {
@@ -113,22 +115,28 @@ public sealed class BreakoutRogueRunTests
 
             state.ToggleCurrentUpgrade(new[] { upgrade });
             state.ToggleCurrentDropUnlock(new[] { drop });
+            state.AdjustField(BreakoutDeveloperLaunchField.ForcedDrop, 1, null, new[] { drop, forcedDrop });
+            state.ToggleForcedDrop();
 
             Assert.That(state.SelectedUpgradeCount, Is.EqualTo(1));
             Assert.That(state.SelectedDropUnlockCount, Is.EqualTo(1));
             Assert.That(state.IsUpgradeSelected(upgrade), Is.True);
             Assert.That(state.IsDropUnlockSelected(drop), Is.True);
+            Assert.That(state.ResolveForcedDrop(new[] { drop, forcedDrop }), Is.EqualTo(forcedDrop));
+            Assert.That(state.ForcedDropEnabled, Is.True);
 
             state.ClearBuild();
 
             Assert.That(state.SelectedUpgradeCount, Is.EqualTo(0));
             Assert.That(state.SelectedDropUnlockCount, Is.EqualTo(0));
+            Assert.That(state.ForcedDropEnabled, Is.True);
             Assert.That(state.Intensity, Is.EqualTo(BreakoutRunProgression.MaxRogueIntensity));
         }
         finally
         {
             UnityEngine.Object.DestroyImmediate(upgrade);
             UnityEngine.Object.DestroyImmediate(drop);
+            UnityEngine.Object.DestroyImmediate(forcedDrop);
         }
     }
 

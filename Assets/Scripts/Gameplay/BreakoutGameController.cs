@@ -1602,7 +1602,7 @@ namespace GetBricked.Gameplay
 
             if (keyboard.downArrowKey.wasPressedThisFrame || keyboard.sKey.wasPressedThisFrame)
             {
-                selectedDeveloperLaunchField = (BreakoutDeveloperLaunchField)Mathf.Min((int)BreakoutDeveloperLaunchField.DropUnlock, (int)selectedDeveloperLaunchField + 1);
+                selectedDeveloperLaunchField = (BreakoutDeveloperLaunchField)Mathf.Min((int)BreakoutDeveloperLaunchField.ForcedDrop, (int)selectedDeveloperLaunchField + 1);
             }
 
             if (keyboard.leftArrowKey.wasPressedThisFrame || keyboard.aKey.wasPressedThisFrame)
@@ -1928,6 +1928,9 @@ namespace GetBricked.Gameplay
                     break;
                 case BreakoutDeveloperLaunchField.DropUnlock:
                     developerLaunchState.ToggleCurrentDropUnlock(loadedPowerUpDefinitions);
+                    break;
+                case BreakoutDeveloperLaunchField.ForcedDrop:
+                    developerLaunchState.ToggleForcedDrop();
                     break;
             }
         }
@@ -3758,8 +3761,10 @@ namespace GetBricked.Gameplay
             var selectedPaddle = developerLaunchState.ResolvePaddle();
             var currentUpgrade = developerLaunchState.ResolveCurrentUpgrade(loadedRunUpgradeDefinitions);
             var currentDrop = developerLaunchState.ResolveCurrentDropUnlock(loadedPowerUpDefinitions);
+            var forcedDrop = developerLaunchState.ResolveForcedDrop(loadedPowerUpDefinitions);
             var upgradeSelected = currentUpgrade != null && developerLaunchState.IsUpgradeSelected(currentUpgrade);
             var dropSelected = currentDrop != null && developerLaunchState.IsDropUnlockSelected(currentDrop);
+            var forcedDropEnabled = developerLaunchState.ForcedDropEnabled && forcedDrop != null;
 
             return new BreakoutUiRunSetupView
             {
@@ -3772,11 +3777,12 @@ namespace GetBricked.Gameplay
                     $"Heat: {developerLaunchState.Intensity:00}/{BreakoutRunProgression.MaxRogueIntensity:00}",
                     $"Upgrade: {FormatDeveloperToggle(upgradeSelected)} {FormatDeveloperUpgradeLabel(currentUpgrade)}",
                     $"Drop Unlock: {FormatDeveloperToggle(dropSelected)} {FormatDeveloperDropLabel(currentDrop)}",
+                    $"Forced Drop: {FormatDeveloperToggle(forcedDropEnabled)} {FormatDeveloperDropLabel(forcedDrop)}",
                 },
                 SelectedFieldIndex = (int)selectedDeveloperLaunchField,
-                PreviewLine = $"Preview: {FormatDeveloperEncounterLabel(encounter)} | Heat {developerLaunchState.Intensity:00} | Balls {developerLaunchState.LivesRemaining:00} | Paddle x{selectedPaddle.WidthMultiplier:0.00} speed x{selectedPaddle.SpeedMultiplier:0.00} | Build {developerLaunchState.SelectedUpgradeCount:00} upgrades, {developerLaunchState.SelectedDropUnlockCount:00} drops | Theme {ResolvePendingThemeDefinition()?.DisplayName ?? "Fallback"}",
+                PreviewLine = $"Preview: {FormatDeveloperEncounterLabel(encounter)} | Heat {developerLaunchState.Intensity:00} | Balls {developerLaunchState.LivesRemaining:00} | Paddle x{selectedPaddle.WidthMultiplier:0.00} speed x{selectedPaddle.SpeedMultiplier:0.00} | Build {developerLaunchState.SelectedUpgradeCount:00} upgrades, {developerLaunchState.SelectedDropUnlockCount:00} drops | Force {FormatDeveloperForcedDropPreview(forcedDropEnabled, forcedDrop)} | Theme {ResolvePendingThemeDefinition()?.DisplayName ?? "Fallback"}",
                 ValidationText = "Encounter cycles through Stage 01-10. Dev runs do not update the saved Neon Ladder result.",
-                HintText = "Up/Down selects. Left/Right changes. T toggles build picks. N clears build. Esc returns to menu. Space launches.",
+                HintText = "Up/Down selects. Left/Right changes. T toggles build/force. N clears build. Esc returns to menu. Space launches.",
             };
         }
 
@@ -4683,6 +4689,16 @@ namespace GetBricked.Gameplay
             return drop.IsBeneficial ? drop.DisplayName : $"{drop.DisplayName} (Hazard)";
         }
 
+        private static string FormatDeveloperForcedDropPreview(bool enabled, PowerUpDefinition drop)
+        {
+            if (!enabled || drop == null)
+            {
+                return "Off";
+            }
+
+            return drop.DisplayName;
+        }
+
         private void UpdateTimedEffects()
         {
             powerUpService?.UpdateTimedEffects(IsGameplaySimulationActive(), Time.deltaTime, ApplyActiveEffects);
@@ -4704,7 +4720,9 @@ namespace GetBricked.Gameplay
                 pickupsRoot,
                 arenaBottom,
                 themeService,
-                this);
+                this,
+                ResolveDeveloperForcedDrop(),
+                loadedPowerUpDefinitions);
 
             if (spawnedPickup != null)
             {
@@ -4712,6 +4730,16 @@ namespace GetBricked.Gameplay
             }
 
             ApplyVisualEffectState();
+        }
+
+        private PowerUpDefinition ResolveDeveloperForcedDrop()
+        {
+            if (!isDeveloperRunActive || developerLaunchState == null || !developerLaunchState.ForcedDropEnabled)
+            {
+                return null;
+            }
+
+            return developerLaunchState.ResolveForcedDrop(loadedPowerUpDefinitions);
         }
 
         private void ApplyPowerUp(PowerUpDefinition powerUpDefinition)
@@ -5320,6 +5348,7 @@ namespace GetBricked.Gameplay
                 PowerUpEffectType.BrickJammer => $"Brick jam for {definition.DurationSeconds:0.#}s",
                 PowerUpEffectType.HotPotatoBall => $"Ball x{definition.Scalar:0.00}, score x{definition.Scalar:0.00}",
                 PowerUpEffectType.ExplosiveBall => $"Explodes bricks for {definition.DurationSeconds:0.#}s",
+                PowerUpEffectType.RandomHarmfulDrop => "Disguised random hazard",
                 _ => $"{definition.HudLabel} for {definition.DurationSeconds:0.#}s",
             };
         }

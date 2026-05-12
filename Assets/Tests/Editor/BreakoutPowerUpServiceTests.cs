@@ -388,6 +388,36 @@ public sealed class BreakoutPowerUpServiceTests
     }
 
     [Test]
+    public void ForcedDropSpawnsSelectedDropRegardlessOfChanceAndTable()
+    {
+        var service = CreateService();
+        var forcedDrop = CreatePowerUp("Laser Paddle", PowerUpEffectType.LaserPaddle, true, 10f, 1f);
+        var brick = CreateBrick(CreateBrickDefinition(dropChance: 0f));
+        var pickupsRoot = CreateRuntimeRoot("Pickups");
+
+        var pickup = service.TrySpawnPickup(
+            brick,
+            activeRunSettings: null,
+            activeRunState: null,
+            effectiveDropChanceMultiplier: 0f,
+            nextGameplayRandomFloat: (_, _) =>
+            {
+                Assert.Fail("Forced non-random drops should not roll random chance.");
+                return 0f;
+            },
+            pickupsRoot,
+            arenaBottom: -4f,
+            themeService: null,
+            controller: null,
+            forcedDropDefinition: forcedDrop,
+            forcedDropCandidatePool: new[] { forcedDrop });
+
+        Assert.That(pickup, Is.Not.Null);
+        Assert.That(pickup.Definition, Is.SameAs(forcedDrop));
+        Assert.That(service.ActivePickups, Does.Contain(pickup));
+    }
+
+    [Test]
     public void RogueDropsOnlySpawnFromUnlockedRunPool()
     {
         var service = CreateService();
@@ -429,6 +459,98 @@ public sealed class BreakoutPowerUpServiceTests
 
         Assert.That(pickup, Is.Not.Null);
         Assert.That(pickup.Definition, Is.SameAs(wide));
+    }
+
+    [Test]
+    public void BogusTapeSpawnsAsHelpfulDisguiseButCollectsAsRandomUnlockedHazard()
+    {
+        var service = CreateService();
+        var wide = CreatePowerUp("Wide Paddle", PowerUpEffectType.PaddleWidthMultiplier, true, 10f, 1.2f);
+        var bogusTape = CreatePowerUp("Bogus Tape", PowerUpEffectType.RandomHarmfulDrop, false, 0f, 1f);
+        var narrow = CreatePowerUp("Narrow Paddle", PowerUpEffectType.PaddleWidthMultiplier, false, 10f, 0.7f);
+        SetPrivateField(wide, "powerUpId", "large_paddle");
+        SetPrivateField(bogusTape, "powerUpId", "bogus_tape");
+        SetPrivateField(narrow, "powerUpId", "small_paddle");
+        SetPrivateField(wide, "pickupColor", new Color(0.2f, 0.95f, 0.45f, 1f));
+        var brick = CreateBrick(CreateBrickDefinition(dropChance: 1f, wide, bogusTape, narrow));
+        var runState = new BreakoutRunState();
+        var pickupsRoot = CreateRuntimeRoot("Pickups");
+        var rogueSettings = new RunSettings(
+            1234,
+            RunDifficultyPreset.Standard,
+            RunScoringMode.Classic,
+            3,
+            500,
+            1,
+            1f,
+            1f,
+            1f,
+            1f,
+            DropPoolMode.Mixed,
+            false,
+            null,
+            RunGameMode.Rogue);
+
+        runState.SetInitialDropUnlocks(new[] { wide, bogusTape, narrow });
+
+        var pickup = service.TrySpawnPickup(
+            brick,
+            rogueSettings,
+            runState,
+            effectiveDropChanceMultiplier: 1f,
+            nextGameplayRandomFloat: (_, max) => Mathf.Approximately(max, 1f) ? 0f : 1.1f,
+            pickupsRoot,
+            arenaBottom: -4f,
+            themeService: null,
+            controller: null);
+
+        Assert.That(pickup, Is.Not.Null);
+        Assert.That(pickup.Definition, Is.SameAs(narrow));
+        Assert.That(pickup.VisualDefinition, Is.SameAs(wide));
+        Assert.That(pickup.UsesHelpfulVisualDisguise, Is.True);
+        Assert.That(pickup.GetComponent<SpriteRenderer>().color, Is.EqualTo(wide.PickupColor));
+    }
+
+    [Test]
+    public void BogusTapeDoesNotSpawnWithoutUnlockedHelpfulAndHarmfulTargets()
+    {
+        var service = CreateService();
+        var bogusTape = CreatePowerUp("Bogus Tape", PowerUpEffectType.RandomHarmfulDrop, false, 0f, 1f);
+        SetPrivateField(bogusTape, "powerUpId", "bogus_tape");
+        var brick = CreateBrick(CreateBrickDefinition(dropChance: 1f, bogusTape));
+        var runState = new BreakoutRunState();
+        var pickupsRoot = CreateRuntimeRoot("Pickups");
+        var rogueSettings = new RunSettings(
+            1234,
+            RunDifficultyPreset.Standard,
+            RunScoringMode.Classic,
+            3,
+            500,
+            1,
+            1f,
+            1f,
+            1f,
+            1f,
+            DropPoolMode.Mixed,
+            false,
+            null,
+            RunGameMode.Rogue);
+
+        runState.SetInitialDropUnlocks(new[] { bogusTape });
+
+        var pickup = service.TrySpawnPickup(
+            brick,
+            rogueSettings,
+            runState,
+            effectiveDropChanceMultiplier: 1f,
+            nextGameplayRandomFloat: (_, _) => 0f,
+            pickupsRoot,
+            arenaBottom: -4f,
+            themeService: null,
+            controller: null);
+
+        Assert.That(pickup, Is.Null);
+        Assert.That(service.ActivePickups, Is.Empty);
     }
 
     [Test]
