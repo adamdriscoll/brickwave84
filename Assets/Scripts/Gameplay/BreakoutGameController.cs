@@ -66,6 +66,7 @@ namespace GetBricked.Gameplay
         private enum RoundState
         {
             MainMenu,
+            Progression,
             SoloMarathonSetup,
             RunSetup,
             DeveloperMenu,
@@ -192,6 +193,7 @@ namespace GetBricked.Gameplay
         private BreakoutPaddleSpawnService paddleSpawnService;
         private BreakoutBallSpawnService ballSpawnService;
         private BreakoutMainMenuService mainMenuService;
+        private BreakoutProgressionPageService progressionPageService;
         private BreakoutUiRenderer uiRenderer;
         private IBreakoutScoreService scoreService;
         private BreakoutBackgroundLibrary backgroundLibrary;
@@ -283,6 +285,7 @@ namespace GetBricked.Gameplay
                 powerUpSprite);
             powerUpService = new BreakoutPowerUpService(pickupSize, pickupFallSpeed, multiBallSpreadAngle, additiveSpriteMaterial);
             mainMenuService = new BreakoutMainMenuService();
+            progressionPageService = new BreakoutProgressionPageService();
             uiRenderer = new BreakoutUiRenderer();
             scoreService = new BreakoutScoreService();
             activeRunState = new BreakoutRunState();
@@ -390,6 +393,7 @@ namespace GetBricked.Gameplay
             }
 
             if (roundState == RoundState.MainMenu
+                || roundState == RoundState.Progression
                 || roundState == RoundState.SoloMarathonSetup
                 || roundState == RoundState.Paused
                 || roundState == RoundState.LevelComplete
@@ -1021,6 +1025,17 @@ namespace GetBricked.Gameplay
             audioService?.PlayMusic(BreakoutMusicTrack.Menu);
         }
 
+        private void EnterProgressionPage()
+        {
+            roundState = RoundState.Progression;
+            selectedOverlayActionIndex = 0;
+            pendingValidationMessage = string.Empty;
+            isDiagnosticsOverlayVisible = false;
+            ResetRuntimeForMetaFlow();
+            ApplyPendingThemePreview();
+            audioService?.PlayMusic(BreakoutMusicTrack.Menu);
+        }
+
         public float NextGameplayRandomFloat(float minInclusive, float maxInclusive)
         {
             return gameplayRandom != null
@@ -1262,6 +1277,12 @@ namespace GetBricked.Gameplay
                 return;
             }
 
+            if (roundState == RoundState.Progression)
+            {
+                HandleProgressionInput(keyboard);
+                return;
+            }
+
             if (roundState == RoundState.SoloMarathonSetup)
             {
                 HandleSoloMarathonSetupInput(keyboard);
@@ -1295,6 +1316,22 @@ namespace GetBricked.Gameplay
             {
                 selectedOverlayActionIndex = Mathf.Clamp(selectedOverlayActionIndex, 0, actions.Length - 1);
                 PerformOverlayAction(actions[selectedOverlayActionIndex]);
+            }
+        }
+
+        private void HandleProgressionInput(Keyboard keyboard)
+        {
+            if (keyboard == null)
+            {
+                return;
+            }
+
+            if (keyboard.escapeKey.wasPressedThisFrame
+                || keyboard.spaceKey.wasPressedThisFrame
+                || keyboard.enterKey.wasPressedThisFrame
+                || keyboard.numpadEnterKey.wasPressedThisFrame)
+            {
+                EnterMainMenu();
             }
         }
 
@@ -1553,6 +1590,12 @@ namespace GetBricked.Gameplay
             if (action == BreakoutMainMenuAction.Rogue)
             {
                 StartRogueRun();
+                return;
+            }
+
+            if (action == BreakoutMainMenuAction.Progression)
+            {
+                EnterProgressionPage();
                 return;
             }
 
@@ -3718,6 +3761,13 @@ namespace GetBricked.Gameplay
                 return;
             }
 
+            if (roundState == RoundState.Progression)
+            {
+                uiRenderer.DrawCabinetBackdrop(BuildChromeView("Progression", "Neon Ladder Service", true));
+                uiRenderer.DrawProgressionPage(BuildProgressionPageView(), EnterMainMenu);
+                return;
+            }
+
             if (roundState == RoundState.SoloMarathonSetup)
             {
                 uiRenderer.DrawCabinetBackdrop(BuildChromeView("Neon Marathon", "Heat Select", true));
@@ -3889,6 +3939,12 @@ namespace GetBricked.Gameplay
             };
 
             return mainMenuService.BuildView(context);
+        }
+
+        private BreakoutUiProgressionView BuildProgressionPageView()
+        {
+            progressionPageService ??= new BreakoutProgressionPageService();
+            return progressionPageService.BuildView(loadedPowerUpDefinitions, ResolveSelectedRoguePaddle().DisplayName);
         }
 
         private BreakoutUiRunSetupView BuildRunSetupView()

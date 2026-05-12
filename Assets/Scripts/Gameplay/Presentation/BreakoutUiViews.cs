@@ -50,6 +50,50 @@ namespace GetBricked.Gameplay
         public string HintText = string.Empty;
     }
 
+    internal enum BreakoutUiProgressionUnlockState
+    {
+        Default,
+        Unlocked,
+        SeenLocked,
+        HiddenLocked,
+    }
+
+    internal sealed class BreakoutUiProgressionPaddleView
+    {
+        public string Label = string.Empty;
+        public string ProgressLine = string.Empty;
+        public string DetailLine = string.Empty;
+        public float Progress;
+        public bool IsSelected;
+        public bool IsUnlocked;
+    }
+
+    internal sealed class BreakoutUiProgressionCardView
+    {
+        public string Title = string.Empty;
+        public string Kind = string.Empty;
+        public string Family = string.Empty;
+        public string Description = string.Empty;
+        public string UnlockHint = string.Empty;
+        public string StateLabel = string.Empty;
+        public string ModeAvailability = string.Empty;
+        public BreakoutUiProgressionUnlockState UnlockState;
+        public Color Accent = Color.white;
+    }
+
+    internal sealed class BreakoutUiProgressionView
+    {
+        public string Title = string.Empty;
+        public string Subtitle = string.Empty;
+        public string LadderTitle = string.Empty;
+        public string[] LadderLines = Array.Empty<string>();
+        public string[] MeterLines = Array.Empty<string>();
+        public string NextSignal = string.Empty;
+        public BreakoutUiProgressionPaddleView[] Paddles = Array.Empty<BreakoutUiProgressionPaddleView>();
+        public BreakoutUiProgressionCardView[] Cards = Array.Empty<BreakoutUiProgressionCardView>();
+        public string FooterText = string.Empty;
+    }
+
     internal sealed class BreakoutUiRunSetupView
     {
         public string Title = string.Empty;

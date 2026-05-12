@@ -167,6 +167,56 @@ namespace GetBricked.Gameplay
             DrawHintBand(new Rect(boxRect.x + 28f, hintY, boxRect.width - 56f, hintHeight), view.HintText, draftHintStyle);
         }
 
+        public void DrawProgressionPage(BreakoutUiProgressionView view, Action onBackClicked)
+        {
+            EnsureStyles();
+
+            if (view == null)
+            {
+                return;
+            }
+
+            var boxWidth = Mathf.Min(1180f, Screen.width - 48f);
+            var boxHeight = Mathf.Min(690f, Screen.height - 92f);
+
+            if (boxWidth < 980f)
+            {
+                boxWidth = Screen.width - 32f;
+            }
+
+            if (boxHeight < 560f)
+            {
+                boxHeight = Screen.height - 76f;
+            }
+
+            var boxRect = new Rect((Screen.width - boxWidth) * 0.5f, (Screen.height - boxHeight) * 0.5f, boxWidth, boxHeight);
+            var padding = 30f;
+            var headerHeight = 82f;
+            var footerHeight = 44f;
+            var gap = 22f;
+            var contentTop = boxRect.y + headerHeight + 18f;
+            var contentBottom = boxRect.yMax - footerHeight - 20f;
+            var contentHeight = Mathf.Max(320f, contentBottom - contentTop);
+            var leftWidth = Mathf.Clamp(boxRect.width * 0.34f, 330f, 390f);
+            var leftRect = new Rect(boxRect.x + padding, contentTop, leftWidth, contentHeight);
+            var rightRect = new Rect(leftRect.xMax + gap, contentTop, boxRect.xMax - padding - leftRect.xMax - gap, contentHeight);
+
+            DrawPanel(boxRect, palette.AccentSecondary, palette.AccentPrimary, true);
+            DrawTextWithShadow(new Rect(boxRect.x + padding, boxRect.y + 24f, boxRect.width - (padding * 2f) - 126f, 36f), view.Title, overlayTitleStyle, palette.TextPrimary);
+            DrawTextWithShadow(new Rect(boxRect.x + padding, boxRect.y + 62f, boxRect.width - (padding * 2f), 24f), view.Subtitle, setupHintStyle, palette.TextMuted, 0.35f);
+
+            if (DrawArcadeButton(new Rect(boxRect.xMax - padding - 104f, boxRect.y + 27f, 104f, 38f), "Back", false))
+            {
+                onBackClicked?.Invoke();
+            }
+
+            DrawPanel(leftRect, palette.AccentWarm, palette.AccentSecondary, false);
+            DrawPanel(rightRect, palette.AccentPrimary, palette.AccentWarm, false);
+            DrawProgressionLadderPanel(leftRect, view);
+            DrawProgressionContentGrid(rightRect, view.Cards);
+            DrawHintBand(new Rect(boxRect.x + 28f, boxRect.yMax - footerHeight - 12f, boxRect.width - 56f, footerHeight), view.FooterText, draftHintStyle);
+        }
+
         public void DrawRunSetup(BreakoutUiRunSetupView view)
         {
             EnsureStyles();
@@ -1198,6 +1248,159 @@ namespace GetBricked.Gameplay
                 DrawSolidRect(stepRect, WithAlpha(fillColor, isCurrent ? 0.9f : isComplete ? 0.72f : 0.34f));
                 DrawOutline(stepRect, outlineColor, isCurrent ? 2f : 1f);
             }
+        }
+
+        private void DrawProgressionLadderPanel(Rect rect, BreakoutUiProgressionView view)
+        {
+            var innerX = rect.x + 18f;
+            var width = rect.width - 36f;
+            var y = rect.y + 16f;
+            DrawSectionLabel(new Rect(innerX, y, width, 20f), view.LadderTitle, palette.AccentWarm);
+            y += 32f;
+
+            for (var index = 0; index < view.LadderLines.Length; index++)
+            {
+                DrawTextWithShadow(
+                    new Rect(innerX, y, width, 24f),
+                    view.LadderLines[index],
+                    index == 0 ? hudStyle : setupHintStyle,
+                    index == 0 ? palette.TextPrimary : palette.TextMuted,
+                    0.26f);
+                y += index == 0 ? 30f : 25f;
+            }
+
+            y += 8f;
+            DrawSelectionBar(new Rect(innerX, y, width, 36f));
+            DrawTextWithShadow(new Rect(innerX + 12f, y + 6f, width - 24f, 24f), view.NextSignal, setupHintStyle, palette.TextPrimary, 0.25f);
+            y += 54f;
+
+            DrawSectionLabel(new Rect(innerX, y, width, 20f), "Paddles", palette.AccentPrimary);
+            y += 28f;
+
+            for (var index = 0; index < view.Paddles.Length; index++)
+            {
+                var paddle = view.Paddles[index];
+                var rowRect = new Rect(innerX, y, width, 56f);
+                var accent = paddle.IsUnlocked ? palette.AccentPrimary : palette.TextMuted;
+
+                DrawPanel(rowRect, paddle.IsSelected ? palette.AccentSecondary : accent, accent, paddle.IsSelected, paddle.IsSelected ? 2f : 1f);
+                DrawTextWithShadow(new Rect(rowRect.x + 12f, rowRect.y + 8f, rowRect.width * 0.48f, 18f), paddle.Label, speedMeterCaptionStyle, paddle.IsUnlocked ? palette.TextPrimary : palette.TextMuted, 0.22f);
+                DrawTextWithShadow(new Rect(rowRect.x + 12f, rowRect.y + 29f, rowRect.width * 0.48f, 16f), paddle.DetailLine, modifierPanelTimerStyle, paddle.IsUnlocked ? palette.TextMuted : WithAlpha(palette.TextMuted, 0.58f), 0.16f);
+
+                var trackRect = new Rect(rowRect.x + (rowRect.width * 0.56f), rowRect.y + 17f, rowRect.width * 0.36f, 8f);
+                DrawSolidRect(trackRect, WithAlpha(palette.BezelDark, 0.92f));
+                DrawOutline(trackRect, WithAlpha(palette.TextPrimary, 0.08f), 1f);
+
+                if (paddle.IsUnlocked && paddle.Progress > 0f)
+                {
+                    DrawSolidRect(new Rect(trackRect.x, trackRect.y, trackRect.width * Mathf.Clamp01(paddle.Progress), trackRect.height), palette.AccentWarm);
+                }
+
+                DrawTextWithShadow(new Rect(trackRect.x, rowRect.y + 30f, trackRect.width, 16f), paddle.ProgressLine, modifierPanelTimerStyle, paddle.IsUnlocked ? palette.AccentWarm : palette.TextMuted, 0.16f);
+                y += 66f;
+
+                if (y > rect.yMax - 122f)
+                {
+                    break;
+                }
+            }
+
+            y = Mathf.Max(y + 4f, rect.yMax - 116f);
+            DrawSectionLabel(new Rect(innerX, y, width, 20f), "Unlock Meter", palette.AccentWarm);
+            y += 26f;
+
+            for (var index = 0; index < view.MeterLines.Length; index++)
+            {
+                DrawTextWithShadow(new Rect(innerX, y + (index * 24f), width, 22f), view.MeterLines[index], setupHintStyle, palette.TextMuted, 0.2f);
+            }
+        }
+
+        private void DrawProgressionContentGrid(Rect rect, BreakoutUiProgressionCardView[] cards)
+        {
+            DrawSectionLabel(new Rect(rect.x + 18f, rect.y + 16f, rect.width - 36f, 20f), "Drops And Glitches", palette.AccentPrimary);
+            DrawTextWithShadow(new Rect(rect.x + 18f, rect.y + 42f, rect.width - 36f, 20f), "Default content is live. Future unlock cards are placeholders until their mechanics exist.", setupHintStyle, palette.TextMuted, 0.22f);
+
+            if (cards == null || cards.Length == 0)
+            {
+                return;
+            }
+
+            var gridX = rect.x + 18f;
+            var gridY = rect.y + 76f;
+            var gridWidth = rect.width - 36f;
+            var gridHeight = Mathf.Max(120f, rect.yMax - gridY - 18f);
+            var columnCount = gridWidth >= 640f ? 2 : 1;
+            var gap = 12f;
+            var cardWidth = (gridWidth - (gap * (columnCount - 1))) / columnCount;
+            var cardHeight = 76f;
+            var rowCount = Mathf.Max(1, Mathf.FloorToInt((gridHeight + gap) / (cardHeight + gap)));
+            var visibleCount = Mathf.Min(cards.Length, rowCount * columnCount);
+
+            for (var index = 0; index < visibleCount; index++)
+            {
+                var column = index % columnCount;
+                var row = index / columnCount;
+                var cardRect = new Rect(
+                    gridX + (column * (cardWidth + gap)),
+                    gridY + (row * (cardHeight + gap)),
+                    cardWidth,
+                    cardHeight);
+                DrawProgressionCard(cardRect, cards[index]);
+            }
+
+            if (visibleCount < cards.Length)
+            {
+                var moreRect = new Rect(gridX, rect.yMax - 28f, gridWidth, 18f);
+                DrawTextWithShadow(moreRect, $"+{cards.Length - visibleCount} more planned slots as the page grows.", setupHintStyle, palette.TextMuted, 0.18f);
+            }
+        }
+
+        private void DrawProgressionCard(Rect rect, BreakoutUiProgressionCardView card)
+        {
+            var accent = ResolveProgressionCardAccent(card);
+            var emphasize = card.UnlockState == BreakoutUiProgressionUnlockState.Unlocked;
+            DrawPanel(rect, accent, palette.AccentPrimary, emphasize, emphasize ? 2f : 1f);
+
+            if (card.UnlockState == BreakoutUiProgressionUnlockState.SeenLocked)
+            {
+                DrawSolidRect(new Rect(rect.x + 4f, rect.y + 4f, rect.width - 8f, rect.height - 8f), WithAlpha(palette.BezelDark, 0.28f));
+            }
+            else if (card.UnlockState == BreakoutUiProgressionUnlockState.HiddenLocked)
+            {
+                DrawSolidRect(new Rect(rect.x + 4f, rect.y + 4f, rect.width - 8f, rect.height - 8f), WithAlpha(palette.BezelDark, 0.48f));
+                DrawScanlines(new Rect(rect.x + 6f, rect.y + 6f, rect.width - 12f, rect.height - 12f), 5f, WithAlpha(palette.AccentSecondary, 0.035f));
+            }
+
+            var stateColor = card.UnlockState == BreakoutUiProgressionUnlockState.Default
+                ? palette.Success
+                : card.UnlockState == BreakoutUiProgressionUnlockState.Unlocked
+                    ? palette.AccentWarm
+                    : WithAlpha(palette.TextMuted, 0.82f);
+            DrawTextWithShadow(new Rect(rect.x + 12f, rect.y + 8f, rect.width - 112f, 18f), card.Title, hudStyle, palette.TextPrimary, 0.24f);
+            DrawTextWithShadow(new Rect(rect.xMax - 98f, rect.y + 8f, 84f, 16f), card.StateLabel, speedMeterCaptionStyle, stateColor, 0.18f);
+            DrawTextWithShadow(new Rect(rect.x + 12f, rect.y + 28f, rect.width - 24f, 17f), $"{card.Kind} | {card.Family}", modifierPanelTimerStyle, accent, 0.15f);
+            DrawTextWithShadow(new Rect(rect.x + 12f, rect.y + 45f, rect.width - 24f, 18f), card.Description, setupHintStyle, palette.TextMuted, 0.15f);
+            DrawTextWithShadow(new Rect(rect.x + 12f, rect.yMax - 18f, rect.width - 24f, 15f), $"{card.UnlockHint} | {card.ModeAvailability}", modifierPanelTimerStyle, stateColor, 0.14f);
+        }
+
+        private Color ResolveProgressionCardAccent(BreakoutUiProgressionCardView card)
+        {
+            if (card == null)
+            {
+                return palette.TextMuted;
+            }
+
+            if (card.UnlockState == BreakoutUiProgressionUnlockState.HiddenLocked)
+            {
+                return WithAlpha(palette.TextMuted, 0.48f);
+            }
+
+            if (card.UnlockState == BreakoutUiProgressionUnlockState.SeenLocked)
+            {
+                return WithAlpha(card.Accent, 0.58f);
+            }
+
+            return card.Accent;
         }
 
         private void DrawActionList(string[] labels, int selectedIndex, float x, float y, float width, float lineHeight, Action<int> onActionClicked)

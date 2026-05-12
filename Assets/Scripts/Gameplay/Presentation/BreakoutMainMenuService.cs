@@ -6,6 +6,7 @@ namespace GetBricked.Gameplay
     internal enum BreakoutMainMenuAction
     {
         Rogue,
+        Progression,
         SoloMarathon,
         CustomGame,
         DualSticks,
@@ -49,6 +50,7 @@ namespace GetBricked.Gameplay
         private static readonly BreakoutMainMenuAction[] ActionCatalog =
         {
             BreakoutMainMenuAction.Rogue,
+            BreakoutMainMenuAction.Progression,
             BreakoutMainMenuAction.SoloMarathon,
             BreakoutMainMenuAction.CustomGame,
             BreakoutMainMenuAction.TurnBased,
@@ -96,6 +98,7 @@ namespace GetBricked.Gameplay
             return action switch
             {
                 BreakoutMainMenuAction.Rogue => "Neon Ladder climbs 10 stages with draft rewards, unlocks, and cabinet heat.",
+                BreakoutMainMenuAction.Progression => "Progression opens the cabinet service screen for Ladder goals, paddles, drops, and glitches.",
                 BreakoutMainMenuAction.SoloMarathon => "Neon Marathon opens heat select, top scores, and a solo high-score chase.",
                 BreakoutMainMenuAction.DualSticks => "Dual Sticks is staged for side-by-side versus runs, sabotage drops, and brick sends.",
                 BreakoutMainMenuAction.Coop => "Co-op is staged for two paddles, two balls, and one-keyboard shared survival.",
@@ -115,6 +118,7 @@ namespace GetBricked.Gameplay
                 labels[index] = actions[index] switch
                 {
                     BreakoutMainMenuAction.Rogue => "Neon Ladder",
+                    BreakoutMainMenuAction.Progression => "Progression",
                     BreakoutMainMenuAction.SoloMarathon => "Neon Marathon",
                     BreakoutMainMenuAction.CustomGame => "Custom Game",
                     BreakoutMainMenuAction.DualSticks => "Dual Sticks",
@@ -139,6 +143,7 @@ namespace GetBricked.Gameplay
                 labels[index] = actions[index] switch
                 {
                     BreakoutMainMenuAction.Rogue => "Singleplayer",
+                    BreakoutMainMenuAction.Progression => "Singleplayer",
                     BreakoutMainMenuAction.SoloMarathon => "Singleplayer",
                     BreakoutMainMenuAction.CustomGame => "Singleplayer",
                     BreakoutMainMenuAction.DualSticks => "Multiplayer",
@@ -159,6 +164,7 @@ namespace GetBricked.Gameplay
             return action switch
             {
                 BreakoutMainMenuAction.Rogue => "Neon Ladder",
+                BreakoutMainMenuAction.Progression => "Cabinet Progress",
                 BreakoutMainMenuAction.SoloMarathon => "Neon Marathon",
                 BreakoutMainMenuAction.CustomGame => "Custom Game Loadout",
                 BreakoutMainMenuAction.DualSticks => "Versus Shell",
@@ -190,6 +196,16 @@ namespace GetBricked.Gameplay
                         string.IsNullOrWhiteSpace(context.LastRogueResultSummary)
                             ? "Last Run: no Neon Ladder tape recorded yet."
                             : context.LastRogueResultSummary,
+                    };
+                case BreakoutMainMenuAction.Progression:
+                    return new[]
+                    {
+                        $"Selected Paddle: {context.SelectedRoguePaddleLabel}",
+                        $"Heat {context.AvailableRogueIntensity:00}/50 is the next Neon Ladder goal.",
+                        $"Paddles: {context.UnlockedRoguePaddleCount}/{context.TotalRoguePaddleCount} unlocked.",
+                        "Drops and glitches show Default, placeholder Unlocked, Locked, and Unknown slots.",
+                        "Marathon and multiplayer badges preview where earned content will appear later.",
+                        "Status: presentation shell. Unlock effects are not wired into gameplay pools yet.",
                     };
                 case BreakoutMainMenuAction.SoloMarathon:
                     return new[]
@@ -288,6 +304,7 @@ namespace GetBricked.Gameplay
             {
                 BreakoutMainMenuAction.CustomGame => "Custom Game opens the full tape-tuning bench: Tape ID, score rules, modifiers, drops, and theme.",
                 BreakoutMainMenuAction.Rogue => "Neon Ladder launches a fixed 10-stage climb with draft rewards and saved unlock progress.",
+                BreakoutMainMenuAction.Progression => "Progression opens a cabinet service screen for Ladder history, future unlock placeholders, and mode availability.",
                 BreakoutMainMenuAction.SoloMarathon => "Neon Marathon opens its heat bench with top scores for each heat level.",
                 BreakoutMainMenuAction.SoundSettings => "Sound controls are staged here for mixer work.",
                 BreakoutMainMenuAction.GraphicsSettings => "Graphics controls are staged here for display, glow, and readability options.",
