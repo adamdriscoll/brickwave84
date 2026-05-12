@@ -31,6 +31,10 @@ namespace GetBricked.Gameplay
         private const float TurboRailSpeedBurstStackDuration = 1.25f;
         private const float TurboRailSpeedBurstMaximumDuration = 7.5f;
         private const string DefaultRoguePaddleLabel = BreakoutRogueRunResultStore.DefaultPaddleLabel;
+        private const float MenuAttractRestartDelaySeconds = 0.2f;
+        private const float MenuAttractPickupLeadDistance = 1.35f;
+        private const float MenuAttractFallbackSweepSpeed = 0.55f;
+        private const float MenuAttractLaunchHorizontalRange = 0.48f;
         private static readonly BreakoutRunSetupField[] HotSeatTopScoreSetupFields =
         {
             BreakoutRunSetupField.PlayerCount,
@@ -245,6 +249,9 @@ namespace GetBricked.Gameplay
         private BreakoutWarpGateController activeWarpGateController;
         private BreakoutTurboRailSection activeTurboRailSection;
         private bool isDeveloperRunActive;
+        private bool isMenuAttractModeActive;
+        private float menuAttractRestartTimer;
+        private int menuAttractLevelCounter;
 
         public Collider2D PaddleCollider => paddleCollider;
 
@@ -370,6 +377,7 @@ namespace GetBricked.Gameplay
             audioService?.Update(Time.unscaledDeltaTime);
             scoreService?.UpdateFloatingScorePopups(Time.unscaledDeltaTime);
             laserShotCooldownTimer = Mathf.Max(0f, laserShotCooldownTimer - Time.deltaTime);
+            UpdateMenuAttractMode();
 
             var keyboard = Keyboard.current;
 
@@ -533,7 +541,7 @@ namespace GetBricked.Gameplay
 
         public void HandleBallLost(BallController lostBall)
         {
-            if (roundState != RoundState.Playing || lostBall == null)
+            if (!IsGameplaySimulationActive() || lostBall == null)
             {
                 return;
             }
@@ -559,6 +567,23 @@ namespace GetBricked.Gameplay
                     DestroyRuntimeObject(lostBall.gameObject);
                 }
 
+                return;
+            }
+
+            if (isMenuAttractModeActive)
+            {
+                audioService?.PlayBallLost(hasOtherActiveBalls: false);
+
+                if (isServeBall)
+                {
+                    lostBall.gameObject.SetActive(false);
+                }
+                else
+                {
+                    DestroyRuntimeObject(lostBall.gameObject);
+                }
+
+                ScheduleMenuAttractRestart();
                 return;
             }
 
@@ -626,7 +651,7 @@ namespace GetBricked.Gameplay
 
         public bool TryRescueBallWithShield(BallController ball, bool requireImpactThreshold = true)
         {
-            if (roundState != RoundState.Playing || ball == null || shieldWallCharges <= 0)
+            if (!IsGameplaySimulationActive() || ball == null || shieldWallCharges <= 0)
             {
                 return false;
             }
@@ -714,7 +739,7 @@ namespace GetBricked.Gameplay
 
         public void HandlePickupCaught(PowerUpPickup pickup)
         {
-            if (roundState != RoundState.Playing || pickup == null)
+            if (!IsGameplaySimulationActive() || pickup == null)
             {
                 return;
             }
@@ -753,6 +778,8 @@ namespace GetBricked.Gameplay
 
         private void StartNewRun(BreakoutDeveloperEncounter? developerEncounter, int developerLivesRemaining, bool applyDeveloperSelections)
         {
+            StopMenuAttractMode(clearRunSettings: false);
+
             if (activeRunSettings == null)
             {
                 activeRunSettings = BuildRunSettingsFromPending(out pendingValidationMessage, commitSeedText: true);
@@ -833,6 +860,7 @@ namespace GetBricked.Gameplay
             activeRunState?.Reset();
             ResetRuntimeForMetaFlow();
             ApplyPendingThemePreview();
+            StartMenuAttractMode();
             audioService?.PlayMusic(BreakoutMusicTrack.Menu);
         }
 
@@ -844,6 +872,7 @@ namespace GetBricked.Gameplay
             isDiagnosticsOverlayVisible = false;
             ResetRuntimeForMetaFlow();
             ApplyPendingThemePreview();
+            StartMenuAttractMode();
             audioService?.PlayMusic(BreakoutMusicTrack.Menu);
         }
 
@@ -877,6 +906,7 @@ namespace GetBricked.Gameplay
             activeRunState?.Reset();
             ResetRuntimeForMetaFlow();
             ApplyPendingThemePreview();
+            StartMenuAttractMode();
             audioService?.PlayMusic(BreakoutMusicTrack.Menu);
         }
 
@@ -894,6 +924,7 @@ namespace GetBricked.Gameplay
             activeRunState?.Reset();
             ResetRuntimeForMetaFlow();
             ApplyPendingThemePreview();
+            StartMenuAttractMode();
             audioService?.PlayMusic(BreakoutMusicTrack.Menu);
         }
 
@@ -909,11 +940,14 @@ namespace GetBricked.Gameplay
             activeRunState?.Reset();
             ResetRuntimeForMetaFlow();
             ApplyPendingThemePreview();
+            StartMenuAttractMode();
             audioService?.PlayMusic(BreakoutMusicTrack.Menu);
         }
 
         private void ResetRuntimeForMetaFlow()
         {
+            isMenuAttractModeActive = false;
+            menuAttractRestartTimer = 0f;
             SetSimulationPaused(false);
             manualBallSpeedMultiplier = 1f;
             brickService?.ClearBricks();
@@ -938,6 +972,346 @@ namespace GetBricked.Gameplay
             }
 
             paddle.ResetToStart();
+            paddle.ClearAutopilotTarget();
+        }
+
+        private void StartMenuAttractMode()
+        {
+            if (!IsMenuAttractState(roundState))
+            {
+                return;
+            }
+
+            isMenuAttractModeActive = true;
+            menuAttractRestartTimer = 0f;
+            menuAttractLevelCounter = 0;
+            RestartMenuAttractLevel();
+        }
+
+        private void StopMenuAttractMode(bool clearRunSettings)
+        {
+            isMenuAttractModeActive = false;
+            menuAttractRestartTimer = 0f;
+            paddle?.ClearAutopilotTarget();
+
+            if (clearRunSettings)
+            {
+                activeRunSettings = null;
+            }
+        }
+
+        private void UpdateMenuAttractMode()
+        {
+            if (!isMenuAttractModeActive)
+            {
+                return;
+            }
+
+            if (!IsMenuAttractState(roundState))
+            {
+                StopMenuAttractMode(clearRunSettings: false);
+                return;
+            }
+
+            if (menuAttractRestartTimer > 0f)
+            {
+                menuAttractRestartTimer = Mathf.Max(0f, menuAttractRestartTimer - Time.deltaTime);
+
+                if (menuAttractRestartTimer <= 0f)
+                {
+                    RestartMenuAttractLevel();
+                }
+
+                return;
+            }
+
+            if (currentLevel == null || activeBalls.Count == 0)
+            {
+                ScheduleMenuAttractRestart();
+                return;
+            }
+
+            if (stickyCaughtBall != null)
+            {
+                ReleaseStickyCaughtBall();
+            }
+
+            FireLaserVolley();
+            paddle?.SetAutopilotTarget(ResolveMenuAttractPaddleTargetX());
+        }
+
+        private void ScheduleMenuAttractRestart()
+        {
+            if (!isMenuAttractModeActive || menuAttractRestartTimer > 0f)
+            {
+                return;
+            }
+
+            menuAttractRestartTimer = MenuAttractRestartDelaySeconds;
+            ClearPickups();
+            StopAllBalls();
+            DestroyAdditionalBalls();
+            activeBalls.Clear();
+            stickyCaughtBall = null;
+        }
+
+        private void RestartMenuAttractLevel()
+        {
+            if (!IsMenuAttractState(roundState))
+            {
+                StopMenuAttractMode(clearRunSettings: false);
+                return;
+            }
+
+            var menuState = roundState;
+            ConfigureMenuAttractRun();
+
+            if (loadedLevels.Count > 0)
+            {
+                currentLevelIndex = gameplayRandom != null
+                    ? gameplayRandom.Range(0, loadedLevels.Count)
+                    : UnityEngine.Random.Range(0, loadedLevels.Count);
+            }
+
+            LoadLevel(currentLevelIndex, menuState);
+            roundState = menuState;
+
+            if (currentLevel != null && requiredBricksRemaining > 0)
+            {
+                LaunchMenuAttractServe();
+                paddle?.SetAutopilotTarget(ResolveMenuAttractPaddleTargetX());
+            }
+
+            menuAttractLevelCounter++;
+            audioService?.PlayMusic(BreakoutMusicTrack.Menu);
+        }
+
+        private void ConfigureMenuAttractRun()
+        {
+            var seed = GenerateSeed();
+            var selectedPaddle = ResolveSelectedRoguePaddle();
+            var intensity = BreakoutRogueIntensityProgressStore.GetAvailableIntensity(selectedPaddle.DisplayName);
+            var themeDefinition = ResolvePendingThemeDefinition();
+            activeRunSettings = rogueRunController != null
+                ? rogueRunController.BuildRunSettings(seed, lifeLossScorePenalty, themeDefinition, selectedPaddle.DisplayName, intensity)
+                : new RunSettings(
+                    seed,
+                    RunDifficultyPreset.Standard,
+                    RunScoringMode.Classic,
+                    1,
+                    lifeLossScorePenalty,
+                    1,
+                    selectedPaddle.WidthMultiplier,
+                    BreakoutRunProgression.GetRogueIntensityBallSpeedMultiplier(intensity),
+                    1f,
+                    1f,
+                    DropPoolMode.Mixed,
+                    false,
+                    themeDefinition,
+                    RunGameMode.Rogue,
+                    intensity,
+                    selectedPaddle.DisplayName,
+                    selectedPaddle.SpeedMultiplier,
+                    levelGlitchesEnabled: true);
+
+            gameplayRandom = new DeterministicRandomService(activeRunSettings.Seed);
+            livesRemaining = 1;
+            lifeLossCount = 0;
+            score = 0;
+            activeRunResultRecorded = false;
+            activeSoloMarathonResultRecorded = false;
+            activeSoloMarathonNewHighScore = false;
+            activeSoloMarathonRecord = null;
+            shieldWallCharges = 0;
+            laserShotCooldownTimer = 0f;
+            stickyCaughtBall = null;
+            manualBallSpeedMultiplier = 1f;
+            scoreService?.ResetComboTracking(clearPopups: true);
+            activeRunState?.Reset();
+            InitializeMenuAttractUnlocks(activeRunSettings.RogueIntensity);
+            ClearTimedEffects();
+            ClearPickups();
+            UpdateShieldWallVisual();
+            ApplyTheme(themeDefinition);
+        }
+
+        private void InitializeMenuAttractUnlocks(int intensity)
+        {
+            if (activeRunState == null)
+            {
+                return;
+            }
+
+            rogueRunController?.InitializeRunState(activeRunState);
+
+            for (var index = 0; index < loadedPowerUpDefinitions.Count; index++)
+            {
+                var definition = loadedPowerUpDefinitions[index];
+
+                if (definition != null && BreakoutRarityRules.IsUnlockedForLadderIntensity(definition.Rarity, intensity))
+                {
+                    activeRunState.UnlockDrop(definition);
+                }
+            }
+        }
+
+        private void LaunchMenuAttractServe()
+        {
+            if (serveBall == null)
+            {
+                return;
+            }
+
+            SetSimulationPaused(false);
+            var horizontalLaunch = NextGameplayRandomFloat(-MenuAttractLaunchHorizontalRange, MenuAttractLaunchHorizontalRange);
+            serveBall.Launch(new Vector2(horizontalLaunch, 1f));
+            SpawnConfiguredServeBalls();
+        }
+
+        private float ResolveMenuAttractPaddleTargetX()
+        {
+            if (TryResolveMenuAttractBallTarget(out var ballTargetX))
+            {
+                return ballTargetX;
+            }
+
+            if (TryResolveMenuAttractPickupTarget(out var pickupTargetX))
+            {
+                return pickupTargetX;
+            }
+
+            var sweep = Mathf.Sin((Time.time + menuAttractLevelCounter) * MenuAttractFallbackSweepSpeed);
+            return Mathf.Lerp(arenaLeft + paddle.HalfWidthWorld, arenaRight - paddle.HalfWidthWorld, (sweep + 1f) * 0.5f);
+        }
+
+        private bool TryResolveMenuAttractBallTarget(out float targetX)
+        {
+            targetX = 0f;
+
+            if (paddle == null)
+            {
+                return false;
+            }
+
+            var paddleY = paddle.transform.position.y;
+            var bestTime = float.PositiveInfinity;
+
+            for (var index = activeBalls.Count - 1; index >= 0; index--)
+            {
+                var ball = activeBalls[index];
+
+                if (ball == null)
+                {
+                    activeBalls.RemoveAt(index);
+                    continue;
+                }
+
+                var velocity = ball.CurrentVelocity;
+                var position = (Vector2)ball.transform.position;
+
+                if (velocity.y >= -0.05f)
+                {
+                    continue;
+                }
+
+                var timeToPaddle = (paddleY - position.y) / velocity.y;
+
+                if (timeToPaddle < 0f || timeToPaddle >= bestTime)
+                {
+                    continue;
+                }
+
+                bestTime = timeToPaddle;
+                targetX = ReflectMenuAttractTargetX(position.x + (velocity.x * timeToPaddle));
+            }
+
+            return bestTime < float.PositiveInfinity;
+        }
+
+        private bool TryResolveMenuAttractPickupTarget(out float targetX)
+        {
+            targetX = 0f;
+
+            if (paddle == null || powerUpService == null)
+            {
+                return false;
+            }
+
+            var paddleY = paddle.transform.position.y;
+            var bestY = float.PositiveInfinity;
+
+            for (var index = powerUpService.ActivePickups.Count - 1; index >= 0; index--)
+            {
+                var pickup = powerUpService.ActivePickups[index];
+
+                if (pickup == null)
+                {
+                    powerUpService.ActivePickups.RemoveAt(index);
+                    continue;
+                }
+
+                if (pickup.Definition == null || !pickup.Definition.IsBeneficial)
+                {
+                    continue;
+                }
+
+                var pickupPosition = pickup.transform.position;
+
+                if (pickupPosition.y < paddleY || pickupPosition.y > paddleY + MenuAttractPickupLeadDistance || pickupPosition.y >= bestY)
+                {
+                    continue;
+                }
+
+                bestY = pickupPosition.y;
+                targetX = ReflectMenuAttractTargetX(pickupPosition.x);
+            }
+
+            return bestY < float.PositiveInfinity;
+        }
+
+        private float ReflectMenuAttractTargetX(float x)
+        {
+            if (paddle == null)
+            {
+                return Mathf.Clamp(x, arenaLeft, arenaRight);
+            }
+
+            var minX = arenaLeft + paddle.HalfWidthWorld;
+            var maxX = arenaRight - paddle.HalfWidthWorld;
+
+            if (maxX <= minX)
+            {
+                return 0f;
+            }
+
+            for (var reflection = 0; reflection < 8 && (x < minX || x > maxX); reflection++)
+            {
+                if (x < minX)
+                {
+                    x = minX + (minX - x);
+                }
+
+                if (x > maxX)
+                {
+                    x = maxX - (x - maxX);
+                }
+            }
+
+            return Mathf.Clamp(x, minX, maxX);
+        }
+
+        private static bool IsMenuAttractState(RoundState state)
+        {
+            return state == RoundState.MainMenu
+                || state == RoundState.Progression
+                || state == RoundState.SoloMarathonSetup
+                || state == RoundState.RunSetup
+                || state == RoundState.DeveloperMenu;
+        }
+
+        private bool IsGameplaySimulationActive()
+        {
+            return roundState == RoundState.Playing || isMenuAttractModeActive;
         }
 
         private void ResetPendingRunSetup(bool generateNewSeed)
@@ -2758,6 +3132,12 @@ namespace GetBricked.Gameplay
             stickyCaughtBall = null;
             audioService?.PlayLevelComplete();
 
+            if (isMenuAttractModeActive)
+            {
+                ScheduleMenuAttractRestart();
+                return;
+            }
+
             if (activeRunSettings != null && activeRunSettings.IsTurnBasedMode)
             {
                 CompleteAndAdvanceTurnBasedTurn(BreakoutTurnSwitchReason.LevelCleared);
@@ -4287,7 +4667,7 @@ namespace GetBricked.Gameplay
 
         private void UpdateTimedEffects()
         {
-            powerUpService?.UpdateTimedEffects(roundState == RoundState.Playing, Time.deltaTime, ApplyActiveEffects);
+            powerUpService?.UpdateTimedEffects(IsGameplaySimulationActive(), Time.deltaTime, ApplyActiveEffects);
         }
 
         private void UpdatePickupBanner()
@@ -4467,7 +4847,7 @@ namespace GetBricked.Gameplay
 
         private void SpawnMultiBall(PowerUpDefinition powerUpDefinition)
         {
-            if (roundState != RoundState.Playing || activeBalls.Count == 0)
+            if (!IsGameplaySimulationActive() || activeBalls.Count == 0)
             {
                 return;
             }
@@ -5123,7 +5503,7 @@ namespace GetBricked.Gameplay
 
         private bool FireLaserVolley()
         {
-            if (roundState != RoundState.Playing
+            if (!IsGameplaySimulationActive()
                 || paddle == null
                 || !activeEffectModifiers.LaserPaddleEnabled
                 || laserShotCooldownTimer > 0f)

@@ -23,6 +23,10 @@ namespace GetBricked.Gameplay
         private const float ClonePaddleYOffset = 0.74f;
         private const float ClonePaddleWidthMultiplier = 0.62f;
         private const int ClonePaddleSortingOrder = 19;
+        private const float AutopilotDeadZone = 0.16f;
+        private const float AutopilotSlowRadius = 1.15f;
+        private const float AutopilotInputBlendSpeed = 5.5f;
+        private const float AutopilotMaximumInput = 0.85f;
 
         private BreakoutGameController gameController;
         private Rigidbody2D paddleBody;
@@ -46,6 +50,9 @@ namespace GetBricked.Gameplay
         private bool controlsReversed;
         private float splitGapWidthNormalized;
         private float lagSpikeStrength;
+        private bool isAutopilotEnabled;
+        private float autopilotTargetX;
+        private float autopilotInput;
         private GameObject clonePaddleObject;
         private BoxCollider2D clonePaddleCollider;
         private SpriteRenderer clonePaddleRenderer;
@@ -72,6 +79,20 @@ namespace GetBricked.Gameplay
         public void SetMoveSpeed(float speed)
         {
             moveSpeed = Mathf.Max(0f, speed);
+        }
+
+        public void SetAutopilotTarget(float targetX)
+        {
+            isAutopilotEnabled = true;
+            autopilotTargetX = targetX;
+        }
+
+        public void ClearAutopilotTarget()
+        {
+            isAutopilotEnabled = false;
+            autopilotTargetX = 0f;
+            autopilotInput = 0f;
+            horizontalInput = 0f;
         }
 
         public bool SetWidthMultiplier(float multiplier)
@@ -161,7 +182,16 @@ namespace GetBricked.Gameplay
 
         private void Update()
         {
-            horizontalInput = ReadHorizontalInput();
+            if (isAutopilotEnabled)
+            {
+                horizontalInput = UpdateAutopilotInput(Time.deltaTime);
+            }
+            else
+            {
+                autopilotInput = 0f;
+                horizontalInput = ReadHorizontalInput();
+            }
+
             UpdateWavyMotion(Time.deltaTime);
             UpdateBreakWiggle(Time.deltaTime);
         }
@@ -377,6 +407,25 @@ namespace GetBricked.Gameplay
             }
 
             return controlsReversed ? -direction : direction;
+        }
+
+        private float UpdateAutopilotInput(float deltaTime)
+        {
+            var currentX = paddleBody != null ? paddleBody.position.x : transform.position.x;
+            var delta = autopilotTargetX - currentX;
+            var desiredInput = 0f;
+
+            if (Mathf.Abs(delta) > AutopilotDeadZone)
+            {
+                var distanceRatio = Mathf.Clamp01((Mathf.Abs(delta) - AutopilotDeadZone) / AutopilotSlowRadius);
+                desiredInput = Mathf.Sign(delta) * Mathf.SmoothStep(0f, AutopilotMaximumInput, distanceRatio);
+            }
+
+            autopilotInput = Mathf.MoveTowards(
+                autopilotInput,
+                desiredInput,
+                AutopilotInputBlendSpeed * Mathf.Max(0f, deltaTime));
+            return autopilotInput;
         }
     }
 }
