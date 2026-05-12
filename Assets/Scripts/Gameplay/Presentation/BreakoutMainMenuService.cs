@@ -42,7 +42,6 @@ namespace GetBricked.Gameplay
         private static readonly BreakoutMainMenuAction[] ActionCatalog =
         {
             BreakoutMainMenuAction.Rogue,
-            BreakoutMainMenuAction.Progression,
             BreakoutMainMenuAction.SoloMarathon,
             BreakoutMainMenuAction.CustomGame,
             BreakoutMainMenuAction.TurnBased,
@@ -65,9 +64,9 @@ namespace GetBricked.Gameplay
 
             return new BreakoutUiMenuView
             {
-                Title = "Brickwave '84",
-                Subtitle = "Choose the cabinet channel. Neon Ladder climbs a fixed 10-stage unlock run; Neon Marathon opens heat select and top scores; Custom Game keeps the full tape-tuning bench.",
-                SectionTitle = "Mode Select",
+                Title = string.Empty,
+                Subtitle = string.Empty,
+                SectionTitle = string.Empty,
                 ActionLabels = BuildActionLabels(actions),
                 ActionGroupLabels = BuildActionGroupLabels(actions),
                 SelectedActionIndex = context.SelectedActionIndex,
@@ -75,7 +74,7 @@ namespace GetBricked.Gameplay
                 PreviewLines = BuildPreviewLines(selectedAction, context),
                 ValidationText = BuildValidationText(selectedAction, context),
                 FooterText = BuildFooterText(selectedAction),
-                HintText = "Up/Down selects. Left/Right adjusts the highlighted mode. Space confirms. Neon Marathon opens heat select.",
+                HintText = "Up/Down selects. Left/Right tunes Ladder paddle or Marathon heat. Space confirms. Neon Ladder opens progression.",
             };
         }
 
@@ -110,7 +109,6 @@ namespace GetBricked.Gameplay
                 labels[index] = actions[index] switch
                 {
                     BreakoutMainMenuAction.Rogue => "Neon Ladder",
-                    BreakoutMainMenuAction.Progression => "Progression",
                     BreakoutMainMenuAction.SoloMarathon => "Neon Marathon",
                     BreakoutMainMenuAction.CustomGame => "Custom Game",
                     BreakoutMainMenuAction.DualSticks => "Dual Sticks",
@@ -134,10 +132,9 @@ namespace GetBricked.Gameplay
             {
                 labels[index] = actions[index] switch
                 {
-                    BreakoutMainMenuAction.Rogue => "Singleplayer",
-                    BreakoutMainMenuAction.Progression => "Singleplayer",
-                    BreakoutMainMenuAction.SoloMarathon => "Singleplayer",
-                    BreakoutMainMenuAction.CustomGame => "Singleplayer",
+                    BreakoutMainMenuAction.Rogue => "Single Player",
+                    BreakoutMainMenuAction.SoloMarathon => "Single Player",
+                    BreakoutMainMenuAction.CustomGame => "Single Player",
                     BreakoutMainMenuAction.DualSticks => "Multiplayer",
                     BreakoutMainMenuAction.Coop => "Multiplayer",
                     BreakoutMainMenuAction.TurnBased => "Multiplayer",

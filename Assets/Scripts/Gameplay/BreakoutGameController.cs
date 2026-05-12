@@ -1155,12 +1155,17 @@ namespace GetBricked.Gameplay
                 uiRenderer?.ScrollProgressionContent(-360f);
             }
 
-            if (keyboard.escapeKey.wasPressedThisFrame
-                || keyboard.spaceKey.wasPressedThisFrame
+            if (keyboard.escapeKey.wasPressedThisFrame)
+            {
+                EnterMainMenu();
+                return;
+            }
+
+            if (keyboard.spaceKey.wasPressedThisFrame
                 || keyboard.enterKey.wasPressedThisFrame
                 || keyboard.numpadEnterKey.wasPressedThisFrame)
             {
-                EnterMainMenu();
+                StartRogueRun();
             }
         }
 
@@ -1418,7 +1423,7 @@ namespace GetBricked.Gameplay
         {
             if (action == BreakoutMainMenuAction.Rogue)
             {
-                StartRogueRun();
+                EnterProgressionPage();
                 return;
             }
 
@@ -3142,7 +3147,7 @@ namespace GetBricked.Gameplay
             if (roundState == RoundState.Progression)
             {
                 uiRenderer.DrawCabinetBackdrop(BuildChromeView("Progression", "Neon Ladder Service", true));
-                uiRenderer.DrawProgressionPage(BuildProgressionPageView(), EnterMainMenu);
+                uiRenderer.DrawProgressionPage(BuildProgressionPageView(), StartRogueRun, EnterMainMenu);
                 return;
             }
 

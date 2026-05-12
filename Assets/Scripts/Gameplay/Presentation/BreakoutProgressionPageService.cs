@@ -112,7 +112,7 @@ namespace GetBricked.Gameplay
                     Color = BreakoutRunProgression.GetRogueIntensityGaugeColor(selectedAvailable),
                 },
                 Cards = BuildCards(loadedPowerUps, selectedHighest, themeService),
-                FooterText = "Esc returns to Mode Select. Scroll drops and glitches; rarity gates live content and placeholder cards.",
+                FooterText = "Start launches Neon Ladder. Esc returns to the menu. Scroll drops and glitches; rarity gates live content and placeholder cards.",
             };
         }
 

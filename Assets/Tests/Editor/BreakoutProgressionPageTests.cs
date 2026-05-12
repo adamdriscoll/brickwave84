@@ -22,12 +22,13 @@ public sealed class BreakoutProgressionPageTests
     }
 
     [Test]
-    public void ProgressionPageShowsTopLevelMenuAction()
+    public void ProgressionPageLaunchesFromNeonLadderInsteadOfTopLevelAction()
     {
         var actions = new BreakoutMainMenuService().BuildActions();
 
         Assert.That(actions[0], Is.EqualTo(BreakoutMainMenuAction.Rogue));
-        Assert.That(actions[1], Is.EqualTo(BreakoutMainMenuAction.Progression));
+        Assert.That(Array.IndexOf(actions, BreakoutMainMenuAction.Progression), Is.EqualTo(-1));
+        Assert.That(actions[1], Is.EqualTo(BreakoutMainMenuAction.SoloMarathon));
     }
 
     [Test]

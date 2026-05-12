@@ -47,6 +47,19 @@ namespace GetBricked.Gameplay
         private Material vectorIconMaterial;
         private BreakoutUiThemePalette palette = new BreakoutUiThemePalette();
 
+        private readonly struct ActionGroupRange
+        {
+            public ActionGroupRange(int startIndex, int count)
+            {
+                StartIndex = startIndex;
+                Count = count;
+            }
+
+            public int StartIndex { get; }
+
+            public int Count { get; }
+        }
+
         public void ConfigureTheme(BreakoutUiThemePalette themePalette)
         {
             palette = themePalette ?? new BreakoutUiThemePalette();
@@ -111,66 +124,39 @@ namespace GetBricked.Gameplay
 
             var boxRect = new Rect((Screen.width - boxWidth) * 0.5f, (Screen.height - boxHeight) * 0.5f, boxWidth, boxHeight);
             var outerPadding = 34f;
-            var contentGap = 24f;
-            var headerTop = boxRect.y + 28f;
-            var contentTop = boxRect.y + 112f;
+            var contentTop = boxRect.y + 32f;
             var hintHeight = 42f;
-            var footerHeight = 54f;
+            var footerHeight = 46f;
             var hintY = boxRect.yMax - hintHeight - 18f;
-            var footerY = hintY - footerHeight - 14f;
-            var contentBottom = footerY - 18f;
-            var contentHeight = Mathf.Max(252f, contentBottom - contentTop);
-            var leftWidth = Mathf.Clamp(boxRect.width * 0.31f, 292f, 328f);
-            var rightWidth = boxRect.width - (outerPadding * 2f) - contentGap - leftWidth;
-            var leftRect = new Rect(boxRect.x + outerPadding, contentTop, leftWidth, contentHeight);
-            var rightRect = new Rect(leftRect.xMax + contentGap, contentTop, rightWidth, contentHeight);
+            var footerY = hintY - footerHeight - 12f;
+            var contentBottom = footerY - 16f;
+            var contentRect = new Rect(
+                boxRect.x + outerPadding,
+                contentTop,
+                boxRect.width - (outerPadding * 2f),
+                Mathf.Max(280f, contentBottom - contentTop));
             DrawPanel(boxRect, palette.AccentSecondary, palette.AccentPrimary, true);
-            DrawPanel(leftRect, palette.AccentSecondary, palette.AccentWarm, false);
-            DrawPanel(rightRect, palette.AccentPrimary, palette.AccentWarm, false);
 
-            DrawTextWithShadow(new Rect(boxRect.x + outerPadding, headerTop, boxRect.width - (outerPadding * 2f), 40f), view.Title, overlayTitleStyle, palette.TextPrimary);
-            DrawTextWithShadow(new Rect(boxRect.x + outerPadding, headerTop + 38f, boxRect.width - (outerPadding * 2f), 36f), view.Subtitle, setupHintStyle, palette.TextMuted, 0.45f);
-            DrawSectionLabel(new Rect(leftRect.x + 18f, leftRect.y + 14f, leftRect.width - 36f, 22f), view.SectionTitle, palette.AccentWarm);
-            DrawSectionLabel(new Rect(rightRect.x + 18f, rightRect.y + 14f, rightRect.width - 36f, 22f), view.PreviewTitle, palette.AccentPrimary);
+            DrawActionGroupRows(
+                view.ActionLabels,
+                view.ActionGroupLabels,
+                view.SelectedActionIndex,
+                contentRect,
+                onActionClicked);
 
-            var actionCount = view.ActionLabels?.Length ?? 0;
-            var actionGroupCount = CountSequentialGroups(view.ActionGroupLabels, actionCount);
-            var actionGroupHeight = 20f;
-            var actionLineHeight = Mathf.Clamp(
-                (leftRect.height - 56f - (actionGroupCount * actionGroupHeight)) / Mathf.Max(1, actionCount),
-                28f,
-                38f);
-            DrawGroupedActionList(view.ActionLabels, view.ActionGroupLabels, view.SelectedActionIndex, leftRect.x + 18f, leftRect.y + 44f, leftRect.width - 36f, actionLineHeight, actionGroupHeight, onActionClicked);
-
-            var previewLineCount = view.PreviewLines?.Length ?? 0;
-            var hasValidationText = !string.IsNullOrWhiteSpace(view.ValidationText);
-            var previewLineSpacing = Mathf.Clamp(
-                (rightRect.height - 76f - (hasValidationText ? 44f : 0f)) / Mathf.Max(1, previewLineCount),
-                22f,
-                34f);
-
-            for (var index = 0; index < previewLineCount; index++)
+            if (!string.IsNullOrWhiteSpace(view.ValidationText))
             {
-                DrawTextWithShadow(
-                    new Rect(rightRect.x + 20f, rightRect.y + 50f + (index * previewLineSpacing), rightRect.width - 40f, previewLineSpacing - 3f),
-                    view.PreviewLines[index],
-                    previewLineSpacing < 29f ? setupHintStyle : hudStyle,
-                    palette.TextPrimary,
-                    0.35f);
+                DrawTextWithShadow(new Rect(boxRect.x + outerPadding, footerY, boxRect.width - (outerPadding * 2f), footerHeight), view.ValidationText, setupHintStyle, palette.TextMuted, 0.35f);
+            }
+            else
+            {
+                DrawTextWithShadow(new Rect(boxRect.x + outerPadding, footerY, boxRect.width - (outerPadding * 2f), footerHeight), view.FooterText, setupHintStyle, palette.TextMuted, 0.35f);
             }
 
-            var validationY = rightRect.y + 54f + (previewLineCount * previewLineSpacing);
-            var validationHeight = Mathf.Max(0f, rightRect.yMax - validationY - 16f);
-            if (hasValidationText && validationHeight > 1f)
-            {
-                DrawTextWithShadow(new Rect(rightRect.x + 18f, validationY, rightRect.width - 36f, validationHeight), view.ValidationText, setupHintStyle, palette.TextMuted, 0.35f);
-            }
-
-            DrawTextWithShadow(new Rect(boxRect.x + outerPadding, footerY, boxRect.width - (outerPadding * 2f), footerHeight), view.FooterText, setupHintStyle, palette.TextMuted, 0.35f);
             DrawHintBand(new Rect(boxRect.x + 28f, hintY, boxRect.width - 56f, hintHeight), view.HintText, draftHintStyle);
         }
 
-        public void DrawProgressionPage(BreakoutUiProgressionView view, Action onBackClicked)
+        public void DrawProgressionPage(BreakoutUiProgressionView view, Action onStartClicked, Action onBackClicked)
         {
             EnsureStyles();
 
@@ -215,7 +201,7 @@ namespace GetBricked.Gameplay
 
             DrawPanel(leftRect, palette.AccentWarm, palette.AccentSecondary, false);
             DrawPanel(rightRect, palette.AccentPrimary, palette.AccentWarm, false);
-            DrawProgressionLadderPanel(leftRect, view);
+            DrawProgressionLadderPanel(leftRect, view, onStartClicked);
             DrawProgressionContentGrid(rightRect, view.Cards);
             DrawHintBand(new Rect(boxRect.x + 28f, boxRect.yMax - footerHeight - 12f, boxRect.width - 56f, footerHeight), view.FooterText, draftHintStyle);
         }
@@ -1274,11 +1260,13 @@ namespace GetBricked.Gameplay
             }
         }
 
-        private void DrawProgressionLadderPanel(Rect rect, BreakoutUiProgressionView view)
+        private void DrawProgressionLadderPanel(Rect rect, BreakoutUiProgressionView view, Action onStartClicked)
         {
             var innerX = rect.x + 18f;
             var width = rect.width - 36f;
             var y = rect.y + 16f;
+            var buttonHeight = 42f;
+            var buttonY = rect.yMax - buttonHeight - 18f;
             DrawSectionLabel(new Rect(innerX, y, width, 20f), view.LadderTitle, palette.AccentWarm);
             y += 32f;
 
@@ -1301,6 +1289,11 @@ namespace GetBricked.Gameplay
 
             DrawSelectionBar(new Rect(innerX, y, width, 36f));
             DrawTextWithShadow(new Rect(innerX + 12f, y + 6f, width - 24f, 24f), view.NextSignal, setupHintStyle, palette.TextPrimary, 0.25f);
+
+            if (DrawArcadeButton(new Rect(innerX, buttonY, Mathf.Min(168f, width), buttonHeight), "Start", true))
+            {
+                onStartClicked?.Invoke();
+            }
         }
 
         private void DrawProgressionContentGrid(Rect rect, BreakoutUiProgressionCardView[] cards)
@@ -1652,6 +1645,82 @@ namespace GetBricked.Gameplay
             return card.Accent;
         }
 
+        private void DrawActionGroupRows(
+            string[] labels,
+            string[] groupLabels,
+            int selectedIndex,
+            Rect rect,
+            Action<int> onActionClicked)
+        {
+            if (labels == null || labels.Length == 0)
+            {
+                return;
+            }
+
+            var groupRanges = BuildSequentialGroupRanges(groupLabels, labels.Length);
+            var groupGap = 18f;
+            var availableHeight = rect.height - (groupGap * Mathf.Max(0, groupRanges.Count - 1));
+            var singleHeight = availableHeight * 0.36f;
+            var multiplayerHeight = availableHeight * 0.28f;
+            var settingsHeight = availableHeight - singleHeight - multiplayerHeight;
+            var currentY = rect.y;
+
+            for (var groupIndex = 0; groupIndex < groupRanges.Count; groupIndex++)
+            {
+                var group = groupRanges[groupIndex];
+                var rowHeight = groupIndex == 0
+                    ? singleHeight
+                    : groupIndex == 1
+                        ? multiplayerHeight
+                        : settingsHeight;
+                var rowRect = new Rect(rect.x, currentY, rect.width, Mathf.Max(94f, rowHeight));
+                DrawActionGroupRow(labels, groupLabels, selectedIndex, group.StartIndex, group.Count, rowRect, onActionClicked);
+                currentY = rowRect.yMax + groupGap;
+            }
+        }
+
+        private void DrawActionGroupRow(
+            string[] labels,
+            string[] groupLabels,
+            int selectedIndex,
+            int startIndex,
+            int count,
+            Rect rect,
+            Action<int> onActionClicked)
+        {
+            var group = groupLabels != null && startIndex < groupLabels.Length
+                ? groupLabels[startIndex] ?? string.Empty
+                : string.Empty;
+            var accent = string.Equals(group, "Settings", StringComparison.Ordinal)
+                ? palette.AccentWarm
+                : string.Equals(group, "Multiplayer", StringComparison.Ordinal)
+                    ? palette.AccentPrimary
+                    : palette.AccentSecondary;
+
+            DrawPanel(rect, accent, palette.AccentPrimary, false);
+            DrawSectionLabel(new Rect(rect.x + 20f, rect.y + 14f, rect.width - 40f, 20f), group, accent);
+
+            var buttonGap = 14f;
+            var buttonY = rect.y + 48f;
+            var buttonHeight = Mathf.Max(38f, rect.yMax - buttonY - 18f);
+            var buttonAreaWidth = rect.width - 40f;
+            var buttonWidth = count == 1
+                ? Mathf.Max(170f, (buttonAreaWidth - (buttonGap * 2f)) / 3f)
+                : (buttonAreaWidth - (buttonGap * (count - 1))) / count;
+
+            for (var offset = 0; offset < count; offset++)
+            {
+                var index = startIndex + offset;
+                var isSelected = index == Mathf.Clamp(selectedIndex, 0, Math.Max(0, labels.Length - 1));
+                var actionRect = new Rect(rect.x + 20f + (offset * (buttonWidth + buttonGap)), buttonY, buttonWidth, buttonHeight);
+
+                if (DrawArcadeButton(actionRect, labels[index], isSelected))
+                {
+                    onActionClicked?.Invoke(index);
+                }
+            }
+        }
+
         private void DrawActionList(string[] labels, int selectedIndex, float x, float y, float width, float lineHeight, Action<int> onActionClicked)
         {
             if (labels == null)
@@ -1873,6 +1942,40 @@ namespace GetBricked.Gameplay
             }
 
             return groupCount;
+        }
+
+        private static List<ActionGroupRange> BuildSequentialGroupRanges(string[] groupLabels, int actionCount)
+        {
+            var ranges = new List<ActionGroupRange>();
+
+            if (actionCount <= 0)
+            {
+                return ranges;
+            }
+
+            var startIndex = 0;
+            var previousGroup = groupLabels != null && groupLabels.Length > 0
+                ? groupLabels[0] ?? string.Empty
+                : string.Empty;
+
+            for (var index = 1; index < actionCount; index++)
+            {
+                var group = groupLabels != null && index < groupLabels.Length
+                    ? groupLabels[index] ?? string.Empty
+                    : string.Empty;
+
+                if (string.Equals(group, previousGroup, StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                ranges.Add(new ActionGroupRange(startIndex, index - startIndex));
+                startIndex = index;
+                previousGroup = group;
+            }
+
+            ranges.Add(new ActionGroupRange(startIndex, actionCount - startIndex));
+            return ranges;
         }
 
         private void DrawSectionLabel(Rect rect, string text, Color accent)
