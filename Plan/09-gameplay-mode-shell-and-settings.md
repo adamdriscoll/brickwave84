@@ -11,6 +11,12 @@ Give the cabinet a stable top-level menu structure before every mode is implemen
 - `Rogue`
   - New primary run style for progression, unlocks, intensities, heat, and long-term arcade goals.
   - See [Chunk 10](./10-rogue-mode-gameplay-plan.md) for the concrete 10-stage run, boss, intensity, and paddle progression plan.
+- `Progression`
+  - Cabinet progress page showing Ladder intensity, paddle unlocks, drop unlocks, glitch unlocks, and which earned content is now available in other modes.
+  - This is a top-level destination, not a run setup option, because players should be able to check unlock goals before choosing a mode.
+- `Neon Marathon`
+  - Long singleplayer score/survival mode that uses the player's currently unlocked drop and glitch pool.
+  - Does not unlock new drops or glitches; progression is earned in Rogue/Neon Ladder.
 - `Custom Game`
   - Current playable seeded/configurable run setup.
   - Owns Tape ID editing, score mode, balls per serve, modifier bias, drop pool, Capsule Party, and theme selection.
@@ -19,14 +25,15 @@ Give the cabinet a stable top-level menu structure before every mode is implemen
 
 - `Dual Sticks`
   - Side-by-side versus action.
-  - Players race to clear their bricks first, with future negative drops and extra bricks sent to the opponent.
+  - Players race to clear their bricks first, using default plus unlocked drops/glitches, with future negative drops and extra bricks sent to the opponent.
   - Placeholder shell for now.
 - `Co-op`
   - Side-by-side cooperative play with two paddles, two balls, and one keyboard.
-  - Similar to Custom Game, but tuned for two local players.
+  - Similar to Custom Game, but tuned for two local players and the shared unlocked content pool.
   - Placeholder shell for now.
 - `Turn-Based`
   - Custom Game-style run where players switch on lives and level transitions.
+  - Uses default plus unlocked content, but does not advance unlock progress.
   - Placeholder shell for now.
 
 ### Settings
@@ -41,6 +48,8 @@ Give the cabinet a stable top-level menu structure before every mode is implemen
 ## Implementation Notes
 
 - Keep `Custom Game` as the current functional gameplay path until `Rogue` has a real meta-progression model.
+- Treat the current authored drops as the default pool. New planned drops and glitches are locked content until earned in Rogue/Neon Ladder.
+- `Neon Marathon` and multiplayer should use default plus unlocked content, but they should not advance unlock progress.
 - Mode placeholders should still have descriptive previews so the menu teaches the intended product shape.
 - Avoid letting multiplayer branch the core controller too early; prefer shared services and mode-specific orchestration once the first social prototype starts.
 - Settings shells should be real menu destinations before sliders exist, so audio and graphics work can land without rearranging the home menu again.

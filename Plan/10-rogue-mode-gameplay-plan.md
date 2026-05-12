@@ -207,6 +207,66 @@ It should not mean:
 | 31-40 | Glitch Grid | Corrupted levels, row rewrites, drop-pool manipulation, harder hazard mixes. |
 | 41-50 | Mainframe Burn | Full content pool, high-risk rewards, elite boss patterns, score-chase pressure. |
 
+### Unlock Progression Contract
+
+Rogue, player-facing as `Neon Ladder`, is the only mode that unlocks new drops and level glitches. `Neon Marathon` and multiplayer modes can use unlocked content, but they should not advance the unlock track themselves.
+
+Default content:
+
+- The current authored drop assets under `Assets/Resources/PowerUps/` are the default drop pool.
+- The current implemented level glitches, `Warp Gates` and `Turbo Rail`, are default glitch archetypes once a mode enables glitches.
+- Default content is always available in `Neon Ladder`, `Neon Marathon`, Custom Game, and multiplayer modes according to each mode's drop/glitch settings.
+
+Unlock content:
+
+- The 50 backlog drops in `Drop Backlog: 50 More Capsules` are new unlockable drops.
+- The 50 backlog glitches in `Level Glitch Backlog: 50 More Stage Corruptions` are new unlockable glitch archetypes.
+- Unlocks are account/profile progress, not per-run temporary rewards.
+- Unlocks become eligible for future `Neon Ladder` runs, `Neon Marathon`, and multiplayer after they are earned in `Neon Ladder`.
+- Custom Game can eventually expose a setting for `Default Only`, `Unlocked Pool`, or `All Content` for testing, but normal progression should treat locked content as unavailable.
+
+Unlock rhythm:
+
+- Completing Ladder stages, boss gates, and intensity milestones should reveal bundles of content rather than isolated items.
+- A bundle should follow the `Content Growth Contract`: usually `2-3 drops`, `1-2 glitches`, and one related upgrade, brick behavior, boss variant, or synergy rule.
+- Early Ladder unlocks should be mostly helpful or readable control tools.
+- Harmful drops and disruptive glitches should arrive after the player has already seen counters, conversions, or rewards that make them interesting.
+- Late intensity unlocks can combine families, but the Progression page must still explain the family and counterplay plainly.
+
+### Progression Page
+
+Add a top-level `Progression` surface that shows unlock progress across paddles, intensities, drops, and glitches. It should feel like a cabinet service screen or neon circuit board, not a shop.
+
+Player questions it should answer:
+
+- What have I unlocked?
+- What is available in Marathon and multiplayer now?
+- What is the next Ladder goal?
+- Which content family am I building toward?
+- Why is a locked item still hidden or teased?
+
+Recommended layout:
+
+| Region | Purpose |
+| --- | --- |
+| Ladder Header | Selected paddle, highest cleared intensity, next intensity, and run completion streak. |
+| Unlock Meter | Total unlocked drops and glitches, grouped as `Default`, `Unlocked`, and `Locked`. |
+| Family Tabs | Control, Precision, Damage, Split, Pickup, Layout, Speed, Paddle Disruption. |
+| Content Grid | Cards for drops and glitches with icon, name, family, unlock state, and mode availability. |
+| Next Signal | A short goal such as `Clear Intensity 08 with Classic Paddle` or `Beat Boss Gate 2`. |
+| Mode Availability | Badges for `Ladder`, `Marathon`, and `Multiplayer` so players see where unlocked content now appears. |
+
+Unlock states:
+
+| State | UI Treatment | Meaning |
+| --- | --- | --- |
+| Default | Bright and labeled `Default` | Current content; always available when the mode allows it. |
+| Unlocked | Neon-lit with family color and mode badges | Earned in Ladder and eligible for other modes. |
+| Seen Locked | Dim silhouette with family and unlock hint | Player is close enough to know the content exists. |
+| Hidden Locked | Unknown slot or static tile | Reserved for later bands, bosses, or surprise content. |
+
+Do not show every locked item immediately. Reveal names by family and intensity band so the page motivates progress without turning the full future content list into homework.
+
 ## Paddle Progression
 
 Paddle types are progression unlocks that change playstyle rather than becoming straight upgrades.
@@ -332,7 +392,7 @@ Every item in the drop and glitch backlogs belongs to one of these families. The
 
 ### Drop Backlog: 50 More Capsules
 
-The current pool has 30 authored drops. Use these as expansion candidates, not all-at-once additions. Early bands should favor readable variants of existing systems; later bands can add new mechanics once pickup polarity, timers, and draft intent are clear.
+The current pool has 30 authored default drops. Everything in this table is a new Ladder unlock candidate, not default content. Use these as expansion candidates, not all-at-once additions. Early bands should favor readable variants of existing systems; later bands can add new mechanics once pickup polarity, timers, and draft intent are clear.
 
 | # | Drop | Lane | Idea |
 | ---: | --- | --- | --- |
@@ -389,7 +449,7 @@ The current pool has 30 authored drops. Use these as expansion candidates, not a
 
 ### Level Glitch Backlog: 50 More Stage Corruptions
 
-The current implemented archetypes are `Warp Gates` and `Turbo Rail`. Future glitches should behave like stage rules with score premiums, clear setup labels, and obvious visual language before the first serve.
+The current implemented default archetypes are `Warp Gates` and `Turbo Rail`. Everything in this table is a new Ladder unlock candidate, not default content. Future glitches should behave like stage rules with score premiums, clear setup labels, and obvious visual language before the first serve.
 
 | # | Glitch | Lane | Idea |
 | ---: | --- | --- | --- |
