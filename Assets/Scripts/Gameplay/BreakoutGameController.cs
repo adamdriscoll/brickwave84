@@ -14,13 +14,9 @@ namespace GetBricked.Gameplay
         private const string BallSpriteResourcePath = "Sprites/ball";
         private const string BrickSpriteResourcePath = "Sprites/brick";
         private const string PaddleSpriteResourcePath = "Sprites/paddle";
-        private const string BossPaddleSpriteResourcePath = "Sprites/paddle-punk";
         private const string PowerUpSpriteResourcePath = "Sprites/powerup";
         private const float LaserShotCooldownSeconds = 0.3f;
         private const float LaserBeamLifetimeSeconds = 0.16f;
-        private const float BossPaddleCollisionSpeedBurstSeconds = 1.8f;
-        private const int PaddlePunkShieldLaneCount = 5;
-        private const float PaddlePunkShieldFadeSeconds = 0.42f;
         private const float ShieldWallYOffset = 0.38f;
         private const float ShieldWallThickness = 0.16f;
         private const float ExplosiveBallMinimumRadius = 1.25f;
@@ -150,7 +146,6 @@ namespace GetBricked.Gameplay
         private readonly List<PowerUpDefinition> loadedPowerUpDefinitions = new List<PowerUpDefinition>();
         private readonly List<BallController> activeBalls = new List<BallController>();
         private readonly List<SpriteRenderer> wallRenderers = new List<SpriteRenderer>();
-        private readonly List<Brick> paddlePunkShieldBricks = new List<Brick>();
         private readonly Dictionary<string, Sprite> runUpgradeSpriteCache = new Dictionary<string, Sprite>(StringComparer.OrdinalIgnoreCase);
         private readonly Dictionary<string, Sprite> powerUpIconSpriteCache = new Dictionary<string, Sprite>(StringComparer.OrdinalIgnoreCase);
         private readonly BreakoutBrickEffectResolver brickEffectResolver = new BreakoutBrickEffectResolver();
@@ -164,7 +159,6 @@ namespace GetBricked.Gameplay
         private Transform pickupsRoot;
         private Transform effectsRoot;
         private Transform glitchesRoot;
-        private Transform bossRoot;
         private PaddleController paddle;
         private Collider2D paddleCollider;
         private SpriteRenderer paddleSpriteRenderer;
@@ -177,7 +171,6 @@ namespace GetBricked.Gameplay
         private Sprite ballSprite;
         private Sprite brickSprite;
         private Sprite paddleSprite;
-        private Sprite bossPaddleSprite;
         private Sprite powerUpSprite;
         private Sprite warpGateRingSprite;
         private Sprite warpGateVortexSprite;
@@ -248,15 +241,9 @@ namespace GetBricked.Gameplay
         private BreakoutShieldWallVisual shieldWallVisual;
         private int shieldWallCharges;
         private float laserShotCooldownTimer;
-        private BreakoutBossGate? activeBossGate;
-        private BreakoutBossGate? pendingBossGate;
-        private BreakoutPaddlePunkBoss activePaddlePunkBoss;
-        private BreakoutBrickosaurusWrecksBoss activeBrickosaurusBoss;
-        private BreakoutMainframeManiacBoss activeMainframeManiacBoss;
         private BreakoutLevelGlitchPlan activeLevelGlitchPlan = BreakoutLevelGlitchPlan.None;
         private BreakoutWarpGateController activeWarpGateController;
         private BreakoutTurboRailSection activeTurboRailSection;
-        private int bossShieldSpawnIndex;
         private bool isDeveloperRunActive;
 
         public Collider2D PaddleCollider => paddleCollider;
@@ -383,7 +370,6 @@ namespace GetBricked.Gameplay
             audioService?.Update(Time.unscaledDeltaTime);
             scoreService?.UpdateFloatingScorePopups(Time.unscaledDeltaTime);
             laserShotCooldownTimer = Mathf.Max(0f, laserShotCooldownTimer - Time.deltaTime);
-            UpdateBossEncounter();
 
             var keyboard = Keyboard.current;
 
@@ -693,28 +679,6 @@ namespace GetBricked.Gameplay
             return false;
         }
 
-        internal bool TryHandleBossPaddleCollision(BallController ball, BreakoutPaddlePunkBoss bossPaddle, Collision2D collision)
-        {
-            if (roundState != RoundState.Playing
-                || ball == null
-                || bossPaddle == null
-                || activeBossGate == null
-                || !bossPaddle.TryBuildCollisionResponse(collision, out var bounceDirection, out var speedBurstMultiplier))
-            {
-                return false;
-            }
-
-            audioService?.PlayBallHitPaddle();
-            ball.ApplyCollisionResponse(bounceDirection, 0.18f);
-
-            if (speedBurstMultiplier > 1.001f)
-            {
-                ball.ApplySpeedBurst(speedBurstMultiplier, BossPaddleCollisionSpeedBurstSeconds);
-            }
-
-            return true;
-        }
-
         private bool IsBallAtShieldWallImpact(BallController ball)
         {
             if (ball == null)
@@ -731,124 +695,6 @@ namespace GetBricked.Gameplay
         private float GetShieldWallBallCenterY()
         {
             return arenaBottom + ShieldWallYOffset + (ShieldWallThickness * 0.5f) + ballRadius + 0.02f;
-        }
-
-        internal bool TryHandleBrickosaurusCollision(BallController ball, BreakoutBrickosaurusPart bossPart, Collision2D collision)
-        {
-            if (roundState != RoundState.Playing
-                || ball == null
-                || bossPart == null
-                || activeBossGate == null
-                || activeBrickosaurusBoss == null)
-            {
-                return false;
-            }
-
-            var result = activeBrickosaurusBoss.TryHandlePartHit(bossPart, ball, collision);
-
-            if (!result.Handled)
-            {
-                return false;
-            }
-
-            ball.ApplyCollisionResponse(result.BounceDirection, 0.16f);
-
-            if (result.SpeedBurstMultiplier > 1.001f)
-            {
-                ball.ApplySpeedBurst(result.SpeedBurstMultiplier, result.SpeedBurstDuration);
-            }
-
-            if (result.Damaged)
-            {
-                ball.RegisterBrickScore();
-                audioService?.PlayBrickHit(null);
-            }
-
-            if (result.LayerDestroyed)
-            {
-                audioService?.PlayBrickDestroyed(null);
-            }
-
-            if (result.ScorePoints > 0)
-            {
-                score += result.ScorePoints;
-                scoreService?.CreateFloatingScorePopup(
-                    bossPart.transform.position,
-                    result.ScorePoints,
-                    "WRECKS",
-                    result.CalloutColor);
-            }
-
-            if (result.LayerDestroyed && !string.IsNullOrWhiteSpace(result.Callout))
-            {
-                powerUpService?.ShowStatusBanner(result.Callout, result.CalloutColor, 1.05f);
-            }
-
-            if (result.Defeated)
-            {
-                EvaluateLevelCompletion();
-            }
-
-            return true;
-        }
-
-        internal bool TryHandleMainframeManiacCollision(BallController ball, BreakoutMainframeManiacNode bossNode, Collision2D collision)
-        {
-            if (roundState != RoundState.Playing
-                || ball == null
-                || bossNode == null
-                || activeBossGate == null
-                || activeMainframeManiacBoss == null)
-            {
-                return false;
-            }
-
-            var result = activeMainframeManiacBoss.TryHandleNodeHit(bossNode, ball, collision);
-
-            if (!result.Handled)
-            {
-                return false;
-            }
-
-            ball.ApplyCollisionResponse(result.BounceDirection, 0.14f);
-
-            if (result.SpeedBurstMultiplier > 1.001f)
-            {
-                ball.ApplySpeedBurst(result.SpeedBurstMultiplier, result.SpeedBurstDuration);
-            }
-
-            if (result.Damaged)
-            {
-                ball.RegisterBrickScore();
-                audioService?.PlayBrickHit(null);
-            }
-
-            if (result.LayerDestroyed)
-            {
-                audioService?.PlayBrickDestroyed(null);
-            }
-
-            if (result.ScorePoints > 0)
-            {
-                score += result.ScorePoints;
-                scoreService?.CreateFloatingScorePopup(
-                    bossNode.transform.position,
-                    result.ScorePoints,
-                    "MAINFRAME",
-                    result.CalloutColor);
-            }
-
-            if (!string.IsNullOrWhiteSpace(result.Callout))
-            {
-                powerUpService?.ShowStatusBanner(result.Callout, result.CalloutColor, result.LayerDestroyed ? 1.15f : 0.82f);
-            }
-
-            if (result.Defeated)
-            {
-                EvaluateLevelCompletion();
-            }
-
-            return true;
         }
 
         public void HandleBallHitPaddle()
@@ -900,32 +746,6 @@ namespace GetBricked.Gameplay
             DestroyRuntimeObject(pickup.gameObject);
         }
 
-        internal void HandleBrickosaurusPowerDownHit(BreakoutBrickosaurusPowerDownProjectile projectile)
-        {
-            if (projectile == null)
-            {
-                return;
-            }
-
-            if (roundState == RoundState.Playing)
-            {
-                var hazard = ResolveBrickosaurusPowerDownDefinition();
-
-                if (hazard != null)
-                {
-                    audioService?.PlayPickupCollected(hazard);
-                    ApplyPowerUp(hazard);
-                }
-                else
-                {
-                    powerUpService?.ShowStatusBanner("BOGUS SHOT!", new Color(1f, 0.18f, 0.32f, 1f), 1.2f);
-                }
-            }
-
-            projectile.gameObject.SetActive(false);
-            DestroyRuntimeObject(projectile.gameObject);
-        }
-
         private void StartNewRun()
         {
             StartNewRun(null, -1, applyDeveloperSelections: false);
@@ -969,7 +789,6 @@ namespace GetBricked.Gameplay
                 ? turnBasedMultiplayerController?.GetCurrentPlayerLevelIndex() ?? 0
                 : developerEncounter?.LevelIndex ?? 0;
             currentLevelVariationLabel = "Variation: pending";
-            pendingBossGate = null;
             shieldWallCharges = 0;
             laserShotCooldownTimer = 0f;
             stickyCaughtBall = null;
@@ -987,17 +806,9 @@ namespace GetBricked.Gameplay
 
             ClearTimedEffects();
             ClearPickups();
-            ClearBossEncounter();
             UpdateShieldWallVisual();
 
-            if (developerEncounter.HasValue && developerEncounter.Value.IsBossGate)
-            {
-                LoadBossGate(developerEncounter.Value.BossGate.Value);
-            }
-            else
-            {
-                LoadLevel(currentLevelIndex, RoundState.ReadyToServe);
-            }
+            LoadLevel(currentLevelIndex, RoundState.ReadyToServe);
 
             Debug.Log(
                 $"Starting {(isDeveloperRunActive ? "Developer " : string.Empty)}{activeRunSettings.GameModeLabel} run | seed {activeRunSettings.Seed} | preset {activeRunSettings.DifficultyLabel} | " +
@@ -1108,12 +919,10 @@ namespace GetBricked.Gameplay
             brickService?.ClearBricks();
             ClearPickups();
             ClearTimedEffects();
-            ClearBossEncounter();
             ClearLevelGlitches();
             StopAllBalls();
             DestroyAdditionalBalls();
             activeBalls.Clear();
-            pendingBossGate = null;
             activeRunState?.ClearPendingDraftOffers();
             selectedUpgradeDraftIndex = 0;
             stickyCaughtBall = null;
@@ -2342,7 +2151,6 @@ namespace GetBricked.Gameplay
 
         private void LoadLevel(int levelIndex, RoundState serveState)
         {
-            ClearBossEncounter();
             brickService?.ClearBricks();
             ClearPickups();
             stickyCaughtBall = null;
@@ -2453,7 +2261,6 @@ namespace GetBricked.Gameplay
             ballSprite = BreakoutRuntimeVisualFactory.LoadSpriteResource(BallSpriteResourcePath, circleSprite);
             brickSprite = BreakoutRuntimeVisualFactory.LoadSpriteResource(BrickSpriteResourcePath, squareSprite);
             paddleSprite = BreakoutRuntimeVisualFactory.LoadSpriteResource(PaddleSpriteResourcePath, squareSprite);
-            bossPaddleSprite = BreakoutRuntimeVisualFactory.LoadSpriteResource(BossPaddleSpriteResourcePath, paddleSprite);
             powerUpSprite = BreakoutRuntimeVisualFactory.LoadSpriteResource(PowerUpSpriteResourcePath, squareSprite);
             spriteUnlitMaterial = BreakoutRuntimeVisualFactory.CreateSpriteUnlitMaterial();
             additiveSpriteMaterial = BreakoutRuntimeVisualFactory.CreateAdditiveSpriteMaterial();
@@ -2521,9 +2328,6 @@ namespace GetBricked.Gameplay
 
             glitchesRoot = new GameObject("Level Glitches").transform;
             glitchesRoot.SetParent(runtimeRoot, false);
-
-            bossRoot = new GameObject("Bosses").transform;
-            bossRoot.SetParent(runtimeRoot, false);
         }
 
         private void CreateAudioService()
@@ -2899,408 +2703,6 @@ namespace GetBricked.Gameplay
             return new Vector2(0.22f, Mathf.Lerp(1.7f, 2.85f, spec.NormalizedLength));
         }
 
-        private void LoadBossGate(BreakoutBossGate bossGate)
-        {
-            ClearBossEncounter();
-            brickService?.ClearBricks();
-            ClearPickups();
-            stickyCaughtBall = null;
-            ClearTimedEffects();
-            ClearLevelGlitches();
-            scoreService?.ResetComboTracking(clearPopups: true);
-
-            activeBossGate = bossGate;
-            pendingBossGate = null;
-            bossShieldSpawnIndex = 0;
-            currentLevelIndex = bossGate.TriggerLevelIndex;
-            currentLevel = ResolveLevelTemplate(currentLevelIndex);
-            currentLevelDisplayName = bossGate.DisplayName;
-            currentLevelVariationLabel = bossGate.BossType switch
-            {
-                BreakoutBossGateType.BrickosaurusWrecks => $"Boss Gate: {bossGate.HudLabel} | Strip the shield, scales, and core from the snake.",
-                BreakoutBossGateType.MainframeManiac => $"Boss Gate: {bossGate.HudLabel} | Break data banks, then crash the core.",
-                _ => $"Boss Gate: {bossGate.HudLabel} | Break the weak points behind the rail.",
-            };
-
-            UpdateBackgroundVisuals();
-            audioService?.PlayBossMusic(bossGate.BossType);
-            ApplyBossGateTuning(bossGate);
-            if (bossGate.BossType == BreakoutBossGateType.BrickosaurusWrecks)
-            {
-                BuildBrickosaurusWrecksBossGate(bossGate);
-            }
-            else if (bossGate.BossType == BreakoutBossGateType.MainframeManiac)
-            {
-                BuildMainframeManiacBossGate(bossGate);
-            }
-            else
-            {
-                BuildPaddlePunkBossGate(bossGate);
-            }
-
-            PrepareServe(RoundState.ReadyToServe);
-
-            powerUpService?.ShowStatusBanner(bossGate.HudLabel, new Color(1f, 0.18f, 0.23f, 1f), 2.4f);
-        }
-
-        private void ApplyBossGateTuning(BreakoutBossGate bossGate)
-        {
-            var persistentModifiers = GetPersistentRunUpgradeModifiers();
-            currentLevelPaddleSpeed = paddleSpeed * Mathf.Lerp(1f, 1.08f, Mathf.Clamp01(bossGate.GateIndex / 2f));
-            currentLevelBallSpeed = ballSpeed
-                * (activeRunSettings?.BallSpeedMultiplier ?? 1f)
-                * GetModeBallSpeedMultiplier()
-                * BreakoutRunProgression.GetBossGateBallSpeedMultiplier(bossGate)
-                * persistentModifiers.BallSpeedMultiplier;
-            ApplyActiveEffects();
-        }
-
-        private void BuildPaddlePunkBossGate(BreakoutBossGate bossGate)
-        {
-            if (brickService == null)
-            {
-                requiredBricksRemaining = 0;
-                return;
-            }
-
-            requiredBricksRemaining = 0;
-            var weakPointDefinition = FindBrickDefinition("Tiny Brick") ?? FindBreakableBrickDefinition();
-            var shieldDefinition = FindBrickDefinition("Steel Brick");
-            var weakPointCount = Mathf.Clamp(4 + bossGate.GateIndex, 4, 6);
-            var weakPointSpacing = Mathf.Min(1.18f, (arenaRight - arenaLeft - 1.5f) / Mathf.Max(1, weakPointCount - 1));
-            var weakPointStartX = -weakPointSpacing * (weakPointCount - 1) * 0.5f;
-            var weakPointY = arenaTop - 0.52f;
-
-            for (var index = 0; index < weakPointCount; index++)
-            {
-                var position = new Vector2(weakPointStartX + (index * weakPointSpacing), weakPointY);
-                var brick = brickService.CreateBrick(position, weakPointDefinition, 0, index, default);
-
-                if (brick != null && brick.CountsTowardLevelCompletion)
-                {
-                    requiredBricksRemaining++;
-                }
-            }
-
-            if (shieldDefinition != null)
-            {
-                var shieldY = arenaTop - 1.92f;
-                var shieldOffset = 2.65f + (bossGate.GateIndex * 0.28f);
-                RegisterPaddlePunkShieldBrick(brickService.CreateBrick(new Vector2(-shieldOffset, shieldY), shieldDefinition, 1, 0, default));
-                RegisterPaddlePunkShieldBrick(brickService.CreateBrick(new Vector2(shieldOffset, shieldY), shieldDefinition, 1, 1, default));
-            }
-
-            CreatePaddlePunkBossActor(bossGate);
-        }
-
-        private void BuildBrickosaurusWrecksBossGate(BreakoutBossGate bossGate)
-        {
-            brickService?.ClearBricks();
-            requiredBricksRemaining = 0;
-            CreateBrickosaurusWrecksBossActor(bossGate);
-        }
-
-        private void BuildMainframeManiacBossGate(BreakoutBossGate bossGate)
-        {
-            brickService?.ClearBricks();
-            requiredBricksRemaining = 0;
-            CreateMainframeManiacBossActor(bossGate);
-        }
-
-        private void CreateBrickosaurusWrecksBossActor(BreakoutBossGate bossGate)
-        {
-            var bossObject = new GameObject("Brickosaurus Wrecks");
-            bossObject.transform.SetParent(bossRoot != null ? bossRoot : runtimeRoot, false);
-            bossObject.transform.position = Vector3.zero;
-
-            activeBrickosaurusBoss = bossObject.AddComponent<BreakoutBrickosaurusWrecksBoss>();
-            activeBrickosaurusBoss.Configure(
-                this,
-                bossRoot != null ? bossRoot : runtimeRoot,
-                circleSprite,
-                circleSprite,
-                triangleSprite,
-                powerUpSprite,
-                spriteUnlitMaterial,
-                additiveSpriteMaterial,
-                bounceMaterial,
-                Rect.MinMaxRect(arenaLeft, arenaBottom, arenaRight, arenaTop),
-                brickSize,
-                bossGate.GateIndex,
-                NextGameplayRandomFloat);
-        }
-
-        private void CreateMainframeManiacBossActor(BreakoutBossGate bossGate)
-        {
-            var bossObject = new GameObject("Mainframe Maniac");
-            bossObject.transform.SetParent(bossRoot != null ? bossRoot : runtimeRoot, false);
-            bossObject.transform.position = Vector3.zero;
-
-            activeMainframeManiacBoss = bossObject.AddComponent<BreakoutMainframeManiacBoss>();
-            activeMainframeManiacBoss.Configure(
-                this,
-                bossRoot != null ? bossRoot : runtimeRoot,
-                squareSprite,
-                circleSprite,
-                powerUpSprite,
-                spriteUnlitMaterial,
-                additiveSpriteMaterial,
-                bounceMaterial,
-                Rect.MinMaxRect(arenaLeft, arenaBottom, arenaRight, arenaTop),
-                brickSize,
-                bossGate.GateIndex,
-                NextGameplayRandomFloat);
-        }
-
-        private void CreatePaddlePunkBossActor(BreakoutBossGate bossGate)
-        {
-            var bossObject = new GameObject("The Paddle Punk");
-            bossObject.transform.SetParent(bossRoot != null ? bossRoot : runtimeRoot, false);
-            bossObject.transform.localScale = new Vector3(paddleSize.x * 1.12f, paddleSize.y * 0.82f, 1f);
-            bossObject.transform.position = new Vector2(0f, arenaTop - 1.42f);
-
-            var visualObject = new GameObject("Visual");
-            visualObject.transform.SetParent(bossObject.transform, false);
-
-            var spriteRenderer = visualObject.AddComponent<SpriteRenderer>();
-            spriteRenderer.sprite = bossPaddleSprite != null ? bossPaddleSprite : paddleSprite;
-            spriteRenderer.color = Color.white;
-            spriteRenderer.sortingOrder = 11;
-            spriteRenderer.sharedMaterial = spriteUnlitMaterial;
-            BreakoutSpriteRendererUtility.NormalizeScale(spriteRenderer);
-
-            var collider = bossObject.AddComponent<BoxCollider2D>();
-            collider.sharedMaterial = bounceMaterial;
-
-            var body = bossObject.AddComponent<Rigidbody2D>();
-            body.bodyType = RigidbodyType2D.Kinematic;
-            body.gravityScale = 0f;
-            body.interpolation = RigidbodyInterpolation2D.Interpolate;
-            body.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
-
-            activePaddlePunkBoss = bossObject.AddComponent<BreakoutPaddlePunkBoss>();
-            activePaddlePunkBoss.Configure(
-                bossGate.GateIndex,
-                arenaLeft,
-                arenaRight,
-                bossObject.transform.localScale.x * 0.5f,
-                paddleSpeed * (0.72f + (bossGate.GateIndex * 0.08f)),
-                ResolveBossTargetBallPosition,
-                NextGameplayRandomFloat);
-        }
-
-        private void UpdateBossEncounter()
-        {
-            if (roundState != RoundState.Playing
-                || activeBossGate == null
-                || activePaddlePunkBoss == null
-                || !activePaddlePunkBoss.TryConsumeShieldSpawnRequest())
-            {
-                return;
-            }
-
-            ShufflePaddlePunkShieldBrick(activeBossGate.Value);
-        }
-
-        private void ShufflePaddlePunkShieldBrick(BreakoutBossGate bossGate)
-        {
-            var shieldDefinition = FindBrickDefinition("Steel Brick");
-
-            if (brickService == null || shieldDefinition == null)
-            {
-                return;
-            }
-
-            PrunePaddlePunkShieldBricks();
-
-            var laneIndex = ResolveNextPaddlePunkShieldLane(bossGate);
-
-            if (paddlePunkShieldBricks.Count > 0)
-            {
-                var departingBrick = paddlePunkShieldBricks[0];
-                paddlePunkShieldBricks.RemoveAt(0);
-                FadeOutAndRemovePaddlePunkShieldBrick(departingBrick);
-            }
-
-            bossShieldSpawnIndex++;
-            var position = ResolvePaddlePunkShieldPosition(laneIndex, bossGate);
-            var arrivingBrick = brickService.CreateBrick(position, shieldDefinition, 2, bossShieldSpawnIndex, default);
-            RegisterPaddlePunkShieldBrick(arrivingBrick);
-            FadeInPaddlePunkShieldBrick(arrivingBrick);
-        }
-
-        private void RegisterPaddlePunkShieldBrick(Brick brick)
-        {
-            if (brick == null)
-            {
-                return;
-            }
-
-            paddlePunkShieldBricks.Add(brick);
-        }
-
-        private void PrunePaddlePunkShieldBricks()
-        {
-            for (var index = paddlePunkShieldBricks.Count - 1; index >= 0; index--)
-            {
-                if (paddlePunkShieldBricks[index] == null)
-                {
-                    paddlePunkShieldBricks.RemoveAt(index);
-                }
-            }
-        }
-
-        private int ResolveNextPaddlePunkShieldLane(BreakoutBossGate bossGate)
-        {
-            for (var attempt = 0; attempt < PaddlePunkShieldLaneCount; attempt++)
-            {
-                var laneIndex = (bossShieldSpawnIndex + bossGate.GateIndex + attempt) % PaddlePunkShieldLaneCount;
-                var lanePosition = ResolvePaddlePunkShieldPosition(laneIndex, bossGate);
-
-                if (!HasPaddlePunkShieldNear(lanePosition))
-                {
-                    return laneIndex;
-                }
-            }
-
-            return (bossShieldSpawnIndex + bossGate.GateIndex) % PaddlePunkShieldLaneCount;
-        }
-
-        private Vector2 ResolvePaddlePunkShieldPosition(int laneIndex, BreakoutBossGate bossGate)
-        {
-            var normalizedLane = PaddlePunkShieldLaneCount <= 1 ? 0.5f : laneIndex / (float)(PaddlePunkShieldLaneCount - 1);
-            var x = Mathf.Lerp(arenaLeft + 1.1f, arenaRight - 1.1f, normalizedLane);
-            var y = arenaTop - Mathf.Lerp(1.78f, 2.28f, bossGate.GateIndex / 2f);
-            return new Vector2(x, y);
-        }
-
-        private bool HasPaddlePunkShieldNear(Vector2 position)
-        {
-            for (var index = 0; index < paddlePunkShieldBricks.Count; index++)
-            {
-                var brick = paddlePunkShieldBricks[index];
-
-                if (brick != null && ((Vector2)brick.transform.position - position).sqrMagnitude < 0.16f)
-                {
-                    return true;
-                }
-            }
-
-            return false;
-        }
-
-        private void FadeInPaddlePunkShieldBrick(Brick brick)
-        {
-            if (brick == null)
-            {
-                return;
-            }
-
-            var fadeAnimator = brick.GetComponent<BreakoutBrickFadeAnimator>() ?? brick.gameObject.AddComponent<BreakoutBrickFadeAnimator>();
-            fadeAnimator.PlayFadeIn(PaddlePunkShieldFadeSeconds);
-        }
-
-        private void FadeOutAndRemovePaddlePunkShieldBrick(Brick brick)
-        {
-            if (brick == null)
-            {
-                return;
-            }
-
-            var fadeAnimator = brick.GetComponent<BreakoutBrickFadeAnimator>() ?? brick.gameObject.AddComponent<BreakoutBrickFadeAnimator>();
-            fadeAnimator.PlayFadeOut(PaddlePunkShieldFadeSeconds, RemoveFadedPaddlePunkShieldBrick);
-        }
-
-        private void RemoveFadedPaddlePunkShieldBrick(Brick brick)
-        {
-            if (brick == null || brickService == null || !brickService.RemoveBrick(brick))
-            {
-                return;
-            }
-
-            brickService.DisableAndDestroyBrick(brick);
-        }
-
-        private Vector2? ResolveBossTargetBallPosition()
-        {
-            BallController bestBall = null;
-            var bestY = float.NegativeInfinity;
-
-            for (var index = activeBalls.Count - 1; index >= 0; index--)
-            {
-                var candidate = activeBalls[index];
-
-                if (candidate == null)
-                {
-                    activeBalls.RemoveAt(index);
-                    continue;
-                }
-
-                if (candidate.transform.position.y > bestY)
-                {
-                    bestY = candidate.transform.position.y;
-                    bestBall = candidate;
-                }
-            }
-
-            if (bestBall != null)
-            {
-                return bestBall.transform.position;
-            }
-
-            return serveBall != null ? serveBall.transform.position : null;
-        }
-
-        private BrickDefinition FindBrickDefinition(string displayName)
-        {
-            for (var index = 0; index < loadedBrickDefinitions.Count; index++)
-            {
-                var definition = loadedBrickDefinitions[index];
-
-                if (definition != null && string.Equals(definition.DisplayName, displayName, StringComparison.OrdinalIgnoreCase))
-                {
-                    return definition;
-                }
-            }
-
-            return null;
-        }
-
-        private BrickDefinition FindBreakableBrickDefinition()
-        {
-            for (var index = 0; index < loadedBrickDefinitions.Count; index++)
-            {
-                var definition = loadedBrickDefinitions[index];
-
-                if (definition != null && definition.IsBreakable)
-                {
-                    return definition;
-                }
-            }
-
-            return loadedBrickDefinitions.Count > 0 ? loadedBrickDefinitions[0] : null;
-        }
-
-        private void ClearBossEncounter()
-        {
-            activeBossGate = null;
-            activePaddlePunkBoss = null;
-            activeBrickosaurusBoss = null;
-            activeMainframeManiacBoss = null;
-            bossShieldSpawnIndex = 0;
-            paddlePunkShieldBricks.Clear();
-
-            if (bossRoot == null)
-            {
-                return;
-            }
-
-            for (var index = bossRoot.childCount - 1; index >= 0; index--)
-            {
-                DestroyRuntimeObject(bossRoot.GetChild(index).gameObject);
-            }
-        }
-
         private LevelDefinition ResolveLevelTemplate(int levelIndex)
         {
             if (loadedLevels.Count == 0 || levelIndex < 0)
@@ -3320,23 +2722,8 @@ namespace GetBricked.Gameplay
 
             var levelCleared = brickService != null && !brickService.HasBreakableBricksRemaining();
 
-            if (activeBossGate.HasValue && activeBrickosaurusBoss != null)
-            {
-                levelCleared = activeBrickosaurusBoss.IsDefeated;
-            }
-            else if (activeBossGate.HasValue && activeMainframeManiacBoss != null)
-            {
-                levelCleared = activeMainframeManiacBoss.IsDefeated;
-            }
-
             if (!levelCleared)
             {
-                return;
-            }
-
-            if (activeBossGate.HasValue)
-            {
-                CompleteBossGate(activeBossGate.Value);
                 return;
             }
 
@@ -3360,35 +2747,6 @@ namespace GetBricked.Gameplay
             roundState = RoundState.LevelComplete;
             selectedOverlayActionIndex = 0;
             RecordRogueRunResult(completed: !HasNextLevel());
-        }
-
-        private void CompleteBossGate(BreakoutBossGate bossGate)
-        {
-            SetSimulationPaused(false);
-            ClearPickups();
-            StopAllBalls();
-            stickyCaughtBall = null;
-            audioService?.PlayLevelComplete();
-            powerUpService?.ShowStatusBanner(
-                bossGate.BossType switch
-                {
-                    BreakoutBossGateType.BrickosaurusWrecks => "WRECKED!",
-                    BreakoutBossGateType.MainframeManiac => "FATAL ERROR!",
-                    _ => "PUNK WIPED!",
-                },
-                new Color(1f, 0.18f, 0.23f, 1f),
-                2.2f);
-            ClearBossEncounter();
-
-            if (bossGate.TriggerLevelIndex >= BreakoutRunProgression.TargetLevelCount - 1)
-            {
-                roundState = RoundState.LevelComplete;
-                selectedOverlayActionIndex = 0;
-                RecordRogueRunResult(completed: true);
-                return;
-            }
-
-            LoadLevel(bossGate.TriggerLevelIndex + 1, RoundState.ReadyToServe);
         }
 
         private bool HasNextLevel()
@@ -4028,7 +3386,7 @@ namespace GetBricked.Gameplay
                 },
                 SelectedFieldIndex = (int)selectedDeveloperLaunchField,
                 PreviewLine = $"Preview: {FormatDeveloperEncounterLabel(encounter)} | {selectedPaddle.DisplayName} | Heat {developerLaunchState.Intensity:00} | Balls {developerLaunchState.LivesRemaining:00} | Paddle x{selectedPaddle.WidthMultiplier:0.00} speed x{selectedPaddle.SpeedMultiplier:0.00} | Build {developerLaunchState.SelectedUpgradeCount:00} upgrades, {developerLaunchState.SelectedDropUnlockCount:00} drops | Theme {ResolvePendingThemeDefinition()?.DisplayName ?? "Fallback"}",
-                ValidationText = "Encounter cycles through Stage 01-10, then Boss Gate 1-3. Dev runs do not update the saved Neon Ladder result.",
+                ValidationText = "Encounter cycles through Stage 01-10. Dev runs do not update the saved Neon Ladder result.",
                 HintText = "Up/Down selects. Left/Right changes. T toggles build picks. N clears build. Esc returns to menu. Space launches.",
             };
         }
@@ -4179,9 +3537,7 @@ namespace GetBricked.Gameplay
             return new BreakoutUiUpgradeDraftView
             {
                 Title = "Reward Draft",
-                Subtitle = pendingBossGate.HasValue
-                    ? $"Level {currentLevelIndex + 1:00} cleared. Choose one reward before {pendingBossGate.Value.HudLabel}."
-                    : $"Level {currentLevelIndex + 1:00} cleared. Choose one reward for the rest of this run.",
+                Subtitle = $"Level {currentLevelIndex + 1:00} cleared. Choose one reward for the rest of this run.",
                 BuildLine = BuildUpgradeSummaryLabel(4),
                 Options = optionViews,
                 SelectedOptionIndex = Mathf.Clamp(selectedUpgradeDraftIndex, 0, optionViews.Length - 1),
@@ -4495,11 +3851,6 @@ namespace GetBricked.Gameplay
 
         private string BuildLevelLabel()
         {
-            if (activeBossGate.HasValue)
-            {
-                return activeBossGate.Value.DisplayName;
-            }
-
             return currentLevel == null
                 ? "No levels loaded"
                 : $"Level {currentLevelIndex + 1:00} - {currentLevelDisplayName}";
@@ -4580,30 +3931,7 @@ namespace GetBricked.Gameplay
                 return "Remaining Bricks --";
             }
 
-            if (!activeBossGate.HasValue)
-            {
-                return $"Remaining Bricks {requiredBricksRemaining:00}";
-            }
-
-            if (activeBrickosaurusBoss != null)
-            {
-                var bodyCount = activeBrickosaurusBoss.ConnectedBodySegmentCount;
-                var headLabel = activeBrickosaurusBoss.IsHeadVulnerable
-                    ? $"HEAD {activeBrickosaurusBoss.HeadHitsRemaining:0}"
-                    : $"BODY {bodyCount:00}";
-                return $"{headLabel} | {activeBrickosaurusBoss.PhaseLabel}";
-            }
-
-            if (activeMainframeManiacBoss != null)
-            {
-                var coreLabel = activeMainframeManiacBoss.IsCoreVulnerable
-                    ? $"CORE {activeMainframeManiacBoss.CoreHitsRemaining:0}"
-                    : $"DATA {activeMainframeManiacBoss.DataBanksRemaining:00}";
-                return $"{coreLabel} | {activeMainframeManiacBoss.PhaseLabel}";
-            }
-
-            var phaseLabel = activePaddlePunkBoss != null ? activePaddlePunkBoss.PhaseLabel : activeBossGate.Value.HudLabel;
-            return $"Wall Core {requiredBricksRemaining:00} | {phaseLabel}";
+            return $"Remaining Bricks {requiredBricksRemaining:00}";
         }
 
         private string BuildGameplayStatusLine()
@@ -4930,9 +4258,7 @@ namespace GetBricked.Gameplay
 
         private static string FormatDeveloperEncounterLabel(BreakoutDeveloperEncounter encounter)
         {
-            return encounter.IsBossGate
-                ? $"[BOSS] {encounter.DisplayName}"
-                : $"[STAGE] {encounter.DisplayName}";
+            return $"[STAGE] {encounter.DisplayName}";
         }
 
         private static string FormatDeveloperUpgradeLabel(RunUpgradeDefinition upgrade)
@@ -4979,63 +4305,6 @@ namespace GetBricked.Gameplay
             }
 
             ApplyVisualEffectState();
-        }
-
-        private PowerUpDefinition ResolveBrickosaurusPowerDownDefinition()
-        {
-            var hazardCount = 0;
-
-            for (var index = 0; index < loadedPowerUpDefinitions.Count; index++)
-            {
-                var definition = loadedPowerUpDefinitions[index];
-
-                if (IsBrickosaurusPowerDownCandidate(definition))
-                {
-                    hazardCount++;
-                }
-            }
-
-            if (hazardCount == 0)
-            {
-                return null;
-            }
-
-            var selectedHazardIndex = Mathf.FloorToInt(NextGameplayRandomFloat(0f, hazardCount));
-            selectedHazardIndex = Mathf.Clamp(selectedHazardIndex, 0, hazardCount - 1);
-            var seenHazards = 0;
-
-            for (var index = 0; index < loadedPowerUpDefinitions.Count; index++)
-            {
-                var definition = loadedPowerUpDefinitions[index];
-
-                if (!IsBrickosaurusPowerDownCandidate(definition))
-                {
-                    continue;
-                }
-
-                if (seenHazards == selectedHazardIndex)
-                {
-                    return definition;
-                }
-
-                seenHazards++;
-            }
-
-            return null;
-        }
-
-        private static bool IsBrickosaurusPowerDownCandidate(PowerUpDefinition definition)
-        {
-            if (definition == null || definition.IsBeneficial)
-            {
-                return false;
-            }
-
-            return definition.EffectType == PowerUpEffectType.BallSpeedMultiplier
-                || definition.EffectType == PowerUpEffectType.WavyPaddle
-                || definition.EffectType == PowerUpEffectType.ReverseControls
-                || definition.EffectType == PowerUpEffectType.GravityWell
-                || definition.EffectType == PowerUpEffectType.LagSpike;
         }
 
         private void ApplyPowerUp(PowerUpDefinition powerUpDefinition)
@@ -5326,7 +4595,6 @@ namespace GetBricked.Gameplay
         {
             if (turnBasedMultiplayerController == null
                 || currentLevel == null
-                || activeBossGate.HasValue
                 || reason == BreakoutTurnSwitchReason.LevelCleared)
             {
                 return;
@@ -5539,12 +4807,6 @@ namespace GetBricked.Gameplay
 
             ApplyActiveEffects();
             ShowRunDraftRewardBanner(appliedOffer);
-
-            if (pendingBossGate.HasValue)
-            {
-                LoadBossGate(pendingBossGate.Value);
-                return;
-            }
 
             if (HasNextLevel())
             {

@@ -17,7 +17,7 @@ Three loopable background tracks for an 1980s retro arcade / synthwave Breakout-
    - Usage: standard gameplay loop
 
 3. `03_chrome_sunset_overdrive_loop_124bpm.wav`
-   - Vibe: late-game, hard levels, boss/challenge mode
+   - Vibe: late-game, hard levels, challenge mode
    - Tempo: 124 BPM
    - Loop length: 16 bars
    - Usage: special levels, high score chase, intense runs

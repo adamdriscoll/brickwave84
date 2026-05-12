@@ -439,27 +439,6 @@ namespace GetBricked.Gameplay
 
             RegisterHotPotatoHit();
 
-            if (collision.collider.TryGetComponent<BreakoutBrickosaurusPart>(out var brickosaurusPart)
-                && gameController != null
-                && gameController.TryHandleBrickosaurusCollision(this, brickosaurusPart, collision))
-            {
-                return;
-            }
-
-            if (collision.collider.TryGetComponent<BreakoutMainframeManiacNode>(out var mainframeNode)
-                && gameController != null
-                && gameController.TryHandleMainframeManiacCollision(this, mainframeNode, collision))
-            {
-                return;
-            }
-
-            if (collision.collider.TryGetComponent<BreakoutPaddlePunkBoss>(out var bossPaddle)
-                && gameController != null
-                && gameController.TryHandleBossPaddleCollision(this, bossPaddle, collision))
-            {
-                return;
-            }
-
             if (collision.collider.TryGetComponent<BreakoutShieldWallVisual>(out _)
                 && gameController != null
                 && gameController.TryRescueBallWithShield(this, false))

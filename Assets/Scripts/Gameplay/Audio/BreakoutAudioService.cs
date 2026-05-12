@@ -8,9 +8,6 @@ namespace GetBricked.Gameplay
         Menu,
         Gameplay,
         Intense,
-        PaddlePunkBoss,
-        BrickosaurusBoss,
-        MainframeManiacBoss,
     }
 
     internal sealed class BreakoutAudioService
@@ -26,9 +23,6 @@ namespace GetBricked.Gameplay
         private readonly AudioClip menuMusic;
         private readonly AudioClip gameplayMusic;
         private readonly AudioClip intenseMusic;
-        private readonly AudioClip paddlePunkBossMusic;
-        private readonly AudioClip brickosaurusBossMusic;
-        private readonly AudioClip mainframeManiacBossMusic;
         private readonly AudioClip ballHitPaddle;
         private readonly AudioClip ballHitWall;
         private readonly AudioClip ballHitBrick;
@@ -66,9 +60,6 @@ namespace GetBricked.Gameplay
             menuMusic = LoadClip("01_neon_grid_cruise_loop_96bpm");
             gameplayMusic = LoadClip("02_brick_blaster_drive_loop_112bpm");
             intenseMusic = LoadClip("03_chrome_sunset_overdrive_loop_124bpm");
-            paddlePunkBossMusic = LoadClip("Paddle_Punk_Riot");
-            brickosaurusBossMusic = LoadClip("Brickasourus_Prehistoric_Demolition");
-            mainframeManiacBossMusic = LoadClip("Mainframe_Maniac_Fatal_Error_Fever");
             ballHitPaddle = LoadClip("ball_hit_paddle_neon_boop");
             ballHitWall = LoadClip("ball_hit_wall_laser_ping");
             ballHitBrick = LoadClip("ball_hit_brick_pixel_thunk");
@@ -116,9 +107,6 @@ namespace GetBricked.Gameplay
             {
                 BreakoutMusicTrack.Gameplay => gameplayMusic,
                 BreakoutMusicTrack.Intense => intenseMusic,
-                BreakoutMusicTrack.PaddlePunkBoss => paddlePunkBossMusic != null ? paddlePunkBossMusic : intenseMusic,
-                BreakoutMusicTrack.BrickosaurusBoss => brickosaurusBossMusic != null ? brickosaurusBossMusic : intenseMusic,
-                BreakoutMusicTrack.MainframeManiacBoss => mainframeManiacBossMusic != null ? mainframeManiacBossMusic : intenseMusic,
                 _ => menuMusic,
             };
 
@@ -137,17 +125,6 @@ namespace GetBricked.Gameplay
             musicSource.pitch = 1f;
             musicSource.volume = MusicVolume;
             musicSource.Play();
-        }
-
-        public void PlayBossMusic(BreakoutBossGateType bossType)
-        {
-            var track = bossType switch
-            {
-                BreakoutBossGateType.BrickosaurusWrecks => BreakoutMusicTrack.BrickosaurusBoss,
-                BreakoutBossGateType.MainframeManiac => BreakoutMusicTrack.MainframeManiacBoss,
-                _ => BreakoutMusicTrack.PaddlePunkBoss,
-            };
-            PlayMusic(track);
         }
 
         public void PlayBallHitPaddle()

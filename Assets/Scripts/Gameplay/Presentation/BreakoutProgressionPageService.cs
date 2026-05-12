@@ -96,7 +96,7 @@ namespace GetBricked.Gameplay
                     $"Paddle: {selectedPaddle.DisplayName}",
                     $"Highest Clear: Heat {selectedHighest:00}/{BreakoutRunProgression.MaxRogueIntensity:00}",
                     $"Next Goal: {BuildNextGoalLine(selectedPaddle.DisplayName, selectedAvailable, selectedBestStage)}",
-                    "Boss Gates: Stage 03, Stage 06, Stage 10",
+                    $"Ladder: {BreakoutRunProgression.TargetLevelCount:00} stages",
                 },
                 MeterLines = new[]
                 {
@@ -149,8 +149,8 @@ namespace GetBricked.Gameplay
             cards.Add(BuildDefaultGlitchCard("Turbo Rail", "Speed", "A hot wall rail accelerates rebounds.", SplitAccent));
             AppendPlaceholderCards(cards, PlaceholderDrops, highestCompletedIntensity);
             AppendPlaceholderCards(cards, PlaceholderGlitches, highestCompletedIntensity);
-            cards.Add(BuildHiddenSlotCard("Future Drop Slot", "Drop", "Hidden", "Reserved for later Ladder bands, bosses, or bundle work."));
-            cards.Add(BuildHiddenSlotCard("Future Glitch Slot", "Glitch", "Hidden", "Reserved for later Ladder bands, bosses, or surprise content."));
+            cards.Add(BuildHiddenSlotCard("Future Drop Slot", "Drop", "Hidden", "Reserved for later Ladder bands or bundle work."));
+            cards.Add(BuildHiddenSlotCard("Future Glitch Slot", "Glitch", "Hidden", "Reserved for later Ladder bands or surprise content."));
             return cards.ToArray();
         }
 

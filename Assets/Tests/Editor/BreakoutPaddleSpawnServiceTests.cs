@@ -6,7 +6,7 @@ namespace GetBricked.Gameplay.Tests
     public sealed class BreakoutPaddleSpawnServiceTests
     {
         [Test]
-        public void PaddleRendersAboveBossActors()
+        public void PaddleRendersAboveGameplayActors()
         {
             var root = new GameObject("Paddle Test Root").transform;
             var sprite = CreateSprite();

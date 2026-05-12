@@ -276,7 +276,7 @@ namespace GetBricked.Gameplay
                 case BreakoutMainMenuAction.DeveloperMode:
                     return new[]
                     {
-                        "Jump directly into Neon Ladder stages or boss test gates.",
+                        "Jump directly into Neon Ladder stages.",
                         "Pick paddle, lives, run upgrades, and drop unlocks before launch.",
                         "For local tuning only. No progression result is protected here yet.",
                         "Status: active debug bench.",
@@ -309,7 +309,7 @@ namespace GetBricked.Gameplay
                 BreakoutMainMenuAction.SoundSettings => "Sound controls are staged here for mixer work.",
                 BreakoutMainMenuAction.GraphicsSettings => "Graphics controls are staged here for display, glow, and readability options.",
                 BreakoutMainMenuAction.TurnBased => "Hot Seat opens player count, mode, and heat setup before the match starts.",
-                BreakoutMainMenuAction.DeveloperMode => "Developer Mode opens the local jump bench for stages, boss test gates, and tuning.",
+                BreakoutMainMenuAction.DeveloperMode => "Developer Mode opens the local jump bench for stages and tuning.",
                 _ => "This cabinet channel is staged for later.",
             };
         }

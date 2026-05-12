@@ -20,4 +20,4 @@ A short synthwave “stage clear” flourish for when the final brick is cleared
 
 - A shorter “perfect clear” sting.
 - A darker “level failed” sting.
-- A longer boss / final-stage clear fanfare.
+- A longer final-stage clear fanfare.

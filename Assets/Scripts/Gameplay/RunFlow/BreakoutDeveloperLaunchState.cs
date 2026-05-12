@@ -17,27 +17,19 @@ namespace GetBricked.Gameplay
 
     internal readonly struct BreakoutDeveloperEncounter
     {
-        public BreakoutDeveloperEncounter(int levelIndex, BreakoutBossGate? bossGate)
+        public BreakoutDeveloperEncounter(int levelIndex)
         {
             LevelIndex = Mathf.Clamp(levelIndex, 0, BreakoutRunProgression.TargetLevelCount - 1);
-            BossGate = bossGate;
         }
 
         public int LevelIndex { get; }
 
-        public BreakoutBossGate? BossGate { get; }
-
-        public bool IsBossGate => BossGate.HasValue;
-
-        public string DisplayName => IsBossGate
-            ? BossGate.Value.DisplayName
-            : $"Stage {LevelIndex + 1:00}";
+        public string DisplayName => $"Stage {LevelIndex + 1:00}";
     }
 
     internal sealed class BreakoutDeveloperLaunchState
     {
-        public const int BossEncounterCount = 3;
-        public const int TotalEncounterCount = BreakoutRunProgression.TargetLevelCount + BossEncounterCount;
+        public const int TotalEncounterCount = BreakoutRunProgression.TargetLevelCount;
 
         private readonly HashSet<string> selectedUpgradeIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         private readonly HashSet<string> selectedDropIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -138,21 +130,7 @@ namespace GetBricked.Gameplay
         public BreakoutDeveloperEncounter ResolveEncounter()
         {
             var normalizedIndex = Wrap(EncounterIndex, TotalEncounterCount);
-
-            if (normalizedIndex < BreakoutRunProgression.TargetLevelCount)
-            {
-                return new BreakoutDeveloperEncounter(normalizedIndex, null);
-            }
-
-            var bossIndex = normalizedIndex - BreakoutRunProgression.TargetLevelCount;
-            var triggerLevelIndex = bossIndex switch
-            {
-                0 => 2,
-                1 => 5,
-                _ => 9,
-            };
-            BreakoutRunProgression.TryGetBossGateAfterLevel(triggerLevelIndex, out var bossGate);
-            return new BreakoutDeveloperEncounter(triggerLevelIndex, bossGate);
+            return new BreakoutDeveloperEncounter(normalizedIndex);
         }
 
         public BreakoutRoguePaddleDefinition ResolvePaddle()

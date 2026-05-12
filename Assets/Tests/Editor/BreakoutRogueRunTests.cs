@@ -88,164 +88,7 @@ public sealed class BreakoutRogueRunTests
     }
 
     [Test]
-    public void RogueBossGatesTriggerAfterStagesThreeSixAndTen()
-    {
-        Assert.That(BreakoutRunProgression.TryGetBossGateAfterLevel(1, out _), Is.False);
-
-        Assert.That(BreakoutRunProgression.TryGetBossGateAfterLevel(2, out var firstGate), Is.True);
-        Assert.That(firstGate.GateIndex, Is.EqualTo(0));
-        Assert.That(firstGate.TriggerLevelIndex, Is.EqualTo(2));
-        Assert.That(firstGate.BossType, Is.EqualTo(BreakoutBossGateType.PaddlePunk));
-        Assert.That(firstGate.DisplayName, Is.EqualTo("Boss Gate 1 - The Paddle Punk"));
-
-        Assert.That(BreakoutRunProgression.TryGetBossGateAfterLevel(5, out var secondGate), Is.True);
-        Assert.That(secondGate.GateIndex, Is.EqualTo(1));
-        Assert.That(secondGate.BossType, Is.EqualTo(BreakoutBossGateType.BrickosaurusWrecks));
-        Assert.That(secondGate.DisplayName, Is.EqualTo("Boss Gate 2 - Brickosaurus Wrecks"));
-
-        Assert.That(BreakoutRunProgression.TryGetBossGateAfterLevel(9, out var finalGate), Is.True);
-        Assert.That(finalGate.GateIndex, Is.EqualTo(2));
-        Assert.That(finalGate.BossType, Is.EqualTo(BreakoutBossGateType.MainframeManiac));
-        Assert.That(finalGate.DisplayName, Is.EqualTo("Boss Gate 3 - Mainframe Maniac"));
-        Assert.That(finalGate.HudLabel, Is.EqualTo("MAINFRAME"));
-    }
-
-    [Test]
-    public void RogueBossGateBallSpeedRampsButStaysReadable()
-    {
-        BreakoutRunProgression.TryGetBossGateAfterLevel(2, out var firstGate);
-        BreakoutRunProgression.TryGetBossGateAfterLevel(9, out var finalGate);
-
-        var firstGateSpeed = BreakoutRunProgression.GetBossGateBallSpeedMultiplier(firstGate);
-        var finalGateSpeed = BreakoutRunProgression.GetBossGateBallSpeedMultiplier(finalGate);
-
-        Assert.That(firstGateSpeed, Is.EqualTo(0.96f).Within(0.0001f));
-        Assert.That(finalGateSpeed, Is.GreaterThan(firstGateSpeed));
-        Assert.That(finalGateSpeed, Is.EqualTo(1.08f).Within(0.0001f));
-    }
-
-    [Test]
-    public void PaddlePunkStartsWiggleBurstAfterRepeatedRallies()
-    {
-        var bossObject = new GameObject("Paddle Punk Test");
-
-        try
-        {
-            var boss = bossObject.AddComponent<BreakoutPaddlePunkBoss>();
-            boss.Configure(0, -4f, 4f, 1f, 4f, () => null);
-
-            Assert.That(boss.IsWiggleActive, Is.False);
-
-            for (var index = 0; index < 3; index++)
-            {
-                Assert.That(boss.TryBuildCollisionResponse(null, out _, out _), Is.True);
-            }
-
-            Assert.That(boss.IsWiggleActive, Is.True);
-        }
-        finally
-        {
-            UnityEngine.Object.DestroyImmediate(bossObject);
-        }
-    }
-
-    [Test]
-    public void PaddlePunkOpeningPauseCreatesScoringWindow()
-    {
-        var bossObject = new GameObject("Paddle Punk Pause Test");
-
-        try
-        {
-            var boss = bossObject.AddComponent<BreakoutPaddlePunkBoss>();
-            boss.Configure(0, -4f, 4f, 1f, 4f, () => null, (min, _) => min);
-
-            boss.StartOpeningPause();
-
-            Assert.That(boss.IsPausedForOpening, Is.True);
-            Assert.That(boss.IsWiggleActive, Is.True);
-            Assert.That(boss.PhaseLabel, Is.EqualTo("Open Lane"));
-        }
-        finally
-        {
-            UnityEngine.Object.DestroyImmediate(bossObject);
-        }
-    }
-
-    [Test]
-    public void PaddlePunkShieldShuffleRequestsRecur()
-    {
-        var bossObject = new GameObject("Paddle Punk Shield Test");
-
-        try
-        {
-            bossObject.AddComponent<Rigidbody2D>();
-            var boss = bossObject.AddComponent<BreakoutPaddlePunkBoss>();
-            boss.Configure(0, -4f, 4f, 1f, 4f, () => null);
-
-            Assert.That(AdvanceUntilShieldRequest(boss, 420), Is.True);
-            Assert.That(boss.TryConsumeShieldSpawnRequest(), Is.False);
-            Assert.That(AdvanceUntilShieldRequest(boss, 420), Is.True);
-        }
-        finally
-        {
-            UnityEngine.Object.DestroyImmediate(bossObject);
-        }
-    }
-
-    [Test]
-    public void PaddlePunkInjuredSpinRecursWithSeededJitter()
-    {
-        var bossObject = new GameObject("Paddle Punk Injured Test");
-
-        try
-        {
-            var boss = bossObject.AddComponent<BreakoutPaddlePunkBoss>();
-            var randomRolls = new Queue<float>(new[] { 0.5f, 0.1f, 0.1f });
-            boss.Configure(0, -4f, 4f, 1f, 4f, () => null, (min, max) =>
-            {
-                if (Mathf.Approximately(min, 0f) && Mathf.Approximately(max, 1f) && randomRolls.Count > 0)
-                {
-                    return randomRolls.Dequeue();
-                }
-
-                return min;
-            });
-
-            for (var index = 0; index < 5; index++)
-            {
-                Assert.That(boss.TryBuildCollisionResponse(null, out _, out _), Is.True);
-            }
-
-            Assert.That(boss.BossHitCount, Is.EqualTo(5));
-            Assert.That(boss.IsInjuredSpinActive, Is.True);
-            Assert.That(boss.IsPausedForOpening, Is.True);
-            Assert.That(boss.PhaseLabel, Is.EqualTo("Injured"));
-            Assert.That(boss.NextInjuredSpinHitCount, Is.EqualTo(10));
-
-            for (var index = 5; index < 10; index++)
-            {
-                Assert.That(boss.TryBuildCollisionResponse(null, out _, out _), Is.True);
-            }
-
-            Assert.That(boss.BossHitCount, Is.EqualTo(10));
-            Assert.That(boss.NextInjuredSpinHitCount, Is.EqualTo(14));
-
-            for (var index = 10; index < 14; index++)
-            {
-                Assert.That(boss.TryBuildCollisionResponse(null, out _, out _), Is.True);
-            }
-
-            Assert.That(boss.BossHitCount, Is.EqualTo(14));
-            Assert.That(boss.NextInjuredSpinHitCount, Is.EqualTo(18));
-        }
-        finally
-        {
-            UnityEngine.Object.DestroyImmediate(bossObject);
-        }
-    }
-
-    [Test]
-    public void DeveloperLaunchStateCanTargetBossesAndToggleBuildPicks()
+    public void DeveloperLaunchStateCanTargetStagesAndToggleBuildPicks()
     {
         var state = new BreakoutDeveloperLaunchState();
         var upgrade = ScriptableObject.CreateInstance<RunUpgradeDefinition>();
@@ -257,9 +100,8 @@ public sealed class BreakoutRogueRunTests
             state.AdjustField(BreakoutDeveloperLaunchField.Encounter, 10, null, null);
             var encounter = state.ResolveEncounter();
 
-            Assert.That(encounter.IsBossGate, Is.True);
-            Assert.That(encounter.BossGate.Value.GateIndex, Is.EqualTo(0));
-            Assert.That(encounter.LevelIndex, Is.EqualTo(2));
+            Assert.That(encounter.LevelIndex, Is.EqualTo(0));
+            Assert.That(encounter.DisplayName, Is.EqualTo("Stage 01"));
 
             state.AdjustField(BreakoutDeveloperLaunchField.Lives, 20, null, null);
             Assert.That(state.LivesRemaining, Is.EqualTo(9));
@@ -288,34 +130,6 @@ public sealed class BreakoutRogueRunTests
         {
             UnityEngine.Object.DestroyImmediate(upgrade);
             UnityEngine.Object.DestroyImmediate(drop);
-        }
-    }
-
-    [Test]
-    public void DeveloperLaunchStateCanSelectEveryBossGate()
-    {
-        var state = new BreakoutDeveloperLaunchState();
-
-        for (var bossIndex = 0; bossIndex < BreakoutDeveloperLaunchState.BossEncounterCount; bossIndex++)
-        {
-            state.Reset();
-            state.AdjustField(
-                BreakoutDeveloperLaunchField.Encounter,
-                BreakoutRunProgression.TargetLevelCount + bossIndex,
-                null,
-                null);
-
-            var encounter = state.ResolveEncounter();
-
-            Assert.That(encounter.IsBossGate, Is.True);
-            Assert.That(encounter.BossGate.Value.GateIndex, Is.EqualTo(bossIndex));
-            var expectedName = bossIndex switch
-            {
-                1 => "Brickosaurus Wrecks",
-                2 => "Mainframe Maniac",
-                _ => "The Paddle Punk",
-            };
-            Assert.That(encounter.DisplayName, Does.Contain(expectedName));
         }
     }
 
@@ -549,24 +363,6 @@ public sealed class BreakoutRogueRunTests
         SetPrivateField(powerUp, "durationSeconds", 10f);
         SetPrivateField(powerUp, "scalar", 1f);
         return powerUp;
-    }
-
-    private static bool AdvanceUntilShieldRequest(BreakoutPaddlePunkBoss boss, int fixedUpdateSteps)
-    {
-        var fixedUpdate = typeof(BreakoutPaddlePunkBoss).GetMethod("FixedUpdate", InstanceFlags);
-        Assert.That(fixedUpdate, Is.Not.Null);
-
-        for (var step = 0; step < fixedUpdateSteps; step++)
-        {
-            fixedUpdate.Invoke(boss, null);
-
-            if (boss.TryConsumeShieldSpawnRequest())
-            {
-                return true;
-            }
-        }
-
-        return false;
     }
 
     private static void SetPrivateField(object instance, string fieldName, object value)
