@@ -123,7 +123,7 @@ namespace GetBricked.Gameplay
             }
 
             var outcome = result.Completed ? "Cleared" : "Wiped Out";
-            return $"{outcome} | Stage {result.StageReached:00}/{BreakoutRunProgression.TargetLevelCount:00} | Heat {result.CurrentIntensity:00} | {result.SelectedPaddle} | Tape ID {result.Seed} | Score {FormatScore(result.Score)}";
+            return $"{outcome} | Stage {result.StageReached:00}/{BreakoutRunProgression.TargetLevelCount:00} | Heat {result.CurrentIntensity:00} | Tape ID {result.Seed} | Score {FormatScore(result.Score)}";
         }
 
         private static string FormatScore(int score)

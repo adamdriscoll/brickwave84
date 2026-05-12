@@ -96,21 +96,7 @@ namespace GetBricked.Gameplay
 
         public static BreakoutRoguePaddleDefinition[] BuildUnlockedPaddles()
         {
-            var unlocked = new List<BreakoutRoguePaddleDefinition> { DefaultPaddle };
-
-            for (var index = 1; index < Paddles.Length; index++)
-            {
-                var previousPaddle = Paddles[index - 1];
-
-                if (BreakoutRogueIntensityProgressStore.GetHighestCompletedIntensity(previousPaddle.DisplayName) <= 0)
-                {
-                    break;
-                }
-
-                unlocked.Add(Paddles[index]);
-            }
-
-            return unlocked.ToArray();
+            return new[] { DefaultPaddle };
         }
 
         public static BreakoutRoguePaddleDefinition ResolveUnlockedByIndex(int index)
@@ -137,20 +123,11 @@ namespace GetBricked.Gameplay
 
         public static BreakoutRoguePaddleDefinition GetNextLockedPaddle()
         {
-            var unlockedCount = BuildUnlockedPaddles().Length;
-            return unlockedCount < Paddles.Length ? Paddles[unlockedCount] : default;
+            return default;
         }
 
         public static BreakoutRoguePaddleDefinition GetUnlockRequirement(BreakoutRoguePaddleDefinition paddle)
         {
-            for (var index = 1; index < Paddles.Length; index++)
-            {
-                if (string.Equals(Paddles[index].DisplayName, paddle.DisplayName, StringComparison.OrdinalIgnoreCase))
-                {
-                    return Paddles[index - 1];
-                }
-            }
-
             return default;
         }
     }

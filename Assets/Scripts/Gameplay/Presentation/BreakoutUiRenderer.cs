@@ -1274,37 +1274,6 @@ namespace GetBricked.Gameplay
             DrawTextWithShadow(new Rect(innerX + 12f, y + 6f, width - 24f, 24f), view.NextSignal, setupHintStyle, palette.TextPrimary, 0.25f);
             y += 54f;
 
-            DrawSectionLabel(new Rect(innerX, y, width, 20f), "Paddles", palette.AccentPrimary);
-            y += 28f;
-
-            for (var index = 0; index < view.Paddles.Length; index++)
-            {
-                var paddle = view.Paddles[index];
-                var rowRect = new Rect(innerX, y, width, 56f);
-                var accent = paddle.IsUnlocked ? palette.AccentPrimary : palette.TextMuted;
-
-                DrawPanel(rowRect, paddle.IsSelected ? palette.AccentSecondary : accent, accent, paddle.IsSelected, paddle.IsSelected ? 2f : 1f);
-                DrawTextWithShadow(new Rect(rowRect.x + 12f, rowRect.y + 8f, rowRect.width * 0.48f, 18f), paddle.Label, speedMeterCaptionStyle, paddle.IsUnlocked ? palette.TextPrimary : palette.TextMuted, 0.22f);
-                DrawTextWithShadow(new Rect(rowRect.x + 12f, rowRect.y + 29f, rowRect.width * 0.48f, 16f), paddle.DetailLine, modifierPanelTimerStyle, paddle.IsUnlocked ? palette.TextMuted : WithAlpha(palette.TextMuted, 0.58f), 0.16f);
-
-                var trackRect = new Rect(rowRect.x + (rowRect.width * 0.56f), rowRect.y + 17f, rowRect.width * 0.36f, 8f);
-                DrawSolidRect(trackRect, WithAlpha(palette.BezelDark, 0.92f));
-                DrawOutline(trackRect, WithAlpha(palette.TextPrimary, 0.08f), 1f);
-
-                if (paddle.IsUnlocked && paddle.Progress > 0f)
-                {
-                    DrawSolidRect(new Rect(trackRect.x, trackRect.y, trackRect.width * Mathf.Clamp01(paddle.Progress), trackRect.height), palette.AccentWarm);
-                }
-
-                DrawTextWithShadow(new Rect(trackRect.x, rowRect.y + 30f, trackRect.width, 16f), paddle.ProgressLine, modifierPanelTimerStyle, paddle.IsUnlocked ? palette.AccentWarm : palette.TextMuted, 0.16f);
-                y += 66f;
-
-                if (y > rect.yMax - 122f)
-                {
-                    break;
-                }
-            }
-
             y = Mathf.Max(y + 4f, rect.yMax - 116f);
             DrawSectionLabel(new Rect(innerX, y, width, 20f), "Unlock Meter", palette.AccentWarm);
             y += 26f;

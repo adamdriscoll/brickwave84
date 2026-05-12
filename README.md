@@ -14,7 +14,7 @@
   - `16` pickup definitions
   - `6` permanent run upgrades
   - `3` themes
-  - `3` Rogue paddle types
+  - `3` authored Rogue paddle definitions (alternate types are currently disabled)
 - Current UI state: runtime OnGUI menus, HUD, pause, upgrade draft, and end-state flow
 - Current automation: starter Unity Edit Mode tests plus repo-local compile/test helper scripts
 
@@ -22,10 +22,9 @@
 
 - Runtime main menu with quick start, run setup access, and reset-to-defaults flow
 - Run setup with seed entry, difficulty presets, score mode selection, modifier tuning, drop-pool filtering, Capsule Party, and theme selection
-- Rogue paddle selection with Classic available by default, plus Comet and Cruiser unlock progression
 - Seeded multi-stage progression with deterministic procedural layouts
 - Pause, restart, return-to-setup, and return-to-menu flows
-- Three Rogue paddle types, one or more active balls, lives, serve/reset flow, and game-over handling
+- Default Rogue paddle tuning, one or more active balls, lives, serve/reset flow, and game-over handling
 - Timed power-ups and power-downs from brick drops
 - Tiny high-value bricks that read as precision targets instead of standard filler
 - Falling capsules now spin as they drop for a little more arcade energy
@@ -78,7 +77,7 @@ The setup screen already supports these run-shaping inputs:
 | Capsule Party | Forces every eligible brick to drop a capsule, and fresh setup resets now default it to `On` |
 | Theme | `Classic`, `Neon Forge`, `Sunset Circuit` |
 
-Rogue mode also has its own main-menu paddle selector. `Classic Paddle` is available by default. Clearing a full Rogue run with `Classic Paddle` unlocks `Comet Paddle`; clearing with `Comet Paddle` unlocks `Cruiser Paddle`. Developer Mode can select any starter paddle directly for tuning.
+Rogue mode currently uses fixed default paddle tuning. Alternate Rogue paddle definitions remain in code for possible later reactivation, but they are not unlocked, selectable, or shown in the player-facing progression flow.
 
 Difficulty presets already change more than labels:
 
@@ -197,14 +196,6 @@ Difficulty presets already change more than labels:
 | `Repair Stock` | `2` | `+1` life immediately |
 | `Split Serve` | `2` | `+1` extra ball on every serve |
 | `Flux Line` | `1` | Paddle width x`1.08` plus permanent mild wave strength |
-
-### Rogue Paddle Types
-
-| Paddle | Identity | Strength | Drawback |
-| --- | --- | --- | --- |
-| `Classic Paddle` | Balanced starter | Stable, readable, flexible. | No extreme specialty. |
-| `Comet Paddle` | Small and fast | High acceleration and precision control. | Less surface area. |
-| `Cruiser Paddle` | Wide and slow | Safer catches and survival builds. | Lower mobility. |
 
 ### Themes
 

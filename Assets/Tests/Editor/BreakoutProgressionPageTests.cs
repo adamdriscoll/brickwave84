@@ -43,11 +43,14 @@ public sealed class BreakoutProgressionPageTests
             Seed = 1234,
         });
 
-        var view = new BreakoutProgressionPageService().BuildView(Array.Empty<PowerUpDefinition>(), BreakoutRogueRunResultStore.DefaultPaddleLabel);
+        var view = new BreakoutProgressionPageService().BuildView(Array.Empty<PowerUpDefinition>());
         var chromeRail = view.Cards.First(card => card.Title == "Chrome Rail");
         var solarShot = view.Cards.First(card => card.Title == "Solar Shot");
 
-        Assert.That(view.LadderLines[1], Does.Contain("Heat 08"));
+        Assert.That(view.LadderLines, Has.Some.Contains("Heat 08"));
+        Assert.That(view.LadderLines.Any(line => line.Contains("Paddle")), Is.False);
+        Assert.That(view.NextSignal, Does.Not.Contain("Paddle"));
+        Assert.That(view.Paddles, Is.Empty);
         Assert.That(chromeRail.UnlockState, Is.EqualTo(BreakoutUiProgressionUnlockState.Unlocked));
         Assert.That(solarShot.UnlockState, Is.EqualTo(BreakoutUiProgressionUnlockState.SeenLocked));
         Assert.That(chromeRail.UnlockHint, Does.Contain("preview"));

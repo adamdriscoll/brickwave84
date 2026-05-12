@@ -1472,7 +1472,7 @@ namespace GetBricked.Gameplay
                     selectedPaddle.DisplayName,
                     selectedPaddle.SpeedMultiplier,
                     levelGlitchesEnabled: true);
-            pendingValidationMessage = $"Neon Ladder loaded: {activeRunSettings.SelectedPaddleLabel}, Heat {activeRunSettings.RogueIntensity:00}/50, 10 stages, 3 balls, draft rewards, hotter drops.";
+            pendingValidationMessage = $"Neon Ladder loaded: Heat {activeRunSettings.RogueIntensity:00}/50, 10 stages, 3 balls, draft rewards, hotter drops.";
             StartNewRun();
         }
 
@@ -3255,9 +3255,6 @@ namespace GetBricked.Gameplay
             var previewSettings = BuildRunSettingsFromPending(out var previewValidation);
             BreakoutRogueRunResultStore.TryLoad(out var lastRogueResult);
             var selectedPaddle = ResolveSelectedRoguePaddle();
-            var unlockedPaddles = BreakoutRoguePaddleCatalog.BuildUnlockedPaddles();
-            var nextPaddleUnlock = BreakoutRoguePaddleCatalog.GetNextLockedPaddle();
-            var nextPaddleUnlockRequirement = BreakoutRoguePaddleCatalog.GetUnlockRequirement(nextPaddleUnlock);
             var marathonHeatBest = BreakoutSoloMarathonScoreStore.Load(selectedSoloMarathonDifficulty);
             var marathonOverallBest = BreakoutSoloMarathonScoreStore.LoadBestOverall();
             var context = new BreakoutMainMenuContext
@@ -3282,18 +3279,6 @@ namespace GetBricked.Gameplay
                 SoloMarathonBestOverallSummary = marathonOverallBest == null
                     ? "All-Time: no record yet."
                     : $"All-Time: {BreakoutSoloMarathonScoreStore.BuildSummary(marathonOverallBest)}",
-                SelectedRoguePaddleLabel = selectedPaddle.DisplayName,
-                SelectedRoguePaddleIdentity = selectedPaddle.Identity,
-                SelectedRoguePaddleStrength = selectedPaddle.Strength,
-                SelectedRoguePaddleDrawback = selectedPaddle.Drawback,
-                NextRoguePaddleUnlockLabel = string.IsNullOrWhiteSpace(nextPaddleUnlock.DisplayName)
-                    ? string.Empty
-                    : nextPaddleUnlock.DisplayName,
-                NextRoguePaddleUnlockRequirementLabel = string.IsNullOrWhiteSpace(nextPaddleUnlockRequirement.DisplayName)
-                    ? BreakoutRoguePaddleCatalog.DefaultPaddle.DisplayName
-                    : nextPaddleUnlockRequirement.DisplayName,
-                UnlockedRoguePaddleCount = unlockedPaddles.Length,
-                TotalRoguePaddleCount = BreakoutRoguePaddleCatalog.AllPaddles.Count,
             };
 
             return mainMenuService.BuildView(context);
@@ -3302,7 +3287,7 @@ namespace GetBricked.Gameplay
         private BreakoutUiProgressionView BuildProgressionPageView()
         {
             progressionPageService ??= new BreakoutProgressionPageService();
-            return progressionPageService.BuildView(loadedPowerUpDefinitions, ResolveSelectedRoguePaddle().DisplayName);
+            return progressionPageService.BuildView(loadedPowerUpDefinitions);
         }
 
         private BreakoutUiRunSetupView BuildRunSetupView()
@@ -3378,14 +3363,13 @@ namespace GetBricked.Gameplay
                 FieldLines = new[]
                 {
                     $"Encounter: {FormatDeveloperEncounterLabel(encounter)}",
-                    $"Paddle: {selectedPaddle.DisplayName}",
                     $"Lives: {developerLaunchState.LivesRemaining}",
                     $"Heat: {developerLaunchState.Intensity:00}/{BreakoutRunProgression.MaxRogueIntensity:00}",
                     $"Upgrade: {FormatDeveloperToggle(upgradeSelected)} {FormatDeveloperUpgradeLabel(currentUpgrade)}",
                     $"Drop Unlock: {FormatDeveloperToggle(dropSelected)} {FormatDeveloperDropLabel(currentDrop)}",
                 },
                 SelectedFieldIndex = (int)selectedDeveloperLaunchField,
-                PreviewLine = $"Preview: {FormatDeveloperEncounterLabel(encounter)} | {selectedPaddle.DisplayName} | Heat {developerLaunchState.Intensity:00} | Balls {developerLaunchState.LivesRemaining:00} | Paddle x{selectedPaddle.WidthMultiplier:0.00} speed x{selectedPaddle.SpeedMultiplier:0.00} | Build {developerLaunchState.SelectedUpgradeCount:00} upgrades, {developerLaunchState.SelectedDropUnlockCount:00} drops | Theme {ResolvePendingThemeDefinition()?.DisplayName ?? "Fallback"}",
+                PreviewLine = $"Preview: {FormatDeveloperEncounterLabel(encounter)} | Heat {developerLaunchState.Intensity:00} | Balls {developerLaunchState.LivesRemaining:00} | Paddle x{selectedPaddle.WidthMultiplier:0.00} speed x{selectedPaddle.SpeedMultiplier:0.00} | Build {developerLaunchState.SelectedUpgradeCount:00} upgrades, {developerLaunchState.SelectedDropUnlockCount:00} drops | Theme {ResolvePendingThemeDefinition()?.DisplayName ?? "Fallback"}",
                 ValidationText = "Encounter cycles through Stage 01-10. Dev runs do not update the saved Neon Ladder result.",
                 HintText = "Up/Down selects. Left/Right changes. T toggles build picks. N clears build. Esc returns to menu. Space launches.",
             };
@@ -4117,7 +4101,7 @@ namespace GetBricked.Gameplay
                     : string.Empty;
             var summary =
                 $"{activeRunSettings.GameModeLabel} | Tape ID: {activeRunSettings.Seed} | {activeRunSettings.DifficultyLabel} | {BuildScoreModeSummaryLabel(activeRunSettings)} | {BuildRetrySummaryLabel(activeRunSettings)} | Balls/Serve {GetEffectiveBallsPerServe()} | " +
-                $"Theme: {activeRunSettings.ThemeLabel} | Drops: {BuildDropSummaryLabel(activeRunSettings)} | {activeRunSettings.LevelGlitchLabel}{heatSummary} | {activeRunSettings.SelectedPaddleLabel} x{activeRunSettings.PaddleWidthMultiplier:0.00} speed x{activeRunSettings.PaddleSpeedMultiplier:0.00} | Ball x{activeRunSettings.BallSpeedMultiplier:0.00} | Build {GetChosenUpgradeCount():00}";
+                $"Theme: {activeRunSettings.ThemeLabel} | Drops: {BuildDropSummaryLabel(activeRunSettings)} | {activeRunSettings.LevelGlitchLabel}{heatSummary} | Paddle x{activeRunSettings.PaddleWidthMultiplier:0.00} speed x{activeRunSettings.PaddleSpeedMultiplier:0.00} | Ball x{activeRunSettings.BallSpeedMultiplier:0.00} | Build {GetChosenUpgradeCount():00}";
             return summary;
         }
 

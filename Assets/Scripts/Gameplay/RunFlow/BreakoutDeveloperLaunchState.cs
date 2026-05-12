@@ -8,11 +8,10 @@ namespace GetBricked.Gameplay
     internal enum BreakoutDeveloperLaunchField
     {
         Encounter = 0,
-        Paddle = 1,
-        Lives = 2,
-        Heat = 3,
-        Upgrade = 4,
-        DropUnlock = 5,
+        Lives = 1,
+        Heat = 2,
+        Upgrade = 3,
+        DropUnlock = 4,
     }
 
     internal readonly struct BreakoutDeveloperEncounter
@@ -36,8 +35,6 @@ namespace GetBricked.Gameplay
 
         public int EncounterIndex { get; private set; }
 
-        public int PaddleIndex { get; private set; }
-
         public int LivesRemaining { get; private set; } = 3;
 
         public int Intensity { get; private set; } = BreakoutRunProgression.MinRogueIntensity;
@@ -53,7 +50,6 @@ namespace GetBricked.Gameplay
         public void Reset()
         {
             EncounterIndex = 0;
-            PaddleIndex = 0;
             LivesRemaining = 3;
             Intensity = BreakoutRunProgression.MinRogueIntensity;
             UpgradeIndex = 0;
@@ -77,9 +73,6 @@ namespace GetBricked.Gameplay
             {
                 case BreakoutDeveloperLaunchField.Encounter:
                     EncounterIndex = Wrap(EncounterIndex + direction, TotalEncounterCount);
-                    break;
-                case BreakoutDeveloperLaunchField.Paddle:
-                    PaddleIndex = Wrap(PaddleIndex + direction, BreakoutRoguePaddleCatalog.AllPaddles.Count);
                     break;
                 case BreakoutDeveloperLaunchField.Lives:
                     LivesRemaining = Mathf.Clamp(LivesRemaining + direction, 1, 9);
@@ -135,9 +128,7 @@ namespace GetBricked.Gameplay
 
         public BreakoutRoguePaddleDefinition ResolvePaddle()
         {
-            var paddles = BreakoutRoguePaddleCatalog.AllPaddles;
-            PaddleIndex = Wrap(PaddleIndex, paddles.Count);
-            return paddles[PaddleIndex];
+            return BreakoutRoguePaddleCatalog.DefaultPaddle;
         }
 
         public RunUpgradeDefinition ResolveCurrentUpgrade(IReadOnlyList<RunUpgradeDefinition> upgrades)

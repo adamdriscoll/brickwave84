@@ -35,14 +35,6 @@ namespace GetBricked.Gameplay
         public string SoloMarathonScoreMultiplierLabel = "x1.35";
         public string SoloMarathonBestForHeatSummary = string.Empty;
         public string SoloMarathonBestOverallSummary = string.Empty;
-        public string SelectedRoguePaddleLabel = BreakoutRogueRunResultStore.DefaultPaddleLabel;
-        public string SelectedRoguePaddleIdentity = string.Empty;
-        public string SelectedRoguePaddleStrength = string.Empty;
-        public string SelectedRoguePaddleDrawback = string.Empty;
-        public string NextRoguePaddleUnlockLabel = string.Empty;
-        public string NextRoguePaddleUnlockRequirementLabel = BreakoutRogueRunResultStore.DefaultPaddleLabel;
-        public int UnlockedRoguePaddleCount = 1;
-        public int TotalRoguePaddleCount = 1;
     }
 
     internal sealed class BreakoutMainMenuService
@@ -98,7 +90,7 @@ namespace GetBricked.Gameplay
             return action switch
             {
                 BreakoutMainMenuAction.Rogue => "Neon Ladder climbs 10 stages with draft rewards, unlocks, and cabinet heat.",
-                BreakoutMainMenuAction.Progression => "Progression opens the cabinet service screen for Ladder goals, paddles, drops, and glitches.",
+                BreakoutMainMenuAction.Progression => "Progression opens the cabinet service screen for Ladder goals, drops, and glitches.",
                 BreakoutMainMenuAction.SoloMarathon => "Neon Marathon opens heat select, top scores, and a solo high-score chase.",
                 BreakoutMainMenuAction.DualSticks => "Dual Sticks is staged for side-by-side versus runs, sabotage drops, and brick sends.",
                 BreakoutMainMenuAction.Coop => "Co-op is staged for two paddles, two balls, and one-keyboard shared survival.",
@@ -182,17 +174,11 @@ namespace GetBricked.Gameplay
             switch (action)
             {
                 case BreakoutMainMenuAction.Rogue:
-                    var unlockLine = string.IsNullOrWhiteSpace(context.NextRoguePaddleUnlockLabel)
-                        ? "All starter paddles unlocked for the bench."
-                        : $"Next unlock: clear with {context.NextRoguePaddleUnlockRequirementLabel} to wake {context.NextRoguePaddleUnlockLabel}.";
                     return new[]
                     {
-                        $"Paddle: {context.SelectedRoguePaddleLabel} ({context.UnlockedRoguePaddleCount}/{context.TotalRoguePaddleCount} unlocked).",
-                        context.SelectedRoguePaddleIdentity,
-                        context.SelectedRoguePaddleStrength,
-                        $"Tradeoff: {context.SelectedRoguePaddleDrawback}",
                         $"Heat {context.AvailableRogueIntensity:00}/50. 10-stage ladder. Draft rewards after clears.",
-                        unlockLine,
+                        "Starter loadout is fixed while the cabinet tunes the next build layer.",
+                        "Clear stages, draft rewards, and push the next heat signal.",
                         string.IsNullOrWhiteSpace(context.LastRogueResultSummary)
                             ? "Last Run: no Neon Ladder tape recorded yet."
                             : context.LastRogueResultSummary,
@@ -200,9 +186,7 @@ namespace GetBricked.Gameplay
                 case BreakoutMainMenuAction.Progression:
                     return new[]
                     {
-                        $"Selected Paddle: {context.SelectedRoguePaddleLabel}",
                         $"Heat {context.AvailableRogueIntensity:00}/50 is the next Neon Ladder goal.",
-                        $"Paddles: {context.UnlockedRoguePaddleCount}/{context.TotalRoguePaddleCount} unlocked.",
                         "Drops and glitches show Default, placeholder Unlocked, Locked, and Unknown slots.",
                         "Marathon and multiplayer badges preview where earned content will appear later.",
                         "Status: presentation shell. Unlock effects are not wired into gameplay pools yet.",

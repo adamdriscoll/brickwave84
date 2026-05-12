@@ -109,8 +109,7 @@ public sealed class BreakoutRogueRunTests
             state.AdjustField(BreakoutDeveloperLaunchField.Heat, 60, null, null);
             Assert.That(state.Intensity, Is.EqualTo(BreakoutRunProgression.MaxRogueIntensity));
 
-            state.AdjustField(BreakoutDeveloperLaunchField.Paddle, 1, null, null);
-            Assert.That(state.ResolvePaddle().DisplayName, Is.EqualTo("Comet Paddle"));
+            Assert.That(state.ResolvePaddle().DisplayName, Is.EqualTo("Classic Paddle"));
 
             state.ToggleCurrentUpgrade(new[] { upgrade });
             state.ToggleCurrentDropUnlock(new[] { drop });
@@ -134,7 +133,7 @@ public sealed class BreakoutRogueRunTests
     }
 
     [Test]
-    public void RoguePaddleCatalogUnlocksAlternatesThroughCompletionChain()
+    public void RoguePaddleCatalogKeepsAlternatePaddlesDisabledForNormalProgression()
     {
         var initialPaddles = BreakoutRoguePaddleCatalog.BuildUnlockedPaddles();
 
@@ -146,20 +145,20 @@ public sealed class BreakoutRogueRunTests
 
         BreakoutRogueRunResultStore.Save(classicClear);
 
-        var cometUnlocked = BreakoutRoguePaddleCatalog.BuildUnlockedPaddles();
+        var afterClassicClear = BreakoutRoguePaddleCatalog.BuildUnlockedPaddles();
 
-        Assert.That(cometUnlocked, Has.Length.EqualTo(2));
-        Assert.That(cometUnlocked[1].DisplayName, Is.EqualTo("Comet Paddle"));
-        Assert.That(BreakoutRoguePaddleCatalog.GetNextLockedPaddle().DisplayName, Is.EqualTo("Cruiser Paddle"));
+        Assert.That(afterClassicClear, Has.Length.EqualTo(1));
+        Assert.That(afterClassicClear[0].DisplayName, Is.EqualTo("Classic Paddle"));
+        Assert.That(BreakoutRoguePaddleCatalog.GetNextLockedPaddle().DisplayName, Is.Null.Or.Empty);
 
         var cometClear = BreakoutRogueRunResultStore.BuildResult(classicSettings, completed: true, stageReached: 10, "Comet Paddle", 6200);
 
         BreakoutRogueRunResultStore.Save(cometClear);
 
-        var cruiserUnlocked = BreakoutRoguePaddleCatalog.BuildUnlockedPaddles();
+        var afterCometClear = BreakoutRoguePaddleCatalog.BuildUnlockedPaddles();
 
-        Assert.That(cruiserUnlocked, Has.Length.EqualTo(3));
-        Assert.That(cruiserUnlocked[2].DisplayName, Is.EqualTo("Cruiser Paddle"));
+        Assert.That(afterCometClear, Has.Length.EqualTo(1));
+        Assert.That(afterCometClear[0].DisplayName, Is.EqualTo("Classic Paddle"));
     }
 
     [Test]
