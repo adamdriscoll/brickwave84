@@ -14,18 +14,30 @@ namespace GetBricked.Gameplay
         private BreakoutWarpGateWall wall;
         private float speedBurstMultiplier = 1.25f;
         private float speedBurstDuration = 4f;
+        private float speedBurstStackMultiplier = 0.12f;
+        private float speedBurstMaximumMultiplier = 1.85f;
+        private float speedBurstStackDuration = 1.25f;
+        private float speedBurstMaximumDuration = 7.5f;
 
         public void Configure(
             BreakoutGameController controller,
             BreakoutWarpGateWall railWall,
             float burstMultiplier,
             float burstDurationSeconds,
+            float burstStackMultiplier,
+            float burstMaximumMultiplier,
+            float burstStackDurationSeconds,
+            float burstMaximumDurationSeconds,
             BreakoutTurboRailVisual railVisual)
         {
             gameController = controller;
             wall = railWall;
             speedBurstMultiplier = Mathf.Max(1f, burstMultiplier);
             speedBurstDuration = Mathf.Max(0.1f, burstDurationSeconds);
+            speedBurstStackMultiplier = Mathf.Max(0f, burstStackMultiplier);
+            speedBurstMaximumMultiplier = Mathf.Max(speedBurstMultiplier, burstMaximumMultiplier);
+            speedBurstStackDuration = Mathf.Max(0f, burstStackDurationSeconds);
+            speedBurstMaximumDuration = Mathf.Max(speedBurstDuration, burstMaximumDurationSeconds);
             visual = railVisual;
         }
 
@@ -46,7 +58,13 @@ namespace GetBricked.Gameplay
 
             cooldownUntilByBallId[ballId] = now + ContactCooldownSeconds;
             var bounceDirection = BuildBounceDirection(ball.CurrentVelocity);
-            ball.ApplySpeedBurst(speedBurstMultiplier, speedBurstDuration);
+            ball.ApplyStackingSpeedBurst(
+                speedBurstMultiplier,
+                speedBurstDuration,
+                speedBurstStackMultiplier,
+                speedBurstMaximumMultiplier,
+                speedBurstStackDuration,
+                speedBurstMaximumDuration);
             ball.ApplyCollisionResponse(bounceDirection, wall == BreakoutWarpGateWall.Top ? 0.08f : 0.04f);
             visual?.PlayImpact();
             gameController?.HandleBallHitWall();

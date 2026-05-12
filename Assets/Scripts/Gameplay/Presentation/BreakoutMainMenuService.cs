@@ -6,6 +6,7 @@ namespace GetBricked.Gameplay
     internal enum BreakoutMainMenuAction
     {
         Rogue,
+        SoloMarathon,
         CustomGame,
         DualSticks,
         Coop,
@@ -29,6 +30,9 @@ namespace GetBricked.Gameplay
         public string PendingValidationMessage = string.Empty;
         public string LastRogueResultSummary = string.Empty;
         public int AvailableRogueIntensity = 1;
+        public string SoloMarathonDifficultyLabel = "Gnarly";
+        public string SoloMarathonBestForHeatSummary = string.Empty;
+        public string SoloMarathonBestOverallSummary = string.Empty;
         public string SelectedRoguePaddleLabel = BreakoutRogueRunResultStore.DefaultPaddleLabel;
         public string SelectedRoguePaddleIdentity = string.Empty;
         public string SelectedRoguePaddleStrength = string.Empty;
@@ -44,6 +48,7 @@ namespace GetBricked.Gameplay
         private static readonly BreakoutMainMenuAction[] ActionCatalog =
         {
             BreakoutMainMenuAction.Rogue,
+            BreakoutMainMenuAction.SoloMarathon,
             BreakoutMainMenuAction.CustomGame,
             BreakoutMainMenuAction.TurnBased,
             BreakoutMainMenuAction.SoundSettings,
@@ -66,7 +71,7 @@ namespace GetBricked.Gameplay
             return new BreakoutUiMenuView
             {
                 Title = "Brickwave '84",
-                Subtitle = "Choose the cabinet channel. Rogue starts a fixed 10-stage mixtape; Custom Game keeps the full tape-tuning bench.",
+                Subtitle = "Choose the cabinet channel. Neon Marathon chases one solo score; Rogue starts a fixed 10-stage mixtape; Custom Game keeps the full tape-tuning bench.",
                 SectionTitle = "Mode Select",
                 ActionLabels = BuildActionLabels(actions),
                 ActionGroupLabels = BuildActionGroupLabels(actions),
@@ -75,7 +80,7 @@ namespace GetBricked.Gameplay
                 PreviewLines = BuildPreviewLines(selectedAction, context),
                 ValidationText = BuildValidationText(selectedAction, context),
                 FooterText = BuildFooterText(selectedAction),
-                HintText = "Up/Down selects. Left/Right swaps Rogue paddle. Space confirms. Custom Game opens setup.",
+                HintText = "Up/Down selects. Left/Right adjusts the highlighted mode. Space confirms. Custom Game opens setup.",
             };
         }
 
@@ -90,6 +95,7 @@ namespace GetBricked.Gameplay
             return action switch
             {
                 BreakoutMainMenuAction.Rogue => "Rogue mode is staged for progression, unlocks, intensities, and cabinet heat.",
+                BreakoutMainMenuAction.SoloMarathon => "Neon Marathon launches a solo high-score chase with five balls and a random Tape ID.",
                 BreakoutMainMenuAction.DualSticks => "Dual Sticks is staged for side-by-side versus runs, sabotage drops, and brick sends.",
                 BreakoutMainMenuAction.Coop => "Co-op is staged for two paddles, two balls, and one-keyboard shared survival.",
                 BreakoutMainMenuAction.TurnBased => "Hot Seat opens player count, match mode, and heat setup.",
@@ -108,6 +114,7 @@ namespace GetBricked.Gameplay
                 labels[index] = actions[index] switch
                 {
                     BreakoutMainMenuAction.Rogue => "Rogue",
+                    BreakoutMainMenuAction.SoloMarathon => "Neon Marathon",
                     BreakoutMainMenuAction.CustomGame => "Custom Game",
                     BreakoutMainMenuAction.DualSticks => "Dual Sticks",
                     BreakoutMainMenuAction.Coop => "Co-op",
@@ -131,6 +138,7 @@ namespace GetBricked.Gameplay
                 labels[index] = actions[index] switch
                 {
                     BreakoutMainMenuAction.Rogue => "Singleplayer",
+                    BreakoutMainMenuAction.SoloMarathon => "Singleplayer",
                     BreakoutMainMenuAction.CustomGame => "Singleplayer",
                     BreakoutMainMenuAction.DualSticks => "Multiplayer",
                     BreakoutMainMenuAction.Coop => "Multiplayer",
@@ -150,6 +158,7 @@ namespace GetBricked.Gameplay
             return action switch
             {
                 BreakoutMainMenuAction.Rogue => "Rogue Run",
+                BreakoutMainMenuAction.SoloMarathon => "Neon Marathon",
                 BreakoutMainMenuAction.CustomGame => "Custom Game Loadout",
                 BreakoutMainMenuAction.DualSticks => "Versus Shell",
                 BreakoutMainMenuAction.Coop => "Co-op Shell",
@@ -180,6 +189,20 @@ namespace GetBricked.Gameplay
                         string.IsNullOrWhiteSpace(context.LastRogueResultSummary)
                             ? "Last Run: no Rogue tape recorded yet."
                             : context.LastRogueResultSummary,
+                    };
+                case BreakoutMainMenuAction.SoloMarathon:
+                    return new[]
+                    {
+                        $"Heat Level: {context.SoloMarathonDifficultyLabel}",
+                        "Five balls. Random Tape ID. One player.",
+                        "Clear stages until the cabinet finally wins.",
+                        "Score mode: High Score. No custom modifiers.",
+                        string.IsNullOrWhiteSpace(context.SoloMarathonBestForHeatSummary)
+                            ? "Selected Heat: no record yet."
+                            : context.SoloMarathonBestForHeatSummary,
+                        string.IsNullOrWhiteSpace(context.SoloMarathonBestOverallSummary)
+                            ? "All-Time: no record yet."
+                            : context.SoloMarathonBestOverallSummary,
                     };
                 case BreakoutMainMenuAction.CustomGame:
                     var previewSettings = context.PreviewSettings;
@@ -264,6 +287,7 @@ namespace GetBricked.Gameplay
             {
                 BreakoutMainMenuAction.CustomGame => "Custom Game opens the full tape-tuning bench: Tape ID, score rules, modifiers, drops, and theme.",
                 BreakoutMainMenuAction.Rogue => "Rogue launches a fixed 10-stage mixtape with draft rewards and saved results.",
+                BreakoutMainMenuAction.SoloMarathon => "Neon Marathon launches immediately with five balls, a random Tape ID, and only Heat Level to tune.",
                 BreakoutMainMenuAction.SoundSettings => "Sound controls are staged here for mixer work.",
                 BreakoutMainMenuAction.GraphicsSettings => "Graphics controls are staged here for display, glow, and readability options.",
                 BreakoutMainMenuAction.TurnBased => "Hot Seat opens player count, mode, and heat setup before the match starts.",

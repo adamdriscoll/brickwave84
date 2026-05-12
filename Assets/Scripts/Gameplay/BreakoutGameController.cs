@@ -28,8 +28,12 @@ namespace GetBricked.Gameplay
         private const float ExplosiveBallMinimumSpeedBurstMultiplier = 1.1f;
         private const float ExplosiveBallMaximumSpeedBurstMultiplier = 1.22f;
         private const float ExplosiveBallSpeedBurstDuration = 1.45f;
-        private const float TurboRailSpeedBurstMultiplier = 1.25f;
+        private const float TurboRailSpeedBurstMultiplier = 1.35f;
         private const float TurboRailSpeedBurstDuration = 4f;
+        private const float TurboRailSpeedBurstStackMultiplier = 0.12f;
+        private const float TurboRailSpeedBurstMaximumMultiplier = 1.85f;
+        private const float TurboRailSpeedBurstStackDuration = 1.25f;
+        private const float TurboRailSpeedBurstMaximumDuration = 7.5f;
         private const string DefaultRoguePaddleLabel = BreakoutRogueRunResultStore.DefaultPaddleLabel;
         private static readonly BreakoutRunSetupField[] HotSeatTopScoreSetupFields =
         {
@@ -207,6 +211,7 @@ namespace GetBricked.Gameplay
         private RoundState pausedFromState;
         private int selectedMainMenuActionIndex;
         private int selectedRoguePaddleIndex;
+        private BreakoutHotSeatDifficulty selectedSoloMarathonDifficulty = BreakoutHotSeatDifficulty.Gnarly;
         private int selectedOverlayActionIndex;
         private string currentLevelVariationLabel = "Variation: not started";
         private string pendingValidationMessage = string.Empty;
@@ -216,6 +221,9 @@ namespace GetBricked.Gameplay
         private bool isDiagnosticsOverlayVisible;
         private int selectedUpgradeDraftIndex;
         private bool activeRunResultRecorded;
+        private bool activeSoloMarathonResultRecorded;
+        private bool activeSoloMarathonNewHighScore;
+        private BreakoutSoloMarathonRecord activeSoloMarathonRecord;
         private bool isTurnBasedSetupActive;
         private BreakoutEffectModifiers activeEffectModifiers;
         private BallController stickyCaughtBall;
@@ -555,7 +563,7 @@ namespace GetBricked.Gameplay
                 return;
             }
 
-            if (UsesHighScoreMode())
+            if (UsesHighScoreMode() && !UsesFiniteHighScoreLives())
             {
                 lifeLossCount += 1;
                 ApplyLifeLossScorePenalty();
@@ -581,6 +589,7 @@ namespace GetBricked.Gameplay
                 SetSimulationPaused(false);
                 ClearPickups();
                 RecordRogueRunResult(completed: false);
+                RecordSoloMarathonResult();
 
                 if (!isServeBall)
                 {
@@ -923,6 +932,9 @@ namespace GetBricked.Gameplay
             lifeLossCount = 0;
             score = 0;
             activeRunResultRecorded = false;
+            activeSoloMarathonResultRecorded = false;
+            activeSoloMarathonNewHighScore = false;
+            activeSoloMarathonRecord = null;
             if (activeRunSettings.IsTurnBasedMode)
             {
                 turnBasedMultiplayerController?.StartRun(activeRunSettings.Seed, score);
@@ -1331,6 +1343,20 @@ namespace GetBricked.Gameplay
                     pendingValidationMessage = string.Empty;
                 }
             }
+            else if (mainMenuService.ResolveAction(selectedMainMenuActionIndex) == BreakoutMainMenuAction.SoloMarathon)
+            {
+                if (keyboard.leftArrowKey.wasPressedThisFrame || keyboard.aKey.wasPressedThisFrame)
+                {
+                    AdjustSelectedSoloMarathonDifficulty(-1);
+                    pendingValidationMessage = string.Empty;
+                }
+
+                if (keyboard.rightArrowKey.wasPressedThisFrame || keyboard.dKey.wasPressedThisFrame)
+                {
+                    AdjustSelectedSoloMarathonDifficulty(1);
+                    pendingValidationMessage = string.Empty;
+                }
+            }
 
             if (keyboard.spaceKey.wasPressedThisFrame || keyboard.enterKey.wasPressedThisFrame || keyboard.numpadEnterKey.wasPressedThisFrame)
             {
@@ -1341,11 +1367,12 @@ namespace GetBricked.Gameplay
 
         private OverlayAction[] GetOverlayActionsForState(RoundState state)
         {
-            var isRogueRun = activeRunSettings != null && activeRunSettings.IsRogueMode;
+            var returnsToMainMenuOnly = activeRunSettings != null
+                && (activeRunSettings.IsRogueMode || activeRunSettings.IsSoloMarathonMode);
 
             return state switch
             {
-                RoundState.Paused => isRogueRun
+                RoundState.Paused => returnsToMainMenuOnly
                     ? new[]
                     {
                         OverlayAction.Resume,
@@ -1368,7 +1395,7 @@ namespace GetBricked.Gameplay
                         OverlayAction.RestartRun,
                         OverlayAction.ReturnToMainMenu,
                     }
-                    : isRogueRun
+                    : returnsToMainMenuOnly
                         ? new[]
                         {
                             OverlayAction.RestartRun,
@@ -1380,7 +1407,7 @@ namespace GetBricked.Gameplay
                         OverlayAction.ReturnToRunSetup,
                         OverlayAction.ReturnToMainMenu,
                     },
-                RoundState.GameOver => isRogueRun
+                RoundState.GameOver => returnsToMainMenuOnly
                     ? new[]
                     {
                         OverlayAction.RestartRun,
@@ -1407,7 +1434,15 @@ namespace GetBricked.Gameplay
                     ResumeGameplay();
                     break;
                 case OverlayAction.RestartRun:
-                    StartNewRun();
+                    if (activeRunSettings != null && activeRunSettings.IsSoloMarathonMode)
+                    {
+                        StartSoloMarathonRun();
+                    }
+                    else
+                    {
+                        StartNewRun();
+                    }
+
                     break;
                 case OverlayAction.NextLevel:
                     if (HasNextLevel())
@@ -1437,6 +1472,12 @@ namespace GetBricked.Gameplay
                 return;
             }
 
+            if (action == BreakoutMainMenuAction.SoloMarathon)
+            {
+                StartSoloMarathonRun();
+                return;
+            }
+
             if (action == BreakoutMainMenuAction.CustomGame)
             {
                 EnterRunSetup();
@@ -1460,7 +1501,8 @@ namespace GetBricked.Gameplay
 
         private void ReturnToLaunchSurface()
         {
-            if (activeRunSettings != null && activeRunSettings.IsRogueMode)
+            if (activeRunSettings != null
+                && (activeRunSettings.IsRogueMode || activeRunSettings.IsSoloMarathonMode))
             {
                 EnterMainMenu();
                 return;
@@ -1495,6 +1537,13 @@ namespace GetBricked.Gameplay
                     selectedPaddle.SpeedMultiplier,
                     levelGlitchesEnabled: true);
             pendingValidationMessage = $"Rogue tape loaded: {activeRunSettings.SelectedPaddleLabel}, Heat {activeRunSettings.RogueIntensity:00}/50, 10 stages, 3 balls, draft rewards, growing drop pool.";
+            StartNewRun();
+        }
+
+        private void StartSoloMarathonRun()
+        {
+            activeRunSettings = BuildSoloMarathonRunSettings(GenerateSeed(), ResolvePendingThemeDefinition());
+            pendingValidationMessage = $"Neon Marathon loaded: Heat {activeRunSettings.DifficultyLabel}, 5 balls, random Tape ID {activeRunSettings.Seed}, high-score chase.";
             StartNewRun();
         }
 
@@ -1719,6 +1768,14 @@ namespace GetBricked.Gameplay
                 : (int)BreakoutRunSetupField.Theme;
         }
 
+        private void AdjustSelectedSoloMarathonDifficulty(int direction)
+        {
+            selectedSoloMarathonDifficulty = (BreakoutHotSeatDifficulty)Mathf.Clamp(
+                (int)selectedSoloMarathonDifficulty + direction,
+                (int)BreakoutHotSeatDifficulty.Chill,
+                (int)BreakoutHotSeatDifficulty.Bogus);
+        }
+
         private void AdjustSelectedRoguePaddle(int direction)
         {
             var unlockedPaddles = BreakoutRoguePaddleCatalog.BuildUnlockedPaddles();
@@ -1935,6 +1992,89 @@ namespace GetBricked.Gameplay
                 capsuleParty,
                 selectedTheme,
                 RunGameMode.TurnBased,
+                1,
+                "Classic Paddle",
+                1f,
+                difficultyLabel,
+                levelGlitchesEnabled,
+                levelGlitchChanceMultiplier);
+        }
+
+        private RunSettings BuildSoloMarathonRunSettings(int seed, ThemeDefinition selectedTheme)
+        {
+            var difficulty = selectedSoloMarathonDifficulty;
+            var preset = difficulty == BreakoutHotSeatDifficulty.Bogus
+                ? RunDifficultyPreset.Brutal
+                : difficulty == BreakoutHotSeatDifficulty.Chill
+                    ? RunDifficultyPreset.Casual
+                    : RunDifficultyPreset.Standard;
+            var ballSpeedMultiplier = 1f;
+            var paddleWidthMultiplier = 1f;
+            var brickDurabilityMultiplier = 1f;
+            var dropChanceMultiplier = 1f;
+            var dropPoolMode = DropPoolMode.Mixed;
+            var capsuleParty = false;
+            var levelGlitchesEnabled = false;
+            var levelGlitchChanceMultiplier = 1f;
+            var difficultyLabel = FormatSoloMarathonDifficultyLabel(difficulty);
+
+            switch (difficulty)
+            {
+                case BreakoutHotSeatDifficulty.Chill:
+                    paddleWidthMultiplier = 1.18f;
+                    ballSpeedMultiplier = 0.82f;
+                    brickDurabilityMultiplier = 0.86f;
+                    dropChanceMultiplier = 1.25f;
+                    dropPoolMode = DropPoolMode.HelpfulOnly;
+                    capsuleParty = true;
+                    break;
+                case BreakoutHotSeatDifficulty.Rad:
+                    paddleWidthMultiplier = 1.08f;
+                    ballSpeedMultiplier = 0.92f;
+                    brickDurabilityMultiplier = 0.94f;
+                    dropChanceMultiplier = 1.1f;
+                    dropPoolMode = DropPoolMode.HelpfulOnly;
+                    break;
+                case BreakoutHotSeatDifficulty.Mondo:
+                    paddleWidthMultiplier = 0.94f;
+                    ballSpeedMultiplier = 1.12f;
+                    brickDurabilityMultiplier = 1.16f;
+                    dropChanceMultiplier = 1.05f;
+                    capsuleParty = true;
+                    levelGlitchesEnabled = true;
+                    levelGlitchChanceMultiplier = 1f;
+                    break;
+                case BreakoutHotSeatDifficulty.Bogus:
+                    paddleWidthMultiplier = 0.88f;
+                    ballSpeedMultiplier = 1.28f;
+                    brickDurabilityMultiplier = 1.32f;
+                    dropChanceMultiplier = 1.2f;
+                    dropPoolMode = DropPoolMode.HarmfulOnly;
+                    capsuleParty = true;
+                    levelGlitchesEnabled = true;
+                    levelGlitchChanceMultiplier = 1.35f;
+                    break;
+                default:
+                    levelGlitchesEnabled = difficulty == BreakoutHotSeatDifficulty.Gnarly;
+                    levelGlitchChanceMultiplier = 0.65f;
+                    break;
+            }
+
+            return new RunSettings(
+                seed,
+                preset,
+                RunScoringMode.HighScore,
+                5,
+                0,
+                1,
+                paddleWidthMultiplier,
+                ballSpeedMultiplier,
+                brickDurabilityMultiplier,
+                dropChanceMultiplier,
+                dropPoolMode,
+                capsuleParty,
+                selectedTheme,
+                RunGameMode.SoloMarathon,
                 1,
                 "Classic Paddle",
                 1f,
@@ -2604,6 +2744,10 @@ namespace GetBricked.Gameplay
                 glitchPlan.TurboRail.Wall,
                 TurboRailSpeedBurstMultiplier,
                 TurboRailSpeedBurstDuration,
+                TurboRailSpeedBurstStackMultiplier,
+                TurboRailSpeedBurstMaximumMultiplier,
+                TurboRailSpeedBurstStackDuration,
+                TurboRailSpeedBurstMaximumDuration,
                 visual);
         }
 
@@ -3137,6 +3281,11 @@ namespace GetBricked.Gameplay
 
         private bool HasNextLevel()
         {
+            if (activeRunSettings != null && activeRunSettings.IsSoloMarathonMode)
+            {
+                return currentLevel != null && loadedLevels.Count > 0;
+            }
+
             return BreakoutRunProgression.HasNextLevel(currentLevel, currentLevelIndex, loadedLevels.Count);
         }
 
@@ -3625,6 +3774,8 @@ namespace GetBricked.Gameplay
             var unlockedPaddles = BreakoutRoguePaddleCatalog.BuildUnlockedPaddles();
             var nextPaddleUnlock = BreakoutRoguePaddleCatalog.GetNextLockedPaddle();
             var nextPaddleUnlockRequirement = BreakoutRoguePaddleCatalog.GetUnlockRequirement(nextPaddleUnlock);
+            var marathonHeatBest = BreakoutSoloMarathonScoreStore.Load(selectedSoloMarathonDifficulty);
+            var marathonOverallBest = BreakoutSoloMarathonScoreStore.LoadBestOverall();
             var context = new BreakoutMainMenuContext
             {
                 SelectedActionIndex = selectedMainMenuActionIndex,
@@ -3639,6 +3790,13 @@ namespace GetBricked.Gameplay
                 PendingValidationMessage = pendingValidationMessage,
                 LastRogueResultSummary = BreakoutRogueRunResultStore.BuildSummary(lastRogueResult),
                 AvailableRogueIntensity = BreakoutRogueIntensityProgressStore.GetAvailableIntensity(selectedPaddle.DisplayName),
+                SoloMarathonDifficultyLabel = FormatSoloMarathonDifficultyLabel(selectedSoloMarathonDifficulty),
+                SoloMarathonBestForHeatSummary = marathonHeatBest == null
+                    ? "Selected Heat: no record yet."
+                    : $"Selected Heat: {BreakoutSoloMarathonScoreStore.BuildSummary(marathonHeatBest)}",
+                SoloMarathonBestOverallSummary = marathonOverallBest == null
+                    ? "All-Time: no record yet."
+                    : $"All-Time: {BreakoutSoloMarathonScoreStore.BuildSummary(marathonOverallBest)}",
                 SelectedRoguePaddleLabel = selectedPaddle.DisplayName,
                 SelectedRoguePaddleIdentity = selectedPaddle.Identity,
                 SelectedRoguePaddleStrength = selectedPaddle.Strength,
@@ -3896,17 +4054,25 @@ namespace GetBricked.Gameplay
 
             var isGameOver = roundState == RoundState.GameOver;
             var title = isGameOver
-                ? (activeRunSettings != null && activeRunSettings.IsRogueMode ? "Rogue Wiped Out" : "Run Over")
+                ? activeRunSettings != null && activeRunSettings.IsSoloMarathonMode
+                    ? activeSoloMarathonNewHighScore ? "Hall of Rad!" : "Neon Marathon Over"
+                    : activeRunSettings != null && activeRunSettings.IsRogueMode ? "Rogue Wiped Out" : "Run Over"
                 : HasNextLevel()
                     ? "Level Cleared"
                     : (activeRunSettings != null && activeRunSettings.IsRogueMode ? "Mixtape Cleared" : "Final Layout Cleared");
             var summary = isGameOver
-                ? $"{GetScoreDisplayLabel()} {FormatScoreValue(score)} | Reached {BuildLevelLabel()} | Tape ID {activeRunSettings?.Seed.ToString(CultureInfo.InvariantCulture) ?? GetPendingSeedDisplay()}"
+                ? activeRunSettings != null && activeRunSettings.IsSoloMarathonMode
+                    ? $"{GetScoreDisplayLabel()} {FormatScoreValue(score)} | Best {FormatScoreValue(activeSoloMarathonRecord?.Score ?? score)} | Reached {BuildLevelLabel()} | Tape ID {activeRunSettings.Seed.ToString(CultureInfo.InvariantCulture)}"
+                    : $"{GetScoreDisplayLabel()} {FormatScoreValue(score)} | Reached {BuildLevelLabel()} | Tape ID {activeRunSettings?.Seed.ToString(CultureInfo.InvariantCulture) ?? GetPendingSeedDisplay()}"
                 : HasNextLevel()
                     ? $"{GetScoreDisplayLabel()} {FormatScoreValue(score)} | {GetLifeCounterLabel()} {GetLifeCounterValue():00} | Next up: level {currentLevelIndex + 2:00}"
                     : $"{GetScoreDisplayLabel()} {FormatScoreValue(score)} | {GetLifeCounterLabel()} {GetLifeCounterValue():00} | Tape ID {activeRunSettings?.Seed.ToString(CultureInfo.InvariantCulture) ?? GetPendingSeedDisplay()}";
             var footer = isGameOver
-                ? activeRunSettings != null && activeRunSettings.IsRogueMode
+                ? activeRunSettings != null && activeRunSettings.IsSoloMarathonMode
+                    ? (activeSoloMarathonNewHighScore
+                        ? "New Neon Marathon best saved. Restart the chase or return to the main menu."
+                        : "Restart the chase or return to the main menu.")
+                    : activeRunSettings != null && activeRunSettings.IsRogueMode
                     ? "Restart the run or return to the main menu."
                     : "Restart the run, jump back to setup, or return to the main menu."
                 : HasNextLevel()
@@ -4147,7 +4313,7 @@ namespace GetBricked.Gameplay
                     : "Lives";
             }
 
-            return UsesHighScoreMode() ? "Losses" : "Lives";
+            return UsesHighScoreMode() && !UsesFiniteHighScoreLives() ? "Losses" : "Lives";
         }
 
         private int GetLifeCounterValue()
@@ -4159,7 +4325,7 @@ namespace GetBricked.Gameplay
                     : turnBasedMultiplayerController?.GetCurrentPlayerLivesRemaining() ?? livesRemaining;
             }
 
-            return UsesHighScoreMode() ? lifeLossCount : livesRemaining;
+            return UsesHighScoreMode() && !UsesFiniteHighScoreLives() ? lifeLossCount : livesRemaining;
         }
 
         private string BuildScoreModeSummaryLabel(RunSettings settings)
@@ -4181,7 +4347,9 @@ namespace GetBricked.Gameplay
                 return "Retries offline";
             }
 
-            return settings.ScoringMode == RunScoringMode.HighScore
+            return settings.IsSoloMarathonMode
+                ? $"Lives {settings.StartingLives}"
+                : settings.ScoringMode == RunScoringMode.HighScore
                 ? "Retries unlimited"
                 : $"Lives {settings.StartingLives}";
         }
@@ -4271,12 +4439,12 @@ namespace GetBricked.Gameplay
 
             if (GetLifeLossScorePenalty() > 0)
             {
-                return UsesHighScoreMode()
+                return UsesHighScoreMode() && !UsesFiniteHighScoreLives()
                     ? $"Ball lost. -{GetLifeLossScorePenalty():0000} score. Losses {lifeLossCount:00}. Press Space to serve again. Up/Down tunes speed."
                     : $"Life lost. -{GetLifeLossScorePenalty():0000} score. {livesRemaining} remaining. Press Space to serve again. Up/Down tunes speed.";
             }
 
-            return UsesHighScoreMode()
+            return UsesHighScoreMode() && !UsesFiniteHighScoreLives()
                 ? $"Ball lost. Losses {lifeLossCount:00}. Press Space to serve again. Up/Down tunes speed."
                 : $"Life lost. {livesRemaining} remaining. Press Space to serve again. Up/Down tunes speed.";
         }
@@ -4410,6 +4578,18 @@ namespace GetBricked.Gameplay
                 LevelGlitchSelection.WarpGates => "Warp Gates",
                 LevelGlitchSelection.TurboRail => "Turbo Rail",
                 _ => "Off",
+            };
+        }
+
+        private static string FormatSoloMarathonDifficultyLabel(BreakoutHotSeatDifficulty difficulty)
+        {
+            return difficulty switch
+            {
+                BreakoutHotSeatDifficulty.Chill => "Chill",
+                BreakoutHotSeatDifficulty.Rad => "Rad",
+                BreakoutHotSeatDifficulty.Mondo => "Mondo",
+                BreakoutHotSeatDifficulty.Bogus => "Bogus",
+                _ => "Gnarly",
             };
         }
 
@@ -4868,6 +5048,11 @@ namespace GetBricked.Gameplay
             return activeRunSettings != null && activeRunSettings.ScoringMode == RunScoringMode.HighScore;
         }
 
+        private bool UsesFiniteHighScoreLives()
+        {
+            return activeRunSettings != null && activeRunSettings.IsSoloMarathonMode;
+        }
+
         private void RecordRogueRunResult(bool completed)
         {
             if (!ShouldRecordRogueRunResult(activeRunResultRecorded, isDeveloperRunActive, activeRunSettings))
@@ -4885,6 +5070,25 @@ namespace GetBricked.Gameplay
                     DefaultRoguePaddleLabel,
                     score);
             BreakoutRogueRunResultStore.Save(result);
+        }
+
+        private void RecordSoloMarathonResult()
+        {
+            if (activeSoloMarathonResultRecorded
+                || activeRunSettings == null
+                || !activeRunSettings.IsSoloMarathonMode)
+            {
+                return;
+            }
+
+            activeSoloMarathonResultRecorded = true;
+            activeSoloMarathonNewHighScore = BreakoutSoloMarathonScoreStore.TrySaveBest(
+                selectedSoloMarathonDifficulty,
+                activeRunSettings.DifficultyLabel,
+                score,
+                currentLevelIndex + 1,
+                activeRunSettings.Seed,
+                out activeSoloMarathonRecord);
         }
 
         internal static bool ShouldRecordRogueRunResult(bool resultAlreadyRecorded, bool developerRunActive, RunSettings settings)
@@ -4982,6 +5186,11 @@ namespace GetBricked.Gameplay
         private bool TryOpenUpgradeDraft()
         {
             if (activeRunState == null || upgradeDraftService == null || activeRunSettings == null)
+            {
+                return false;
+            }
+
+            if (activeRunSettings.IsSoloMarathonMode)
             {
                 return false;
             }

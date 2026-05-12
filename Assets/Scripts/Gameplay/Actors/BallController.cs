@@ -281,6 +281,42 @@ namespace GetBricked.Gameplay
             ballBody.linearVelocity = ballBody.linearVelocity.normalized * GetTargetSpeed();
         }
 
+        public void ApplyStackingSpeedBurst(
+            float multiplier,
+            float durationSeconds,
+            float stackMultiplierIncrease,
+            float maximumMultiplier,
+            float stackDurationIncrease,
+            float maximumDurationSeconds)
+        {
+            if (ballBody == null || !hasLaunched)
+            {
+                return;
+            }
+
+            var baseMultiplier = Mathf.Max(1f, multiplier);
+            var multiplierCap = Mathf.Max(baseMultiplier, maximumMultiplier);
+            var baseDuration = Mathf.Max(0.1f, durationSeconds);
+            var durationCap = Mathf.Max(baseDuration, maximumDurationSeconds);
+
+            if (speedBurstTimeRemaining > 0f && speedBurstMultiplier > 1.001f)
+            {
+                speedBurstMultiplier = Mathf.Min(
+                    multiplierCap,
+                    Mathf.Max(baseMultiplier, speedBurstMultiplier) + Mathf.Max(0f, stackMultiplierIncrease));
+                speedBurstTimeRemaining = Mathf.Min(
+                    durationCap,
+                    Mathf.Max(baseDuration, speedBurstTimeRemaining) + Mathf.Max(0f, stackDurationIncrease));
+            }
+            else
+            {
+                speedBurstMultiplier = baseMultiplier;
+                speedBurstTimeRemaining = baseDuration;
+            }
+
+            ballBody.linearVelocity = ballBody.linearVelocity.normalized * GetTargetSpeed();
+        }
+
         public void ApplyJellySlow(float multiplier, float durationSeconds)
         {
             if (ballBody == null || !hasLaunched)

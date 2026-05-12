@@ -28,6 +28,7 @@ namespace GetBricked.Gameplay.Data
         CustomGame = 0,
         Rogue = 1,
         TurnBased = 2,
+        SoloMarathon = 3,
     }
 
     public enum LevelGlitchSelection
@@ -152,12 +153,15 @@ namespace GetBricked.Gameplay.Data
         {
             RunGameMode.Rogue => "Rogue",
             RunGameMode.TurnBased => "Hot Seat",
+            RunGameMode.SoloMarathon => "Neon Marathon",
             _ => "Custom Game",
         };
 
         public bool IsRogueMode => GameMode == RunGameMode.Rogue;
 
         public bool IsTurnBasedMode => GameMode == RunGameMode.TurnBased;
+
+        public bool IsSoloMarathonMode => GameMode == RunGameMode.SoloMarathon;
 
         public bool UsesLifeLossScorePenalty => ScoringMode == RunScoringMode.HighScore && LifeLossScorePenalty > 0;
 
