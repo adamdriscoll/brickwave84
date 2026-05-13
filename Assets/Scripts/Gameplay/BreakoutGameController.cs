@@ -1885,6 +1885,10 @@ namespace GetBricked.Gameplay
                     {
                         StartSoloMarathonRun();
                     }
+                    else if (ShouldRebuildRogueRunOnRestart(activeRunSettings))
+                    {
+                        StartRogueRun();
+                    }
                     else
                     {
                         StartNewRun();
@@ -5667,6 +5671,11 @@ namespace GetBricked.Gameplay
                 && !developerRunActive
                 && settings != null
                 && settings.IsRogueMode;
+        }
+
+        internal static bool ShouldRebuildRogueRunOnRestart(RunSettings settings)
+        {
+            return settings != null && settings.IsRogueMode;
         }
 
         internal static bool ShouldAutoSaveLastBall(RunSettings settings, int currentScore)

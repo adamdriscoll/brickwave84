@@ -216,14 +216,14 @@ namespace GetBricked.Gameplay
         {
             if (!PlayerPrefs.HasKey(ProgressKey))
             {
-                return new BreakoutRogueIntensityProgress();
+                return BuildProgressFromLastResult();
             }
 
             var json = PlayerPrefs.GetString(ProgressKey, string.Empty);
 
             if (string.IsNullOrWhiteSpace(json))
             {
-                return new BreakoutRogueIntensityProgress();
+                return BuildProgressFromLastResult();
             }
 
             try
@@ -232,7 +232,7 @@ namespace GetBricked.Gameplay
 
                 if (progress == null || progress.Version != CurrentVersion)
                 {
-                    return new BreakoutRogueIntensityProgress();
+                    return BuildProgressFromLastResult();
                 }
 
                 progress.PaddleProgress ??= Array.Empty<BreakoutRoguePaddleIntensityProgress>();
@@ -241,8 +241,45 @@ namespace GetBricked.Gameplay
             catch (Exception exception)
             {
                 Debug.LogWarning($"Unable to load Neon Ladder intensity progress. {exception.Message}");
-                return new BreakoutRogueIntensityProgress();
+                return BuildProgressFromLastResult();
             }
+        }
+
+        private static BreakoutRogueIntensityProgress BuildProgressFromLastResult()
+        {
+            var progress = new BreakoutRogueIntensityProgress
+            {
+                Version = CurrentVersion,
+            };
+
+            if (!BreakoutRogueRunResultStore.TryLoad(out var result) || result == null)
+            {
+                return progress;
+            }
+
+            var paddleProgress = FindOrAddPaddleProgress(progress, result.SelectedPaddle);
+            var intensity = BreakoutRunProgression.ClampRogueIntensity(result.CurrentIntensity);
+            var stageReached = result.Completed
+                ? BreakoutRunProgression.TargetLevelCount
+                : Mathf.Clamp(result.StageReached, 1, BreakoutRunProgression.TargetLevelCount);
+            var record = FindOrAddStageRecord(paddleProgress, intensity);
+
+            if (result.Completed)
+            {
+                paddleProgress.HighestCompletedIntensity = Mathf.Max(paddleProgress.HighestCompletedIntensity, intensity);
+            }
+            else if (intensity > BreakoutRunProgression.MinRogueIntensity)
+            {
+                paddleProgress.HighestCompletedIntensity = Mathf.Max(
+                    paddleProgress.HighestCompletedIntensity,
+                    intensity - 1);
+            }
+
+            record.BestStageReached = stageReached;
+            record.BestScore = result.Score;
+            PlayerPrefs.SetString(ProgressKey, JsonUtility.ToJson(progress));
+            PlayerPrefs.Save();
+            return progress;
         }
 
         private static BreakoutRoguePaddleIntensityProgress FindPaddleProgress(BreakoutRogueIntensityProgress progress, string selectedPaddle)

@@ -348,6 +348,57 @@ public sealed class BreakoutRogueRunTests
     }
 
     [Test]
+    public void RogueIntensityProgressCanRecoverFromLastCompletedResult()
+    {
+        var completedSettings = CreateRogueSettings(2020, intensity: 1);
+        var completedResult = BreakoutRogueRunResultStore.BuildResult(completedSettings, completed: true, stageReached: 10, "Classic Paddle", 6500);
+
+        BreakoutRogueRunResultStore.Save(completedResult);
+        PlayerPrefs.DeleteKey(RogueProgressKey);
+
+        Assert.That(BreakoutRogueIntensityProgressStore.GetHighestCompletedIntensity("Classic Paddle"), Is.EqualTo(1));
+        Assert.That(BreakoutRogueIntensityProgressStore.GetAvailableIntensity("Classic Paddle"), Is.EqualTo(2));
+        Assert.That(BreakoutRogueIntensityProgressStore.GetBestStageReached("Classic Paddle", 1), Is.EqualTo(10));
+    }
+
+    [Test]
+    public void RogueIntensityProgressRecoveryInfersPreviousClearFromFailedHigherHeat()
+    {
+        var failedSettings = CreateRogueSettings(3030, intensity: 2);
+        var failedResult = BreakoutRogueRunResultStore.BuildResult(failedSettings, completed: false, stageReached: 4, "Classic Paddle", 3200);
+
+        BreakoutRogueRunResultStore.Save(failedResult);
+        PlayerPrefs.DeleteKey(RogueProgressKey);
+
+        Assert.That(BreakoutRogueIntensityProgressStore.GetHighestCompletedIntensity("Classic Paddle"), Is.EqualTo(1));
+        Assert.That(BreakoutRogueIntensityProgressStore.GetAvailableIntensity("Classic Paddle"), Is.EqualTo(2));
+        Assert.That(BreakoutRogueIntensityProgressStore.GetBestStageReached("Classic Paddle", 2), Is.EqualTo(4));
+    }
+
+    [Test]
+    public void RogueRestartRebuildsRunSettingsFromSavedProgress()
+    {
+        var customSettings = new RunSettings(
+            3030,
+            RunDifficultyPreset.Standard,
+            RunScoringMode.Classic,
+            3,
+            500,
+            1,
+            1f,
+            1f,
+            1f,
+            1f,
+            DropPoolMode.Mixed,
+            false,
+            null);
+        var rogueSettings = CreateRogueSettings(4040, intensity: 1);
+
+        Assert.That(BreakoutGameController.ShouldRebuildRogueRunOnRestart(customSettings), Is.False);
+        Assert.That(BreakoutGameController.ShouldRebuildRogueRunOnRestart(rogueSettings), Is.True);
+    }
+
+    [Test]
     public void RogueRunControllerBuildsRunAtAvailableIntensity()
     {
         var controller = new BreakoutRogueRunController(new List<RunUpgradeDefinition>(), new List<PowerUpDefinition>());
