@@ -39,7 +39,7 @@ namespace GetBricked.Gameplay
     {
         private const int PlannedDropUnlockCount = 50;
         private const int PlannedGlitchUnlockCount = 50;
-        private const int DefaultGlitchCount = 2;
+        private const int DefaultGlitchCount = 1;
 
         private static readonly string[] DefaultDropIds =
         {
@@ -60,21 +60,21 @@ namespace GetBricked.Gameplay
 
         private static readonly BreakoutProgressionPlaceholderItem[] PlaceholderDrops =
         {
-            new BreakoutProgressionPlaceholderItem("Chrome Rail", "Drop", "Control", "Paddle widens slightly and sends cleaner bank angles.", 2, ControlAccent),
-            new BreakoutProgressionPlaceholderItem("Clean Catch", "Drop", "Control", "Next paddle hit catches, then releases with stronger aim.", 4, ControlAccent),
-            new BreakoutProgressionPlaceholderItem("Bank Bonus", "Drop", "Precision", "Wall bounces charge bonus points until the next brick hit.", 8, PrecisionAccent),
-            new BreakoutProgressionPlaceholderItem("Solar Shot", "Drop", "Damage", "Ball burns through the next weak brick it touches.", 12, DamageAccent),
-            new BreakoutProgressionPlaceholderItem("Prism Pop", "Drop", "Split", "First brick hit splits a short-lived copy ball.", 14, SplitAccent),
+            new BreakoutProgressionPlaceholderItem("Chrome Rail", "Drop", "Control", "Paddle widens slightly and sends cleaner bank angles.", 32, ControlAccent),
+            new BreakoutProgressionPlaceholderItem("Clean Catch", "Drop", "Control", "Next paddle hit catches, then releases with stronger aim.", 33, ControlAccent),
+            new BreakoutProgressionPlaceholderItem("Bank Bonus", "Drop", "Precision", "Wall bounces charge bonus points until the next brick hit.", 34, PrecisionAccent),
+            new BreakoutProgressionPlaceholderItem("Solar Shot", "Drop", "Damage", "Ball burns through the next weak brick it touches.", 35, DamageAccent),
+            new BreakoutProgressionPlaceholderItem("Prism Pop", "Drop", "Split", "First brick hit splits a short-lived copy ball.", 36, SplitAccent),
         };
 
         private static readonly BreakoutProgressionPlaceholderItem[] PlaceholderGlitches =
         {
-            new BreakoutProgressionPlaceholderItem("Mirror Grid", "Glitch", "Layout", "Brick layout mirrors horizontally halfway through the stage.", 8, LayoutAccent),
-            new BreakoutProgressionPlaceholderItem("Row Rewrite", "Glitch", "Layout", "One row rerolls into a new brick pattern after a timer.", 10, LayoutAccent),
-            new BreakoutProgressionPlaceholderItem("Prism Lanes", "Glitch", "Precision", "Marked lanes refract the ball into sharper angles.", 16, PrecisionAccent),
-            new BreakoutProgressionPlaceholderItem("Token Storm", "Glitch", "Pickup", "More capsules spawn, but fall at mixed speeds.", 20, ControlAccent),
-            new BreakoutProgressionPlaceholderItem("Gravity Pocket", "Glitch", "Speed", "A visible pocket bends nearby ball paths.", 26, SplitAccent),
-            new BreakoutProgressionPlaceholderItem("Static Wall", "Glitch", "Paddle", "One side wall flickers between normal and weak bounce.", 34, HazardAccent),
+            new BreakoutProgressionPlaceholderItem("Mirror Grid", "Glitch", "Layout", "Brick layout mirrors horizontally halfway through the stage.", 37, LayoutAccent),
+            new BreakoutProgressionPlaceholderItem("Row Rewrite", "Glitch", "Layout", "One row rerolls into a new brick pattern after a timer.", 38, LayoutAccent),
+            new BreakoutProgressionPlaceholderItem("Prism Lanes", "Glitch", "Precision", "Marked lanes refract the ball into sharper angles.", 39, PrecisionAccent),
+            new BreakoutProgressionPlaceholderItem("Token Storm", "Glitch", "Pickup", "More capsules spawn, but fall at mixed speeds.", 40, ControlAccent),
+            new BreakoutProgressionPlaceholderItem("Gravity Pocket", "Glitch", "Speed", "A visible pocket bends nearby ball paths.", 41, SplitAccent),
+            new BreakoutProgressionPlaceholderItem("Static Wall", "Glitch", "Paddle", "One side wall flickers between normal and weak bounce.", 42, HazardAccent),
         };
 
         public BreakoutUiProgressionView BuildView(IReadOnlyList<PowerUpDefinition> loadedPowerUps, BreakoutThemeService themeService = null)
@@ -92,7 +92,7 @@ namespace GetBricked.Gameplay
             return new BreakoutUiProgressionView
             {
                 Title = "Progression",
-                Subtitle = "Neon Ladder history, rarity gates, and where earned content appears next.",
+                Subtitle = "Neon Ladder history, Heat unlocks, and where earned content appears next.",
                 LadderTitle = "Ladder Progress",
                 LadderLines = new[]
                 {
@@ -104,7 +104,7 @@ namespace GetBricked.Gameplay
                 {
                     $"Drops: {defaultDropCount:00} Default | {unlockedPlaceholderDrops:00} Placeholder Unlocked | {lockedDropCount:00} Locked",
                     $"Glitches: {DefaultGlitchCount:00} Default | {unlockedPlaceholderGlitches:00} Placeholder Unlocked | {lockedGlitchCount:00} Locked",
-                    "Modes: Ladder rarity affects unlock order and capsule odds.",
+                    "Modes: Ladder adds one new signal per Heat while rarity tunes capsule odds.",
                 },
                 NextSignal = BuildNextSignal(selectedAvailable, selectedBestStage),
                 IntensityGauge = new BreakoutUiIntensityGaugeView
@@ -130,7 +130,13 @@ namespace GetBricked.Gameplay
             var cards = new List<BreakoutUiProgressionCardView>();
             AppendDropCards(cards, loadedPowerUps, availableIntensity, themeService);
             cards.Add(BuildDefaultGlitchCard("Warp Gates", "Layout", "Linked portals reroute ball paths.", LayoutAccent));
-            cards.Add(BuildDefaultGlitchCard("Turbo Rail", "Speed", "A hot wall rail accelerates rebounds.", SplitAccent));
+            cards.Add(BuildUnlockableGlitchCard(
+                "Turbo Rail",
+                "Speed Rare Glitch",
+                "A hot wall rail accelerates rebounds.",
+                BreakoutLevelGlitchPlanner.TurboRailLadderUnlockIntensity,
+                availableIntensity,
+                SplitAccent));
             AppendPlaceholderCards(cards, PlaceholderDrops, highestCompletedIntensity);
             AppendPlaceholderCards(cards, PlaceholderGlitches, highestCompletedIntensity);
             cards.Add(BuildHiddenSlotCard("Future Drop Slot", "Drop", "Hidden", "Future drop signal pending."));
@@ -278,6 +284,35 @@ namespace GetBricked.Gameplay
                 StateLabel = "Default",
                 ModeAvailability = "Ladder | Marathon | Multiplayer",
                 UnlockState = BreakoutUiProgressionUnlockState.Default,
+                Accent = accent,
+            };
+        }
+
+        private static BreakoutUiProgressionCardView BuildUnlockableGlitchCard(
+            string title,
+            string family,
+            string description,
+            int unlockIntensity,
+            int availableIntensity,
+            Color accent)
+        {
+            var isUnlocked = BreakoutRunProgression.ClampRogueIntensity(availableIntensity)
+                >= BreakoutRunProgression.ClampRogueIntensity(unlockIntensity);
+
+            return new BreakoutUiProgressionCardView
+            {
+                Title = title,
+                Kind = "Glitch",
+                Family = family,
+                Description = description,
+                UnlockHint = isUnlocked
+                    ? $"Unlocked at Heat {unlockIntensity:00}"
+                    : $"Reach Heat {unlockIntensity:00} in Neon Ladder",
+                StateLabel = isUnlocked ? "Unlocked" : "Locked",
+                ModeAvailability = isUnlocked ? "Ladder | Marathon | Multiplayer" : "Ladder goal",
+                UnlockState = isUnlocked
+                    ? BreakoutUiProgressionUnlockState.Unlocked
+                    : BreakoutUiProgressionUnlockState.SeenLocked,
                 Accent = accent,
             };
         }

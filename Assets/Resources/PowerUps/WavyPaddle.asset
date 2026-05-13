@@ -19,6 +19,7 @@ MonoBehaviour:
   effectType: 3
   beneficial: 0
   rarity: 0
+  ladderUnlockIntensityOverride: 3
   durationSeconds: 12
   scalar: 1
   extraBallCount: 0

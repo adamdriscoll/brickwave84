@@ -125,10 +125,11 @@ public sealed class BreakoutUpgradeDraftServiceTests
     }
 
     [Test]
-    public void RogueDraftOnlyOffersDropsUnlockedForCurrentRarityBand()
+    public void RogueDraftOnlyOffersDropsUnlockedForCurrentHeat()
     {
         var common = CreatePowerUp("Common Drop", "common_drop", beneficial: true);
         var rare = CreatePowerUp("Rare Drop", "rare_drop", beneficial: true, BreakoutContentRarity.Rare);
+        SetPrivateField(rare, "ladderUnlockIntensityOverride", 9);
         var runState = new BreakoutRunState();
         var service = new BreakoutUpgradeDraftService(
             new List<RunUpgradeDefinition>(),
@@ -147,7 +148,7 @@ public sealed class BreakoutUpgradeDraftServiceTests
 
         var laterDraft = service.GenerateDraft(
             runState,
-            CreateRunSettings(RunScoringMode.Classic, RunGameMode.Rogue, rogueIntensity: 18),
+            CreateRunSettings(RunScoringMode.Classic, RunGameMode.Rogue, rogueIntensity: 9),
             runSeed: 123,
             levelIndex: 1,
             offerCount: 3);

@@ -36,10 +36,14 @@ public sealed class BreakoutLevelGlitchPlannerTests
     }
 
     [Test]
-    public void RogueGlitchRarityControlsWhenTurboRailCanUnlock()
+    public void RogueGlitchHeatControlsWhenTurboRailCanUnlock()
     {
-        var lockedSettings = CreateRogueSettings(rogueIntensity: 8, levelGlitchSelection: LevelGlitchSelection.TurboRail);
-        var unlockedSettings = CreateRogueSettings(rogueIntensity: 18, levelGlitchSelection: LevelGlitchSelection.TurboRail);
+        var lockedSettings = CreateRogueSettings(
+            rogueIntensity: BreakoutLevelGlitchPlanner.TurboRailLadderUnlockIntensity - 1,
+            levelGlitchSelection: LevelGlitchSelection.TurboRail);
+        var unlockedSettings = CreateRogueSettings(
+            rogueIntensity: BreakoutLevelGlitchPlanner.TurboRailLadderUnlockIntensity,
+            levelGlitchSelection: LevelGlitchSelection.TurboRail);
 
         var lockedPlan = BreakoutLevelGlitchPlanner.BuildPlan(new DeterministicRandomService(7), lockedSettings, levelIndex: 9);
         var unlockedPlan = BreakoutLevelGlitchPlanner.BuildPlan(new DeterministicRandomService(7), unlockedSettings, levelIndex: 9);

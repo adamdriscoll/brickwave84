@@ -16,11 +16,13 @@ namespace GetBricked.Gameplay
         public BreakoutLevelGlitchDefinition(
             BreakoutLevelGlitchType glitchType,
             LevelGlitchSelection selection,
-            BreakoutContentRarity rarity)
+            BreakoutContentRarity rarity,
+            int ladderUnlockIntensity)
         {
             GlitchType = glitchType;
             Selection = selection;
             Rarity = rarity;
+            LadderUnlockIntensity = BreakoutRunProgression.ClampRogueIntensity(ladderUnlockIntensity);
         }
 
         public BreakoutLevelGlitchType GlitchType { get; }
@@ -28,6 +30,8 @@ namespace GetBricked.Gameplay
         public LevelGlitchSelection Selection { get; }
 
         public BreakoutContentRarity Rarity { get; }
+
+        public int LadderUnlockIntensity { get; }
     }
 
     internal enum BreakoutWarpGateWall
@@ -114,13 +118,23 @@ namespace GetBricked.Gameplay
 
     internal static class BreakoutLevelGlitchPlanner
     {
+        public const int TurboRailLadderUnlockIntensity = 31;
+
         private const float WarpGateScoreMultiplier = 1.35f;
         private const float TurboRailScoreMultiplier = 1.25f;
 
         private static readonly BreakoutLevelGlitchDefinition[] GlitchDefinitions =
         {
-            new BreakoutLevelGlitchDefinition(BreakoutLevelGlitchType.WarpGates, LevelGlitchSelection.WarpGates, BreakoutContentRarity.Common),
-            new BreakoutLevelGlitchDefinition(BreakoutLevelGlitchType.TurboRail, LevelGlitchSelection.TurboRail, BreakoutContentRarity.Rare),
+            new BreakoutLevelGlitchDefinition(
+                BreakoutLevelGlitchType.WarpGates,
+                LevelGlitchSelection.WarpGates,
+                BreakoutContentRarity.Common,
+                BreakoutRunProgression.MinRogueIntensity),
+            new BreakoutLevelGlitchDefinition(
+                BreakoutLevelGlitchType.TurboRail,
+                LevelGlitchSelection.TurboRail,
+                BreakoutContentRarity.Rare,
+                TurboRailLadderUnlockIntensity),
         };
 
         public static BreakoutLevelGlitchPlan BuildPlan(
@@ -364,14 +378,16 @@ namespace GetBricked.Gameplay
             return definition.GlitchType != BreakoutLevelGlitchType.None
                 && (settings == null
                     || !settings.IsRogueMode
-                    || BreakoutRarityRules.IsUnlockedForLadderIntensity(definition.Rarity, settings.RogueIntensity));
+                    || BreakoutRunProgression.ClampRogueIntensity(settings.RogueIntensity) >= definition.LadderUnlockIntensity);
         }
 
         private static bool HasUnlockedRogueGlitch(int intensity)
         {
+            var clampedIntensity = BreakoutRunProgression.ClampRogueIntensity(intensity);
+
             for (var index = 0; index < GlitchDefinitions.Length; index++)
             {
-                if (BreakoutRarityRules.IsUnlockedForLadderIntensity(GlitchDefinitions[index].Rarity, intensity))
+                if (clampedIntensity >= GlitchDefinitions[index].LadderUnlockIntensity)
                 {
                     return true;
                 }
