@@ -3649,7 +3649,7 @@ namespace GetBricked.Gameplay
 
             if (roundState == RoundState.LifetimeStats)
             {
-                uiRenderer.DrawCabinetBackdrop(BuildChromeView("Lifetime Stats", "Cabinet Totals", true));
+                uiRenderer.DrawCabinetBackdrop(BuildChromeView("Stats", "Cabinet Totals", true));
                 uiRenderer.DrawOverlay(BuildLifetimeStatsOverlayView(), HandleOverlayActionClick);
                 return;
             }
@@ -3943,7 +3943,7 @@ namespace GetBricked.Gameplay
             var lifetimeStats = runStatsService?.LifetimeStats ?? new BreakoutRunStatsSnapshot();
             return new BreakoutUiOverlayView
             {
-                Title = "Lifetime Stats",
+                Title = "Stats",
                 SummaryTitle = "Cabinet Total",
                 StatsRows = BuildLifetimeStatsRows(lifetimeStats),
                 ActionLabels = BuildOverlayActionLabels(GetOverlayActionsForState(RoundState.LifetimeStats)),

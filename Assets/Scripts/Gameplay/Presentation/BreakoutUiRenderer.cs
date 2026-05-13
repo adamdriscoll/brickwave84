@@ -1908,7 +1908,7 @@ namespace GetBricked.Gameplay
             var group = groupLabels != null && startIndex < groupLabels.Length
                 ? groupLabels[startIndex] ?? string.Empty
                 : string.Empty;
-            var accent = string.Equals(group, "Settings", StringComparison.Ordinal)
+            var accent = string.Equals(group, "Cabinet", StringComparison.Ordinal)
                 ? palette.AccentWarm
                 : string.Equals(group, "Multiplayer", StringComparison.Ordinal)
                     ? palette.AccentPrimary
@@ -1919,17 +1919,29 @@ namespace GetBricked.Gameplay
 
             var buttonGap = 14f;
             var buttonY = rect.y + 48f;
-            var buttonHeight = Mathf.Max(38f, rect.yMax - buttonY - 18f);
+            var usesCabinetGrid = string.Equals(group, "Cabinet", StringComparison.Ordinal) && count > 2;
+            var columnCount = usesCabinetGrid ? 2 : count;
+            var rowCount = usesCabinetGrid ? Mathf.CeilToInt(count / 2f) : 1;
+            var availableButtonHeight = Mathf.Max(38f, rect.yMax - buttonY - 18f);
+            var buttonHeight = usesCabinetGrid
+                ? Mathf.Max(34f, (availableButtonHeight - (buttonGap * (rowCount - 1))) / rowCount)
+                : availableButtonHeight;
             var buttonAreaWidth = rect.width - 40f;
             var buttonWidth = count == 1
                 ? Mathf.Max(170f, (buttonAreaWidth - (buttonGap * 2f)) / 3f)
-                : (buttonAreaWidth - (buttonGap * (count - 1))) / count;
+                : (buttonAreaWidth - (buttonGap * (columnCount - 1))) / columnCount;
 
             for (var offset = 0; offset < count; offset++)
             {
                 var index = startIndex + offset;
                 var isSelected = index == Mathf.Clamp(selectedIndex, 0, Math.Max(0, labels.Length - 1));
-                var actionRect = new Rect(rect.x + 20f + (offset * (buttonWidth + buttonGap)), buttonY, buttonWidth, buttonHeight);
+                var column = usesCabinetGrid ? offset % columnCount : offset;
+                var row = usesCabinetGrid ? offset / columnCount : 0;
+                var actionRect = new Rect(
+                    rect.x + 20f + (column * (buttonWidth + buttonGap)),
+                    buttonY + (row * (buttonHeight + buttonGap)),
+                    buttonWidth,
+                    buttonHeight);
 
                 if (DrawArcadeButton(actionRect, labels[index], isSelected))
                 {
