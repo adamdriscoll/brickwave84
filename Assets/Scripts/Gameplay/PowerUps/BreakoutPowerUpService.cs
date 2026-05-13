@@ -87,7 +87,8 @@ namespace GetBricked.Gameplay
             bool paddleCloneEnabled,
             float brickJammerStrength,
             float hotPotatoStrength,
-            float explosiveBallStrength)
+            float explosiveBallStrength,
+            float vectorSightStrength)
         {
             PaddleWidthMultiplier = paddleWidthMultiplier;
             WavyPaddleStrength = wavyPaddleStrength;
@@ -108,6 +109,7 @@ namespace GetBricked.Gameplay
             BrickJammerStrength = brickJammerStrength;
             HotPotatoStrength = hotPotatoStrength;
             ExplosiveBallStrength = explosiveBallStrength;
+            VectorSightStrength = vectorSightStrength;
         }
 
         public float PaddleWidthMultiplier { get; }
@@ -147,6 +149,8 @@ namespace GetBricked.Gameplay
         public float HotPotatoStrength { get; }
 
         public float ExplosiveBallStrength { get; }
+
+        public float VectorSightStrength { get; }
     }
 
     internal readonly struct BreakoutPowerUpApplicationResult
@@ -183,6 +187,7 @@ namespace GetBricked.Gameplay
         private float brickJammerStrength;
         private float hotPotatoStrength;
         private float explosiveBallStrength;
+        private float vectorSightStrength;
 
         public BreakoutEffectModifierAccumulator(float basePaddleWidthMultiplier, float baseWavyPaddleStrength)
         {
@@ -205,6 +210,7 @@ namespace GetBricked.Gameplay
             brickJammerStrength = 0f;
             hotPotatoStrength = 0f;
             explosiveBallStrength = 0f;
+            vectorSightStrength = 0f;
         }
 
         public void Apply(BreakoutActiveTimedEffect activeEffect)
@@ -279,6 +285,9 @@ namespace GetBricked.Gameplay
                 case PowerUpEffectType.ExplosiveBall:
                     explosiveBallStrength = Mathf.Max(explosiveBallStrength, Mathf.Max(0.1f, powerUpDefinition.Scalar * effectStrength));
                     break;
+                case PowerUpEffectType.VectorSight:
+                    vectorSightStrength = Mathf.Max(vectorSightStrength, Mathf.Clamp01(powerUpDefinition.Scalar * effectStrength));
+                    break;
             }
         }
 
@@ -303,7 +312,8 @@ namespace GetBricked.Gameplay
                 paddleCloneEnabled,
                 brickJammerStrength,
                 hotPotatoStrength,
-                explosiveBallStrength);
+                explosiveBallStrength,
+                vectorSightStrength);
         }
     }
 

@@ -19,6 +19,8 @@ namespace GetBricked.Gameplay
         private const float LaserBeamLifetimeSeconds = 0.16f;
         private const float ShieldWallYOffset = 0.38f;
         private const float ShieldWallThickness = 0.16f;
+        private const float VectorSightPreviewRange = 2.45f;
+        private const float VectorSightPreviewLength = 1.85f;
         private const float ExplosiveBallMinimumRadius = 1.25f;
         private const float ExplosiveBallMaximumRadius = 2.05f;
         private const float ExplosiveBallMinimumSpeedBurstMultiplier = 1.1f;
@@ -243,6 +245,7 @@ namespace GetBricked.Gameplay
         private SpriteRenderer shieldWallRenderer;
         private Collider2D shieldWallCollider;
         private BreakoutShieldWallVisual shieldWallVisual;
+        private BreakoutVectorSightVisual vectorSightVisual;
         private int shieldWallCharges;
         private float laserShotCooldownTimer;
         private BreakoutLevelGlitchPlan activeLevelGlitchPlan = BreakoutLevelGlitchPlan.None;
@@ -294,6 +297,7 @@ namespace GetBricked.Gameplay
             CreateBackground();
             CreateBounds();
             CreateShieldWallVisual();
+            CreateVectorSightVisual();
             CreatePaddle();
             currentLevelBallSpeed = ballSpeed;
             currentLevelPaddleSpeed = paddleSpeed;
@@ -373,6 +377,7 @@ namespace GetBricked.Gameplay
         {
             UpdateTimedEffects();
             RefreshBrickMagnetTargets();
+            UpdateVectorSightVisual();
             UpdatePickupBanner();
             audioService?.Update(Time.unscaledDeltaTime);
             scoreService?.UpdateFloatingScorePopups(Time.unscaledDeltaTime);
@@ -1148,7 +1153,7 @@ namespace GetBricked.Gameplay
             {
                 var definition = loadedPowerUpDefinitions[index];
 
-                if (definition != null && BreakoutRarityRules.IsUnlockedForLadderIntensity(definition.Rarity, intensity))
+                if (definition != null && definition.IsUnlockedForLadderIntensity(intensity))
                 {
                     activeRunState.UnlockDrop(definition);
                 }
@@ -2888,6 +2893,15 @@ namespace GetBricked.Gameplay
                 additiveSpriteMaterial,
                 (arenaRight - arenaLeft) - 0.3f,
                 ShieldWallThickness);
+        }
+
+        private void CreateVectorSightVisual()
+        {
+            var sightObject = new GameObject("Vector Sight");
+            sightObject.transform.SetParent(effectsRoot != null ? effectsRoot : runtimeRoot, false);
+            vectorSightVisual = sightObject.AddComponent<BreakoutVectorSightVisual>();
+            vectorSightVisual.Configure(additiveLineMaterial);
+            vectorSightVisual.Hide();
         }
 
         private void CreatePaddle()
@@ -4802,6 +4816,7 @@ namespace GetBricked.Gameplay
                     false,
                     0f,
                     0f,
+                    0f,
                     0f);
             paddle.SetMoveSpeed(currentLevelPaddleSpeed * (activeRunSettings?.PaddleSpeedMultiplier ?? 1f));
             var paddleHitMaximumWidth = paddle.SetWidthMultiplier(activeEffectModifiers.PaddleWidthMultiplier);
@@ -4861,11 +4876,156 @@ namespace GetBricked.Gameplay
             ApplyVisualEffectState();
             ApplyBrickJammerState();
             UpdateShieldWallVisual();
+            UpdateVectorSightVisual();
 
             if (stickyCaughtBall != null && !activeEffectModifiers.StickyPaddleEnabled)
             {
                 ReleaseStickyCaughtBall();
             }
+        }
+
+        private void UpdateVectorSightVisual()
+        {
+            if (vectorSightVisual == null)
+            {
+                return;
+            }
+
+            if (activeEffectModifiers.VectorSightStrength <= 0.001f
+                || !IsGameplaySimulationActive()
+                || paddle == null
+                || paddleCollider == null)
+            {
+                vectorSightVisual.Hide();
+                return;
+            }
+
+            if (!TryResolveVectorSightSegment(out var origin, out var target, out var proximity))
+            {
+                vectorSightVisual.Hide();
+                return;
+            }
+
+            var strength = Mathf.Clamp01(activeEffectModifiers.VectorSightStrength);
+            var alpha = Mathf.Lerp(0.42f, 1f, Mathf.Clamp01(proximity * strength));
+            vectorSightVisual.Show(
+                origin,
+                target,
+                ResolveVectorSightCoreColor(),
+                ResolveVectorSightGlowColor(),
+                alpha);
+        }
+
+        private bool TryResolveVectorSightSegment(out Vector2 origin, out Vector2 target, out float proximity)
+        {
+            origin = Vector2.zero;
+            target = Vector2.zero;
+            proximity = 0f;
+
+            var ball = ResolveVectorSightBall();
+
+            if (ball == null)
+            {
+                return false;
+            }
+
+            var paddleBounds = paddleCollider.bounds;
+            var paddleTop = paddleBounds.max.y + Mathf.Max(0.03f, ballRadius * 0.45f);
+            var ballPosition = (Vector2)ball.transform.position;
+            var verticalDistance = Mathf.Max(0f, ballPosition.y - paddleTop);
+
+            if (ball.HasLaunched)
+            {
+                var velocity = ball.CurrentVelocity;
+
+                if (velocity.y >= -0.01f || verticalDistance > VectorSightPreviewRange)
+                {
+                    return false;
+                }
+            }
+
+            var contactX = Mathf.Clamp(ballPosition.x, paddleBounds.min.x, paddleBounds.max.x);
+            var bounceDirection = ball.ResolvePaddleBounceDirection(paddle, contactX);
+
+            if (bounceDirection.sqrMagnitude <= 0.001f)
+            {
+                return false;
+            }
+
+            origin = new Vector2(contactX, paddleTop);
+            target = origin + (bounceDirection.normalized * VectorSightPreviewLength);
+            proximity = ball.HasLaunched
+                ? 1f - Mathf.Clamp01(verticalDistance / VectorSightPreviewRange)
+                : 1f;
+            return true;
+        }
+
+        private BallController ResolveVectorSightBall()
+        {
+            if (stickyCaughtBall != null)
+            {
+                return stickyCaughtBall;
+            }
+
+            if (serveBall != null && !serveBall.HasLaunched)
+            {
+                return serveBall;
+            }
+
+            BallController closestBall = null;
+            var closestVerticalDistance = float.PositiveInfinity;
+            var paddleTop = paddleCollider != null ? paddleCollider.bounds.max.y : arenaBottom + paddleFloorOffset;
+
+            for (var index = activeBalls.Count - 1; index >= 0; index--)
+            {
+                var ball = activeBalls[index];
+
+                if (ball == null)
+                {
+                    activeBalls.RemoveAt(index);
+                    continue;
+                }
+
+                if (!ball.HasLaunched || ball.CurrentVelocity.y >= -0.01f)
+                {
+                    continue;
+                }
+
+                var verticalDistance = ball.transform.position.y - paddleTop;
+
+                if (verticalDistance < -0.2f
+                    || verticalDistance > VectorSightPreviewRange
+                    || verticalDistance >= closestVerticalDistance)
+                {
+                    continue;
+                }
+
+                closestVerticalDistance = verticalDistance;
+                closestBall = ball;
+            }
+
+            return closestBall;
+        }
+
+        private Color ResolveVectorSightCoreColor()
+        {
+            return themeService != null
+                ? Color.Lerp(
+                    Color.white,
+                    themeService.ResolveThemeStyle(ThemeVisualSlot.PickupBeneficial, new Color(0.45f, 0.95f, 0.72f, 1f), new Color(0.45f, 0.95f, 0.72f, 1f), powerUpSprite).PrimaryColor,
+                    0.28f)
+                : new Color(0.88f, 1f, 0.95f, 1f);
+        }
+
+        private Color ResolveVectorSightGlowColor()
+        {
+            return themeService != null
+                ? themeService.ResolveThemeStyle(
+                    ThemeVisualSlot.PickupBeneficial,
+                    new Color(0.45f, 0.95f, 0.72f, 1f),
+                    new Color(0.03f, 0.93f, 0.98f, 1f),
+                    powerUpSprite).SecondaryColor
+                : new Color(0.03f, 0.93f, 0.98f, 1f);
         }
 
         private bool TryBreakWidePaddle()
@@ -5348,6 +5508,7 @@ namespace GetBricked.Gameplay
                 PowerUpEffectType.BrickJammer => $"Brick jam for {definition.DurationSeconds:0.#}s",
                 PowerUpEffectType.HotPotatoBall => $"Ball x{definition.Scalar:0.00}, score x{definition.Scalar:0.00}",
                 PowerUpEffectType.ExplosiveBall => $"Explodes bricks for {definition.DurationSeconds:0.#}s",
+                PowerUpEffectType.VectorSight => $"Aim preview for {definition.DurationSeconds:0.#}s",
                 PowerUpEffectType.RandomHarmfulDrop => "Disguised random hazard",
                 _ => $"{definition.HudLabel} for {definition.DurationSeconds:0.#}s",
             };

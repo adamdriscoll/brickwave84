@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
+  <title id="title">Vector Sight</title>
+  <desc id="desc">A monochrome neon icon showing a paddle projecting an angled aim line.</desc>
+  <defs>
+    <filter id="softGlow" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="2.25" result="blur"/>
+      <feColorMatrix in="blur" type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 .8 0" result="glow"/>
+      <feMerge>
+        <feMergeNode in="glow"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <style><![CDATA[
+      .icon { fill: none; stroke: #fff; stroke-linecap: round; stroke-linejoin: round; filter: url(#softGlow); }
+      .main { stroke-width: 10; opacity: .96; }
+      .mid { stroke-width: 6; opacity: .82; }
+      .thin { stroke-width: 3.5; opacity: .48; }
+      .dash { stroke-dasharray: 11 10; }
+      .fill { fill: #fff; stroke: none; opacity: .9; filter: url(#softGlow); }
+    ]]></style>
+  </defs>
+  <g class="icon">
+    <path class="main" d="M50 187 H206"/>
+    <path class="mid" d="M70 174 H186"/>
+    <path class="main" d="M128 164 L180 72"/>
+    <path class="thin dash" d="M128 164 L86 87"/>
+    <path class="thin dash" d="M128 164 V58"/>
+    <circle class="mid" cx="128" cy="164" r="15"/>
+    <circle class="fill" cx="180" cy="72" r="8"/>
+    <path class="mid" d="M168 72 H192 M180 60 V84"/>
+    <path class="thin" d="M92 203 H164"/>
+  </g>
+</svg>

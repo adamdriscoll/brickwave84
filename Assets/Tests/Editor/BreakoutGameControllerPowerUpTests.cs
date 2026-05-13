@@ -357,6 +357,7 @@ public sealed class BreakoutGameControllerPowerUpTests
             CreateTimedPowerUpCase("Fog of War", PowerUpEffectType.FogOfWar, false, 10f, 0.55f),
             CreateTimedPowerUpCase("Lag Spike", PowerUpEffectType.LagSpike, false, 8f, 0.5f),
             CreateTimedPowerUpCase("Boom Ball", PowerUpEffectType.ExplosiveBall, true, 10f, 1f),
+            CreateTimedPowerUpCase("Vector Sight", PowerUpEffectType.VectorSight, true, 14f, 1f),
         };
 
         for (var index = 0; index < timedPowerUps.Length; index++)
@@ -406,6 +407,7 @@ public sealed class BreakoutGameControllerPowerUpTests
         InvokePrivateMethod(controller, "ApplyPowerUp", CreatePowerUp("Fog of War", PowerUpEffectType.FogOfWar, false, 10f, 0.55f));
         InvokePrivateMethod(controller, "ApplyPowerUp", CreatePowerUp("Lag Spike", PowerUpEffectType.LagSpike, false, 8f, 0.5f));
         InvokePrivateMethod(controller, "ApplyPowerUp", CreatePowerUp("Boom Ball", PowerUpEffectType.ExplosiveBall, true, 10f, 1f));
+        InvokePrivateMethod(controller, "ApplyPowerUp", CreatePowerUp("Vector Sight", PowerUpEffectType.VectorSight, true, 14f, 1f));
 
         var activeEffectModifiers = GetPrivateField<object>(controller, "activeEffectModifiers");
         var ballRenderer = serveBall.GetComponent<SpriteRenderer>();
@@ -416,6 +418,7 @@ public sealed class BreakoutGameControllerPowerUpTests
         Assert.That(GetPropertyValue<float>(activeEffectModifiers, "ChainLightningStrength"), Is.EqualTo(0.35f).Within(0.0001f));
         Assert.That(GetPropertyValue<float>(activeEffectModifiers, "FogVisibilityMultiplier"), Is.EqualTo(0.55f).Within(0.0001f));
         Assert.That(GetPropertyValue<float>(activeEffectModifiers, "ExplosiveBallStrength"), Is.EqualTo(1f).Within(0.0001f));
+        Assert.That(GetPropertyValue<float>(activeEffectModifiers, "VectorSightStrength"), Is.EqualTo(1f).Within(0.0001f));
         Assert.That(GetPrivateField<bool>(paddle, "controlsReversed"), Is.True);
         Assert.That(GetPrivateField<float>(paddle, "splitGapWidthNormalized"), Is.GreaterThan(0.2f));
         Assert.That(GetPrivateField<float>(paddle, "lagSpikeStrength"), Is.EqualTo(0.5f).Within(0.0001f));

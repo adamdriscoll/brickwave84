@@ -157,6 +157,35 @@ public sealed class BreakoutUpgradeDraftServiceTests
     }
 
     [Test]
+    public void RogueDraftHonorsExplicitDropUnlockIntensity()
+    {
+        var vectorSight = CreatePowerUp("Vector Sight", "vector_sight", beneficial: true);
+        SetPrivateField(vectorSight, "ladderUnlockIntensityOverride", 6);
+        var runState = new BreakoutRunState();
+        var service = new BreakoutUpgradeDraftService(
+            new List<RunUpgradeDefinition>(),
+            new List<PowerUpDefinition> { vectorSight });
+
+        var lockedDraft = service.GenerateDraft(
+            runState,
+            CreateRunSettings(RunScoringMode.Classic, RunGameMode.Rogue, rogueIntensity: 5),
+            runSeed: 123,
+            levelIndex: 1,
+            offerCount: 3);
+        var unlockedDraft = service.GenerateDraft(
+            runState,
+            CreateRunSettings(RunScoringMode.Classic, RunGameMode.Rogue, rogueIntensity: 6),
+            runSeed: 123,
+            levelIndex: 1,
+            offerCount: 3);
+
+        Assert.That(lockedDraft, Is.Empty);
+        Assert.That(unlockedDraft, Has.Length.EqualTo(1));
+        Assert.That(unlockedDraft[0].DropUnlockDefinition, Is.EqualTo(vectorSight));
+        Assert.That(vectorSight.LadderUnlockIntensity, Is.EqualTo(6));
+    }
+
+    [Test]
     public void CustomGameDraftDoesNotOfferDropUnlocks()
     {
         var laser = CreatePowerUp("Laser Paddle", "laser_paddle", beneficial: true);

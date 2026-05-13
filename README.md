@@ -164,7 +164,7 @@ Difficulty presets already change more than labels:
 
 ### Unlock Progression
 
-Permanent run upgrades are always available in the between-stage draft pool. Drop unlocks enter the Neon Ladder ecosystem by default status or rarity gate: `Common` at Heat `01`, `Uncommon` at Heat `08`, `Rare` at Heat `18`, and `Epic` at Heat `32`. Default drops start unlocked for Neon Ladder runs. Implementation status tracks whether the item has live runtime gameplay behavior or is currently only a progression-screen placeholder.
+Permanent run upgrades are always available in the between-stage draft pool. Drop unlocks enter the Neon Ladder ecosystem by default status, explicit Heat gate, or rarity gate: `Common` at Heat `01`, `Uncommon` at Heat `08`, `Rare` at Heat `18`, and `Epic` at Heat `32`. Default drops start unlocked for Neon Ladder runs. Implementation status tracks whether the item has live runtime gameplay behavior or is currently only a progression-screen placeholder.
 
 | Name | Description | Default / unlock level | Rarity | Polarity | Type | Implementation |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -175,6 +175,7 @@ Permanent run upgrades are always available in the between-stage draft pool. Dro
 | `Fast Ball` | Ball speed x1.28 for 10s. | Heat 01 | Common | Hazard | Ball speed | Implemented |
 | `Narrow Paddle` | Paddle width x0.72 for 10s. | Heat 01 | Common | Hazard | Paddle width | Implemented |
 | `Wavy Paddle` | Adds paddle sway for 12s. | Heat 01 | Common | Hazard | Paddle drift | Implemented |
+| `Vector Sight` | Shows a short paddle aim preview for 14s. | Heat 06 | Common | Helpful | Control drop | Implemented |
 | `Bogus Tape` | Looks helpful, then rolls a random hazard. | Heat 08 | Uncommon | Hazard | Disguised hazard | Implemented |
 | `Fog of War` | Reduces brick and pickup visibility for 10s. | Heat 08 | Uncommon | Hazard | Visibility | Implemented |
 | `Lag Spike` | Intermittently stalls paddle response for 8s. | Heat 08 | Uncommon | Hazard | Input lag | Implemented |
@@ -203,7 +204,6 @@ Permanent run upgrades are always available in the between-stage draft pool. Dro
 | `Turbo Rail` | A hot wall rail accelerates rebounds. | Heat 18 | Rare | Glitch | Level glitch | Implemented |
 | `Chrome Rail` | Paddle widens slightly and sends cleaner bank angles. | Heat 02 | N/A | Helpful | Control drop | Not implemented (UI placeholder) |
 | `Clean Catch` | Next paddle hit catches, then releases with stronger aim. | Heat 04 | N/A | Helpful | Control drop | Not implemented (UI placeholder) |
-| `Vector Sight` | Shows a short aim preview near the paddle. | Heat 06 | N/A | Helpful | Control drop | Not implemented (UI placeholder) |
 | `Bank Bonus` | Wall bounces charge bonus points until the next brick hit. | Heat 08 | N/A | Helpful | Precision drop | Not implemented (UI placeholder) |
 | `Solar Shot` | Ball burns through the next weak brick it touches. | Heat 12 | N/A | Helpful | Damage drop | Not implemented (UI placeholder) |
 | `Prism Pop` | First brick hit splits a short-lived copy ball. | Heat 14 | N/A | Helpful | Split drop | Not implemented (UI placeholder) |

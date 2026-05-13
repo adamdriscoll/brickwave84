@@ -170,7 +170,7 @@ namespace GetBricked.Gameplay
             }
 
             return definition.IsBeneficial
-                && BreakoutRarityRules.IsUnlockedForLadderIntensity(definition.Rarity, runSettings.RogueIntensity);
+                && definition.IsUnlockedForLadderIntensity(runSettings.RogueIntensity);
         }
 
         private static bool IsUpgradeCompatibleWithRun(RunUpgradeDefinition definition, RunSettings runSettings)

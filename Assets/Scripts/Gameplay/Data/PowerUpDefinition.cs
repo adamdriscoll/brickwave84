@@ -94,6 +94,7 @@ namespace GetBricked.Gameplay.Data
         ExplosiveBall = 20,
         BallSizeMultiplier = 21,
         RandomHarmfulDrop = 22,
+        VectorSight = 23,
     }
 
     [CreateAssetMenu(menuName = "Get Bricked/Power-Up Definition", fileName = "PowerUpDefinition")]
@@ -106,6 +107,7 @@ namespace GetBricked.Gameplay.Data
         [SerializeField] private PowerUpEffectType effectType = PowerUpEffectType.PaddleWidthMultiplier;
         [SerializeField] private bool beneficial = true;
         [SerializeField] private BreakoutContentRarity rarity = BreakoutContentRarity.Common;
+        [SerializeField, Min(0)] private int ladderUnlockIntensityOverride;
         [SerializeField, Min(0f)] private float durationSeconds = 10f;
         [SerializeField, Min(0.1f)] private float scalar = 1.25f;
         [SerializeField, Min(0)] private int extraBallCount = 2;
@@ -126,6 +128,10 @@ namespace GetBricked.Gameplay.Data
 
         public string RarityLabel => BreakoutRarityRules.GetLabel(Rarity);
 
+        public int LadderUnlockIntensity => ladderUnlockIntensityOverride > 0
+            ? BreakoutRunProgression.ClampRogueIntensity(ladderUnlockIntensityOverride)
+            : BreakoutRarityRules.GetLadderUnlockIntensity(Rarity);
+
         public float DurationSeconds => Mathf.Max(0f, durationSeconds);
 
         public float Scalar => Mathf.Max(0.1f, scalar);
@@ -140,6 +146,11 @@ namespace GetBricked.Gameplay.Data
             && effectType != PowerUpEffectType.ActiveDropMultiplier
             && effectType != PowerUpEffectType.RandomHarmfulDrop
             && DurationSeconds > 0f;
+
+        public bool IsUnlockedForLadderIntensity(int intensity)
+        {
+            return BreakoutRunProgression.ClampRogueIntensity(intensity) >= LadderUnlockIntensity;
+        }
 
         public string ResolvePickupSpriteResourcePath()
         {

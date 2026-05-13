@@ -47,6 +47,8 @@ namespace GetBricked.Gameplay
 
         public bool IsAttachedToPaddle => attachedToPaddle;
 
+        public bool HasLaunched => hasLaunched;
+
         public int RicochetCountSinceLastBrick => ricochetCountSinceLastBrick;
 
         public bool IsExplosiveBall => explosiveBallStrength > 0.001f;
@@ -380,6 +382,21 @@ namespace GetBricked.Gameplay
             ballBody.linearVelocity = resolvedDirection * GetTargetSpeed();
         }
 
+        public Vector2 ResolvePaddleBounceDirection(PaddleController hitPaddle, float contactWorldX)
+        {
+            if (hitPaddle == null || hitPaddle.HalfWidthWorld <= 0.001f)
+            {
+                return Vector2.up;
+            }
+
+            var normalizedOffset = Mathf.Clamp(
+                (contactWorldX - hitPaddle.transform.position.x) / hitPaddle.HalfWidthWorld,
+                -1f,
+                1f);
+
+            return ResolvePaddleBounceDirection(normalizedOffset);
+        }
+
         private void FixedUpdate()
         {
             if (ballBody == null)
@@ -512,12 +529,12 @@ namespace GetBricked.Gameplay
                 ? collision.GetContact(0).point
                 : (Vector2)transform.position;
 
-            var normalizedOffset = Mathf.Clamp(
-                (contactPoint.x - hitPaddle.transform.position.x) / hitPaddle.HalfWidthWorld,
-                -1f,
-                1f);
+            ApplyCollisionResponse(ResolvePaddleBounceDirection(hitPaddle, contactPoint.x));
+        }
 
-            var bounceAngleRadians = normalizedOffset * maxPaddleBounceAngle * Mathf.Deg2Rad;
+        private Vector2 ResolvePaddleBounceDirection(float normalizedOffset)
+        {
+            var bounceAngleRadians = Mathf.Clamp(normalizedOffset, -1f, 1f) * maxPaddleBounceAngle * Mathf.Deg2Rad;
             var bounceDirection = new Vector2(Mathf.Sin(bounceAngleRadians), Mathf.Cos(bounceAngleRadians)).normalized;
 
             if (Mathf.Abs(bounceDirection.y) < minimumVerticalDirection)
@@ -527,7 +544,7 @@ namespace GetBricked.Gameplay
                     Mathf.Sign(Mathf.Approximately(bounceDirection.y, 0f) ? 1f : bounceDirection.y) * minimumVerticalDirection).normalized;
             }
 
-            ApplyCollisionResponse(bounceDirection);
+            return bounceDirection;
         }
 
         private void ClampBallVelocity(float minimumVerticalFraction = -1f)

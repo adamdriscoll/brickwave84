@@ -62,7 +62,6 @@ namespace GetBricked.Gameplay
         {
             new BreakoutProgressionPlaceholderItem("Chrome Rail", "Drop", "Control", "Paddle widens slightly and sends cleaner bank angles.", 2, ControlAccent),
             new BreakoutProgressionPlaceholderItem("Clean Catch", "Drop", "Control", "Next paddle hit catches, then releases with stronger aim.", 4, ControlAccent),
-            new BreakoutProgressionPlaceholderItem("Vector Sight", "Drop", "Control", "Shows a short aim preview near the paddle.", 6, ControlAccent),
             new BreakoutProgressionPlaceholderItem("Bank Bonus", "Drop", "Precision", "Wall bounces charge bonus points until the next brick hit.", 8, PrecisionAccent),
             new BreakoutProgressionPlaceholderItem("Solar Shot", "Drop", "Damage", "Ball burns through the next weak brick it touches.", 12, DamageAccent),
             new BreakoutProgressionPlaceholderItem("Prism Pop", "Drop", "Split", "First brick hit splits a short-lived copy ball.", 14, SplitAccent),
@@ -162,8 +161,8 @@ namespace GetBricked.Gameplay
 
                 var style = ResolvePowerUpStyle(definition, themeService);
                 var isDefault = IsDefaultDrop(definition);
-                var unlockIntensity = BreakoutRarityRules.GetLadderUnlockIntensity(definition.Rarity);
-                var isUnlocked = isDefault || BreakoutRarityRules.IsUnlockedForLadderIntensity(definition.Rarity, availableIntensity);
+                var unlockIntensity = definition.LadderUnlockIntensity;
+                var isUnlocked = isDefault || definition.IsUnlockedForLadderIntensity(availableIntensity);
                 cards.Add(new BreakoutUiProgressionCardView
                 {
                     Title = definition.DisplayName,
@@ -237,6 +236,7 @@ namespace GetBricked.Gameplay
                 PowerUpEffectType.BrickJammer => $"Jams brick response for {definition.DurationSeconds:0.#}s.",
                 PowerUpEffectType.HotPotatoBall => $"Ball speed and score x{definition.Scalar:0.00} for {definition.DurationSeconds:0.#}s.",
                 PowerUpEffectType.ExplosiveBall => $"Ball explosions damage nearby bricks for {definition.DurationSeconds:0.#}s.",
+                PowerUpEffectType.VectorSight => $"Shows a short paddle aim preview for {definition.DurationSeconds:0.#}s.",
                 PowerUpEffectType.RandomHarmfulDrop => "Looks helpful, then rolls a random hazard.",
                 _ => $"{definition.HudLabel} for {definition.DurationSeconds:0.#}s.",
             };

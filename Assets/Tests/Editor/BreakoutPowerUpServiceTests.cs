@@ -76,6 +76,7 @@ public sealed class BreakoutPowerUpServiceTests
         var hotPotato = CreatePowerUp("Hot Potato Ball", PowerUpEffectType.HotPotatoBall, true, 9f, 1.28f);
         var boomBall = CreatePowerUp("Boom Ball", PowerUpEffectType.ExplosiveBall, true, 10f, 1f);
         var megaBall = CreatePowerUp("Mega Ball", PowerUpEffectType.BallSizeMultiplier, true, 10f, 1.8f);
+        var vectorSight = CreatePowerUp("Vector Sight", PowerUpEffectType.VectorSight, true, 14f, 1f);
 
         service.ApplyPowerUp(magnet, null);
         service.ApplyPowerUp(scoreSurge, null);
@@ -84,6 +85,7 @@ public sealed class BreakoutPowerUpServiceTests
         service.ApplyPowerUp(hotPotato, null);
         service.ApplyPowerUp(boomBall, null);
         service.ApplyPowerUp(megaBall, null);
+        service.ApplyPowerUp(vectorSight, null);
 
         var modifiers = service.CalculateEffectModifiers(1f, 0f);
 
@@ -95,6 +97,7 @@ public sealed class BreakoutPowerUpServiceTests
         Assert.That(modifiers.BallSizeMultiplier, Is.EqualTo(1.8f).Within(0.0001f));
         Assert.That(modifiers.HotPotatoStrength, Is.GreaterThan(0f));
         Assert.That(modifiers.ExplosiveBallStrength, Is.EqualTo(1f).Within(0.0001f));
+        Assert.That(modifiers.VectorSightStrength, Is.EqualTo(1f).Within(0.0001f));
     }
 
     [Test]

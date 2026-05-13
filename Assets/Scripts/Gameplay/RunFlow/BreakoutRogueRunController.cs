@@ -169,7 +169,7 @@ namespace GetBricked.Gameplay
 
                 if (definition != null
                     && !definition.IsBeneficial
-                    && BreakoutRarityRules.IsUnlockedForLadderIntensity(definition.Rarity, intensity))
+                    && definition.IsUnlockedForLadderIntensity(intensity))
                 {
                     hazards.Add(definition);
                 }

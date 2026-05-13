@@ -70,8 +70,22 @@ public sealed class BreakoutProgressionPageTests
         Assert.That(card.UnlockState, Is.EqualTo(BreakoutUiProgressionUnlockState.SeenLocked));
         Assert.That(card.StateLabel, Is.EqualTo("Locked"));
         Assert.That(card.Family, Does.Contain("Hazard"));
-        Assert.That(card.Description, Does.Contain("unlocked hazard"));
+        Assert.That(card.Description, Does.Contain("random hazard"));
         Assert.That(card.UnlockHint, Does.Contain("Heat 08"));
         Assert.That(view.MeterLines, Has.Some.Contains("Drops: 00 Default"));
+    }
+
+    [Test]
+    public void ProgressionPageShowsVectorSightAsLiveHeatSixDrop()
+    {
+        var vectorSight = Resources.Load<PowerUpDefinition>("PowerUps/VectorSight");
+        Assert.That(vectorSight, Is.Not.Null);
+
+        var view = new BreakoutProgressionPageService().BuildView(new[] { vectorSight });
+        var card = view.Cards.First(item => item.Title == "Vector Sight");
+
+        Assert.That(card.UnlockHint, Does.Contain("Heat 06"));
+        Assert.That(card.Description, Does.Contain("aim preview"));
+        Assert.That(card.StateLabel, Is.EqualTo("Locked"));
     }
 }
