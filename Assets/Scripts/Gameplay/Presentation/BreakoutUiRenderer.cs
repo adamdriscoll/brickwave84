@@ -15,6 +15,8 @@ namespace GetBricked.Gameplay
         private const float SplitOverlayFooterGap = 4f;
         private const float SplitOverlayActionLineHeight = 42f;
         private const float BrickCounterPulseDuration = 0.55f;
+        private const float LifeLossAnimationDuration = 1.05f;
+        private const float ScorePopDuration = 0.34f;
         private static readonly string[] RetroUiFontNames = { "Consolas", "Courier New", "monospace" };
 
         private readonly Dictionary<Sprite, Texture2D> iconTextureCache = new Dictionary<Sprite, Texture2D>();
@@ -22,6 +24,10 @@ namespace GetBricked.Gameplay
         private Vector2 statsTableScroll;
         private int previousBrickCounterValue = -1;
         private float brickCounterPulseStartTime = -100f;
+        private int previousHudScoreValue = int.MinValue;
+        private float scorePopStartTime = -100f;
+        private int previousHudLifeCount = -1;
+        private LifeLossHudAnimation lifeLossAnimation;
 
         private GUIStyle hudStyle;
         private GUIStyle messageStyle;
@@ -319,22 +325,39 @@ namespace GetBricked.Gameplay
             var hasBottomLine = !string.IsNullOrWhiteSpace(view.BottomLine);
             var statusHeight = hasBottomLine ? 72f : 46f;
             var statusRect = new Rect(18f, 18f, Mathf.Max(320f, statusMaxX - 18f), statusHeight);
-            var ladderRect = new Rect(statusRect.x, statusRect.yMax + 8f, statusRect.width, 44f);
             var diagnosticsLabel = view.IsDiagnosticsVisible ? "DBG ON" : "DBG";
             var menuLabel = view.IsPaused ? "RESUME" : "MENU";
+            var topLineY = statusRect.y + (hasBottomLine ? 14f : 11f);
+            var topLineRect = new Rect(statusRect.x + 20f, topLineY, statusRect.width - 40f, 24f);
+            var ladderMinWidth = view.StageLadder != null && view.StageLadder.IsVisible ? 116f : 0f;
+            var ladderGap = ladderMinWidth > 0f ? 18f : 0f;
+            var readoutRect = new Rect(topLineRect.x, topLineRect.y, Mathf.Max(120f, topLineRect.width - ladderMinWidth - ladderGap), topLineRect.height);
 
             DrawPanel(statusRect, palette.AccentPrimary, palette.AccentSecondary, false);
-            DrawTextWithShadow(new Rect(statusRect.x + 20f, statusRect.y + (hasBottomLine ? 14f : 11f), statusRect.width - 40f, 24f), view.TopLine, hudStyle, palette.TextPrimary, 0.35f);
+            var readoutEndX = DrawHudReadout(readoutRect, view);
 
             if (hasBottomLine)
             {
                 DrawTextWithShadow(new Rect(statusRect.x + 20f, statusRect.y + 40f, statusRect.width - 40f, 22f), view.BottomLine, overlayBodyStyle, palette.TextMuted, 0.3f);
             }
 
-            DrawStageLadder(ladderRect, view.StageLadder);
+            if (view.StageLadder != null && view.StageLadder.IsVisible)
+            {
+                var ladderX = readoutEndX + 18f;
+                var ladderWidth = Mathf.Clamp(topLineRect.xMax - ladderX, ladderMinWidth, 288f);
+
+                if (ladderX + ladderWidth > topLineRect.xMax)
+                {
+                    ladderX = topLineRect.xMax - ladderWidth;
+                }
+
+                DrawStageLadder(new Rect(ladderX, topLineY + 5f, ladderWidth, 14f), view.StageLadder);
+            }
+
             DrawBallSpeedMeter(view.SpeedMeter);
             DrawIntensityGauge(gaugeRect, view.IntensityGauge);
             DrawBrickCounter(view);
+            DrawLifeLossAnimation();
 
             if (DrawArcadeButton(new Rect(buttonsX, buttonsY, 122f, 42f), diagnosticsLabel, view.IsDiagnosticsVisible))
             {
@@ -1529,6 +1552,232 @@ namespace GetBricked.Gameplay
             DrawTextWithShadow(new Rect(rect.x, center.y - 16f, rect.width, 34f), $"{Mathf.Clamp(view.Intensity, 1, Mathf.Max(1, view.MaxIntensity)):00}", pickupStyle, palette.TextPrimary, 0.28f);
         }
 
+        private float DrawHudReadout(Rect rect, BreakoutUiHudView view)
+        {
+            var scoreText = !string.IsNullOrWhiteSpace(view.ScoreText) ? view.ScoreText : view.TopLine;
+            var lifeCount = Mathf.Clamp(view.LifeCount, 0, 99);
+            var hasLadder = view.StageLadder != null && view.StageLadder.IsVisible;
+            var dividerGap = 13f;
+            var dividerWidth = 1.5f;
+            var iconGap = lifeCount > 8 ? 3f : 5f;
+            var minIconSize = 8f;
+            var maxIconSize = 18f;
+            var minLifeWidth = lifeCount > 0
+                ? (lifeCount * minIconSize) + (Mathf.Max(0, lifeCount - 1) * iconGap)
+                : minIconSize;
+            var dividerTotalWidth = (dividerGap * (hasLadder ? 4f : 2f)) + (dividerWidth * (hasLadder ? 2f : 1f));
+            var measuredScoreWidth = hudStyle.CalcSize(new GUIContent(scoreText)).x;
+            var availableScoreWidth = rect.width - minLifeWidth - dividerTotalWidth;
+            var scoreWidth = Mathf.Min(measuredScoreWidth, Mathf.Max(64f, availableScoreWidth));
+            var x = rect.x;
+            var scoreRect = new Rect(x, rect.y, scoreWidth, rect.height);
+
+            if (previousHudScoreValue != int.MinValue && view.ScoreValue > previousHudScoreValue)
+            {
+                scorePopStartTime = Time.unscaledTime;
+            }
+
+            previousHudScoreValue = view.ScoreValue;
+
+            DrawScoreReadout(scoreRect, scoreText);
+            x += scoreWidth + dividerGap;
+            DrawHudDivider(new Rect(x, rect.y + 3f, dividerWidth, rect.height - 6f));
+            x += dividerWidth + dividerGap;
+
+            var availableLifeWidth = Mathf.Max(minIconSize, rect.xMax - x - (hasLadder ? dividerGap + dividerWidth : 0f));
+            var iconSize = lifeCount > 0
+                ? Mathf.Clamp((availableLifeWidth - (Mathf.Max(0, lifeCount - 1) * iconGap)) / lifeCount, minIconSize, maxIconSize)
+                : minIconSize;
+            var lifeWidth = lifeCount > 0
+                ? (lifeCount * iconSize) + (Mathf.Max(0, lifeCount - 1) * iconGap)
+                : minIconSize;
+            var lifeRect = new Rect(x, rect.y + 2f, lifeWidth, rect.height - 4f);
+
+            if (previousHudLifeCount >= 0 && previousHudLifeCount - lifeCount == 1)
+            {
+                var lostIconIndex = Mathf.Clamp(lifeCount, 0, Mathf.Max(0, previousHudLifeCount - 1));
+                var lostIconRect = new Rect(
+                    lifeRect.x + (lostIconIndex * (iconSize + iconGap)),
+                    lifeRect.y + ((lifeRect.height - iconSize) * 0.5f),
+                    iconSize,
+                    iconSize);
+                BeginLifeLossAnimation(lostIconRect, view, iconSize);
+            }
+
+            previousHudLifeCount = lifeCount;
+
+            DrawLifeIndicators(lifeRect, view, iconSize, iconGap);
+            x += lifeWidth;
+
+            if (!hasLadder)
+            {
+                return x;
+            }
+
+            x += dividerGap;
+            DrawHudDivider(new Rect(x, rect.y + 3f, dividerWidth, rect.height - 6f));
+            return x + dividerWidth;
+        }
+
+        private void DrawScoreReadout(Rect rect, string scoreText)
+        {
+            var popAge = Time.unscaledTime - scorePopStartTime;
+            var pop = Mathf.Clamp01(1f - (popAge / ScorePopDuration));
+            var wave = Mathf.Sin(pop * Mathf.PI);
+            var baseColor = pop > 0f
+                ? Color.Lerp(palette.TextPrimary, palette.AccentWarm, wave * 0.5f)
+                : palette.TextPrimary;
+
+            if (pop > 0f)
+            {
+                DrawSolidRect(Inflate(rect, Mathf.Lerp(2f, 8f, wave)), WithAlpha(palette.AccentWarm, 0.08f * wave));
+            }
+
+            DrawTextWithShadow(rect, scoreText, hudStyle, baseColor, 0.35f + (0.18f * wave));
+
+            if (pop <= 0f)
+            {
+                return;
+            }
+
+            var previousMatrix = GUI.matrix;
+            var scale = Mathf.Lerp(1f, 1.18f, wave);
+            GUIUtility.ScaleAroundPivot(new Vector2(scale, scale), rect.center);
+            DrawTextWithShadow(rect, scoreText, hudStyle, WithAlpha(palette.AccentWarm, 0.72f * wave), 0.2f * wave);
+            GUI.matrix = previousMatrix;
+        }
+
+        private void DrawLifeIndicators(Rect rect, BreakoutUiHudView view, float iconSize, float iconGap)
+        {
+            var lifeCount = Mathf.Clamp(view.LifeCount, 0, 99);
+
+            for (var index = 0; index < lifeCount; index++)
+            {
+                var iconRect = new Rect(
+                    rect.x + (index * (iconSize + iconGap)),
+                    rect.y + ((rect.height - iconSize) * 0.5f),
+                    iconSize,
+                    iconSize);
+                DrawLifeIndicator(iconRect, view.LifeIcon, view.LifeIconColor);
+            }
+        }
+
+        private void BeginLifeLossAnimation(Rect startRect, BreakoutUiHudView view, float iconSize)
+        {
+            var target = view.HasPaddleScreenTarget
+                ? view.PaddleScreenTarget
+                : new Vector2(Screen.width * 0.5f, Screen.height - 72f);
+            target.x = Mathf.Clamp(target.x, 24f, Screen.width - 24f);
+            target.y = Mathf.Clamp(target.y, 72f, Screen.height - 24f);
+
+            lifeLossAnimation = new LifeLossHudAnimation
+            {
+                IsActive = true,
+                StartTime = Time.unscaledTime,
+                StartCenter = startRect.center,
+                TargetCenter = target,
+                IconSize = Mathf.Clamp(iconSize * 1.2f, 14f, 24f),
+                Icon = view.LifeIcon,
+                Color = view.LifeIconColor,
+            };
+        }
+
+        private void DrawLifeLossAnimation()
+        {
+            if (!lifeLossAnimation.IsActive)
+            {
+                return;
+            }
+
+            var age = Time.unscaledTime - lifeLossAnimation.StartTime;
+            var progress = Mathf.Clamp01(age / LifeLossAnimationDuration);
+
+            if (progress >= 1f)
+            {
+                lifeLossAnimation.IsActive = false;
+                return;
+            }
+
+            var alpha = progress > 0.82f ? Mathf.Lerp(1f, 0f, (progress - 0.82f) / 0.18f) : 1f;
+            var size = lifeLossAnimation.IconSize * Mathf.Lerp(1f, 1.18f, Mathf.Sin(progress * Mathf.PI));
+            var rotation = progress * 760f;
+            var position = ResolveLifeLossAnimationPosition(progress);
+
+            for (var ghost = 2; ghost >= 1; ghost--)
+            {
+                var ghostProgress = Mathf.Clamp01(progress - (ghost * 0.055f));
+                var ghostPosition = ResolveLifeLossAnimationPosition(ghostProgress);
+                var ghostSize = size * Mathf.Lerp(0.72f, 0.9f, ghostProgress);
+                var ghostRect = new Rect(ghostPosition.x - (ghostSize * 0.5f), ghostPosition.y - (ghostSize * 0.5f), ghostSize, ghostSize);
+                DrawLifeIndicator(ghostRect, lifeLossAnimation.Icon, WithAlpha(lifeLossAnimation.Color, alpha * (0.16f / ghost)), rotation - (ghost * 34f));
+            }
+
+            DrawSolidRect(new Rect(position.x - 2f, position.y - 2f, 4f, 4f), WithAlpha(palette.AccentWarm, alpha * 0.35f));
+            var iconRect = new Rect(position.x - (size * 0.5f), position.y - (size * 0.5f), size, size);
+            DrawLifeIndicator(iconRect, lifeLossAnimation.Icon, WithAlpha(lifeLossAnimation.Color, alpha), rotation);
+        }
+
+        private Vector2 ResolveLifeLossAnimationPosition(float progress)
+        {
+            var start = lifeLossAnimation.StartCenter;
+            var target = lifeLossAnimation.TargetCenter;
+            var edgeX = target.x < Screen.width * 0.5f ? 24f : Screen.width - 24f;
+            var edgeStart = new Vector2(edgeX, start.y);
+            var edgeDrop = new Vector2(edgeX, Mathf.Max(start.y + 46f, target.y - 18f));
+
+            if (progress < 0.24f)
+            {
+                return Vector2.Lerp(start, edgeStart, Smooth01(progress / 0.24f));
+            }
+
+            if (progress < 0.72f)
+            {
+                return Vector2.Lerp(edgeStart, edgeDrop, Smooth01((progress - 0.24f) / 0.48f));
+            }
+
+            return Vector2.Lerp(edgeDrop, target, Smooth01((progress - 0.72f) / 0.28f));
+        }
+
+        private static float Smooth01(float value)
+        {
+            value = Mathf.Clamp01(value);
+            return value * value * (3f - (2f * value));
+        }
+
+        private void DrawLifeIndicator(Rect rect, Sprite icon, Color accent, float rotationDegrees = 0f)
+        {
+            var previousMatrix = GUI.matrix;
+
+            if (!Mathf.Approximately(rotationDegrees, 0f))
+            {
+                GUIUtility.RotateAroundPivot(rotationDegrees, rect.center);
+            }
+
+            DrawSolidRect(Inflate(rect, 2f), WithAlpha(accent, 0.08f));
+
+            var iconTexture = ResolveIconTexture(icon, out var textureCoords);
+
+            if (iconTexture == null)
+            {
+                DrawSolidRect(rect, WithAlpha(accent, 0.9f));
+            }
+            else
+            {
+                var previousGuiColor = GUI.color;
+                GUI.color = accent;
+                GUI.DrawTextureWithTexCoords(rect, iconTexture, textureCoords, true);
+                GUI.color = previousGuiColor;
+            }
+
+            GUI.matrix = previousMatrix;
+        }
+
+        private void DrawHudDivider(Rect rect)
+        {
+            DrawSolidRect(rect, WithAlpha(palette.AccentPrimary, 0.42f));
+            DrawSolidRect(new Rect(rect.x + 2f, rect.y, 1f, rect.height), WithAlpha(palette.AccentSecondary, 0.18f));
+        }
+
         private void DrawStageLadder(Rect rect, BreakoutUiStageLadderView view)
         {
             if (view == null || !view.IsVisible)
@@ -1539,23 +1788,12 @@ namespace GetBricked.Gameplay
             var totalStages = Mathf.Clamp(view.TotalStages, 1, 20);
             var currentStage = Mathf.Clamp(view.CurrentStage, 1, totalStages);
             var completedStages = Mathf.Clamp(view.CompletedStages, 0, totalStages);
-            DrawPanel(rect, palette.AccentSecondary, palette.AccentPrimary, false, 1.5f);
-            DrawTextWithShadow(new Rect(rect.x + 14f, rect.y + 5f, 112f, 16f), "LADDER", speedMeterCaptionStyle, palette.AccentWarm, 0.22f);
-            DrawTextWithShadow(new Rect(rect.xMax - 96f, rect.y + 5f, 82f, 16f), $"{currentStage:00}/{totalStages:00}", speedMeterCaptionStyle, palette.TextPrimary, 0.22f);
-
-            var trackX = rect.x + 126f;
-            var trackWidth = rect.width - 236f;
-
-            if (trackWidth < 180f)
-            {
-                trackX = rect.x + 14f;
-                trackWidth = rect.width - 28f;
-            }
-
+            var trackX = rect.x;
+            var trackWidth = rect.width;
             var gap = 5f;
-            var stepWidth = Mathf.Max(14f, (trackWidth - (gap * (totalStages - 1))) / totalStages);
-            var stepHeight = 14f;
-            var stepY = rect.y + 23f;
+            var stepWidth = Mathf.Max(10f, (trackWidth - (gap * (totalStages - 1))) / totalStages);
+            var stepHeight = rect.height;
+            var stepY = rect.y;
 
             for (var index = 0; index < totalStages; index++)
             {
@@ -2602,6 +2840,17 @@ namespace GetBricked.Gameplay
             GUI.color = color;
             GUI.DrawTexture(rect, Texture2D.whiteTexture, ScaleMode.StretchToFill);
             GUI.color = previousGuiColor;
+        }
+
+        private struct LifeLossHudAnimation
+        {
+            public bool IsActive;
+            public float StartTime;
+            public Vector2 StartCenter;
+            public Vector2 TargetCenter;
+            public float IconSize;
+            public Sprite Icon;
+            public Color Color;
         }
     }
 }

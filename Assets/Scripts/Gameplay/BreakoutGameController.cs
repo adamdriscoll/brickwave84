@@ -4033,16 +4033,28 @@ namespace GetBricked.Gameplay
                 : BreakoutRunProgression.MinRogueIntensity;
             var intensityProgress = BreakoutRunProgression.GetRogueIntensityProgress(intensity);
             var playerHudLabel = BuildTurnBasedPlayerHudPrefix();
-            var topLine = $"{GetScoreDisplayLabel().ToUpperInvariant()} {FormatScoreValue(score)}   {GetLifeCounterLabel().ToUpperInvariant()} {GetLifeCounterValue():00}   {BuildLevelLabel().ToUpperInvariant()}";
+            var scoreText = FormatScoreValue(score);
 
             if (!string.IsNullOrWhiteSpace(playerHudLabel))
             {
-                topLine = $"{playerHudLabel.ToUpperInvariant()}   {topLine}";
+                scoreText = $"{playerHudLabel.ToUpperInvariant()}   {scoreText}";
             }
+
+            var ballStyle = themeService != null
+                ? themeService.ResolveBallStyle()
+                : new ThemeVisualStyle(ballColor, ballColor, ballSprite);
+            var hasPaddleScreenTarget = TryGetPaddleHudTarget(out var paddleScreenTarget);
 
             return new BreakoutUiHudView
             {
-                TopLine = topLine,
+                TopLine = scoreText,
+                ScoreText = scoreText,
+                ScoreValue = score,
+                LifeCount = Mathf.Max(0, GetLifeCounterValue()),
+                LifeIcon = ballStyle.Sprite != null ? ballStyle.Sprite : ballSprite,
+                LifeIconColor = ballStyle.PrimaryColor,
+                HasPaddleScreenTarget = hasPaddleScreenTarget,
+                PaddleScreenTarget = paddleScreenTarget,
                 BottomLine = BuildGameplayStatusLine().ToUpperInvariant(),
                 HasBrickCounter = currentLevel != null,
                 BricksRemaining = Mathf.Max(0, requiredBricksRemaining),
@@ -4075,6 +4087,29 @@ namespace GetBricked.Gameplay
                         : Mathf.Clamp(currentLevelIndex, 0, BreakoutRunProgression.TargetLevelCount),
                 },
             };
+        }
+
+        private bool TryGetPaddleHudTarget(out Vector2 screenTarget)
+        {
+            screenTarget = Vector2.zero;
+
+            if (activeCamera == null || paddle == null)
+            {
+                return false;
+            }
+
+            var worldTarget = paddleCollider != null
+                ? new Vector3(paddleCollider.bounds.center.x, paddleCollider.bounds.max.y, 0f)
+                : paddle.transform.position;
+            var screenPoint = activeCamera.WorldToScreenPoint(worldTarget);
+
+            if (screenPoint.z < 0f)
+            {
+                return false;
+            }
+
+            screenTarget = new Vector2(screenPoint.x, Screen.height - screenPoint.y);
+            return true;
         }
 
         private BreakoutUiOverlayView BuildPauseOverlayView()

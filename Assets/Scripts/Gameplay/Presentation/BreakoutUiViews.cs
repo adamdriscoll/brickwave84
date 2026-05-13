@@ -143,6 +143,13 @@ namespace GetBricked.Gameplay
     internal sealed class BreakoutUiHudView
     {
         public string TopLine = string.Empty;
+        public string ScoreText = string.Empty;
+        public int ScoreValue;
+        public int LifeCount;
+        public Sprite LifeIcon;
+        public Color LifeIconColor = Color.white;
+        public bool HasPaddleScreenTarget;
+        public Vector2 PaddleScreenTarget;
         public string BottomLine = string.Empty;
         public bool HasBrickCounter;
         public int BricksRemaining;
