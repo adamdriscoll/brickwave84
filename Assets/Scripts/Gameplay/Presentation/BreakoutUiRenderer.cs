@@ -146,7 +146,7 @@ namespace GetBricked.Gameplay
                 boxRect.x + outerPadding,
                 contentTop,
                 boxRect.width - (outerPadding * 2f),
-                Mathf.Max(280f, contentBottom - contentTop));
+                Mathf.Max(180f, contentBottom - contentTop));
             DrawPanel(boxRect, palette.AccentSecondary, palette.AccentPrimary, true);
 
             DrawActionGroupRows(
@@ -197,7 +197,7 @@ namespace GetBricked.Gameplay
             var gap = 22f;
             var contentTop = boxRect.y + headerHeight + 18f;
             var contentBottom = boxRect.yMax - footerHeight - 20f;
-            var contentHeight = Mathf.Max(320f, contentBottom - contentTop);
+            var contentHeight = Mathf.Max(220f, contentBottom - contentTop);
             var leftWidth = Mathf.Clamp(boxRect.width * 0.34f, 330f, 390f);
             var leftRect = new Rect(boxRect.x + padding, contentTop, leftWidth, contentHeight);
             var rightRect = new Rect(leftRect.xMax + gap, contentTop, boxRect.xMax - padding - leftRect.xMax - gap, contentHeight);
@@ -244,14 +244,19 @@ namespace GetBricked.Gameplay
             var outerPadding = 34f;
             var contentGap = 28f;
             var headerTop = boxRect.y + 26f;
-            var contentTop = boxRect.y + 116f;
             var hintHeight = 58f;
-            var contentHeight = Mathf.Max(314f, boxRect.height - 212f);
-            var listWidth = Mathf.Clamp(boxRect.width * 0.56f, 458f, 562f);
-            var previewWidth = boxRect.width - (outerPadding * 2f) - contentGap - listWidth;
+            var hintY = boxRect.yMax - hintHeight - 24f;
+            var contentTop = boxRect.y + (boxRect.height < 548f ? 98f : 116f);
+            var contentHeight = Mathf.Max(180f, hintY - contentTop - 18f);
+            var availableColumnWidth = Mathf.Max(320f, boxRect.width - (outerPadding * 2f) - contentGap);
+            var previewMinimumWidth = boxRect.width < 760f ? 160f : 250f;
+            var listMaximumWidth = Mathf.Max(260f, availableColumnWidth - previewMinimumWidth);
+            var listUpperWidth = Mathf.Min(562f, listMaximumWidth);
+            var listMinimumWidth = Mathf.Min(300f, listUpperWidth);
+            var listWidth = Mathf.Clamp(boxRect.width * 0.56f, listMinimumWidth, listUpperWidth);
+            var previewWidth = Mathf.Max(140f, availableColumnWidth - listWidth);
             var listRect = new Rect(boxRect.x + outerPadding, contentTop, listWidth, contentHeight);
             var previewRect = new Rect(listRect.xMax + contentGap, contentTop, previewWidth, contentHeight);
-            var hintY = boxRect.yMax - hintHeight - 24f;
             DrawPanel(boxRect, palette.AccentPrimary, palette.AccentSecondary, true);
 
             DrawTextWithShadow(new Rect(boxRect.x + 30f, headerTop, boxRect.width - 60f, 40f), view.Title, setupTitleStyle, palette.TextPrimary);

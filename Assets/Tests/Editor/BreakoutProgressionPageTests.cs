@@ -7,18 +7,26 @@ using UnityEngine;
 
 public sealed class BreakoutProgressionPageTests
 {
+    private const string RogueLastResultKey = "GetBricked.Rogue.LastResult";
     private const string RogueProgressKey = "GetBricked.Rogue.IntensityProgress";
 
     [SetUp]
     public void SetUp()
     {
-        PlayerPrefs.DeleteKey(RogueProgressKey);
+        ClearRogueProgress();
     }
 
     [TearDown]
     public void TearDown()
     {
+        ClearRogueProgress();
+    }
+
+    private static void ClearRogueProgress()
+    {
+        PlayerPrefs.DeleteKey(RogueLastResultKey);
         PlayerPrefs.DeleteKey(RogueProgressKey);
+        PlayerPrefs.Save();
     }
 
     [Test]
@@ -29,6 +37,16 @@ public sealed class BreakoutProgressionPageTests
         Assert.That(actions[0], Is.EqualTo(BreakoutMainMenuAction.Rogue));
         Assert.That(Array.IndexOf(actions, BreakoutMainMenuAction.Progression), Is.EqualTo(-1));
         Assert.That(actions[1], Is.EqualTo(BreakoutMainMenuAction.SoloMarathon));
+    }
+
+    [Test]
+    public void MainMenuHintOnlyListsControls()
+    {
+        var view = new BreakoutMainMenuService().BuildView(new BreakoutMainMenuContext());
+
+        Assert.That(view.HintText, Is.EqualTo("Up/Down selects. Left/Right tunes. Space confirms."));
+        Assert.That(view.HintText, Does.Not.Contain("Neon Ladder"));
+        Assert.That(view.HintText, Does.Not.Contain("opens"));
     }
 
     [Test]

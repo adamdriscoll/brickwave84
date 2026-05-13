@@ -3873,7 +3873,7 @@ namespace GetBricked.Gameplay
                     SelectedFieldIndex = Mathf.Max(0, Array.IndexOf(hotSeatFields, selectedRunSetupField)),
                     PreviewLine = $"Preview: {turnBasedMultiplayerController?.BuildSetupPreviewLine() ?? "02 players"} | Drops {BuildDropSummaryLabel(previewSettings)} | {previewSettings.LevelGlitchLabel} | Ball x{previewSettings.BallSpeedMultiplier:0.00} | Random Tape ID",
                     ValidationText = previewValidation,
-                    HintText = "Up/Down selects. Left/Right adjusts. N resets defaults. Esc returns to menu. Space launches.",
+                    HintText = "Up/Down selects. Left/Right adjusts. N resets. Esc backs out. Space launches.",
                 };
             }
 
@@ -3900,7 +3900,7 @@ namespace GetBricked.Gameplay
                 SelectedFieldIndex = (int)selectedRunSetupField,
                 PreviewLine = $"Preview: {BuildScoreModeSummaryLabel(previewSettings)} | {BuildRetrySummaryLabel(previewSettings)} | Paddle x{previewSettings.PaddleWidthMultiplier:0.00} | Ball speed x{previewSettings.BallSpeedMultiplier:0.00} | Brick durability x{previewSettings.BrickDurabilityMultiplier:0.00} | Drops {BuildDropSummaryLabel(previewSettings)} | {previewSettings.LevelGlitchLabel}",
                 ValidationText = previewValidation,
-                HintText = "Up/Down selects. Left/Right adjusts. Type digits for the Tape ID. Backspace edits. T randomizes. N resets defaults. Esc returns to menu. Space launches.",
+                HintText = "Up/Down selects. Left/Right adjusts. Digits edit Tape ID. Backspace deletes. T shuffles. N resets. Space launches.",
             };
         }
 
@@ -3932,7 +3932,7 @@ namespace GetBricked.Gameplay
                 SelectedFieldIndex = (int)selectedDeveloperLaunchField,
                 PreviewLine = $"Preview: {FormatDeveloperEncounterLabel(encounter)} | Heat {developerLaunchState.Intensity:00} | Balls {developerLaunchState.LivesRemaining:00} | Paddle x{selectedPaddle.WidthMultiplier:0.00} speed x{selectedPaddle.SpeedMultiplier:0.00} | Build {developerLaunchState.SelectedUpgradeCount:00} upgrades, {developerLaunchState.SelectedDropUnlockCount:00} drops | Force {FormatDeveloperForcedDropPreview(forcedDropEnabled, forcedDrop)} | Theme {ResolvePendingThemeDefinition()?.DisplayName ?? "Fallback"}",
                 ValidationText = "Encounter cycles through Stage 01-10. Dev runs do not update the saved Neon Ladder result.",
-                HintText = "Up/Down selects. Left/Right changes. T toggles build/force. N clears build. Esc returns to menu. Space launches.",
+                HintText = "Up/Down selects. Left/Right changes. T toggles. N clears. Esc backs out. Space launches.",
             };
         }
 
@@ -3961,8 +3961,7 @@ namespace GetBricked.Gameplay
                 SelectedActionIndex = Mathf.Clamp(selectedSoloMarathonSetupActionIndex, 0, SoloMarathonBackActionIndex),
                 FooterLines = new[]
                 {
-                    "Pick a heat, then start the chase. Higher heat pays bigger score multipliers.",
-                    "Up/Down selects. Left/Right changes heat. Space confirms. Esc returns to mode select.",
+                    "Up/Down selects. Left/Right changes heat. Space confirms. Esc backs out.",
                 },
                 IsCompact = false,
             };
@@ -3980,7 +3979,7 @@ namespace GetBricked.Gameplay
                 SelectedActionIndex = selectedOverlayActionIndex,
                 FooterLines = new[]
                 {
-                    "Totals aggregate Neon Ladder, Neon Marathon, Custom Game, and Hot Seat runs. Up/Down scrolls.",
+                    "Up/Down scrolls. Esc backs out.",
                 },
                 IsCompact = false,
                 EmphasizeSummary = true,
@@ -4093,8 +4092,8 @@ namespace GetBricked.Gameplay
                 SelectedActionIndex = selectedOverlayActionIndex,
                 FooterLines = new[]
                 {
-                    "Controls: A/D or Left/Right moves, Space launches/advances, Up/Down adjusts manual ball speed, Esc/P opens or closes this menu, R returns to run setup.",
-                    "Up/Down selects. Space confirms. Esc or P resumes immediately.",
+                    "A/D or Left/Right moves. Space launches/fires. Up/Down tunes speed.",
+                    "Up/Down selects. Space confirms. Esc/P resumes. R setup.",
                 },
                 IsCompact = true,
             };
@@ -4142,7 +4141,7 @@ namespace GetBricked.Gameplay
                 BuildLine = BuildUpgradeSummaryLabel(4),
                 Options = optionViews,
                 SelectedOptionIndex = Mathf.Clamp(selectedUpgradeDraftIndex, 0, optionViews.Length - 1),
-                HintText = "Left/Right selects. Space confirms. Clicking a card also takes it. R abandons the run and returns to setup.",
+                HintText = "Left/Right selects. Space confirms. Click chooses. R returns to setup.",
             };
         }
 

@@ -76,7 +76,7 @@ namespace GetBricked.Gameplay
                 PreviewLines = BuildPreviewLines(selectedAction, context),
                 ValidationText = BuildValidationText(selectedAction, context),
                 FooterText = BuildFooterText(selectedAction),
-                HintText = "Up/Down selects. Left/Right tunes Ladder paddle or Marathon heat. Space confirms. Neon Ladder opens progression.",
+                HintText = "Up/Down selects. Left/Right tunes. Space confirms.",
             };
         }
 
@@ -297,16 +297,16 @@ namespace GetBricked.Gameplay
         {
             return action switch
             {
-                BreakoutMainMenuAction.CustomGame => "Custom Game opens the full tape-tuning bench: Tape ID, score rules, modifiers, drops, and theme.",
-                BreakoutMainMenuAction.Rogue => "Neon Ladder launches a fixed 10-stage climb with draft rewards and saved unlock progress.",
-                BreakoutMainMenuAction.Progression => "Progression opens a cabinet service screen for Ladder history, future unlock placeholders, and mode availability.",
-                BreakoutMainMenuAction.SoloMarathon => "Neon Marathon opens its heat bench with top scores for each heat level.",
-                BreakoutMainMenuAction.LifetimeStats => "Stats opens the cabinet-wide readout for every recorded run.",
-                BreakoutMainMenuAction.SoundSettings => "Sound controls are staged here for mixer work.",
-                BreakoutMainMenuAction.GraphicsSettings => "Graphics controls are staged here for display, glow, and readability options.",
-                BreakoutMainMenuAction.TurnBased => "Hot Seat opens player count, mode, and heat setup before the match starts.",
-                BreakoutMainMenuAction.DeveloperMode => "Developer Mode opens the local jump bench for stages and tuning.",
-                _ => "This cabinet channel is staged for later.",
+                BreakoutMainMenuAction.CustomGame => "Tune Tape ID, score rules, modifiers, drops, and theme.",
+                BreakoutMainMenuAction.Rogue => "10-stage ladder with draft rewards and saved unlocks.",
+                BreakoutMainMenuAction.Progression => "Ladder history, unlock placeholders, and mode badges.",
+                BreakoutMainMenuAction.SoloMarathon => "Heat bench and top scores for the high-score chase.",
+                BreakoutMainMenuAction.LifetimeStats => "Cabinet-wide totals for recorded runs.",
+                BreakoutMainMenuAction.SoundSettings => "Mixer controls staged for later.",
+                BreakoutMainMenuAction.GraphicsSettings => "Display and glow controls staged for later.",
+                BreakoutMainMenuAction.TurnBased => "Set players, match mode, and heat.",
+                BreakoutMainMenuAction.DeveloperMode => "Local stage and tuning jump bench.",
+                _ => "Cabinet channel staged for later.",
             };
         }
     }
