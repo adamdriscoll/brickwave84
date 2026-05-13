@@ -18,6 +18,7 @@ namespace GetBricked.Gameplay
 
         private readonly Dictionary<Sprite, Texture2D> iconTextureCache = new Dictionary<Sprite, Texture2D>();
         private Vector2 progressionContentScroll;
+        private Vector2 statsTableScroll;
 
         private GUIStyle hudStyle;
         private GUIStyle messageStyle;
@@ -333,6 +334,12 @@ namespace GetBricked.Gameplay
                 return;
             }
 
+            if (HasStatsRows(view))
+            {
+                DrawStatsTableOverlay(view, onActionClicked);
+                return;
+            }
+
             var boxWidth = view.IsCompact ? 780f : 760f;
             var minBoxHeight = view.IsCompact ? 470f : 404f;
             var summarySpacing = view.EmphasizeSummary ? 36f : 28f;
@@ -397,6 +404,107 @@ namespace GetBricked.Gameplay
                     palette.TextMuted,
                     0.3f);
             }
+        }
+
+        public void ScrollStatsTable(float deltaY)
+        {
+            statsTableScroll.y = Mathf.Max(0f, statsTableScroll.y + deltaY);
+        }
+
+        private void DrawStatsTableOverlay(BreakoutUiOverlayView view, Action<int> onActionClicked)
+        {
+            if (view == null)
+            {
+                return;
+            }
+
+            var boxWidth = Mathf.Min(900f, Screen.width - 48f);
+            var boxHeight = Mathf.Min(680f, Screen.height - 92f);
+
+            if (boxWidth < 680f)
+            {
+                boxWidth = Screen.width - 32f;
+            }
+
+            if (boxHeight < 500f)
+            {
+                boxHeight = Screen.height - 72f;
+            }
+
+            var boxRect = new Rect((Screen.width - boxWidth) * 0.5f, (Screen.height - boxHeight) * 0.5f, boxWidth, boxHeight);
+            var padding = 30f;
+            var titleY = boxRect.y + 24f;
+            var tableTop = boxRect.y + 84f;
+            var actionLineHeight = 44f;
+            var footerLineHeight = 28f;
+            var actionBlockHeight = Mathf.Max(0, view.ActionLabels.Length) * actionLineHeight;
+            var footerBlockHeight = Mathf.Max(0, view.FooterLines.Length) * footerLineHeight;
+            var actionStartY = boxRect.yMax - padding - footerBlockHeight - actionBlockHeight - 16f;
+            var footerStartY = actionStartY + actionBlockHeight + 10f;
+            var tableRect = new Rect(boxRect.x + padding, tableTop, boxRect.width - (padding * 2f), Mathf.Max(140f, actionStartY - tableTop - 18f));
+
+            DrawPanel(boxRect, palette.AccentSecondary, palette.AccentPrimary, true);
+            DrawTextWithShadow(new Rect(boxRect.x + padding, titleY, boxRect.width - (padding * 2f), 40f), view.Title, overlayTitleStyle, palette.TextPrimary);
+            DrawStatsTable(tableRect, view.StatsRows);
+
+            DrawActionList(
+                view.ActionLabels,
+                view.SelectedActionIndex,
+                boxRect.x + 88f,
+                actionStartY,
+                boxRect.width - 176f,
+                actionLineHeight,
+                onActionClicked);
+
+            for (var index = 0; index < view.FooterLines.Length; index++)
+            {
+                DrawTextWithShadow(
+                    new Rect(boxRect.x + 34f, footerStartY + (index * footerLineHeight), boxRect.width - 68f, footerLineHeight),
+                    view.FooterLines[index],
+                    setupHintStyle,
+                    palette.TextMuted,
+                    0.3f);
+            }
+        }
+
+        private void DrawStatsTable(Rect rect, BreakoutUiStatsRowView[] rows)
+        {
+            rows ??= Array.Empty<BreakoutUiStatsRowView>();
+            DrawPanel(rect, palette.AccentPrimary, palette.AccentWarm, false);
+
+            var headerHeight = 32f;
+            var rowHeight = 34f;
+            var innerPadding = 14f;
+            var scrollBarWidth = 18f;
+            var contentWidth = rect.width - (innerPadding * 2f) - scrollBarWidth;
+            var labelWidth = Mathf.Clamp(contentWidth * 0.56f, 220f, 430f);
+            var valueWidth = Mathf.Max(130f, contentWidth - labelWidth - 16f);
+            var headerRect = new Rect(rect.x + innerPadding, rect.y + 12f, contentWidth, headerHeight);
+            var viewport = new Rect(rect.x + innerPadding, headerRect.yMax + 8f, contentWidth + scrollBarWidth, Mathf.Max(60f, rect.yMax - headerRect.yMax - 22f));
+            var contentHeight = Mathf.Max(viewport.height, rows.Length * rowHeight);
+            var contentRect = new Rect(0f, 0f, contentWidth, contentHeight);
+
+            DrawSolidRect(new Rect(headerRect.x, headerRect.yMax - 2f, headerRect.width, 2f), WithAlpha(palette.AccentPrimary, 0.4f));
+            DrawTextWithShadow(new Rect(headerRect.x, headerRect.y + 4f, labelWidth, 20f), "STAT", speedMeterCaptionStyle, palette.AccentPrimary, 0.22f);
+            DrawTextWithShadow(new Rect(headerRect.x + labelWidth + 16f, headerRect.y + 4f, valueWidth, 20f), "TOTAL", speedMeterCaptionStyle, palette.AccentWarm, 0.22f);
+
+            statsTableScroll = GUI.BeginScrollView(viewport, statsTableScroll, contentRect, false, contentHeight > viewport.height);
+
+            for (var index = 0; index < rows.Length; index++)
+            {
+                var y = index * rowHeight;
+
+                if (index % 2 == 0)
+                {
+                    DrawSolidRect(new Rect(0f, y, contentWidth, rowHeight - 2f), WithAlpha(palette.AccentSecondary, 0.06f));
+                }
+
+                DrawSolidRect(new Rect(labelWidth + 8f, y + 5f, 1f, rowHeight - 10f), WithAlpha(palette.TextPrimary, 0.08f));
+                DrawTextWithShadow(new Rect(10f, y + 6f, labelWidth - 18f, 22f), rows[index]?.Label ?? string.Empty, overlayBodyStyle, palette.TextMuted, 0.25f);
+                DrawTextWithShadow(new Rect(labelWidth + 22f, y + 6f, valueWidth - 10f, 22f), rows[index]?.Value ?? string.Empty, overlayMetricStyle, palette.TextPrimary, 0.25f);
+            }
+
+            GUI.EndScrollView();
         }
 
         private void DrawSplitOverlay(BreakoutUiOverlayView view, Action<int> onActionClicked)
@@ -629,6 +737,11 @@ namespace GetBricked.Gameplay
 
             return (view.LeaderboardEntries != null && view.LeaderboardEntries.Length > 0)
                 || (view.LeaderboardLines != null && view.LeaderboardLines.Length > 0);
+        }
+
+        private static bool HasStatsRows(BreakoutUiOverlayView view)
+        {
+            return view?.StatsRows != null && view.StatsRows.Length > 0;
         }
 
         private static int GetLeaderboardRowCount(BreakoutUiOverlayView view)

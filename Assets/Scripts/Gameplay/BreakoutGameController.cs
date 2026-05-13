@@ -69,6 +69,7 @@ namespace GetBricked.Gameplay
         {
             MainMenu,
             Progression,
+            LifetimeStats,
             SoloMarathonSetup,
             RunSetup,
             DeveloperMenu,
@@ -201,6 +202,7 @@ namespace GetBricked.Gameplay
         private BreakoutUpgradeDraftService upgradeDraftService;
         private BreakoutRogueRunController rogueRunController;
         private BreakoutTurnBasedMultiplayerController turnBasedMultiplayerController;
+        private BreakoutRunStatsService runStatsService;
         private RoundState roundState;
         private int livesRemaining;
         private int lifeLossCount;
@@ -290,6 +292,7 @@ namespace GetBricked.Gameplay
             upgradeDraftService = new BreakoutUpgradeDraftService(loadedRunUpgradeDefinitions);
             rogueRunController = new BreakoutRogueRunController(loadedRunUpgradeDefinitions, loadedPowerUpDefinitions);
             turnBasedMultiplayerController = new BreakoutTurnBasedMultiplayerController();
+            runStatsService = new BreakoutRunStatsService();
             CreateRuntimeRoots();
             CreateAudioService();
             CreateActorSpawnServices();
@@ -380,6 +383,7 @@ namespace GetBricked.Gameplay
             RefreshCapsuleMagnetTargets();
             UpdateVectorSightVisual();
             UpdatePickupBanner();
+            TrackRunStatsFrame();
             audioService?.Update(Time.unscaledDeltaTime);
             scoreService?.UpdateFloatingScorePopups(Time.unscaledDeltaTime);
             laserShotCooldownTimer = Mathf.Max(0f, laserShotCooldownTimer - Time.deltaTime);
@@ -394,6 +398,7 @@ namespace GetBricked.Gameplay
 
             if (roundState == RoundState.MainMenu
                 || roundState == RoundState.Progression
+                || roundState == RoundState.LifetimeStats
                 || roundState == RoundState.SoloMarathonSetup
                 || roundState == RoundState.Paused
                 || roundState == RoundState.LevelComplete
@@ -484,6 +489,7 @@ namespace GetBricked.Gameplay
                 return;
             }
 
+            runStatsService?.RegisterBrickDestroyed();
             audioService?.PlayBrickDestroyed(brickDefinition);
 
             if (shouldExplode && destructionCause == BrickDestructionCause.Impact && scoringBall != null)
@@ -602,6 +608,7 @@ namespace GetBricked.Gameplay
             if (UsesHighScoreMode() && !UsesFiniteHighScoreLives())
             {
                 lifeLossCount += 1;
+                runStatsService?.RegisterLifeLost();
                 ApplyLifeLossScorePenalty();
 
                 if (!isServeBall)
@@ -616,6 +623,7 @@ namespace GetBricked.Gameplay
             audioService?.PlayBallLost(hasOtherActiveBalls: false);
 
             livesRemaining = Mathf.Max(0, livesRemaining - 1);
+            runStatsService?.RegisterLifeLost();
             ApplyLifeLossScorePenalty();
 
             if (livesRemaining <= 0)
@@ -626,6 +634,7 @@ namespace GetBricked.Gameplay
                 ClearPickups();
                 RecordRogueRunResult(completed: false);
                 RecordSoloMarathonResult();
+                FinalizeActiveRunStats(completed: false);
 
                 if (!isServeBall)
                 {
@@ -646,6 +655,7 @@ namespace GetBricked.Gameplay
         private void HandleTurnBasedBallLost(BallController lostBall, bool isServeBall)
         {
             audioService?.PlayBallLost(hasOtherActiveBalls: false);
+            runStatsService?.RegisterLifeLost();
 
             if (!isServeBall && lostBall != null)
             {
@@ -730,16 +740,24 @@ namespace GetBricked.Gameplay
 
         public void HandleBallHitPaddle()
         {
+            runStatsService?.RegisterPaddleHit();
             audioService?.PlayBallHitPaddle();
         }
 
         public void HandleBallHitWall()
         {
+            runStatsService?.RegisterWallHit();
             audioService?.PlayBallHitWall();
+        }
+
+        public void HandleBallLaunched()
+        {
+            runStatsService?.RegisterBallLaunched();
         }
 
         public void HandleBrickHit(Brick brick)
         {
+            runStatsService?.RegisterBrickHit();
             audioService?.PlayBrickHit(brick?.Definition);
         }
 
@@ -752,6 +770,7 @@ namespace GetBricked.Gameplay
 
             var pickupPosition = (Vector2)pickup.transform.position;
             var awardCapsuleMadnessBonus = powerUpService != null && powerUpService.IsCapsuleMadnessActive;
+            runStatsService?.RegisterDropPickedUp(pickup.Definition);
             powerUpService.RemovePickup(pickup);
             audioService?.PlayPickupCollected(pickup.Definition);
 
@@ -784,6 +803,7 @@ namespace GetBricked.Gameplay
 
         private void StartNewRun(BreakoutDeveloperEncounter? developerEncounter, int developerLivesRemaining, bool applyDeveloperSelections)
         {
+            FinalizeActiveRunStats(completed: false);
             StopMenuAttractMode(clearRunSettings: false);
 
             if (activeRunSettings == null)
@@ -792,6 +812,7 @@ namespace GetBricked.Gameplay
             }
 
             isDeveloperRunActive = applyDeveloperSelections;
+            runStatsService?.BeginRun(activeRunSettings);
             ApplyTheme(activeRunSettings.ThemeDefinition);
             isDiagnosticsOverlayVisible = false;
             manualBallSpeedMultiplier = 1f;
@@ -853,6 +874,7 @@ namespace GetBricked.Gameplay
 
         private void EnterMainMenu()
         {
+            FinalizeActiveRunStats(completed: false);
             roundState = RoundState.MainMenu;
             selectedMainMenuActionIndex = 0;
             selectedOverlayActionIndex = 0;
@@ -873,6 +895,19 @@ namespace GetBricked.Gameplay
         private void EnterProgressionPage()
         {
             roundState = RoundState.Progression;
+            selectedOverlayActionIndex = 0;
+            pendingValidationMessage = string.Empty;
+            isDiagnosticsOverlayVisible = false;
+            ResetRuntimeForMetaFlow();
+            ApplyPendingThemePreview();
+            StartMenuAttractMode();
+            audioService?.PlayMusic(BreakoutMusicTrack.Menu);
+        }
+
+        private void EnterLifetimeStatsPage()
+        {
+            FinalizeActiveRunStats(completed: false);
+            roundState = RoundState.LifetimeStats;
             selectedOverlayActionIndex = 0;
             pendingValidationMessage = string.Empty;
             isDiagnosticsOverlayVisible = false;
@@ -1310,6 +1345,7 @@ namespace GetBricked.Gameplay
         {
             return state == RoundState.MainMenu
                 || state == RoundState.Progression
+                || state == RoundState.LifetimeStats
                 || state == RoundState.SoloMarathonSetup
                 || state == RoundState.RunSetup
                 || state == RoundState.DeveloperMenu;
@@ -1318,6 +1354,28 @@ namespace GetBricked.Gameplay
         private bool IsGameplaySimulationActive()
         {
             return roundState == RoundState.Playing || isMenuAttractModeActive;
+        }
+
+        private void TrackRunStatsFrame()
+        {
+            if (runStatsService == null)
+            {
+                return;
+            }
+
+            var trackTime = roundState == RoundState.ReadyToServe
+                || roundState == RoundState.Playing
+                || roundState == RoundState.LifeLost
+                || roundState == RoundState.UpgradeDraft;
+            var trackDistance = roundState == RoundState.ReadyToServe
+                || roundState == RoundState.Playing
+                || roundState == RoundState.LifeLost;
+            runStatsService.TrackFrame(Time.deltaTime, paddle, activeBalls, trackTime, trackDistance);
+        }
+
+        private void FinalizeActiveRunStats(bool completed)
+        {
+            runStatsService?.FinalizeRun(completed, activeRunSettings != null && !isDeveloperRunActive);
         }
 
         private void ResetPendingRunSetup(bool generateNewSeed)
@@ -1476,6 +1534,25 @@ namespace GetBricked.Gameplay
             {
                 HandleSoloMarathonSetupInput(keyboard);
                 return;
+            }
+
+            if (roundState == RoundState.LifetimeStats && keyboard.escapeKey.wasPressedThisFrame)
+            {
+                EnterMainMenu();
+                return;
+            }
+
+            if (roundState == RoundState.LifetimeStats)
+            {
+                if (keyboard.downArrowKey.wasPressedThisFrame || keyboard.sKey.wasPressedThisFrame)
+                {
+                    uiRenderer?.ScrollStatsTable(96f);
+                }
+
+                if (keyboard.upArrowKey.wasPressedThisFrame || keyboard.wKey.wasPressedThisFrame)
+                {
+                    uiRenderer?.ScrollStatsTable(-96f);
+                }
             }
 
             var actions = GetOverlayActionsForState(roundState);
@@ -1707,6 +1784,10 @@ namespace GetBricked.Gameplay
 
             return state switch
             {
+                RoundState.LifetimeStats => new[]
+                {
+                    OverlayAction.ReturnToMainMenu,
+                },
                 RoundState.Paused => returnsToMainMenuOnly
                     ? new[]
                     {
@@ -1825,6 +1906,12 @@ namespace GetBricked.Gameplay
                 return;
             }
 
+            if (action == BreakoutMainMenuAction.LifetimeStats)
+            {
+                EnterLifetimeStatsPage();
+                return;
+            }
+
             if (action == BreakoutMainMenuAction.TurnBased)
             {
                 EnterRunSetup(turnBased: true);
@@ -1842,6 +1929,8 @@ namespace GetBricked.Gameplay
 
         private void ReturnToLaunchSurface()
         {
+            FinalizeActiveRunStats(completed: false);
+
             if (activeRunSettings != null
                 && (activeRunSettings.IsRogueMode || activeRunSettings.IsSoloMarathonMode))
             {
@@ -2488,6 +2577,7 @@ namespace GetBricked.Gameplay
             ClearPickups();
             paddle.ResetToStart();
             stickyCaughtBall = null;
+            runStatsService?.ResetMovementTracking();
             EnsureServeBallExists();
             DestroyAdditionalBalls();
             activeBalls.Clear();
@@ -2958,6 +3048,8 @@ namespace GetBricked.Gameplay
                 return;
             }
 
+            runStatsService?.RegisterGlitchEncountered();
+
             if (activeLevelGlitchPlan.GlitchType == BreakoutLevelGlitchType.WarpGates)
             {
                 CreateWarpGates(activeLevelGlitchPlan);
@@ -3156,6 +3248,8 @@ namespace GetBricked.Gameplay
                 return;
             }
 
+            runStatsService?.RegisterLevelCleared();
+
             if (activeRunSettings != null && activeRunSettings.IsTurnBasedMode)
             {
                 CompleteAndAdvanceTurnBasedTurn(BreakoutTurnSwitchReason.LevelCleared);
@@ -3170,6 +3264,10 @@ namespace GetBricked.Gameplay
             roundState = RoundState.LevelComplete;
             selectedOverlayActionIndex = 0;
             RecordRogueRunResult(completed: !HasNextLevel());
+            if (!HasNextLevel())
+            {
+                FinalizeActiveRunStats(completed: true);
+            }
         }
 
         private bool HasNextLevel()
@@ -3549,6 +3647,13 @@ namespace GetBricked.Gameplay
                 return;
             }
 
+            if (roundState == RoundState.LifetimeStats)
+            {
+                uiRenderer.DrawCabinetBackdrop(BuildChromeView("Lifetime Stats", "Cabinet Totals", true));
+                uiRenderer.DrawOverlay(BuildLifetimeStatsOverlayView(), HandleOverlayActionClick);
+                return;
+            }
+
             if (roundState == RoundState.SoloMarathonSetup)
             {
                 uiRenderer.DrawCabinetBackdrop(BuildChromeView("Neon Marathon", "Heat Select", true));
@@ -3833,6 +3938,60 @@ namespace GetBricked.Gameplay
             };
         }
 
+        private BreakoutUiOverlayView BuildLifetimeStatsOverlayView()
+        {
+            var lifetimeStats = runStatsService?.LifetimeStats ?? new BreakoutRunStatsSnapshot();
+            return new BreakoutUiOverlayView
+            {
+                Title = "Lifetime Stats",
+                SummaryTitle = "Cabinet Total",
+                StatsRows = BuildLifetimeStatsRows(lifetimeStats),
+                ActionLabels = BuildOverlayActionLabels(GetOverlayActionsForState(RoundState.LifetimeStats)),
+                SelectedActionIndex = selectedOverlayActionIndex,
+                FooterLines = new[]
+                {
+                    "Totals aggregate Neon Ladder, Neon Marathon, Custom Game, and Hot Seat runs. Up/Down scrolls.",
+                },
+                IsCompact = false,
+                EmphasizeSummary = true,
+            };
+        }
+
+        private static BreakoutUiStatsRowView[] BuildLifetimeStatsRows(BreakoutRunStatsSnapshot stats)
+        {
+            stats ??= new BreakoutRunStatsSnapshot();
+            return new[]
+            {
+                BuildStatsRow("Runs Recorded", stats.RunsRecorded.ToString("00", CultureInfo.InvariantCulture)),
+                BuildStatsRow("Balls Launched", stats.BallsLaunched.ToString("00", CultureInfo.InvariantCulture)),
+                BuildStatsRow("Lives Lost", stats.LivesLost.ToString("00", CultureInfo.InvariantCulture)),
+                BuildStatsRow("Levels Cleared", stats.LevelsCleared.ToString("00", CultureInfo.InvariantCulture)),
+                BuildStatsRow("Walls Hit", stats.WallsHit.ToString("00", CultureInfo.InvariantCulture)),
+                BuildStatsRow("Paddle Hits", stats.PaddleHits.ToString("00", CultureInfo.InvariantCulture)),
+                BuildStatsRow("Paddle Distance Traveled", BreakoutRunStatsService.FormatDistance(stats.PaddleDistanceTraveled)),
+                BuildStatsRow("Balls Distance Traveled", BreakoutRunStatsService.FormatDistance(stats.BallsDistanceTraveled)),
+                BuildStatsRow("Bricks Hit", stats.BricksHit.ToString("00", CultureInfo.InvariantCulture)),
+                BuildStatsRow("Bricks Destroyed", stats.BricksDestroyed.ToString("00", CultureInfo.InvariantCulture)),
+                BuildStatsRow("Total Drops Picked Up", stats.TotalDropsPickedUp.ToString("00", CultureInfo.InvariantCulture)),
+                BuildStatsRow("Total Drops Dropped", stats.TotalDropsDropped.ToString("00", CultureInfo.InvariantCulture)),
+                BuildStatsRow("Helpful Drops Picked Up", stats.HelpfulDropsPickedUp.ToString("00", CultureInfo.InvariantCulture)),
+                BuildStatsRow("Helpful Drops Dropped", stats.HelpfulDropsDropped.ToString("00", CultureInfo.InvariantCulture)),
+                BuildStatsRow("Harmful Drops Picked Up", stats.HarmfulDropsPickedUp.ToString("00", CultureInfo.InvariantCulture)),
+                BuildStatsRow("Harmful Drops Dropped", stats.HarmfulDropsDropped.ToString("00", CultureInfo.InvariantCulture)),
+                BuildStatsRow("Time Played", BreakoutRunStatsService.FormatDuration(stats.TimePlayedSeconds)),
+                BuildStatsRow("Glitches Encountered", stats.GlitchesEncountered.ToString("00", CultureInfo.InvariantCulture)),
+            };
+        }
+
+        private static BreakoutUiStatsRowView BuildStatsRow(string label, string value)
+        {
+            return new BreakoutUiStatsRowView
+            {
+                Label = label,
+                Value = value,
+            };
+        }
+
         private BreakoutUiHudView BuildHudView()
         {
             var bounceZoneLeftScreen = activeCamera != null
@@ -3970,6 +4129,12 @@ namespace GetBricked.Gameplay
                         : turnBasedMultiplayerController?.BuildSwitchSummaryLine() ?? "Stage clear. Next player is on deck.",
                     BuildRunSummaryLabel(),
                 };
+
+                if (isTurnGameOver)
+                {
+                    summaryLines.AddRange(BreakoutRunStatsService.BuildRunStatsLines(runStatsService?.CurrentRunStats, includeRunCount: false));
+                }
+
                 return new BreakoutUiOverlayView
                 {
                     Title = isTurnGameOver
@@ -4028,6 +4193,16 @@ namespace GetBricked.Gameplay
                         $"{GetLifeCounterLabel()} {GetLifeCounterValue():00}",
                         $"Tape ID {activeRunSettings?.Seed.ToString(CultureInfo.InvariantCulture) ?? GetPendingSeedDisplay()}",
                     };
+            var endSummaryLines = new List<string>(summary);
+            var useRunStatsTable = isGameOver
+                && activeRunSettings != null
+                && activeRunSettings.IsRogueMode;
+
+            if (!useRunStatsTable && (isGameOver || !HasNextLevel()))
+            {
+                endSummaryLines.AddRange(BreakoutRunStatsService.BuildRunStatsLines(runStatsService?.CurrentRunStats, includeRunCount: false));
+            }
+
             var footer = isGameOver
                 ? activeRunSettings != null && activeRunSettings.IsSoloMarathonMode
                     ? (activeSoloMarathonNewHighScore
@@ -4044,7 +4219,10 @@ namespace GetBricked.Gameplay
             return new BreakoutUiOverlayView
             {
                 Title = title,
-                SummaryLines = summary,
+                SummaryLines = useRunStatsTable ? Array.Empty<string>() : endSummaryLines.ToArray(),
+                StatsRows = useRunStatsTable
+                    ? BuildRunEndStatsRows(summary, runStatsService?.CurrentRunStats)
+                    : Array.Empty<BreakoutUiStatsRowView>(),
                 LeaderboardTitle = isGameOver && activeRunSettings != null && activeRunSettings.IsSoloMarathonMode
                     ? "Top Scores By Heat"
                     : string.Empty,
@@ -4057,6 +4235,82 @@ namespace GetBricked.Gameplay
                 IsCompact = false,
                 EmphasizeSummary = true,
             };
+        }
+
+        private static BreakoutUiStatsRowView[] BuildRunEndStatsRows(string[] summaryLines, BreakoutRunStatsSnapshot stats)
+        {
+            stats ??= new BreakoutRunStatsSnapshot();
+            var rows = new List<BreakoutUiStatsRowView>();
+
+            if (summaryLines != null)
+            {
+                for (var index = 0; index < summaryLines.Length; index++)
+                {
+                    if (TrySplitResultSummaryLine(summaryLines[index], out var label, out var value))
+                    {
+                        rows.Add(BuildStatsRow(label, value));
+                    }
+                }
+            }
+
+            rows.Add(BuildStatsRow("Time Played", BreakoutRunStatsService.FormatDuration(stats.TimePlayedSeconds)));
+            rows.Add(BuildStatsRow("Balls Launched", stats.BallsLaunched.ToString("00", CultureInfo.InvariantCulture)));
+            rows.Add(BuildStatsRow("Lives Lost", stats.LivesLost.ToString("00", CultureInfo.InvariantCulture)));
+            rows.Add(BuildStatsRow("Levels Cleared", stats.LevelsCleared.ToString("00", CultureInfo.InvariantCulture)));
+            rows.Add(BuildStatsRow("Walls Hit", stats.WallsHit.ToString("00", CultureInfo.InvariantCulture)));
+            rows.Add(BuildStatsRow("Paddle Hits", stats.PaddleHits.ToString("00", CultureInfo.InvariantCulture)));
+            rows.Add(BuildStatsRow("Paddle Distance Traveled", BreakoutRunStatsService.FormatDistance(stats.PaddleDistanceTraveled)));
+            rows.Add(BuildStatsRow("Balls Distance Traveled", BreakoutRunStatsService.FormatDistance(stats.BallsDistanceTraveled)));
+            rows.Add(BuildStatsRow("Bricks Hit", stats.BricksHit.ToString("00", CultureInfo.InvariantCulture)));
+            rows.Add(BuildStatsRow("Bricks Destroyed", stats.BricksDestroyed.ToString("00", CultureInfo.InvariantCulture)));
+            rows.Add(BuildStatsRow("Total Drops Picked Up", stats.TotalDropsPickedUp.ToString("00", CultureInfo.InvariantCulture)));
+            rows.Add(BuildStatsRow("Total Drops Dropped", stats.TotalDropsDropped.ToString("00", CultureInfo.InvariantCulture)));
+            rows.Add(BuildStatsRow("Helpful Drops Picked Up", stats.HelpfulDropsPickedUp.ToString("00", CultureInfo.InvariantCulture)));
+            rows.Add(BuildStatsRow("Helpful Drops Dropped", stats.HelpfulDropsDropped.ToString("00", CultureInfo.InvariantCulture)));
+            rows.Add(BuildStatsRow("Harmful Drops Picked Up", stats.HarmfulDropsPickedUp.ToString("00", CultureInfo.InvariantCulture)));
+            rows.Add(BuildStatsRow("Harmful Drops Dropped", stats.HarmfulDropsDropped.ToString("00", CultureInfo.InvariantCulture)));
+            rows.Add(BuildStatsRow("Glitches Encountered", stats.GlitchesEncountered.ToString("00", CultureInfo.InvariantCulture)));
+            return rows.ToArray();
+        }
+
+        private static bool TrySplitResultSummaryLine(string line, out string label, out string value)
+        {
+            label = string.Empty;
+            value = string.Empty;
+
+            if (string.IsNullOrWhiteSpace(line))
+            {
+                return false;
+            }
+
+            var trimmed = line.Trim();
+
+            if (trimmed.StartsWith("Tape ID ", StringComparison.OrdinalIgnoreCase))
+            {
+                label = "Tape ID";
+                value = trimmed.Substring("Tape ID ".Length).Trim();
+                return !string.IsNullOrWhiteSpace(value);
+            }
+
+            if (trimmed.StartsWith("Reached ", StringComparison.OrdinalIgnoreCase))
+            {
+                label = "Reached";
+                value = trimmed.Substring("Reached ".Length).Trim();
+                return !string.IsNullOrWhiteSpace(value);
+            }
+
+            var splitIndex = trimmed.LastIndexOf(' ');
+
+            if (splitIndex <= 0 || splitIndex >= trimmed.Length - 1)
+            {
+                label = "Result";
+                value = trimmed;
+                return true;
+            }
+
+            label = trimmed.Substring(0, splitIndex).Trim();
+            value = trimmed.Substring(splitIndex + 1).Trim();
+            return !string.IsNullOrWhiteSpace(label) && !string.IsNullOrWhiteSpace(value);
         }
 
         private BreakoutUiModifierView[] BuildModifierViews()
@@ -4521,6 +4775,7 @@ namespace GetBricked.Gameplay
             {
                 RoundState.ReadyToServe => "Ready to serve",
                 RoundState.SoloMarathonSetup => "Neon Marathon setup",
+                RoundState.LifetimeStats => "Lifetime stats",
                 RoundState.Playing => "Ball in play",
                 RoundState.LifeLost => "Recovering from a loss",
                 RoundState.UpgradeDraft => "Choosing a run reward",
@@ -4741,6 +4996,7 @@ namespace GetBricked.Gameplay
 
             if (spawnedPickup != null)
             {
+                runStatsService?.RegisterDropDropped(spawnedPickup.Definition);
                 audioService?.PlayPickupDropped();
             }
 
@@ -5178,6 +5434,7 @@ namespace GetBricked.Gameplay
                 ClearPickups();
                 StopAllBalls();
                 stickyCaughtBall = null;
+                FinalizeActiveRunStats(completed: true);
                 return;
             }
 
@@ -5413,6 +5670,7 @@ namespace GetBricked.Gameplay
             {
                 roundState = RoundState.LevelComplete;
                 selectedOverlayActionIndex = 0;
+                FinalizeActiveRunStats(completed: true);
             }
         }
 

@@ -9,6 +9,7 @@ namespace GetBricked.Gameplay
         Progression,
         SoloMarathon,
         CustomGame,
+        LifetimeStats,
         DualSticks,
         Coop,
         TurnBased,
@@ -44,6 +45,7 @@ namespace GetBricked.Gameplay
             BreakoutMainMenuAction.Rogue,
             BreakoutMainMenuAction.SoloMarathon,
             BreakoutMainMenuAction.CustomGame,
+            BreakoutMainMenuAction.LifetimeStats,
             BreakoutMainMenuAction.TurnBased,
             BreakoutMainMenuAction.SoundSettings,
             BreakoutMainMenuAction.GraphicsSettings,
@@ -94,6 +96,7 @@ namespace GetBricked.Gameplay
                 BreakoutMainMenuAction.DualSticks => "Dual Sticks is staged for side-by-side versus runs, sabotage drops, and brick sends.",
                 BreakoutMainMenuAction.Coop => "Co-op is staged for two paddles, two balls, and one-keyboard shared survival.",
                 BreakoutMainMenuAction.TurnBased => "Hot Seat opens player count, match mode, and heat setup.",
+                BreakoutMainMenuAction.LifetimeStats => "Lifetime Stats shows the cabinet-wide totals from finished and abandoned runs.",
                 BreakoutMainMenuAction.SoundSettings => "Sound Settings are staged for master, music, and cabinet SFX volume controls.",
                 BreakoutMainMenuAction.GraphicsSettings => "Graphics Settings are staged for future display, glow, scanline, and readability controls.",
                 _ => string.Empty,
@@ -111,6 +114,7 @@ namespace GetBricked.Gameplay
                     BreakoutMainMenuAction.Rogue => "Neon Ladder",
                     BreakoutMainMenuAction.SoloMarathon => "Neon Marathon",
                     BreakoutMainMenuAction.CustomGame => "Custom Game",
+                    BreakoutMainMenuAction.LifetimeStats => "Lifetime Stats",
                     BreakoutMainMenuAction.DualSticks => "Dual Sticks",
                     BreakoutMainMenuAction.Coop => "Co-op",
                     BreakoutMainMenuAction.TurnBased => "Hot Seat",
@@ -135,6 +139,7 @@ namespace GetBricked.Gameplay
                     BreakoutMainMenuAction.Rogue => "Single Player",
                     BreakoutMainMenuAction.SoloMarathon => "Single Player",
                     BreakoutMainMenuAction.CustomGame => "Single Player",
+                    BreakoutMainMenuAction.LifetimeStats => "Cabinet",
                     BreakoutMainMenuAction.DualSticks => "Multiplayer",
                     BreakoutMainMenuAction.Coop => "Multiplayer",
                     BreakoutMainMenuAction.TurnBased => "Multiplayer",
@@ -156,6 +161,7 @@ namespace GetBricked.Gameplay
                 BreakoutMainMenuAction.Progression => "Cabinet Progress",
                 BreakoutMainMenuAction.SoloMarathon => "Neon Marathon",
                 BreakoutMainMenuAction.CustomGame => "Custom Game Loadout",
+                BreakoutMainMenuAction.LifetimeStats => "Lifetime Stats",
                 BreakoutMainMenuAction.DualSticks => "Versus Shell",
                 BreakoutMainMenuAction.Coop => "Co-op Shell",
                 BreakoutMainMenuAction.TurnBased => "Hot Seat",
@@ -213,6 +219,14 @@ namespace GetBricked.Gameplay
                         $"Paddle x{previewSettings?.PaddleWidthMultiplier ?? 1f:0.00} | Ball x{previewSettings?.BallSpeedMultiplier ?? 1f:0.00}",
                         $"Brick durability x{previewSettings?.BrickDurabilityMultiplier ?? 1f:0.00} | {context.ScoreModeSummaryLabel}",
                         $"Drops: {context.DropSummaryLabel}",
+                    };
+                case BreakoutMainMenuAction.LifetimeStats:
+                    return new[]
+                    {
+                        "Cabinet-wide totals across Neon Ladder, Neon Marathon, Custom Game, and Hot Seat runs.",
+                        "Tracks launches, losses, clears, hits, distance, drops, time, and glitches.",
+                        "Stats save when a run ends, restarts, or returns to the menu.",
+                        "Developer Mode does not write lifetime totals.",
                     };
                 case BreakoutMainMenuAction.DualSticks:
                     return new[]
@@ -287,6 +301,7 @@ namespace GetBricked.Gameplay
                 BreakoutMainMenuAction.Rogue => "Neon Ladder launches a fixed 10-stage climb with draft rewards and saved unlock progress.",
                 BreakoutMainMenuAction.Progression => "Progression opens a cabinet service screen for Ladder history, future unlock placeholders, and mode availability.",
                 BreakoutMainMenuAction.SoloMarathon => "Neon Marathon opens its heat bench with top scores for each heat level.",
+                BreakoutMainMenuAction.LifetimeStats => "Lifetime Stats opens the cabinet-wide stat readout for every recorded run.",
                 BreakoutMainMenuAction.SoundSettings => "Sound controls are staged here for mixer work.",
                 BreakoutMainMenuAction.GraphicsSettings => "Graphics controls are staged here for display, glow, and readability options.",
                 BreakoutMainMenuAction.TurnBased => "Hot Seat opens player count, mode, and heat setup before the match starts.",

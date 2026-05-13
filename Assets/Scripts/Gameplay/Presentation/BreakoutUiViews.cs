@@ -134,6 +134,12 @@ namespace GetBricked.Gameplay
         public int CompletedStages;
     }
 
+    internal sealed class BreakoutUiStatsRowView
+    {
+        public string Label = string.Empty;
+        public string Value = string.Empty;
+    }
+
     internal sealed class BreakoutUiHudView
     {
         public string TopLine = string.Empty;
@@ -157,6 +163,7 @@ namespace GetBricked.Gameplay
         public string[] ActionLabels = Array.Empty<string>();
         public int SelectedActionIndex;
         public string[] FooterLines = Array.Empty<string>();
+        public BreakoutUiStatsRowView[] StatsRows = Array.Empty<BreakoutUiStatsRowView>();
         public bool IsCompact;
         public bool EmphasizeSummary;
     }

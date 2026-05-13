@@ -134,6 +134,7 @@ namespace GetBricked.Gameplay
 
             lastTravelDirection = launchDirection;
             ballBody.linearVelocity = launchDirection * GetTargetSpeed();
+            gameController?.HandleBallLaunched();
         }
 
         public void SetMovementSpeed(float speed)
