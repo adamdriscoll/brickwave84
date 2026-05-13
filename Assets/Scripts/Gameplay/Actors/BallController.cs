@@ -18,6 +18,7 @@ namespace GetBricked.Gameplay
         private float minimumVerticalDirection;
         private float lossThresholdY;
         private float paddleFollowOffset;
+        private Vector3 configuredBaseScale = Vector3.one;
         private Vector3 baseScale = Vector3.one;
         private float sizeMultiplier = 1f;
         private float speedBurstMultiplier = 1f;
@@ -71,7 +72,8 @@ namespace GetBricked.Gameplay
             lossThresholdY = lossY;
             paddleFollowOffset = followOffset;
             followsPaddleWhenIdle = followPaddleWhenIdle;
-            baseScale = transform.localScale;
+            configuredBaseScale = transform.localScale;
+            baseScale = configuredBaseScale;
             ballBody = GetComponent<Rigidbody2D>();
             spriteRenderer = GetComponent<SpriteRenderer>();
             glowRenderer = GetComponent<BreakoutGlowRenderer>();
@@ -85,6 +87,7 @@ namespace GetBricked.Gameplay
             ClearJellySlow();
             ResetHotPotato();
             ricochetCountSinceLastBrick = 0;
+            SetBaseSizeMultiplier(1f);
 
             if (ballBody == null)
             {
@@ -145,6 +148,13 @@ namespace GetBricked.Gameplay
             {
                 ballBody.linearVelocity = ballBody.linearVelocity.normalized * GetTargetSpeed();
             }
+        }
+
+        public void SetBaseSizeMultiplier(float multiplier)
+        {
+            var clampedMultiplier = Mathf.Clamp(multiplier, 0.1f, MaximumSizeMultiplier);
+            baseScale = configuredBaseScale * clampedMultiplier;
+            SetSizeMultiplier(sizeMultiplier);
         }
 
         public void SetPhaseThroughBricks(bool enabled)

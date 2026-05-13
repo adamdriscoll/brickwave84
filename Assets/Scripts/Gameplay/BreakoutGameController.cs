@@ -26,6 +26,8 @@ namespace GetBricked.Gameplay
         private const float ExplosiveBallMinimumSpeedBurstMultiplier = 1.1f;
         private const float ExplosiveBallMaximumSpeedBurstMultiplier = 1.22f;
         private const float ExplosiveBallSpeedBurstDuration = 1.45f;
+        private const int ExplosiveBrickSplitBallCount = 3;
+        private const float ExplosiveBrickSplitBallSizeMultiplier = 0.55f;
         private const float TurboRailSpeedBurstMultiplier = 1.35f;
         private const float TurboRailSpeedBurstDuration = 4f;
         private const float TurboRailSpeedBurstStackMultiplier = 0.12f;
@@ -503,7 +505,11 @@ namespace GetBricked.Gameplay
 
             if (shouldExplode && destructionCause == BrickDestructionCause.Impact && scoringBall != null)
             {
-                scoringBall.ApplySpeedBurst(brickDefinition.ExplosionSpeedMultiplier, brickDefinition.ExplosionSpeedDuration);
+                SplitBallFromExplosiveBrick(
+                    scoringBall,
+                    explosionCenter,
+                    brickDefinition.ExplosionSpeedMultiplier,
+                    brickDefinition.ExplosionSpeedDuration);
             }
 
             var scoreAward = scoreService != null
@@ -5418,6 +5424,74 @@ namespace GetBricked.Gameplay
                 extraBall.Launch(launchDirections[index]);
                 activeBalls.Add(extraBall);
             }
+        }
+
+        private void SplitBallFromExplosiveBrick(
+            BallController sourceBall,
+            Vector2 splitCenter,
+            float speedBurstMultiplier,
+            float speedBurstDuration)
+        {
+            if (sourceBall == null || ballSpawnService == null)
+            {
+                return;
+            }
+
+            var sourceBody = sourceBall.GetComponent<Rigidbody2D>();
+            var sourceVelocity = sourceBody != null ? sourceBody.linearVelocity : Vector2.zero;
+            var sourceDirection = sourceVelocity.sqrMagnitude > 0.01f
+                ? sourceVelocity.normalized
+                : Vector2.up;
+            var launchDirections = powerUpService != null
+                ? powerUpService.BuildMultiBallDirections(sourceDirection, ExplosiveBrickSplitBallCount)
+                : BuildFallbackSplitDirections(sourceDirection, ExplosiveBrickSplitBallCount);
+
+            if (launchDirections.Length == 0)
+            {
+                return;
+            }
+
+            sourceBall.SetBaseSizeMultiplier(ExplosiveBrickSplitBallSizeMultiplier);
+            sourceBall.SetWorldPosition(splitCenter + (launchDirections[0] * ResolveSplitBallLaunchOffset()));
+            sourceBall.ApplyCollisionResponse(launchDirections[0]);
+            sourceBall.ApplySpeedBurst(speedBurstMultiplier, speedBurstDuration);
+
+            if (!activeBalls.Contains(sourceBall))
+            {
+                activeBalls.Add(sourceBall);
+            }
+
+            for (var index = 1; index < launchDirections.Length; index++)
+            {
+                var splitBall = CreateBall(false);
+                splitBall.SetBaseSizeMultiplier(ExplosiveBrickSplitBallSizeMultiplier);
+                splitBall.SetWorldPosition(splitCenter + (launchDirections[index] * ResolveSplitBallLaunchOffset()));
+                splitBall.Launch(launchDirections[index]);
+                splitBall.ApplySpeedBurst(speedBurstMultiplier, speedBurstDuration);
+                activeBalls.Add(splitBall);
+            }
+        }
+
+        private float ResolveSplitBallLaunchOffset()
+        {
+            return Mathf.Max(0.04f, ballRadius * ExplosiveBrickSplitBallSizeMultiplier * 0.9f);
+        }
+
+        private Vector2[] BuildFallbackSplitDirections(Vector2 sourceDirection, int ballCount)
+        {
+            var resolvedDirection = sourceDirection.sqrMagnitude > 0.01f ? sourceDirection.normalized : Vector2.up;
+            var resolvedCount = Mathf.Max(1, ballCount);
+            var directions = new Vector2[resolvedCount];
+
+            for (var index = 0; index < resolvedCount; index++)
+            {
+                var angle = resolvedCount == 1
+                    ? 0f
+                    : Mathf.Lerp(-multiBallSpreadAngle, multiBallSpreadAngle, index / (resolvedCount - 1f));
+                directions[index] = (Vector2)(Quaternion.Euler(0f, 0f, angle) * resolvedDirection);
+            }
+
+            return directions;
         }
 
         private void ClearPickups()

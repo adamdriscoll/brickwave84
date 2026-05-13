@@ -482,6 +482,37 @@ public sealed class BreakoutGameControllerPowerUpTests
     }
 
     [Test]
+    public void ExplosiveBrickImpactSplitsScoringBallIntoThreeSmallBalls()
+    {
+        var controller = CreateControllerHarness(out _);
+        var scoringBall = (BallController)InvokePrivateMethodWithResult(controller, "CreateBall", false);
+        var ballBody = scoringBall.GetComponent<Rigidbody2D>();
+        var sourceBrick = CreateBrickHarness(controller, "Explosive Brick", 250, Vector2.zero);
+        var brickDefinition = sourceBrick.Definition;
+        var activeBalls = GetPrivateField<List<BallController>>(controller, "activeBalls");
+        var bricks = GetPrivateField<List<Brick>>(controller, "bricks");
+
+        SetPrivateField(brickDefinition, "explosive", true);
+        SetPrivateField(brickDefinition, "explosionSpeedMultiplier", 1.6f);
+        SetPrivateField(brickDefinition, "explosionSpeedDuration", 2f);
+        SetPrivateField(scoringBall, "hasLaunched", true);
+        scoringBall.SetWorldPosition(new Vector2(0f, -0.3f));
+        ballBody.linearVelocity = Vector2.up * 8f;
+        activeBalls.Add(scoringBall);
+        bricks.Add(sourceBrick);
+
+        controller.HandleBrickDestroyed(sourceBrick, scoringBall, BrickDestructionCause.Impact);
+
+        Assert.That(activeBalls.Count, Is.EqualTo(3));
+        Assert.That(activeBalls, Has.All.Matches<BallController>(ball => ball != null && ball.HasLaunched));
+        Assert.That(activeBalls, Has.All.Matches<BallController>(ball => ball.transform.localScale.x < 0.3f));
+        Assert.That(activeBalls.Exists(ball => ball.CurrentVelocity.x < -0.1f), Is.True);
+        Assert.That(activeBalls.Exists(ball => Mathf.Abs(ball.CurrentVelocity.x) <= 0.01f), Is.True);
+        Assert.That(activeBalls.Exists(ball => ball.CurrentVelocity.x > 0.1f), Is.True);
+        Assert.That(activeBalls[1].CurrentVelocity.magnitude, Is.GreaterThan(8f));
+    }
+
+    [Test]
     public void ApplyingShieldWallPowerUpGrantsAndConsumesRescueCharge()
     {
         var controller = CreateControllerHarness(out var paddle);
@@ -813,10 +844,13 @@ public sealed class BreakoutGameControllerPowerUpTests
 
         var effectsRoot = new GameObject("Effects").transform;
         runtimeObjects.Add(effectsRoot.gameObject);
+        var ballsRoot = new GameObject("Balls").transform;
+        runtimeObjects.Add(ballsRoot.gameObject);
 
         SetPrivateField(controller, "paddle", paddle);
         SetPrivateField(controller, "paddleCollider", paddleCollider);
         SetPrivateField(controller, "effectsRoot", effectsRoot);
+        SetPrivateField(controller, "ballsRoot", ballsRoot);
         SetPrivateField(controller, "powerUpService", CreatePowerUpService());
         SetPrivateField(controller, "scoreService", new BreakoutScoreService());
         SetPrivateField(
@@ -829,6 +863,7 @@ public sealed class BreakoutGameControllerPowerUpTests
         SetPrivateField(controller, "arenaRight", 8f);
         SetPrivateField(controller, "arenaTop", 5f);
         SetPrivateField(controller, "arenaBottom", -5f);
+        InvokePrivateMethod(controller, "CreateActorSpawnServices");
         InvokePrivateMethod(controller, "CreateBrickService");
         return controller;
     }
