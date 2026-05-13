@@ -5220,7 +5220,8 @@ namespace GetBricked.Gameplay
                     0f,
                     0f,
                     0f,
-                    0f);
+                    0f,
+                    false);
             paddle.SetMoveSpeed(currentLevelPaddleSpeed * (activeRunSettings?.PaddleSpeedMultiplier ?? 1f));
             var paddleHitMaximumWidth = paddle.SetWidthMultiplier(activeEffectModifiers.PaddleWidthMultiplier);
 
@@ -5244,6 +5245,7 @@ namespace GetBricked.Gameplay
             paddle.SetSplitGapWidthNormalized(activeEffectModifiers.SplitPaddleGapNormalized);
             paddle.SetLagSpikeStrength(activeEffectModifiers.LagSpikeStrength);
             paddle.SetClonePaddleEnabled(activeEffectModifiers.PaddleCloneEnabled);
+            paddle.SetMirrorImagePaddleEnabled(activeEffectModifiers.MirrorImagePaddleEnabled);
 
             var currentBallSpeed = GetCurrentBallSpeed();
             var gravityWellCenter = new Vector2(0f, (arenaTop + arenaBottom) * 0.5f);
@@ -6056,6 +6058,7 @@ namespace GetBricked.Gameplay
                 PowerUpEffectType.BrickMagnet => $"Brick pull for {definition.DurationSeconds:0.#}s",
                 PowerUpEffectType.ScoreMultiplier => $"Score x{definition.Scalar:0.00} for {definition.DurationSeconds:0.#}s",
                 PowerUpEffectType.PaddleClone => $"Clone rail for {definition.DurationSeconds:0.#}s",
+                PowerUpEffectType.MirrorImagePaddle => $"Mirror rail for {definition.DurationSeconds:0.#}s",
                 PowerUpEffectType.BrickJammer => $"Brick jam for {definition.DurationSeconds:0.#}s",
                 PowerUpEffectType.HotPotatoBall => $"Ball x{definition.Scalar:0.00}, score x{definition.Scalar:0.00}",
                 PowerUpEffectType.ExplosiveBall => $"Explodes bricks for {definition.DurationSeconds:0.#}s",

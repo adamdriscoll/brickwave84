@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
+  <title id="title">Mirror Image</title>
+  <desc id="desc">A monochrome neon icon with two opposing paddle rails and mirrored arrows.</desc>
+  <defs>
+    <filter id="softGlow" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="2.25" result="blur"/><feColorMatrix in="blur" type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 .8 0" result="glow"/><feMerge><feMergeNode in="glow"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+    <style><![CDATA[.icon{fill:none;stroke:#fff;stroke-linecap:round;stroke-linejoin:round;filter:url(#softGlow)}.rail{stroke-width:9;opacity:.94}.arrow{stroke-width:8;opacity:.9}.echo{stroke-width:4;opacity:.38}.dot{fill:#fff;stroke:none;opacity:.9;filter:url(#softGlow)}]]></style>
+  </defs>
+  <g class="icon">
+    <rect class="rail" x="58" y="78" width="140" height="24" rx="12"/>
+    <rect class="rail" x="58" y="154" width="140" height="24" rx="12"/>
+    <path class="arrow" d="M82 125h64"/>
+    <path class="arrow" d="M82 125l20-18M82 125l20 18"/>
+    <path class="arrow" d="M174 125h-64"/>
+    <path class="arrow" d="M174 125l-20-18M174 125l-20 18"/>
+    <path class="echo" d="M49 66h158M49 190h158"/>
+    <circle class="dot" cx="128" cy="42" r="7"/>
+    <circle class="dot" cx="128" cy="214" r="7"/>
+  </g>
+</svg>

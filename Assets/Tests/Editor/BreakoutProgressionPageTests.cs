@@ -121,4 +121,19 @@ public sealed class BreakoutProgressionPageTests
         Assert.That(card.Family, Does.Contain("Rare Helpful"));
         Assert.That(card.StateLabel, Is.EqualTo("Locked"));
     }
+
+    [Test]
+    public void ProgressionPageShowsMirrorImageAsLiveHeatTenHelpfulDrop()
+    {
+        var mirrorImage = Resources.Load<PowerUpDefinition>("PowerUps/MirrorImage");
+        Assert.That(mirrorImage, Is.Not.Null);
+
+        var view = new BreakoutProgressionPageService().BuildView(new[] { mirrorImage });
+        var card = view.Cards.First(item => item.Title == "Mirror Image");
+
+        Assert.That(card.UnlockHint, Does.Contain("Heat 10"));
+        Assert.That(card.Description, Does.Contain("opposite-moving mirror paddle"));
+        Assert.That(card.Family, Does.Contain("Helpful"));
+        Assert.That(card.StateLabel, Is.EqualTo("Locked"));
+    }
 }

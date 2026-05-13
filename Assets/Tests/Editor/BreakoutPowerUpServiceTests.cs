@@ -78,6 +78,7 @@ public sealed class BreakoutPowerUpServiceTests
         var megaBall = CreatePowerUp("Mega Ball", PowerUpEffectType.BallSizeMultiplier, true, 10f, 1.8f);
         var vectorSight = CreatePowerUp("Vector Sight", PowerUpEffectType.VectorSight, true, 14f, 1f);
         var capsuleMagnet = CreatePowerUp("Capsule Magnet", PowerUpEffectType.CapsuleMagnet, true, 12f, 1f);
+        var mirrorImage = CreatePowerUp("Mirror Image", PowerUpEffectType.MirrorImagePaddle, true, 12f, 1f);
 
         service.ApplyPowerUp(magnet, null);
         service.ApplyPowerUp(scoreSurge, null);
@@ -88,6 +89,7 @@ public sealed class BreakoutPowerUpServiceTests
         service.ApplyPowerUp(megaBall, null);
         service.ApplyPowerUp(vectorSight, null);
         service.ApplyPowerUp(capsuleMagnet, null);
+        service.ApplyPowerUp(mirrorImage, null);
 
         var modifiers = service.CalculateEffectModifiers(1f, 0f);
 
@@ -101,6 +103,7 @@ public sealed class BreakoutPowerUpServiceTests
         Assert.That(modifiers.ExplosiveBallStrength, Is.EqualTo(1f).Within(0.0001f));
         Assert.That(modifiers.VectorSightStrength, Is.EqualTo(1f).Within(0.0001f));
         Assert.That(modifiers.CapsuleMagnetStrength, Is.EqualTo(1f).Within(0.0001f));
+        Assert.That(modifiers.MirrorImagePaddleEnabled, Is.True);
     }
 
     [Test]

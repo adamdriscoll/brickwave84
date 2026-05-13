@@ -185,6 +185,7 @@ Permanent run upgrades are always available in the between-stage draft pool. Dro
 | `Reverse Controls` | Reverses paddle controls for 8s. | Heat 08 | Uncommon | Hazard | Reverse controls | Implemented |
 | `Split Paddle` | Opens a center paddle gap for 12s. | Heat 08 | Uncommon | Hazard | Split paddle | Implemented |
 | `Sticky Paddle` | Catches the next paddle ball until relaunch for 10s. | Heat 08 | Uncommon | Helpful | Sticky paddle | Implemented |
+| `Mirror Image` | Adds an opposite-moving mirror paddle above your paddle for 12s. | Heat 10 | Uncommon | Helpful | Mirror paddle | Implemented |
 | `Blackout` | Blacks out brick visibility for 8s. | Heat 18 | Rare | Hazard | Visibility | Implemented |
 | `Bogus Multi` | Cuts active timed effects to x0.50. | Heat 18 | Rare | Hazard | Active-effect multiplier | Implemented |
 | `Brick Jammer` | Weakens brick readability/response for 7s. | Heat 18 | Rare | Hazard | Brick jam | Implemented |

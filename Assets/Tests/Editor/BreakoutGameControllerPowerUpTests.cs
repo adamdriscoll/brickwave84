@@ -358,6 +358,7 @@ public sealed class BreakoutGameControllerPowerUpTests
             CreateTimedPowerUpCase("Lag Spike", PowerUpEffectType.LagSpike, false, 8f, 0.5f),
             CreateTimedPowerUpCase("Boom Ball", PowerUpEffectType.ExplosiveBall, true, 10f, 1f),
             CreateTimedPowerUpCase("Vector Sight", PowerUpEffectType.VectorSight, true, 14f, 1f),
+            CreateTimedPowerUpCase("Mirror Image", PowerUpEffectType.MirrorImagePaddle, true, 12f, 1f),
         };
 
         for (var index = 0; index < timedPowerUps.Length; index++)
@@ -408,6 +409,7 @@ public sealed class BreakoutGameControllerPowerUpTests
         InvokePrivateMethod(controller, "ApplyPowerUp", CreatePowerUp("Lag Spike", PowerUpEffectType.LagSpike, false, 8f, 0.5f));
         InvokePrivateMethod(controller, "ApplyPowerUp", CreatePowerUp("Boom Ball", PowerUpEffectType.ExplosiveBall, true, 10f, 1f));
         InvokePrivateMethod(controller, "ApplyPowerUp", CreatePowerUp("Vector Sight", PowerUpEffectType.VectorSight, true, 14f, 1f));
+        InvokePrivateMethod(controller, "ApplyPowerUp", CreatePowerUp("Mirror Image", PowerUpEffectType.MirrorImagePaddle, true, 12f, 1f));
 
         var activeEffectModifiers = GetPrivateField<object>(controller, "activeEffectModifiers");
         var ballRenderer = serveBall.GetComponent<SpriteRenderer>();
@@ -419,6 +421,7 @@ public sealed class BreakoutGameControllerPowerUpTests
         Assert.That(GetPropertyValue<float>(activeEffectModifiers, "FogVisibilityMultiplier"), Is.EqualTo(0.55f).Within(0.0001f));
         Assert.That(GetPropertyValue<float>(activeEffectModifiers, "ExplosiveBallStrength"), Is.EqualTo(1f).Within(0.0001f));
         Assert.That(GetPropertyValue<float>(activeEffectModifiers, "VectorSightStrength"), Is.EqualTo(1f).Within(0.0001f));
+        Assert.That(GetPropertyValue<bool>(activeEffectModifiers, "MirrorImagePaddleEnabled"), Is.True);
         Assert.That(GetPrivateField<bool>(paddle, "controlsReversed"), Is.True);
         Assert.That(GetPrivateField<float>(paddle, "splitGapWidthNormalized"), Is.GreaterThan(0.2f));
         Assert.That(GetPrivateField<float>(paddle, "lagSpikeStrength"), Is.EqualTo(0.5f).Within(0.0001f));
@@ -426,6 +429,30 @@ public sealed class BreakoutGameControllerPowerUpTests
         Assert.That(GetPrivateField<float>(serveBall, "gravityWellStrength"), Is.EqualTo(0.35f).Within(0.0001f));
         Assert.That(serveBall.IsExplosiveBall, Is.True);
         Assert.That(ballRenderer.color.r, Is.GreaterThan(ballRenderer.color.g));
+    }
+
+    [Test]
+    public void ApplyingMirrorImageCreatesOppositeRailWithCurrentPaddleModifiers()
+    {
+        var controller = CreateControllerHarness(out var paddle);
+
+        InvokePrivateMethod(controller, "ApplyPowerUp", CreatePowerUp("Mirror Image", PowerUpEffectType.MirrorImagePaddle, true, 12f, 1f));
+        InvokePrivateMethod(controller, "ApplyPowerUp", CreatePowerUp("Wide Paddle", PowerUpEffectType.PaddleWidthMultiplier, true, 12f, 1.45f));
+        InvokePrivateMethod(controller, "ApplyPowerUp", CreatePowerUp("Reverse Controls", PowerUpEffectType.ReverseControls, false, 8f, 1f));
+        InvokePrivateMethod(controller, "ApplyPowerUp", CreatePowerUp("Split Paddle", PowerUpEffectType.SplitPaddle, false, 12f, 1f));
+        InvokePrivateMethod(controller, "ApplyPowerUp", CreatePowerUp("Lag Spike", PowerUpEffectType.LagSpike, false, 8f, 0.5f));
+
+        var mirrorObject = GetPrivateField<GameObject>(paddle, "mirrorImagePaddleObject");
+        var mirrorPaddle = GetPrivateField<PaddleController>(paddle, "mirrorImagePaddle");
+
+        Assert.That(mirrorObject, Is.Not.Null);
+        Assert.That(mirrorObject.activeSelf, Is.True);
+        Assert.That(mirrorPaddle.transform.position.y, Is.GreaterThan(paddle.transform.position.y + 1f));
+        Assert.That(GetPrivateField<float>(mirrorPaddle, "inputDirectionMultiplier"), Is.EqualTo(-1f).Within(0.0001f));
+        Assert.That(mirrorPaddle.transform.localScale.x, Is.EqualTo(paddle.transform.localScale.x).Within(0.0001f));
+        Assert.That(GetPrivateField<bool>(mirrorPaddle, "controlsReversed"), Is.True);
+        Assert.That(GetPrivateField<float>(mirrorPaddle, "splitGapWidthNormalized"), Is.EqualTo(GetPrivateField<float>(paddle, "splitGapWidthNormalized")).Within(0.0001f));
+        Assert.That(GetPrivateField<float>(mirrorPaddle, "lagSpikeStrength"), Is.EqualTo(0.5f).Within(0.0001f));
     }
 
     [Test]

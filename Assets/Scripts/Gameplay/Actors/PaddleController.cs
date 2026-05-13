@@ -23,6 +23,8 @@ namespace GetBricked.Gameplay
         private const float ClonePaddleYOffset = 0.74f;
         private const float ClonePaddleWidthMultiplier = 0.62f;
         private const int ClonePaddleSortingOrder = 19;
+        private const float MirrorImagePaddleYOffset = 1.16f;
+        private const int MirrorImagePaddleSortingOrder = 39;
         private const float AutopilotDeadZone = 0.16f;
         private const float AutopilotSlowRadius = 1.15f;
         private const float AutopilotInputBlendSpeed = 5.5f;
@@ -37,6 +39,7 @@ namespace GetBricked.Gameplay
         private float startingY;
         private Vector2 startingPosition;
         private float horizontalInput;
+        private float currentWidthMultiplier = 1f;
         private float wavyStrength;
         private float currentWavyYOffset;
         private float currentWavyRotation;
@@ -56,6 +59,10 @@ namespace GetBricked.Gameplay
         private GameObject clonePaddleObject;
         private BoxCollider2D clonePaddleCollider;
         private SpriteRenderer clonePaddleRenderer;
+        private bool isAuxiliaryPaddle;
+        private float inputDirectionMultiplier = 1f;
+        private GameObject mirrorImagePaddleObject;
+        private PaddleController mirrorImagePaddle;
 
         public float HalfWidthWorld { get; private set; }
 
@@ -79,6 +86,7 @@ namespace GetBricked.Gameplay
         public void SetMoveSpeed(float speed)
         {
             moveSpeed = Mathf.Max(0f, speed);
+            mirrorImagePaddle?.SetMoveSpeed(moveSpeed);
         }
 
         public void SetAutopilotTarget(float targetX)
@@ -97,13 +105,15 @@ namespace GetBricked.Gameplay
 
         public bool SetWidthMultiplier(float multiplier)
         {
+            currentWidthMultiplier = Mathf.Max(0.1f, multiplier);
             var arenaWidth = Mathf.Max(0f, rightBoundaryX - leftBoundaryX);
             var maxWidth = arenaWidth > 0f ? arenaWidth * MaxArenaWidthCoverage : float.PositiveInfinity;
-            var requestedWidth = baseScale.x * Mathf.Max(0.1f, multiplier);
+            var requestedWidth = baseScale.x * currentWidthMultiplier;
             var width = Mathf.Min(requestedWidth, maxWidth);
             transform.localScale = new Vector3(width, baseScale.y, baseScale.z);
             HalfWidthWorld = width * 0.5f;
             ClampToBounds();
+            mirrorImagePaddle?.SetWidthMultiplier(currentWidthMultiplier);
             return maxWidth < float.PositiveInfinity && requestedWidth >= maxWidth - 0.0001f;
         }
 
@@ -121,25 +131,30 @@ namespace GetBricked.Gameplay
             {
                 ResetWavyMotion();
                 ClampToBounds();
+                mirrorImagePaddle?.SetWavyStrength(wavyStrength);
                 return;
             }
 
             RetargetWavyMotion();
+            mirrorImagePaddle?.SetWavyStrength(wavyStrength);
         }
 
         public void SetControlsReversed(bool reversed)
         {
             controlsReversed = reversed;
+            mirrorImagePaddle?.SetControlsReversed(controlsReversed);
         }
 
         public void SetSplitGapWidthNormalized(float normalizedWidth)
         {
             splitGapWidthNormalized = Mathf.Clamp(normalizedWidth, 0f, 0.45f);
+            mirrorImagePaddle?.SetSplitGapWidthNormalized(splitGapWidthNormalized);
         }
 
         public void SetLagSpikeStrength(float strength)
         {
             lagSpikeStrength = Mathf.Clamp01(strength);
+            mirrorImagePaddle?.SetLagSpikeStrength(lagSpikeStrength);
         }
 
         public void SetClonePaddleEnabled(bool enabled)
@@ -149,6 +164,24 @@ namespace GetBricked.Gameplay
             if (clonePaddleObject != null)
             {
                 clonePaddleObject.SetActive(enabled);
+            }
+        }
+
+        public void SetMirrorImagePaddleEnabled(bool enabled)
+        {
+            if (isAuxiliaryPaddle)
+            {
+                return;
+            }
+
+            if (enabled)
+            {
+                EnsureMirrorImagePaddle();
+            }
+
+            if (mirrorImagePaddleObject != null)
+            {
+                mirrorImagePaddleObject.SetActive(enabled);
             }
         }
 
@@ -178,6 +211,24 @@ namespace GetBricked.Gameplay
             paddleBody.position = resetPosition;
             paddleBody.rotation = 0f;
             paddleBody.linearVelocity = Vector2.zero;
+            mirrorImagePaddle?.ResetToStart();
+        }
+
+        private void OnDestroy()
+        {
+            if (isAuxiliaryPaddle || mirrorImagePaddleObject == null)
+            {
+                return;
+            }
+
+            if (Application.isPlaying)
+            {
+                Destroy(mirrorImagePaddleObject);
+            }
+            else
+            {
+                DestroyImmediate(mirrorImagePaddleObject);
+            }
         }
 
         private void Update()
@@ -385,6 +436,59 @@ namespace GetBricked.Gameplay
             clonePaddleObject.SetActive(false);
         }
 
+        private void EnsureMirrorImagePaddle()
+        {
+            if (mirrorImagePaddle != null)
+            {
+                return;
+            }
+
+            var sourceRenderer = GetComponentInChildren<SpriteRenderer>();
+            var sourceCollider = GetComponent<BoxCollider2D>();
+            mirrorImagePaddleObject = new GameObject("Mirror Image Paddle");
+            mirrorImagePaddleObject.transform.SetParent(transform.parent, false);
+            mirrorImagePaddleObject.transform.localScale = baseScale;
+
+            var mirrorVisual = new GameObject("Visual");
+            mirrorVisual.transform.SetParent(mirrorImagePaddleObject.transform, false);
+
+            var mirrorRenderer = mirrorVisual.AddComponent<SpriteRenderer>();
+
+            if (sourceRenderer != null)
+            {
+                mirrorRenderer.sprite = sourceRenderer.sprite;
+                mirrorRenderer.color = sourceRenderer.color;
+                mirrorRenderer.sharedMaterial = sourceRenderer.sharedMaterial;
+                BreakoutSpriteRendererUtility.NormalizeScale(mirrorRenderer);
+            }
+
+            mirrorRenderer.sortingOrder = MirrorImagePaddleSortingOrder;
+
+            var mirrorCollider = mirrorImagePaddleObject.AddComponent<BoxCollider2D>();
+
+            if (sourceCollider != null)
+            {
+                mirrorCollider.sharedMaterial = sourceCollider.sharedMaterial;
+            }
+
+            var mirrorBody = mirrorImagePaddleObject.AddComponent<Rigidbody2D>();
+            mirrorBody.bodyType = RigidbodyType2D.Kinematic;
+            mirrorBody.gravityScale = 0f;
+            mirrorBody.interpolation = RigidbodyInterpolation2D.Interpolate;
+            mirrorBody.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
+
+            mirrorImagePaddle = mirrorImagePaddleObject.AddComponent<PaddleController>();
+            mirrorImagePaddle.isAuxiliaryPaddle = true;
+            mirrorImagePaddle.inputDirectionMultiplier = -1f;
+            mirrorImagePaddle.Configure(gameController, moveSpeed, leftBoundaryX, rightBoundaryX, startingY + MirrorImagePaddleYOffset);
+            mirrorImagePaddle.SetWidthMultiplier(currentWidthMultiplier);
+            mirrorImagePaddle.SetWavyStrength(wavyStrength);
+            mirrorImagePaddle.SetControlsReversed(controlsReversed);
+            mirrorImagePaddle.SetSplitGapWidthNormalized(splitGapWidthNormalized);
+            mirrorImagePaddle.SetLagSpikeStrength(lagSpikeStrength);
+            mirrorImagePaddleObject.SetActive(false);
+        }
+
         private float ReadHorizontalInput()
         {
             var keyboard = Keyboard.current;
@@ -406,7 +510,8 @@ namespace GetBricked.Gameplay
                 direction += 1f;
             }
 
-            return controlsReversed ? -direction : direction;
+            var resolvedDirection = controlsReversed ? -direction : direction;
+            return resolvedDirection * inputDirectionMultiplier;
         }
 
         private float UpdateAutopilotInput(float deltaTime)

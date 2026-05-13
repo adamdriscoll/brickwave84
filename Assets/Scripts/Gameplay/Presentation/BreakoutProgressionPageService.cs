@@ -232,6 +232,7 @@ namespace GetBricked.Gameplay
                 PowerUpEffectType.BrickMagnet => $"Pulls the ball toward nearby bricks for {definition.DurationSeconds:0.#}s.",
                 PowerUpEffectType.ScoreMultiplier => $"Score x{definition.Scalar:0.00} for {definition.DurationSeconds:0.#}s.",
                 PowerUpEffectType.PaddleClone => $"Adds a clone rail for {definition.DurationSeconds:0.#}s.",
+                PowerUpEffectType.MirrorImagePaddle => $"Adds an opposite-moving mirror paddle for {definition.DurationSeconds:0.#}s.",
                 PowerUpEffectType.BrickJammer => $"Jams brick response for {definition.DurationSeconds:0.#}s.",
                 PowerUpEffectType.HotPotatoBall => $"Ball speed and score x{definition.Scalar:0.00} for {definition.DurationSeconds:0.#}s.",
                 PowerUpEffectType.ExplosiveBall => $"Ball explosions damage nearby bricks for {definition.DurationSeconds:0.#}s.",

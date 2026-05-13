@@ -89,7 +89,8 @@ namespace GetBricked.Gameplay
             float hotPotatoStrength,
             float explosiveBallStrength,
             float vectorSightStrength,
-            float capsuleMagnetStrength)
+            float capsuleMagnetStrength,
+            bool mirrorImagePaddleEnabled)
         {
             PaddleWidthMultiplier = paddleWidthMultiplier;
             WavyPaddleStrength = wavyPaddleStrength;
@@ -112,6 +113,7 @@ namespace GetBricked.Gameplay
             ExplosiveBallStrength = explosiveBallStrength;
             VectorSightStrength = vectorSightStrength;
             CapsuleMagnetStrength = capsuleMagnetStrength;
+            MirrorImagePaddleEnabled = mirrorImagePaddleEnabled;
         }
 
         public float PaddleWidthMultiplier { get; }
@@ -155,6 +157,8 @@ namespace GetBricked.Gameplay
         public float VectorSightStrength { get; }
 
         public float CapsuleMagnetStrength { get; }
+
+        public bool MirrorImagePaddleEnabled { get; }
     }
 
     internal readonly struct BreakoutPowerUpApplicationResult
@@ -193,6 +197,7 @@ namespace GetBricked.Gameplay
         private float explosiveBallStrength;
         private float vectorSightStrength;
         private float capsuleMagnetStrength;
+        private bool mirrorImagePaddleEnabled;
 
         public BreakoutEffectModifierAccumulator(float basePaddleWidthMultiplier, float baseWavyPaddleStrength)
         {
@@ -217,6 +222,7 @@ namespace GetBricked.Gameplay
             explosiveBallStrength = 0f;
             vectorSightStrength = 0f;
             capsuleMagnetStrength = 0f;
+            mirrorImagePaddleEnabled = false;
         }
 
         public void Apply(BreakoutActiveTimedEffect activeEffect)
@@ -297,6 +303,9 @@ namespace GetBricked.Gameplay
                 case PowerUpEffectType.CapsuleMagnet:
                     capsuleMagnetStrength = Mathf.Max(capsuleMagnetStrength, Mathf.Clamp01(powerUpDefinition.Scalar * effectStrength));
                     break;
+                case PowerUpEffectType.MirrorImagePaddle:
+                    mirrorImagePaddleEnabled = true;
+                    break;
             }
         }
 
@@ -323,7 +332,8 @@ namespace GetBricked.Gameplay
                 hotPotatoStrength,
                 explosiveBallStrength,
                 vectorSightStrength,
-                capsuleMagnetStrength);
+                capsuleMagnetStrength,
+                mirrorImagePaddleEnabled);
         }
     }
 
