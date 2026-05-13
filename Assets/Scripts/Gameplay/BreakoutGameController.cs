@@ -4217,9 +4217,9 @@ namespace GetBricked.Gameplay
                         $"Tape ID {activeRunSettings?.Seed.ToString(CultureInfo.InvariantCulture) ?? GetPendingSeedDisplay()}",
                     };
             var endSummaryLines = new List<string>(summary);
-            var useRunStatsTable = isGameOver
-                && activeRunSettings != null
-                && activeRunSettings.IsRogueMode;
+            var useRunStatsTable = activeRunSettings != null
+                && activeRunSettings.IsRogueMode
+                && (isGameOver || !HasNextLevel());
 
             if (!useRunStatsTable && (isGameOver || !HasNextLevel()))
             {

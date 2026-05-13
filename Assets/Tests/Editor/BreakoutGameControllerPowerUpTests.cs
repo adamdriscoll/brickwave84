@@ -641,6 +641,46 @@ public sealed class BreakoutGameControllerPowerUpTests
     }
 
     [Test]
+    public void CompletedRogueRunBuildsEndStateStatsTable()
+    {
+        var controller = CreateControllerHarness(out _);
+        var finalLevel = CreateLevelDefinition("Final Breakthru");
+        SetPrivateField(
+            controller,
+            "activeRunSettings",
+            new RunSettings(
+                2468,
+                RunDifficultyPreset.Standard,
+                RunScoringMode.Classic,
+                3,
+                500,
+                1,
+                1f,
+                1f,
+                1f,
+                1f,
+                DropPoolMode.Mixed,
+                false,
+                null,
+                RunGameMode.Rogue,
+                rogueIntensity: 12));
+        SetPrivateField(controller, "currentLevel", finalLevel);
+        SetPrivateField(controller, "currentLevelIndex", BreakoutRunProgression.TargetLevelCount - 1);
+        SetPrivateField(controller, "score", 12345);
+        SetPrivateField(controller, "livesRemaining", 2);
+        GetPrivateField<List<LevelDefinition>>(controller, "loadedLevels").Add(finalLevel);
+        SetPrivateEnumField(controller, "roundState", "LevelComplete");
+
+        var overlay = (BreakoutUiOverlayView)InvokePrivateMethodWithResult(controller, "BuildEndStateOverlayView");
+
+        Assert.That(overlay.Title, Is.EqualTo("Ladder Cleared"));
+        Assert.That(overlay.SummaryLines, Is.Empty);
+        Assert.That(overlay.StatsRows, Is.Not.Empty);
+        Assert.That(overlay.StatsRows, Has.Some.Matches<BreakoutUiStatsRowView>(row => row.Label == "Tape ID" && row.Value == "2468"));
+        Assert.That(overlay.StatsRows, Has.Some.Matches<BreakoutUiStatsRowView>(row => row.Label == "Levels Cleared"));
+    }
+
+    [Test]
     public void RapidBrickBreaksAwardSlamChainBonusAndCreatePopup()
     {
         var controller = CreateControllerHarness(out var paddle);
@@ -815,6 +855,14 @@ public sealed class BreakoutGameControllerPowerUpTests
         SetPrivateField(powerUp, "scalar", scalar);
         SetPrivateField(powerUp, "extraBallCount", 0);
         return powerUp;
+    }
+
+    private LevelDefinition CreateLevelDefinition(string displayName)
+    {
+        var level = ScriptableObject.CreateInstance<LevelDefinition>();
+        runtimeObjects.Add(level);
+        SetPrivateField(level, "displayName", displayName);
+        return level;
     }
 
     private static TimedPowerUpCase CreateTimedPowerUpCase(
