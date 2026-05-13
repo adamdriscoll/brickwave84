@@ -619,6 +619,39 @@ public sealed class BreakoutGameControllerPowerUpTests
     }
 
     [Test]
+    public void LosingFiniteLifeHidesServeBallUntilRevealCompletes()
+    {
+        var controller = CreateControllerHarness(out var paddle);
+        var serveBall = CreateBallHarness(controller, paddle);
+        SetPrivateField(
+            controller,
+            "activeRunSettings",
+            new RunSettings(1234, RunDifficultyPreset.Standard, RunScoringMode.Classic, 3, 500, 1, 1f, 1f, 1f, 1f, DropPoolMode.Mixed, false, null));
+        SetPrivateField(controller, "serveBall", serveBall);
+        SetPrivateField(controller, "livesRemaining", 2);
+        GetPrivateField<List<BallController>>(controller, "activeBalls").Add(serveBall);
+        SetPrivateEnumField(controller, "roundState", "Playing");
+
+        controller.HandleBallLost(serveBall);
+
+        Assert.That(GetPrivateField<object>(controller, "roundState").ToString(), Is.EqualTo("LifeLost"));
+        Assert.That(serveBall.gameObject.activeSelf, Is.False);
+        Assert.That(GetPrivateField<float>(controller, "serveBallRevealDelayTimer"), Is.GreaterThan(0f));
+
+        InvokePrivateMethod(controller, "LaunchServe");
+
+        Assert.That(GetPrivateField<object>(controller, "roundState").ToString(), Is.EqualTo("LifeLost"));
+        Assert.That(serveBall.HasLaunched, Is.False);
+
+        InvokePrivateMethod(controller, "RevealServeBallForServe");
+        InvokePrivateMethod(controller, "LaunchServe");
+
+        Assert.That(serveBall.gameObject.activeSelf, Is.True);
+        Assert.That(GetPrivateField<object>(controller, "roundState").ToString(), Is.EqualTo("Playing"));
+        Assert.That(serveBall.HasLaunched, Is.True);
+    }
+
+    [Test]
     public void LastBallAutoSaveOnHeatFortySpendsScaledPointsAndKeepsRunAlive()
     {
         var controller = CreateControllerHarness(out var paddle);

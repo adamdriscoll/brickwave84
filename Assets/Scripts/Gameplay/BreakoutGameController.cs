@@ -265,6 +265,7 @@ namespace GetBricked.Gameplay
         private bool isDeveloperRunActive;
         private bool isMenuAttractModeActive;
         private float menuAttractRestartTimer;
+        private float serveBallRevealDelayTimer;
         private int menuAttractLevelCounter;
 
         public Collider2D PaddleCollider => paddleCollider;
@@ -397,6 +398,7 @@ namespace GetBricked.Gameplay
             audioService?.Update(Time.unscaledDeltaTime);
             scoreService?.UpdateFloatingScorePopups(Time.unscaledDeltaTime);
             laserShotCooldownTimer = Mathf.Max(0f, laserShotCooldownTimer - Time.deltaTime);
+            UpdateServeBallRevealDelay();
             UpdateMenuAttractMode();
 
             var keyboard = Keyboard.current;
@@ -1019,6 +1021,7 @@ namespace GetBricked.Gameplay
         {
             isMenuAttractModeActive = false;
             menuAttractRestartTimer = 0f;
+            serveBallRevealDelayTimer = 0f;
             SetSimulationPaused(false);
             manualBallSpeedMultiplier = 1f;
             brickService?.ClearBricks();
@@ -2569,6 +2572,11 @@ namespace GetBricked.Gameplay
 
         private void LaunchServe()
         {
+            if (!IsServeBallReadyToLaunch())
+            {
+                return;
+            }
+
             roundState = RoundState.Playing;
             SetSimulationPaused(false);
             serveBall.Launch();
@@ -2618,7 +2626,21 @@ namespace GetBricked.Gameplay
             serveBall.SetMovementSpeed(GetCurrentBallSpeed());
             serveBall.ResetToPaddle();
             activeBalls.Add(serveBall);
+            BeginServeBallRevealDelayIfNeeded(nextState);
             scoreService?.ResetComboTracking(clearPopups: false);
+        }
+
+        private void BeginServeBallRevealDelayIfNeeded(RoundState nextState)
+        {
+            if (ShouldDelayServeBallReveal(nextState))
+            {
+                serveBallRevealDelayTimer = BreakoutUiRenderer.LifeLossAnimationDuration;
+                serveBall.gameObject.SetActive(false);
+                return;
+            }
+
+            serveBallRevealDelayTimer = 0f;
+            serveBall.gameObject.SetActive(true);
         }
 
         private void LoadLevelDefinitions()
@@ -4705,6 +4727,11 @@ namespace GetBricked.Gameplay
 
         private string BuildLifeLostMessage()
         {
+            if (serveBallRevealDelayTimer > 0f)
+            {
+                return BuildLifeLostWaitingMessage();
+            }
+
             if (activeRunSettings != null && activeRunSettings.IsTurnBasedMode)
             {
                 var lines = new List<string>
@@ -4737,6 +4764,20 @@ namespace GetBricked.Gameplay
             return UsesHighScoreMode() && !UsesFiniteHighScoreLives()
                 ? $"Ball lost. Losses {lifeLossCount:00}. Press Space to serve again. Up/Down tunes speed."
                 : $"Life lost. {livesRemaining} remaining. Press Space to serve again. Up/Down tunes speed.";
+        }
+
+        private string BuildLifeLostWaitingMessage()
+        {
+            if (GetLifeLossScorePenalty() > 0)
+            {
+                return UsesHighScoreMode() && !UsesFiniteHighScoreLives()
+                    ? $"Ball lost. -{GetLifeLossScorePenalty():0000} score. Losses {lifeLossCount:00}. Ball loading..."
+                    : $"Life lost. -{GetLifeLossScorePenalty():0000} score. {livesRemaining} remaining. Ball loading...";
+            }
+
+            return UsesHighScoreMode() && !UsesFiniteHighScoreLives()
+                ? $"Ball lost. Losses {lifeLossCount:00}. Ball loading..."
+                : $"Life lost. {livesRemaining} remaining. Ball loading...";
         }
 
         private string BuildAutoSaveLifeLossSummary()
@@ -5532,6 +5573,51 @@ namespace GetBricked.Gameplay
 
             serveBall.gameObject.SetActive(true);
             serveBall.SetMovementSpeed(GetCurrentBallSpeed());
+        }
+
+        private void UpdateServeBallRevealDelay()
+        {
+            if (serveBallRevealDelayTimer <= 0f)
+            {
+                return;
+            }
+
+            serveBallRevealDelayTimer = Mathf.Max(0f, serveBallRevealDelayTimer - Time.unscaledDeltaTime);
+
+            if (serveBallRevealDelayTimer > 0f)
+            {
+                return;
+            }
+
+            RevealServeBallForServe();
+        }
+
+        private void RevealServeBallForServe()
+        {
+            if (serveBall == null)
+            {
+                return;
+            }
+
+            serveBallRevealDelayTimer = 0f;
+            serveBall.gameObject.SetActive(true);
+            serveBall.SetMovementSpeed(GetCurrentBallSpeed());
+            serveBall.ResetToPaddle();
+        }
+
+        private bool ShouldDelayServeBallReveal(RoundState nextState)
+        {
+            return nextState == RoundState.LifeLost
+                && !lastLifeLossUsedAutoSave
+                && !(UsesHighScoreMode() && !UsesFiniteHighScoreLives())
+                && (activeRunSettings == null || !activeRunSettings.IsTurnBasedMode);
+        }
+
+        private bool IsServeBallReadyToLaunch()
+        {
+            return serveBall != null
+                && serveBallRevealDelayTimer <= 0f
+                && serveBall.gameObject.activeInHierarchy;
         }
 
         private void DestroyAdditionalBalls()

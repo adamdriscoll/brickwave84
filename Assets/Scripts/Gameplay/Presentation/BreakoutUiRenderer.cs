@@ -15,7 +15,7 @@ namespace GetBricked.Gameplay
         private const float SplitOverlayFooterGap = 4f;
         private const float SplitOverlayActionLineHeight = 42f;
         private const float BrickCounterPulseDuration = 0.55f;
-        private const float LifeLossAnimationDuration = 1.05f;
+        internal const float LifeLossAnimationDuration = 1.05f;
         private const float ScorePopDuration = 0.34f;
         private const int SpeedGaugeTickCount = 48;
         private const float SpeedGaugeStartAngle = -142f;
