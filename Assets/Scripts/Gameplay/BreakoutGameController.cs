@@ -32,8 +32,10 @@ namespace GetBricked.Gameplay
         private const float TurboRailSpeedBurstMaximumMultiplier = 1.85f;
         private const float TurboRailSpeedBurstStackDuration = 1.25f;
         private const float TurboRailSpeedBurstMaximumDuration = 7.5f;
-        private const int AutoSaveScoreCost = 10000;
-        private const int AutoSaveMaximumRogueHeat = 10;
+        private const int AutoSaveBaseScoreCost = 10000;
+        private const int AutoSaveBaseCostMaximumRogueHeat = 10;
+        private const int AutoSaveScoreCostIncreasePerHeat = 1000;
+        private const int AutoSaveMaximumRogueHeat = 40;
         private const float AutoSaveBurstDurationSeconds = 2.6f;
         private const string DefaultRoguePaddleLabel = BreakoutRogueRunResultStore.DefaultPaddleLabel;
         private const float MenuAttractRestartDelaySeconds = 0.2f;
@@ -212,6 +214,7 @@ namespace GetBricked.Gameplay
         private int score;
         private float autoSaveBurstTimer;
         private bool lastLifeLossUsedAutoSave;
+        private int lastAutoSaveScoreCost = AutoSaveBaseScoreCost;
         private int requiredBricksRemaining;
         private float arenaLeft;
         private float arenaRight;
@@ -4694,7 +4697,7 @@ namespace GetBricked.Gameplay
             {
                 if (lastLifeLossUsedAutoSave)
                 {
-                    return $"AUTO SAVE! -{AutoSaveScoreCost:0000} points. Extra ball loaded. Press Space to serve again. Up/Down tunes speed.";
+                    return BuildAutoSaveLifeLossSummary();
                 }
 
                 return UsesHighScoreMode() && !UsesFiniteHighScoreLives()
@@ -4704,12 +4707,17 @@ namespace GetBricked.Gameplay
 
             if (lastLifeLossUsedAutoSave)
             {
-                return $"AUTO SAVE! -{AutoSaveScoreCost:0000} points. Extra ball loaded. Press Space to serve again. Up/Down tunes speed.";
+                return BuildAutoSaveLifeLossSummary();
             }
 
             return UsesHighScoreMode() && !UsesFiniteHighScoreLives()
                 ? $"Ball lost. Losses {lifeLossCount:00}. Press Space to serve again. Up/Down tunes speed."
                 : $"Life lost. {livesRemaining} remaining. Press Space to serve again. Up/Down tunes speed.";
+        }
+
+        private string BuildAutoSaveLifeLossSummary()
+        {
+            return $"AUTO SAVE! -{lastAutoSaveScoreCost:0000} points. Extra ball loaded. Press Space to serve again. Up/Down tunes speed.";
         }
 
         private string BuildPauseSummaryLabel()
@@ -5109,11 +5117,13 @@ namespace GetBricked.Gameplay
                 return false;
             }
 
-            score -= AutoSaveScoreCost;
+            var autoSaveCost = GetAutoSaveScoreCost(activeRunSettings);
+            score -= autoSaveCost;
             livesRemaining += 1;
             lastLifeLossUsedAutoSave = true;
+            lastAutoSaveScoreCost = autoSaveCost;
             autoSaveBurstTimer = AutoSaveBurstDurationSeconds;
-            powerUpService?.ShowStatusBanner($"AUTO SAVE -{AutoSaveScoreCost:0000}", ResolveAutoSaveColor(), AutoSaveBurstDurationSeconds);
+            powerUpService?.ShowStatusBanner($"AUTO SAVE -{autoSaveCost:0000}", ResolveAutoSaveColor(), AutoSaveBurstDurationSeconds);
             return true;
         }
 
@@ -5590,7 +5600,16 @@ namespace GetBricked.Gameplay
             return settings != null
                 && settings.IsRogueMode
                 && settings.RogueIntensity <= AutoSaveMaximumRogueHeat
-                && currentScore >= AutoSaveScoreCost;
+                && currentScore >= GetAutoSaveScoreCost(settings);
+        }
+
+        internal static int GetAutoSaveScoreCost(RunSettings settings)
+        {
+            var intensity = settings != null
+                ? BreakoutRunProgression.ClampRogueIntensity(settings.RogueIntensity)
+                : BreakoutRunProgression.MinRogueIntensity;
+            var pricedHeatCount = Mathf.Max(0, intensity - AutoSaveBaseCostMaximumRogueHeat);
+            return AutoSaveBaseScoreCost + (pricedHeatCount * AutoSaveScoreCostIncreasePerHeat);
         }
 
         private void ApplyLifeLossScorePenalty()
