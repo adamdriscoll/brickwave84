@@ -865,6 +865,28 @@ public sealed class BreakoutGameControllerPowerUpTests
     }
 
     [Test]
+    public void BankBonusWallChargePaysOutOnNextBrickHit()
+    {
+        var controller = CreateControllerHarness(out _);
+        var brick = CreateBrickHarness(controller, "Bank Brick", 100, new Vector2(0f, 2f));
+        var bankBonus = CreatePowerUp("Bank Bonus", PowerUpEffectType.BankBonus, true, 12f, 50f);
+
+        InvokePrivateMethod(controller, "ApplyPowerUp", bankBonus);
+        controller.HandleBallHitWall();
+        controller.HandleBallHitWall();
+        controller.HandleBrickHit(brick);
+
+        var popups = GetFloatingScorePopups(controller);
+        var powerUpService = GetPrivateField<object>(controller, "powerUpService");
+
+        Assert.That(GetPrivateField<int>(controller, "score"), Is.EqualTo(100));
+        Assert.That(GetPropertyValue<int>(powerUpService, "BankBonusChargePoints"), Is.Zero);
+        Assert.That(popups.Count, Is.EqualTo(1));
+        Assert.That(GetFieldValue<string>(popups[0], "PrimaryText"), Is.EqualTo("+100"));
+        Assert.That(GetFieldValue<string>(popups[0], "SecondaryText"), Is.EqualTo("COMBO BONUS: BANK BONUS!"));
+    }
+
+    [Test]
     public void DifferentBallsScoringBackToBackAwardPartySplitBonus()
     {
         var controller = CreateControllerHarness(out var paddle);

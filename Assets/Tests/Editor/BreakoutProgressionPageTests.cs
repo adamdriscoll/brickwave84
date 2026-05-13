@@ -93,7 +93,7 @@ public sealed class BreakoutProgressionPageTests
             .Select(definition => definition.LadderUnlockIntensity)
             .OrderBy(heat => heat)
             .ToArray();
-        var expectedDropHeats = Enumerable.Range(1, 30).ToArray();
+        var expectedDropHeats = Enumerable.Range(1, 30).Append(34).ToArray();
 
         Assert.That(unlockHeats, Is.EqualTo(expectedDropHeats));
 
@@ -103,6 +103,21 @@ public sealed class BreakoutProgressionPageTests
 
         Assert.That(turboRail.UnlockHint, Does.Contain("Heat 31"));
         Assert.That(chromeRail.UnlockHint, Does.Contain("Heat 32"));
+    }
+
+    [Test]
+    public void ProgressionPageShowsBankBonusAsLiveHeatThirtyFourDrop()
+    {
+        var bankBonus = Resources.Load<PowerUpDefinition>("PowerUps/BankBonus");
+        Assert.That(bankBonus, Is.Not.Null);
+
+        var view = new BreakoutProgressionPageService().BuildView(new[] { bankBonus });
+        var card = view.Cards.First(item => item.Title == "Bank Bonus");
+
+        Assert.That(card.UnlockHint, Does.Contain("Heat 34"));
+        Assert.That(card.Description, Does.Contain("Wall bounces bank +50 points"));
+        Assert.That(card.Family, Does.Contain("Epic Helpful"));
+        Assert.That(card.StateLabel, Is.EqualTo("Locked"));
     }
 
     [Test]

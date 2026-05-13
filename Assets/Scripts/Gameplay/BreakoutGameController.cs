@@ -516,15 +516,20 @@ namespace GetBricked.Gameplay
             var scoreAward = scoreService != null
                 ? scoreService.BuildBrickScoreAward(brick, scoringBall, destructionCause, BuildScoreContext())
                 : default;
-            score += scoreAward.TotalPoints;
+            var bankBonusPoints = 0;
+            powerUpService?.TryConsumeBankBonus(out bankBonusPoints);
+            score += scoreAward.TotalPoints + bankBonusPoints;
 
-            if (scoreAward.BonusPoints > 0)
+            var combinedBonusPoints = scoreAward.BonusPoints + bankBonusPoints;
+            var combinedBonusLabel = CombineBonusLabels(scoreAward.BonusLabel, bankBonusPoints > 0 ? "BANK BONUS" : string.Empty);
+
+            if (combinedBonusPoints > 0)
             {
                 audioService?.PlayBonusScore();
                 scoreService?.CreateFloatingScorePopup(
                     explosionCenter,
-                    scoreAward.BonusPoints,
-                    scoreAward.BonusLabel,
+                    combinedBonusPoints,
+                    combinedBonusLabel,
                     ResolveComboPopupColor());
             }
 
@@ -778,6 +783,7 @@ namespace GetBricked.Gameplay
         {
             runStatsService?.RegisterWallHit();
             audioService?.PlayBallHitWall();
+            powerUpService?.ChargeBankBonusFromWallBounce();
         }
 
         public void HandleBallLaunched()
@@ -789,6 +795,7 @@ namespace GetBricked.Gameplay
         {
             runStatsService?.RegisterBrickHit();
             audioService?.PlayBrickHit(brick?.Definition);
+            AwardBankBonusIfAvailable(brick != null ? (Vector2)brick.transform.position : Vector2.zero);
         }
 
         public void HandlePickupCaught(PowerUpPickup pickup)
@@ -2628,6 +2635,7 @@ namespace GetBricked.Gameplay
             activeBalls.Add(serveBall);
             BeginServeBallRevealDelayIfNeeded(nextState);
             scoreService?.ResetComboTracking(clearPopups: false);
+            powerUpService?.ClearBankBonusCharge();
         }
 
         private void BeginServeBallRevealDelayIfNeeded(RoundState nextState)
@@ -5175,6 +5183,37 @@ namespace GetBricked.Gameplay
                 ResolveCapsuleMadnessColor());
         }
 
+        private void AwardBankBonusIfAvailable(Vector2 worldPosition)
+        {
+            if (powerUpService == null || !powerUpService.TryConsumeBankBonus(out var bonusPoints))
+            {
+                return;
+            }
+
+            score += bonusPoints;
+            audioService?.PlayBonusScore();
+            scoreService?.CreateFloatingScorePopup(
+                worldPosition,
+                bonusPoints,
+                "BANK BONUS",
+                ResolveComboPopupColor());
+        }
+
+        private static string CombineBonusLabels(string firstLabel, string secondLabel)
+        {
+            if (string.IsNullOrWhiteSpace(firstLabel))
+            {
+                return secondLabel ?? string.Empty;
+            }
+
+            if (string.IsNullOrWhiteSpace(secondLabel))
+            {
+                return firstLabel;
+            }
+
+            return $"{firstLabel} + {secondLabel}";
+        }
+
         private bool TryApplyAutoSave()
         {
             if (!ShouldAutoSaveLastBall(activeRunSettings, score))
@@ -6064,6 +6103,7 @@ namespace GetBricked.Gameplay
                 PowerUpEffectType.ExplosiveBall => $"Explodes bricks for {definition.DurationSeconds:0.#}s",
                 PowerUpEffectType.VectorSight => $"Aim preview for {definition.DurationSeconds:0.#}s",
                 PowerUpEffectType.CapsuleMagnet => $"Helpful capsules drift for {definition.DurationSeconds:0.#}s",
+                PowerUpEffectType.BankBonus => $"+{Mathf.Max(1, Mathf.RoundToInt(definition.Scalar))}/wall bank for {definition.DurationSeconds:0.#}s",
                 PowerUpEffectType.RandomHarmfulDrop => "Disguised random hazard",
                 _ => $"{definition.HudLabel} for {definition.DurationSeconds:0.#}s",
             };

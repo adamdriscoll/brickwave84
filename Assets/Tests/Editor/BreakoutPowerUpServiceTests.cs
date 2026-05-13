@@ -243,6 +243,39 @@ public sealed class BreakoutPowerUpServiceTests
     }
 
     [Test]
+    public void BankBonusChargesFromWallBouncesUntilConsumed()
+    {
+        var service = CreateService();
+        var bankBonus = CreatePowerUp("Bank Bonus", PowerUpEffectType.BankBonus, true, 12f, 50f, BreakoutContentRarity.Epic);
+
+        service.ApplyPowerUp(bankBonus, null);
+
+        Assert.That(service.ChargeBankBonusFromWallBounce(), Is.EqualTo(50));
+        Assert.That(service.ChargeBankBonusFromWallBounce(), Is.EqualTo(50));
+        Assert.That(service.BankBonusChargePoints, Is.EqualTo(100));
+        Assert.That(service.TryConsumeBankBonus(out var bonusPoints), Is.True);
+        Assert.That(bonusPoints, Is.EqualTo(100));
+        Assert.That(service.BankBonusChargePoints, Is.Zero);
+        Assert.That(service.TryConsumeBankBonus(out _), Is.False);
+    }
+
+    [Test]
+    public void BankBonusChargeCapsToPreventWallFarming()
+    {
+        var service = CreateService();
+        var bankBonus = CreatePowerUp("Bank Bonus", PowerUpEffectType.BankBonus, true, 12f, 50f, BreakoutContentRarity.Epic);
+
+        service.ApplyPowerUp(bankBonus, null);
+
+        for (var index = 0; index < 12; index++)
+        {
+            service.ChargeBankBonusFromWallBounce();
+        }
+
+        Assert.That(service.BankBonusChargePoints, Is.EqualTo(BreakoutPowerUpService.BankBonusMaximumChargePoints));
+    }
+
+    [Test]
     public void ActiveDropMultiplierDoublesActiveEffectsWithoutExtendingDurations()
     {
         var service = CreateService();

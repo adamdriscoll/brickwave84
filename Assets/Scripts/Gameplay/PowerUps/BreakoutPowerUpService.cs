@@ -356,6 +356,7 @@ namespace GetBricked.Gameplay
         public const float CapsuleMadnessDurationSeconds = 2.6f;
         public const int CapsuleMadnessPickupBonusPoints = 250;
         public const float CapsuleMagnetRange = 4.25f;
+        public const int BankBonusMaximumChargePoints = 300;
 
         private readonly Vector2 pickupSize;
         private readonly float pickupFallSpeed;
@@ -384,6 +385,8 @@ namespace GetBricked.Gameplay
         public float CapsuleMadnessTimer { get; private set; }
 
         public bool IsCapsuleMadnessActive => CapsuleMadnessTimer > 0f;
+
+        public int BankBonusChargePoints { get; private set; }
 
         public void UpdateTimedEffects(bool isPlaying, float deltaTime, System.Action modifiersChanged)
         {
@@ -705,6 +708,39 @@ namespace GetBricked.Gameplay
         public void ClearTimedEffects()
         {
             ActiveTimedEffects.Clear();
+            ClearBankBonusCharge();
+        }
+
+        public int ChargeBankBonusFromWallBounce()
+        {
+            var chargePoints = ResolveBankBonusChargePerWallBounce();
+
+            if (chargePoints <= 0)
+            {
+                return 0;
+            }
+
+            var previousCharge = BankBonusChargePoints;
+            BankBonusChargePoints = Mathf.Min(BankBonusMaximumChargePoints, BankBonusChargePoints + chargePoints);
+            return BankBonusChargePoints - previousCharge;
+        }
+
+        public bool TryConsumeBankBonus(out int bonusPoints)
+        {
+            bonusPoints = BankBonusChargePoints;
+
+            if (bonusPoints <= 0)
+            {
+                return false;
+            }
+
+            BankBonusChargePoints = 0;
+            return true;
+        }
+
+        public void ClearBankBonusCharge()
+        {
+            BankBonusChargePoints = 0;
         }
 
         public int RemoveBeneficialPaddleWidthEffects()
@@ -1177,6 +1213,26 @@ namespace GetBricked.Gameplay
             }
 
             return multipliedCount;
+        }
+
+        private int ResolveBankBonusChargePerWallBounce()
+        {
+            var totalCharge = 0f;
+
+            for (var index = 0; index < ActiveTimedEffects.Count; index++)
+            {
+                var activeEffect = ActiveTimedEffects[index];
+                var definition = activeEffect?.Definition;
+
+                if (definition == null || definition.EffectType != PowerUpEffectType.BankBonus)
+                {
+                    continue;
+                }
+
+                totalCharge += Mathf.Max(1f, definition.Scalar) * activeEffect.EffectStrength;
+            }
+
+            return Mathf.Max(0, Mathf.RoundToInt(totalCharge));
         }
 
         private void ShowPickupBanner(PowerUpDefinition powerUpDefinition, BreakoutThemeService themeService, int stackCount)

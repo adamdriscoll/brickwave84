@@ -97,6 +97,7 @@ namespace GetBricked.Gameplay.Data
         VectorSight = 23,
         CapsuleMagnet = 24,
         MirrorImagePaddle = 25,
+        BankBonus = 26,
     }
 
     [CreateAssetMenu(menuName = "Get Bricked/Power-Up Definition", fileName = "PowerUpDefinition")]
@@ -182,7 +183,8 @@ namespace GetBricked.Gameplay.Data
                 || effectType == PowerUpEffectType.ScoreMultiplier
                 || effectType == PowerUpEffectType.HotPotatoBall
                 || effectType == PowerUpEffectType.ExplosiveBall
-                || effectType == PowerUpEffectType.BallSizeMultiplier)
+                || effectType == PowerUpEffectType.BallSizeMultiplier
+                || effectType == PowerUpEffectType.BankBonus)
             {
                 return ThemeVisualSlot.PickupBurst;
             }

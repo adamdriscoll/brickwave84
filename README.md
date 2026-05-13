@@ -206,7 +206,7 @@ Permanent run upgrades are always available in the between-stage draft pool. Dro
 | `Turbo Rail` | A hot wall rail accelerates rebounds. | Heat 31 | Rare | Glitch | Level glitch | Implemented |
 | `Chrome Rail` | Paddle widens slightly and sends cleaner bank angles. | Heat 32 | N/A | Helpful | Control drop | Not implemented (UI placeholder) |
 | `Clean Catch` | Next paddle hit catches, then releases with stronger aim. | Heat 33 | N/A | Helpful | Control drop | Not implemented (UI placeholder) |
-| `Bank Bonus` | Wall bounces charge bonus points until the next brick hit. | Heat 34 | N/A | Helpful | Precision drop | Not implemented (UI placeholder) |
+| `Bank Bonus` | Wall bounces bank +50 points until the next brick hit for 12s. | Heat 34 | Epic | Helpful | Precision drop | Implemented |
 | `Solar Shot` | Ball burns through the next weak brick it touches. | Heat 35 | N/A | Helpful | Damage drop | Not implemented (UI placeholder) |
 | `Prism Pop` | First brick hit splits a short-lived copy ball. | Heat 36 | N/A | Helpful | Split drop | Not implemented (UI placeholder) |
 | `Mirror Grid` | Brick layout mirrors horizontally halfway through the stage. | Heat 37 | N/A | Glitch | Layout glitch | Not implemented (UI placeholder) |
