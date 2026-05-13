@@ -1012,6 +1012,11 @@ namespace GetBricked.Gameplay
             GUI.matrix = previousMatrix;
         }
 
+        public void DrawAutoSaveBurst(BreakoutUiCapsuleMadnessView view)
+        {
+            DrawCapsuleMadness(view);
+        }
+
         public void DrawFloatingScorePopups(BreakoutUiFloatingScoreView[] views)
         {
             EnsureStyles();

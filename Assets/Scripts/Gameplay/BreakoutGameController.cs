@@ -32,6 +32,9 @@ namespace GetBricked.Gameplay
         private const float TurboRailSpeedBurstMaximumMultiplier = 1.85f;
         private const float TurboRailSpeedBurstStackDuration = 1.25f;
         private const float TurboRailSpeedBurstMaximumDuration = 7.5f;
+        private const int AutoSaveScoreCost = 10000;
+        private const int AutoSaveMaximumRogueHeat = 10;
+        private const float AutoSaveBurstDurationSeconds = 2.6f;
         private const string DefaultRoguePaddleLabel = BreakoutRogueRunResultStore.DefaultPaddleLabel;
         private const float MenuAttractRestartDelaySeconds = 0.2f;
         private const float MenuAttractPickupLeadDistance = 1.35f;
@@ -207,6 +210,8 @@ namespace GetBricked.Gameplay
         private int livesRemaining;
         private int lifeLossCount;
         private int score;
+        private float autoSaveBurstTimer;
+        private bool lastLifeLossUsedAutoSave;
         private int requiredBricksRemaining;
         private float arenaLeft;
         private float arenaRight;
@@ -383,6 +388,7 @@ namespace GetBricked.Gameplay
             RefreshCapsuleMagnetTargets();
             UpdateVectorSightVisual();
             UpdatePickupBanner();
+            UpdateAutoSaveBurst();
             TrackRunStatsFrame();
             audioService?.Update(Time.unscaledDeltaTime);
             scoreService?.UpdateFloatingScorePopups(Time.unscaledDeltaTime);
@@ -622,12 +628,24 @@ namespace GetBricked.Gameplay
 
             audioService?.PlayBallLost(hasOtherActiveBalls: false);
 
+            lastLifeLossUsedAutoSave = false;
             livesRemaining = Mathf.Max(0, livesRemaining - 1);
             runStatsService?.RegisterLifeLost();
-            ApplyLifeLossScorePenalty();
 
             if (livesRemaining <= 0)
             {
+                if (TryApplyAutoSave())
+                {
+                    if (!isServeBall)
+                    {
+                        DestroyRuntimeObject(lostBall.gameObject);
+                    }
+
+                    PrepareServe(RoundState.LifeLost);
+                    return;
+                }
+
+                ApplyLifeLossScorePenalty();
                 roundState = RoundState.GameOver;
                 selectedOverlayActionIndex = 0;
                 SetSimulationPaused(false);
@@ -643,6 +661,8 @@ namespace GetBricked.Gameplay
 
                 return;
             }
+
+            ApplyLifeLossScorePenalty();
 
             if (!isServeBall)
             {
@@ -824,6 +844,8 @@ namespace GetBricked.Gameplay
                 : activeRunSettings.StartingLives;
             lifeLossCount = 0;
             score = 0;
+            autoSaveBurstTimer = 0f;
+            lastLifeLossUsedAutoSave = false;
             activeRunResultRecorded = false;
             activeSoloMarathonResultRecorded = false;
             activeSoloMarathonNewHighScore = false;
@@ -3689,6 +3711,7 @@ namespace GetBricked.Gameplay
             uiRenderer.DrawModifierIndicator(BuildModifierViews(), isDiagnosticsOverlayVisible);
             uiRenderer.DrawRunUpgradePanel(BuildRunUpgradePanelView());
             uiRenderer.DrawCapsuleMadness(BuildCapsuleMadnessView(gameplayChromeView.PlayfieldRect));
+            uiRenderer.DrawAutoSaveBurst(BuildAutoSaveBurstView(gameplayChromeView.PlayfieldRect));
             uiRenderer.DrawFloatingScorePopups(scoreService?.BuildFloatingScoreViews(activeCamera, Screen.height) ?? Array.Empty<BreakoutUiFloatingScoreView>());
 
             if (isDiagnosticsOverlayVisible)
@@ -4460,6 +4483,18 @@ namespace GetBricked.Gameplay
             };
         }
 
+        private BreakoutUiCapsuleMadnessView BuildAutoSaveBurstView(Rect playfieldRect)
+        {
+            return new BreakoutUiCapsuleMadnessView
+            {
+                Text = "Auto Save!!",
+                PlayfieldRect = playfieldRect,
+                Timer = autoSaveBurstTimer,
+                Duration = AutoSaveBurstDurationSeconds,
+                Color = ResolveAutoSaveColor(),
+            };
+        }
+
         private string[] BuildOverlayActionLabels(OverlayAction[] actions)
         {
             var labels = new string[actions.Length];
@@ -4657,9 +4692,19 @@ namespace GetBricked.Gameplay
 
             if (GetLifeLossScorePenalty() > 0)
             {
+                if (lastLifeLossUsedAutoSave)
+                {
+                    return $"AUTO SAVE! -{AutoSaveScoreCost:0000} points. Extra ball loaded. Press Space to serve again. Up/Down tunes speed.";
+                }
+
                 return UsesHighScoreMode() && !UsesFiniteHighScoreLives()
                     ? $"Ball lost. -{GetLifeLossScorePenalty():0000} score. Losses {lifeLossCount:00}. Press Space to serve again. Up/Down tunes speed."
                     : $"Life lost. -{GetLifeLossScorePenalty():0000} score. {livesRemaining} remaining. Press Space to serve again. Up/Down tunes speed.";
+            }
+
+            if (lastLifeLossUsedAutoSave)
+            {
+                return $"AUTO SAVE! -{AutoSaveScoreCost:0000} points. Extra ball loaded. Press Space to serve again. Up/Down tunes speed.";
             }
 
             return UsesHighScoreMode() && !UsesFiniteHighScoreLives()
@@ -4979,6 +5024,16 @@ namespace GetBricked.Gameplay
             powerUpService?.UpdatePickupBanner(Time.deltaTime);
         }
 
+        private void UpdateAutoSaveBurst()
+        {
+            if (autoSaveBurstTimer <= 0f)
+            {
+                return;
+            }
+
+            autoSaveBurstTimer = Mathf.Max(0f, autoSaveBurstTimer - Time.unscaledDeltaTime);
+        }
+
         private void TrySpawnPickup(Brick brick)
         {
             var spawnedPickup = powerUpService?.TrySpawnPickup(
@@ -5045,6 +5100,21 @@ namespace GetBricked.Gameplay
                 bonusPoints,
                 "CAPSULE MADNESS",
                 ResolveCapsuleMadnessColor());
+        }
+
+        private bool TryApplyAutoSave()
+        {
+            if (!ShouldAutoSaveLastBall(activeRunSettings, score))
+            {
+                return false;
+            }
+
+            score -= AutoSaveScoreCost;
+            livesRemaining += 1;
+            lastLifeLossUsedAutoSave = true;
+            autoSaveBurstTimer = AutoSaveBurstDurationSeconds;
+            powerUpService?.ShowStatusBanner($"AUTO SAVE -{AutoSaveScoreCost:0000}", ResolveAutoSaveColor(), AutoSaveBurstDurationSeconds);
+            return true;
         }
 
         private void ApplyActiveEffects()
@@ -5515,6 +5585,14 @@ namespace GetBricked.Gameplay
                 && settings.IsRogueMode;
         }
 
+        internal static bool ShouldAutoSaveLastBall(RunSettings settings, int currentScore)
+        {
+            return settings != null
+                && settings.IsRogueMode
+                && settings.RogueIntensity <= AutoSaveMaximumRogueHeat
+                && currentScore >= AutoSaveScoreCost;
+        }
+
         private void ApplyLifeLossScorePenalty()
         {
             var penalty = GetLifeLossScorePenalty();
@@ -5587,6 +5665,17 @@ namespace GetBricked.Gameplay
             return themeService != null
                 ? themeService.ResolveThemeStyle(ThemeVisualSlot.PickupBurst, ballColor, ballColor, squareSprite).PrimaryColor
                 : new Color(1f, 0.87f, 0.36f, 1f);
+        }
+
+        private Color ResolveAutoSaveColor()
+        {
+            return themeService != null
+                ? themeService.ResolveThemeStyle(
+                    ThemeVisualSlot.PickupBeneficial,
+                    new Color(0.45f, 0.95f, 0.72f, 1f),
+                    new Color(0.45f, 0.95f, 0.72f, 1f),
+                    squareSprite).PrimaryColor
+                : new Color(0.45f, 0.95f, 0.72f, 1f);
         }
 
         private float GetMaximumBallSpeed()

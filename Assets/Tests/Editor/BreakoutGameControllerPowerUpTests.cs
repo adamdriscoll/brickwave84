@@ -548,6 +548,99 @@ public sealed class BreakoutGameControllerPowerUpTests
     }
 
     [Test]
+    public void LastBallAutoSaveOnEarlyRogueHeatSpendsPointsAndKeepsRunAlive()
+    {
+        var controller = CreateControllerHarness(out var paddle);
+        var serveBall = CreateBallHarness(controller, paddle);
+        SetPrivateField(
+            controller,
+            "activeRunSettings",
+            new RunSettings(
+                1234,
+                RunDifficultyPreset.Standard,
+                RunScoringMode.Classic,
+                3,
+                500,
+                1,
+                1f,
+                1f,
+                1f,
+                1f,
+                DropPoolMode.Mixed,
+                false,
+                null,
+                RunGameMode.Rogue,
+                rogueIntensity: 10));
+        SetPrivateField(controller, "serveBall", serveBall);
+        SetPrivateField(controller, "livesRemaining", 1);
+        SetPrivateField(controller, "score", 10000);
+        GetPrivateField<List<BallController>>(controller, "activeBalls").Add(serveBall);
+        SetPrivateEnumField(controller, "roundState", "Playing");
+
+        controller.HandleBallLost(serveBall);
+
+        Assert.That(GetPrivateField<int>(controller, "livesRemaining"), Is.EqualTo(1));
+        Assert.That(GetPrivateField<int>(controller, "score"), Is.EqualTo(0));
+        Assert.That(GetPrivateField<bool>(controller, "lastLifeLossUsedAutoSave"), Is.True);
+        Assert.That(GetPrivateField<float>(controller, "autoSaveBurstTimer"), Is.GreaterThan(0f));
+        Assert.That(GetPrivateField<object>(controller, "roundState").ToString(), Is.EqualTo("LifeLost"));
+        Assert.That(GetPrivateField<List<BallController>>(controller, "activeBalls").Count, Is.EqualTo(1));
+    }
+
+    [Test]
+    public void LastBallAutoSaveRequiresEnoughPoints()
+    {
+        var controller = CreateControllerHarness(out var paddle);
+        var serveBall = CreateBallHarness(controller, paddle);
+        SetPrivateField(
+            controller,
+            "activeRunSettings",
+            new RunSettings(
+                1234,
+                RunDifficultyPreset.Standard,
+                RunScoringMode.Classic,
+                3,
+                500,
+                1,
+                1f,
+                1f,
+                1f,
+                1f,
+                DropPoolMode.Mixed,
+                false,
+                null,
+                RunGameMode.Rogue,
+                rogueIntensity: 10));
+        SetPrivateField(controller, "isDeveloperRunActive", true);
+        SetPrivateField(controller, "serveBall", serveBall);
+        SetPrivateField(controller, "livesRemaining", 1);
+        SetPrivateField(controller, "score", 9999);
+        GetPrivateField<List<BallController>>(controller, "activeBalls").Add(serveBall);
+        SetPrivateEnumField(controller, "roundState", "Playing");
+
+        controller.HandleBallLost(serveBall);
+
+        Assert.That(GetPrivateField<int>(controller, "livesRemaining"), Is.EqualTo(0));
+        Assert.That(GetPrivateField<int>(controller, "score"), Is.EqualTo(9999));
+        Assert.That(GetPrivateField<bool>(controller, "lastLifeLossUsedAutoSave"), Is.False);
+        Assert.That(GetPrivateField<object>(controller, "roundState").ToString(), Is.EqualTo("GameOver"));
+        Assert.That(GetPrivateField<List<BallController>>(controller, "activeBalls").Count, Is.EqualTo(0));
+    }
+
+    [Test]
+    public void AutoSaveEligibilityStopsAfterHeatTen()
+    {
+        var earlyHeat = new RunSettings(1234, RunDifficultyPreset.Standard, RunScoringMode.Classic, 3, 500, 1, 1f, 1f, 1f, 1f, DropPoolMode.Mixed, false, null, RunGameMode.Rogue, rogueIntensity: 10);
+        var lateHeat = new RunSettings(1234, RunDifficultyPreset.Standard, RunScoringMode.Classic, 3, 500, 1, 1f, 1f, 1f, 1f, DropPoolMode.Mixed, false, null, RunGameMode.Rogue, rogueIntensity: 11);
+        var customGame = new RunSettings(1234, RunDifficultyPreset.Standard, RunScoringMode.Classic, 3, 500, 1, 1f, 1f, 1f, 1f, DropPoolMode.Mixed, false, null);
+
+        Assert.That(BreakoutGameController.ShouldAutoSaveLastBall(earlyHeat, 10000), Is.True);
+        Assert.That(BreakoutGameController.ShouldAutoSaveLastBall(earlyHeat, 9999), Is.False);
+        Assert.That(BreakoutGameController.ShouldAutoSaveLastBall(lateHeat, 10000), Is.False);
+        Assert.That(BreakoutGameController.ShouldAutoSaveLastBall(customGame, 10000), Is.False);
+    }
+
+    [Test]
     public void RapidBrickBreaksAwardSlamChainBonusAndCreatePopup()
     {
         var controller = CreateControllerHarness(out var paddle);
