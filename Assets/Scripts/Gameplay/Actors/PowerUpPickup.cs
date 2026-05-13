@@ -19,6 +19,8 @@ namespace GetBricked.Gameplay
         private float missThresholdY;
         private float rotationDegreesPerSecond;
         private float currentRotationDegrees;
+        private Vector2 capsuleMagnetTarget;
+        private float capsuleMagnetStrength;
         private Vector3 targetVisualScale = Vector3.one;
         private float visibilityMultiplier = 1f;
         private bool isResolved;
@@ -28,6 +30,12 @@ namespace GetBricked.Gameplay
         public PowerUpDefinition VisualDefinition => visualDefinition != null ? visualDefinition : definition;
 
         public bool UsesHelpfulVisualDisguise { get; private set; }
+
+        public void SetCapsuleMagnetTarget(Vector2 targetPosition, float strength)
+        {
+            capsuleMagnetTarget = targetPosition;
+            capsuleMagnetStrength = Mathf.Clamp01(strength);
+        }
 
         public void Configure(
             BreakoutGameController controller,
@@ -115,7 +123,7 @@ namespace GetBricked.Gameplay
                 return;
             }
 
-            var nextPosition = (Vector2)transform.position + (Vector2.down * (fallSpeed * Time.fixedDeltaTime));
+            var nextPosition = (Vector2)transform.position + ResolveFixedMovementStep();
 
             if (pickupBody != null)
             {
@@ -185,6 +193,28 @@ namespace GetBricked.Gameplay
 
             var paddleCollider = gameController.PaddleCollider;
             return paddleCollider != null && pickupCollider.bounds.Intersects(paddleCollider.bounds);
+        }
+
+        private Vector2 ResolveFixedMovementStep()
+        {
+            var movementStep = Vector2.down * (fallSpeed * Time.fixedDeltaTime);
+
+            if (capsuleMagnetStrength <= 0.001f)
+            {
+                return movementStep;
+            }
+
+            var pullX = capsuleMagnetTarget.x - transform.position.x;
+
+            if (Mathf.Abs(pullX) <= 0.01f)
+            {
+                return movementStep;
+            }
+
+            var lateralSpeed = fallSpeed * Mathf.Lerp(0.45f, 1.35f, capsuleMagnetStrength);
+            var maxStep = lateralSpeed * Time.fixedDeltaTime;
+            movementStep.x = Mathf.Clamp(pullX * capsuleMagnetStrength * 1.45f * Time.fixedDeltaTime, -maxStep, maxStep);
+            return movementStep;
         }
 
         private void NormalizeVisualScale()

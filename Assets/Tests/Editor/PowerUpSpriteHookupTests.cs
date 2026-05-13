@@ -14,6 +14,7 @@ public sealed class PowerUpSpriteHookupTests
     [TestCase("PowerUps/BogusMulti", "Sprites/bogus-multi")]
     [TestCase("PowerUps/LaserGrid", "Sprites/laser-grid")]
     [TestCase("PowerUps/BrickMagnet", "Sprites/brick-magnet")]
+    [TestCase("PowerUps/CapsuleMagnet", "Sprites/capsule-magnet")]
     [TestCase("PowerUps/GhostBall", "Sprites/ghost-ball")]
     [TestCase("PowerUps/ScoreSurge", "Sprites/score-surge")]
     [TestCase("PowerUps/PaddleClone", "Sprites/paddle-clone")]

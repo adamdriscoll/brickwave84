@@ -377,6 +377,7 @@ namespace GetBricked.Gameplay
         {
             UpdateTimedEffects();
             RefreshBrickMagnetTargets();
+            RefreshCapsuleMagnetTargets();
             UpdateVectorSightVisual();
             UpdatePickupBanner();
             audioService?.Update(Time.unscaledDeltaTime);
@@ -4817,6 +4818,7 @@ namespace GetBricked.Gameplay
                     0f,
                     0f,
                     0f,
+                    0f,
                     0f);
             paddle.SetMoveSpeed(currentLevelPaddleSpeed * (activeRunSettings?.PaddleSpeedMultiplier ?? 1f));
             var paddleHitMaximumWidth = paddle.SetWidthMultiplier(activeEffectModifiers.PaddleWidthMultiplier);
@@ -5509,6 +5511,7 @@ namespace GetBricked.Gameplay
                 PowerUpEffectType.HotPotatoBall => $"Ball x{definition.Scalar:0.00}, score x{definition.Scalar:0.00}",
                 PowerUpEffectType.ExplosiveBall => $"Explodes bricks for {definition.DurationSeconds:0.#}s",
                 PowerUpEffectType.VectorSight => $"Aim preview for {definition.DurationSeconds:0.#}s",
+                PowerUpEffectType.CapsuleMagnet => $"Helpful capsules drift for {definition.DurationSeconds:0.#}s",
                 PowerUpEffectType.RandomHarmfulDrop => "Disguised random hazard",
                 _ => $"{definition.HudLabel} for {definition.DurationSeconds:0.#}s",
             };
@@ -5988,6 +5991,11 @@ namespace GetBricked.Gameplay
 
             targetPosition = nearestBrick.transform.position;
             return true;
+        }
+
+        private void RefreshCapsuleMagnetTargets()
+        {
+            powerUpService?.RefreshCapsuleMagnetTargets(activeEffectModifiers.CapsuleMagnetStrength, paddleCollider);
         }
 
         private void UpdateShieldWallVisual()

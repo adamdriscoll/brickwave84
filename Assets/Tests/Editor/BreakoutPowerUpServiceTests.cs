@@ -77,6 +77,7 @@ public sealed class BreakoutPowerUpServiceTests
         var boomBall = CreatePowerUp("Boom Ball", PowerUpEffectType.ExplosiveBall, true, 10f, 1f);
         var megaBall = CreatePowerUp("Mega Ball", PowerUpEffectType.BallSizeMultiplier, true, 10f, 1.8f);
         var vectorSight = CreatePowerUp("Vector Sight", PowerUpEffectType.VectorSight, true, 14f, 1f);
+        var capsuleMagnet = CreatePowerUp("Capsule Magnet", PowerUpEffectType.CapsuleMagnet, true, 12f, 1f);
 
         service.ApplyPowerUp(magnet, null);
         service.ApplyPowerUp(scoreSurge, null);
@@ -86,6 +87,7 @@ public sealed class BreakoutPowerUpServiceTests
         service.ApplyPowerUp(boomBall, null);
         service.ApplyPowerUp(megaBall, null);
         service.ApplyPowerUp(vectorSight, null);
+        service.ApplyPowerUp(capsuleMagnet, null);
 
         var modifiers = service.CalculateEffectModifiers(1f, 0f);
 
@@ -98,6 +100,7 @@ public sealed class BreakoutPowerUpServiceTests
         Assert.That(modifiers.HotPotatoStrength, Is.GreaterThan(0f));
         Assert.That(modifiers.ExplosiveBallStrength, Is.EqualTo(1f).Within(0.0001f));
         Assert.That(modifiers.VectorSightStrength, Is.EqualTo(1f).Within(0.0001f));
+        Assert.That(modifiers.CapsuleMagnetStrength, Is.EqualTo(1f).Within(0.0001f));
     }
 
     [Test]
@@ -340,6 +343,46 @@ public sealed class BreakoutPowerUpServiceTests
         service.EvaluateCapsuleMadnessActivation();
 
         Assert.That(service.IsCapsuleMadnessActive, Is.True);
+    }
+
+    [Test]
+    public void CapsuleMagnetTargetsOnlyNearbyHelpfulPickups()
+    {
+        var service = CreateService();
+        var helpfulDefinition = CreatePowerUp("Wide Paddle", PowerUpEffectType.PaddleWidthMultiplier, true, 10f, 1.2f);
+        var harmfulDefinition = CreatePowerUp("Narrow Paddle", PowerUpEffectType.PaddleWidthMultiplier, false, 10f, 0.7f);
+        var helpfulPickup = CreateConfiguredPickup(helpfulDefinition, new Vector2(0.4f, 0.6f));
+        var harmfulPickup = CreateConfiguredPickup(harmfulDefinition, new Vector2(0.4f, 0.6f));
+        var farHelpfulPickup = CreateConfiguredPickup(helpfulDefinition, new Vector2(8f, 0.6f));
+        var paddleObject = new GameObject("Paddle");
+        runtimeObjects.Add(paddleObject);
+        paddleObject.transform.position = Vector2.zero;
+        var paddleCollider = paddleObject.AddComponent<BoxCollider2D>();
+
+        service.ActivePickups.Add(helpfulPickup);
+        service.ActivePickups.Add(harmfulPickup);
+        service.ActivePickups.Add(farHelpfulPickup);
+
+        service.RefreshCapsuleMagnetTargets(1f, paddleCollider);
+
+        Assert.That(GetPrivateField<float>(helpfulPickup, "capsuleMagnetStrength"), Is.GreaterThan(0f));
+        Assert.That(GetPrivateField<float>(harmfulPickup, "capsuleMagnetStrength"), Is.Zero);
+        Assert.That(GetPrivateField<float>(farHelpfulPickup, "capsuleMagnetStrength"), Is.Zero);
+    }
+
+    [Test]
+    public void CapsuleMagnetDriftsPickupSidewaysWhileFalling()
+    {
+        var pickup = CreateConfiguredPickup(
+            CreatePowerUp("Wide Paddle", PowerUpEffectType.PaddleWidthMultiplier, true, 10f, 1.2f),
+            new Vector2(-1f, 2f));
+
+        pickup.SetCapsuleMagnetTarget(new Vector2(1f, 0f), 1f);
+
+        var movementStep = (Vector2)InvokePrivateMethod(pickup, "ResolveFixedMovementStep");
+
+        Assert.That(movementStep.x, Is.GreaterThan(0f));
+        Assert.That(movementStep.y, Is.LessThan(0f));
     }
 
     [Test]
@@ -635,6 +678,21 @@ public sealed class BreakoutPowerUpServiceTests
         return pickupObject.AddComponent<PowerUpPickup>();
     }
 
+    private PowerUpPickup CreateConfiguredPickup(PowerUpDefinition definition, Vector2 position)
+    {
+        var pickup = CreatePickup();
+        pickup.transform.position = position;
+        pickup.Configure(
+            null,
+            definition,
+            speed: 3.2f,
+            missY: -10f,
+            startingRotationDegrees: 45f,
+            spinDegreesPerSecond: 0f,
+            new ThemeVisualStyle(Color.white, Color.white, null));
+        return pickup;
+    }
+
     private PowerUpDefinition CreatePowerUp(
         string displayName,
         PowerUpEffectType effectType,
@@ -687,5 +745,19 @@ public sealed class BreakoutPowerUpServiceTests
         var field = instance.GetType().GetField(fieldName, InstanceFlags);
         Assert.That(field, Is.Not.Null, $"Missing field '{fieldName}' on {instance.GetType().Name}.");
         field.SetValue(instance, value);
+    }
+
+    private static T GetPrivateField<T>(object instance, string fieldName)
+    {
+        var field = instance.GetType().GetField(fieldName, InstanceFlags);
+        Assert.That(field, Is.Not.Null, $"Missing field '{fieldName}' on {instance.GetType().Name}.");
+        return (T)field.GetValue(instance);
+    }
+
+    private static object InvokePrivateMethod(object instance, string methodName)
+    {
+        var method = instance.GetType().GetMethod(methodName, InstanceFlags);
+        Assert.That(method, Is.Not.Null, $"Missing method '{methodName}' on {instance.GetType().Name}.");
+        return method.Invoke(instance, Array.Empty<object>());
     }
 }

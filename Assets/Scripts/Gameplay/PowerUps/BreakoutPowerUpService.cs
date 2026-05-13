@@ -88,7 +88,8 @@ namespace GetBricked.Gameplay
             float brickJammerStrength,
             float hotPotatoStrength,
             float explosiveBallStrength,
-            float vectorSightStrength)
+            float vectorSightStrength,
+            float capsuleMagnetStrength)
         {
             PaddleWidthMultiplier = paddleWidthMultiplier;
             WavyPaddleStrength = wavyPaddleStrength;
@@ -110,6 +111,7 @@ namespace GetBricked.Gameplay
             HotPotatoStrength = hotPotatoStrength;
             ExplosiveBallStrength = explosiveBallStrength;
             VectorSightStrength = vectorSightStrength;
+            CapsuleMagnetStrength = capsuleMagnetStrength;
         }
 
         public float PaddleWidthMultiplier { get; }
@@ -151,6 +153,8 @@ namespace GetBricked.Gameplay
         public float ExplosiveBallStrength { get; }
 
         public float VectorSightStrength { get; }
+
+        public float CapsuleMagnetStrength { get; }
     }
 
     internal readonly struct BreakoutPowerUpApplicationResult
@@ -188,6 +192,7 @@ namespace GetBricked.Gameplay
         private float hotPotatoStrength;
         private float explosiveBallStrength;
         private float vectorSightStrength;
+        private float capsuleMagnetStrength;
 
         public BreakoutEffectModifierAccumulator(float basePaddleWidthMultiplier, float baseWavyPaddleStrength)
         {
@@ -211,6 +216,7 @@ namespace GetBricked.Gameplay
             hotPotatoStrength = 0f;
             explosiveBallStrength = 0f;
             vectorSightStrength = 0f;
+            capsuleMagnetStrength = 0f;
         }
 
         public void Apply(BreakoutActiveTimedEffect activeEffect)
@@ -288,6 +294,9 @@ namespace GetBricked.Gameplay
                 case PowerUpEffectType.VectorSight:
                     vectorSightStrength = Mathf.Max(vectorSightStrength, Mathf.Clamp01(powerUpDefinition.Scalar * effectStrength));
                     break;
+                case PowerUpEffectType.CapsuleMagnet:
+                    capsuleMagnetStrength = Mathf.Max(capsuleMagnetStrength, Mathf.Clamp01(powerUpDefinition.Scalar * effectStrength));
+                    break;
             }
         }
 
@@ -313,7 +322,8 @@ namespace GetBricked.Gameplay
                 brickJammerStrength,
                 hotPotatoStrength,
                 explosiveBallStrength,
-                vectorSightStrength);
+                vectorSightStrength,
+                capsuleMagnetStrength);
         }
     }
 
@@ -335,6 +345,7 @@ namespace GetBricked.Gameplay
         public const int CapsuleMadnessPickupThreshold = 5;
         public const float CapsuleMadnessDurationSeconds = 2.6f;
         public const int CapsuleMadnessPickupBonusPoints = 250;
+        public const float CapsuleMagnetRange = 4.25f;
 
         private readonly Vector2 pickupSize;
         private readonly float pickupFallSpeed;
@@ -624,6 +635,43 @@ namespace GetBricked.Gameplay
             }
 
             UpdateCapsuleMadnessThresholdArming();
+        }
+
+        public void RefreshCapsuleMagnetTargets(float strength, Collider2D paddleCollider)
+        {
+            var clampedStrength = Mathf.Clamp01(strength);
+            var hasActiveMagnet = clampedStrength > 0.001f && paddleCollider != null;
+            var targetPosition = hasActiveMagnet
+                ? (Vector2)paddleCollider.bounds.center
+                : Vector2.zero;
+
+            for (var index = ActivePickups.Count - 1; index >= 0; index--)
+            {
+                var pickup = ActivePickups[index];
+
+                if (pickup == null)
+                {
+                    ActivePickups.RemoveAt(index);
+                    continue;
+                }
+
+                if (!hasActiveMagnet || pickup.Definition == null || !pickup.Definition.IsBeneficial)
+                {
+                    pickup.SetCapsuleMagnetTarget(Vector2.zero, 0f);
+                    continue;
+                }
+
+                var distance = Vector2.Distance(pickup.transform.position, targetPosition);
+
+                if (distance > CapsuleMagnetRange)
+                {
+                    pickup.SetCapsuleMagnetTarget(Vector2.zero, 0f);
+                    continue;
+                }
+
+                var proximity = 1f - Mathf.Clamp01(distance / CapsuleMagnetRange);
+                pickup.SetCapsuleMagnetTarget(targetPosition, clampedStrength * Mathf.Lerp(0.35f, 1f, proximity));
+            }
         }
 
         public void ClearPickups()

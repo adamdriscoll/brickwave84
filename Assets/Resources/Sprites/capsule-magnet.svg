@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
+  <title id="title">Capsule Magnet</title>
+  <desc id="desc">A monochrome neon icon showing a paddle drawing capsule diamonds inward.</desc>
+  <defs>
+    <filter id="softGlow" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="2.25" result="blur"/>
+      <feColorMatrix in="blur" type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 .8 0" result="glow"/>
+      <feMerge><feMergeNode in="glow"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <style><![CDATA[
+      .icon{fill:none;stroke:#fff;stroke-linecap:round;stroke-linejoin:round;filter:url(#softGlow)}
+      .main{stroke-width:11;opacity:.95}
+      .mid{stroke-width:7;opacity:.84}
+      .thin{stroke-width:4;opacity:.42}
+      .fill{fill:#fff;stroke:none;opacity:.88;filter:url(#softGlow)}
+    ]]></style>
+  </defs>
+  <g class="icon">
+    <path class="main" d="M54 168 h148"/>
+    <path class="mid" d="M72 168 c0 18 22 32 56 32 s56-14 56-32"/>
+    <path class="mid" d="M69 132 C91 150 107 157 128 157 s37-7 59-25"/>
+    <path class="thin" d="M50 100 C75 126 101 139 128 139 s53-13 78-39"/>
+    <path class="thin" d="M89 82 C102 95 114 102 128 102 s26-7 39-20"/>
+    <rect class="fill" x="113" y="60" width="30" height="30" rx="5" transform="rotate(45 128 75)"/>
+    <rect class="fill" x="61" y="82" width="22" height="22" rx="4" transform="rotate(45 72 93)"/>
+    <rect class="fill" x="173" y="82" width="22" height="22" rx="4" transform="rotate(45 184 93)"/>
+  </g>
+</svg>

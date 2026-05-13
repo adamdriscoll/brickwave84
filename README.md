@@ -11,7 +11,7 @@
 - Current content counts:
   - `4` authored level profiles
   - `9` brick definitions
-  - `28` pickup definitions
+  - `33` pickup definitions
   - `6` permanent run upgrades
   - `3` themes
   - `3` authored Rogue paddle definitions (alternate types are currently disabled)
@@ -189,6 +189,7 @@ Permanent run upgrades are always available in the between-stage draft pool. Dro
 | `Bogus Multi` | Cuts active timed effects to x0.50. | Heat 18 | Rare | Hazard | Active-effect multiplier | Implemented |
 | `Brick Jammer` | Weakens brick readability/response for 7s. | Heat 18 | Rare | Hazard | Brick jam | Implemented |
 | `Brick Magnet` | Pulls the ball toward nearby bricks for 10s. | Heat 18 | Rare | Helpful | Brick pull | Implemented |
+| `Capsule Magnet` | Nearby helpful capsules drift toward the paddle for 12s. | Heat 18 | Rare | Helpful | Pickup drop | Implemented |
 | `Chain Lightning` | Broken bricks chain damage to nearby bricks for 14s. | Heat 18 | Rare | Helpful | Chain damage | Implemented |
 | `Ghost Ball` | Lets balls phase through breakable bricks for 8s. | Heat 18 | Rare | Helpful | Phase ball | Implemented |
 | `Gravity Well` | Pulls balls toward the arena midpoint for 12s. | Heat 18 | Rare | Hazard | Gravity well | Implemented |
@@ -207,7 +208,6 @@ Permanent run upgrades are always available in the between-stage draft pool. Dro
 | `Bank Bonus` | Wall bounces charge bonus points until the next brick hit. | Heat 08 | N/A | Helpful | Precision drop | Not implemented (UI placeholder) |
 | `Solar Shot` | Ball burns through the next weak brick it touches. | Heat 12 | N/A | Helpful | Damage drop | Not implemented (UI placeholder) |
 | `Prism Pop` | First brick hit splits a short-lived copy ball. | Heat 14 | N/A | Helpful | Split drop | Not implemented (UI placeholder) |
-| `Capsule Magnet` | Nearby helpful capsules drift toward the paddle. | Heat 18 | N/A | Helpful | Pickup drop | Not implemented (UI placeholder) |
 | `Mirror Grid` | Brick layout mirrors horizontally halfway through the stage. | Heat 08 | N/A | Glitch | Layout glitch | Not implemented (UI placeholder) |
 | `Row Rewrite` | One row rerolls into a new brick pattern after a timer. | Heat 10 | N/A | Glitch | Layout glitch | Not implemented (UI placeholder) |
 | `Prism Lanes` | Marked lanes refract the ball into sharper angles. | Heat 16 | N/A | Glitch | Precision glitch | Not implemented (UI placeholder) |

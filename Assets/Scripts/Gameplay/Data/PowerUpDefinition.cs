@@ -95,6 +95,7 @@ namespace GetBricked.Gameplay.Data
         BallSizeMultiplier = 21,
         RandomHarmfulDrop = 22,
         VectorSight = 23,
+        CapsuleMagnet = 24,
     }
 
     [CreateAssetMenu(menuName = "Get Bricked/Power-Up Definition", fileName = "PowerUpDefinition")]

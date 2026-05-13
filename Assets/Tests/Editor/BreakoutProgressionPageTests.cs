@@ -88,4 +88,19 @@ public sealed class BreakoutProgressionPageTests
         Assert.That(card.Description, Does.Contain("aim preview"));
         Assert.That(card.StateLabel, Is.EqualTo("Locked"));
     }
+
+    [Test]
+    public void ProgressionPageShowsCapsuleMagnetAsLiveRareDrop()
+    {
+        var capsuleMagnet = Resources.Load<PowerUpDefinition>("PowerUps/CapsuleMagnet");
+        Assert.That(capsuleMagnet, Is.Not.Null);
+
+        var view = new BreakoutProgressionPageService().BuildView(new[] { capsuleMagnet });
+        var card = view.Cards.First(item => item.Title == "Capsule Magnet");
+
+        Assert.That(card.UnlockHint, Does.Contain("Heat 18"));
+        Assert.That(card.Description, Does.Contain("helpful capsules drift"));
+        Assert.That(card.Family, Does.Contain("Rare Helpful"));
+        Assert.That(card.StateLabel, Is.EqualTo("Locked"));
+    }
 }
