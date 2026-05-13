@@ -144,6 +144,8 @@ namespace GetBricked.Gameplay
     {
         public string TopLine = string.Empty;
         public string BottomLine = string.Empty;
+        public bool HasBrickCounter;
+        public int BricksRemaining;
         public bool ShowMenuButton;
         public bool IsPaused;
         public bool IsDiagnosticsVisible;

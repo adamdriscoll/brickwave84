@@ -14,11 +14,14 @@ namespace GetBricked.Gameplay
         private const float SplitOverlayFooterMinHeight = 30f;
         private const float SplitOverlayFooterGap = 4f;
         private const float SplitOverlayActionLineHeight = 42f;
+        private const float BrickCounterPulseDuration = 0.55f;
         private static readonly string[] RetroUiFontNames = { "Consolas", "Courier New", "monospace" };
 
         private readonly Dictionary<Sprite, Texture2D> iconTextureCache = new Dictionary<Sprite, Texture2D>();
         private Vector2 progressionContentScroll;
         private Vector2 statsTableScroll;
+        private int previousBrickCounterValue = -1;
+        private float brickCounterPulseStartTime = -100f;
 
         private GUIStyle hudStyle;
         private GUIStyle messageStyle;
@@ -44,6 +47,8 @@ namespace GetBricked.Gameplay
         private GUIStyle modifierPanelTimerStyle;
         private GUIStyle progressionCardDescriptionStyle;
         private GUIStyle progressionBadgeStyle;
+        private GUIStyle brickCounterLabelStyle;
+        private GUIStyle brickCounterValueStyle;
         private GUIStyle upgradePanelStackStyle;
         private GUIStyle upgradeTooltipTitleStyle;
         private GUIStyle upgradeTooltipBodyStyle;
@@ -296,22 +301,35 @@ namespace GetBricked.Gameplay
         {
             EnsureStyles();
 
+            if (view == null)
+            {
+                return;
+            }
+
             var buttonsX = Screen.width - 258f;
             var buttonsY = 20f;
-            var showIntensityGauge = view?.IntensityGauge != null && view.IntensityGauge.IsVisible;
+            var showIntensityGauge = view.IntensityGauge != null && view.IntensityGauge.IsVisible;
             var gaugeRect = new Rect(buttonsX - 100f, 12f, 84f, 84f);
             var statusMaxX = showIntensityGauge ? gaugeRect.x - 14f : buttonsX - 18f;
-            var statusRect = new Rect(18f, 18f, Mathf.Max(320f, statusMaxX - 18f), 72f);
+            var hasBottomLine = !string.IsNullOrWhiteSpace(view.BottomLine);
+            var statusHeight = hasBottomLine ? 72f : 46f;
+            var statusRect = new Rect(18f, 18f, Mathf.Max(320f, statusMaxX - 18f), statusHeight);
             var ladderRect = new Rect(statusRect.x, statusRect.yMax + 8f, statusRect.width, 44f);
             var diagnosticsLabel = view.IsDiagnosticsVisible ? "DBG ON" : "DBG";
             var menuLabel = view.IsPaused ? "RESUME" : "MENU";
 
             DrawPanel(statusRect, palette.AccentPrimary, palette.AccentSecondary, false);
-            DrawTextWithShadow(new Rect(statusRect.x + 20f, statusRect.y + 14f, statusRect.width - 40f, 24f), view.TopLine, hudStyle, palette.TextPrimary, 0.35f);
-            DrawTextWithShadow(new Rect(statusRect.x + 20f, statusRect.y + 40f, statusRect.width - 40f, 22f), view.BottomLine, overlayBodyStyle, palette.TextMuted, 0.3f);
+            DrawTextWithShadow(new Rect(statusRect.x + 20f, statusRect.y + (hasBottomLine ? 14f : 11f), statusRect.width - 40f, 24f), view.TopLine, hudStyle, palette.TextPrimary, 0.35f);
+
+            if (hasBottomLine)
+            {
+                DrawTextWithShadow(new Rect(statusRect.x + 20f, statusRect.y + 40f, statusRect.width - 40f, 22f), view.BottomLine, overlayBodyStyle, palette.TextMuted, 0.3f);
+            }
+
             DrawStageLadder(ladderRect, view.StageLadder);
             DrawBallSpeedMeter(view.SpeedMeter);
             DrawIntensityGauge(gaugeRect, view.IntensityGauge);
+            DrawBrickCounter(view);
 
             if (DrawArcadeButton(new Rect(buttonsX, buttonsY, 122f, 42f), diagnosticsLabel, view.IsDiagnosticsVisible))
             {
@@ -1112,6 +1130,64 @@ namespace GetBricked.Gameplay
             }
         }
 
+        private void DrawBrickCounter(BreakoutUiHudView view)
+        {
+            if (view == null || !view.HasBrickCounter)
+            {
+                previousBrickCounterValue = -1;
+                return;
+            }
+
+            if (previousBrickCounterValue >= 0 && view.BricksRemaining < previousBrickCounterValue)
+            {
+                brickCounterPulseStartTime = Time.unscaledTime;
+            }
+
+            previousBrickCounterValue = view.BricksRemaining;
+
+            var pulseAge = Time.unscaledTime - brickCounterPulseStartTime;
+            var pulse = Mathf.Clamp01(1f - (pulseAge / BrickCounterPulseDuration));
+            var pulseWave = Mathf.Sin((1f - pulse) * Mathf.PI);
+            var panelWidth = Mathf.Clamp(Screen.width * 0.16f, 148f, 206f);
+            var panelHeight = 88f;
+            var bottomMargin = view.IsDiagnosticsVisible ? 198f : 22f;
+            var expansion = Mathf.Lerp(0f, 8f, pulseWave);
+            var panelRect = new Rect(
+                Screen.width - panelWidth - 18f,
+                Mathf.Max(104f, Screen.height - panelHeight - bottomMargin),
+                panelWidth,
+                panelHeight);
+            var animatedRect = Inflate(panelRect, expansion);
+            var accent = Color.Lerp(palette.AccentPrimary, palette.AccentWarm, pulseWave);
+            var rightAccent = Color.Lerp(palette.AccentSecondary, palette.TextPrimary, pulseWave * 0.45f);
+
+            if (pulse > 0f)
+            {
+                DrawSolidRect(Inflate(panelRect, Mathf.Lerp(8f, 18f, pulseWave)), WithAlpha(accent, Mathf.Lerp(0.04f, 0.18f, pulseWave)));
+            }
+
+            DrawPanel(animatedRect, accent, rightAccent, pulse > 0f, 1.8f + (pulseWave * 1.1f));
+            DrawTextWithShadow(
+                new Rect(animatedRect.x + 14f, animatedRect.y + 10f, animatedRect.width - 28f, 18f),
+                "BRICKS",
+                brickCounterLabelStyle,
+                accent,
+                0.25f);
+
+            var valueColor = pulse > 0f
+                ? Color.Lerp(palette.TextPrimary, palette.AccentWarm, pulseWave * 0.85f)
+                : palette.TextPrimary;
+            DrawTextWithShadow(
+                new Rect(animatedRect.x + 14f, animatedRect.y + 29f, animatedRect.width - 28f, 44f),
+                view.BricksRemaining.ToString("00", System.Globalization.CultureInfo.InvariantCulture),
+                brickCounterValueStyle,
+                valueColor,
+                0.28f + (pulseWave * 0.18f));
+
+            var meterRect = new Rect(animatedRect.x + 16f, animatedRect.yMax - 16f, animatedRect.width - 32f, 4f);
+            DrawHorizontalGradient(meterRect, WithAlpha(accent, 0.82f), WithAlpha(palette.AccentSecondary, 0.62f), 12);
+        }
+
         private void EnsureStyles()
         {
             retroUiFont ??= Font.CreateDynamicFontFromOSFont(RetroUiFontNames, RetroUiFontSize);
@@ -1244,6 +1320,18 @@ namespace GetBricked.Gameplay
                 fontSize = 11,
                 fontStyle = FontStyle.Bold,
             };
+            brickCounterLabelStyle ??= new GUIStyle(speedMeterCaptionStyle)
+            {
+                alignment = TextAnchor.MiddleCenter,
+                fontSize = 13,
+                fontStyle = FontStyle.Bold,
+            };
+            brickCounterValueStyle ??= new GUIStyle(pickupStyle)
+            {
+                alignment = TextAnchor.MiddleCenter,
+                fontSize = 34,
+                fontStyle = FontStyle.Bold,
+            };
             upgradePanelStackStyle ??= new GUIStyle(hudStyle)
             {
                 alignment = TextAnchor.MiddleCenter,
@@ -1306,6 +1394,8 @@ namespace GetBricked.Gameplay
             modifierPanelTimerStyle.normal.textColor = palette.TextMuted;
             progressionCardDescriptionStyle.normal.textColor = palette.TextMuted;
             progressionBadgeStyle.normal.textColor = palette.TextPrimary;
+            brickCounterLabelStyle.normal.textColor = palette.AccentWarm;
+            brickCounterValueStyle.normal.textColor = palette.TextPrimary;
             upgradePanelStackStyle.normal.textColor = palette.TextPrimary;
             upgradeTooltipTitleStyle.normal.textColor = palette.TextPrimary;
             upgradeTooltipBodyStyle.normal.textColor = palette.TextMuted;
@@ -1345,6 +1435,8 @@ namespace GetBricked.Gameplay
             modifierPanelTimerStyle.font = retroUiFont;
             progressionCardDescriptionStyle.font = retroUiFont;
             progressionBadgeStyle.font = retroUiFont;
+            brickCounterLabelStyle.font = retroUiFont;
+            brickCounterValueStyle.font = retroUiFont;
             upgradePanelStackStyle.font = retroUiFont;
             upgradeTooltipTitleStyle.font = retroUiFont;
             upgradeTooltipBodyStyle.font = retroUiFont;

@@ -4045,6 +4045,8 @@ namespace GetBricked.Gameplay
             {
                 TopLine = topLine,
                 BottomLine = BuildGameplayStatusLine().ToUpperInvariant(),
+                HasBrickCounter = currentLevel != null,
+                BricksRemaining = Mathf.Max(0, requiredBricksRemaining),
                 ShowMenuButton = CanPauseRoundState(roundState) || roundState == RoundState.Paused,
                 IsPaused = roundState == RoundState.Paused,
                 IsDiagnosticsVisible = isDiagnosticsOverlayVisible,
@@ -4648,29 +4650,11 @@ namespace GetBricked.Gameplay
             return value.ToString("0000", CultureInfo.InvariantCulture);
         }
 
-        private string BuildRemainingBricksLabel()
-        {
-            if (currentLevel == null)
-            {
-                return "Remaining Bricks --";
-            }
-
-            return $"Remaining Bricks {requiredBricksRemaining:00}";
-        }
-
         private string BuildGameplayStatusLine()
         {
-            var progressLabel = BuildRemainingBricksLabel();
-            var glitchLabel = activeLevelGlitchPlan != null && activeLevelGlitchPlan.IsActive
-                ? $" | {activeLevelGlitchPlan.HudLabel}"
+            return activeLevelGlitchPlan != null && activeLevelGlitchPlan.IsActive
+                ? activeLevelGlitchPlan.HudLabel
                 : string.Empty;
-
-            if (activeRunState == null || !activeRunState.HasActiveBuild)
-            {
-                return $"{progressLabel}{glitchLabel}";
-            }
-
-            return $"{progressLabel}{glitchLabel} | {BuildUpgradeSummaryLabel(2)}";
         }
 
         private string BuildReadyToServeMessage()
