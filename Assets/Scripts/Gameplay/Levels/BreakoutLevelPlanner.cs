@@ -22,7 +22,7 @@ namespace GetBricked.Gameplay
         public int AvailableDropTypeCount;
         public int MovingBrickCount;
         public BreakoutLevelGlitchPlan GlitchPlan = BreakoutLevelGlitchPlan.None;
-        public string VariationSummary = "Variation: unavailable";
+        public string VariationSummary = "Stage mix: unavailable";
     }
 
     internal sealed class BreakoutProceduralBrickCell
@@ -119,7 +119,7 @@ namespace GetBricked.Gameplay
                 8,
                 11);
 
-            plan.DisplayName = BuildProceduralLevelDisplayName(level, pattern, cycleIndex);
+            plan.DisplayName = BuildProceduralLevelDisplayName(levelIndex);
             plan.LayoutRows = new string[rowCount];
             plan.BrickRows = new BreakoutProceduralBrickCell[rowCount][];
             plan.RowShifts = new int[rowCount];
@@ -220,13 +220,9 @@ namespace GetBricked.Gameplay
             return Mathf.Clamp(maxColumns, 8, 10);
         }
 
-        private static string BuildProceduralLevelDisplayName(LevelDefinition level, ProceduralPatternType pattern, int cycleIndex)
+        private static string BuildProceduralLevelDisplayName(int levelIndex)
         {
-            var baseName = level == null ? "Procedural Layout" : level.DisplayName;
-            var patternLabel = GetProceduralPatternLabel(pattern);
-            return cycleIndex <= 0
-                ? $"{baseName} [{patternLabel}]"
-                : $"{baseName} [{patternLabel}] Loop {cycleIndex + 1}";
+            return $"Level {Mathf.Max(0, levelIndex) + 1:00}";
         }
 
         private static string GetProceduralPatternLabel(ProceduralPatternType pattern)
@@ -940,26 +936,15 @@ namespace GetBricked.Gameplay
         {
             if (plan == null || plan.LayoutRows.Length == 0)
             {
-                return "Variation: unavailable";
+                return "Stage mix: unavailable";
             }
 
-            var shiftedRows = 0;
-
-            for (var index = 0; index < plan.RowShifts.Length; index++)
-            {
-                if (plan.RowShifts[index] != 0)
-                {
-                    shiftedRows++;
-                }
-            }
-
-            var orientationLabel = plan.MirrorLayout ? "mirrored" : "asymmetric";
             var glitchLabel = plan.GlitchPlan != null && plan.GlitchPlan.IsActive
                 ? $", glitch {plan.GlitchPlan.DisplayName}"
                 : string.Empty;
             return
-                $"Variation: {plan.PatternLabel}, {orientationLabel}, {shiftedRows} shifted rows, " +
-                $"{plan.UniqueBrickTypeCount} brick types, {plan.AvailableDropTypeCount} drops, {plan.MovingBrickCount} movers{glitchLabel}";
+                $"Stage mix: {plan.UniqueBrickTypeCount} brick types, " +
+                $"{plan.AvailableDropTypeCount} drops, {plan.MovingBrickCount} movers{glitchLabel}";
         }
     }
 }

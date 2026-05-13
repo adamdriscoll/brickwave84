@@ -224,7 +224,6 @@ namespace GetBricked.Gameplay
         private float arenaBottom;
         private LevelDefinition currentLevel;
         private int currentLevelIndex;
-        private string currentLevelDisplayName = "No level loaded";
         private float currentLevelBallSpeed;
         private float currentLevelPaddleSpeed;
         private BreakoutLevelPlanner levelPlanner;
@@ -240,7 +239,7 @@ namespace GetBricked.Gameplay
         private BreakoutHotSeatDifficulty selectedSoloMarathonDifficulty = BreakoutHotSeatDifficulty.Gnarly;
         private int selectedSoloMarathonSetupActionIndex = (int)BreakoutHotSeatDifficulty.Gnarly;
         private int selectedOverlayActionIndex;
-        private string currentLevelVariationLabel = "Variation: not started";
+        private string currentLevelVariationLabel = "Stage mix: not started";
         private string pendingValidationMessage = string.Empty;
         private float manualBallSpeedMultiplier = 1f;
         private int manualBallSpeedHoldDirection;
@@ -873,7 +872,7 @@ namespace GetBricked.Gameplay
             currentLevelIndex = activeRunSettings.IsTurnBasedMode
                 ? turnBasedMultiplayerController?.GetCurrentPlayerLevelIndex() ?? 0
                 : developerEncounter?.LevelIndex ?? 0;
-            currentLevelVariationLabel = "Variation: pending";
+            currentLevelVariationLabel = "Stage mix: pending";
             shieldWallCharges = 0;
             laserShotCooldownTimer = 0f;
             stickyCaughtBall = null;
@@ -911,7 +910,7 @@ namespace GetBricked.Gameplay
             selectedOverlayActionIndex = 0;
             selectedSoloMarathonSetupActionIndex = GetSoloMarathonHeatIndex(selectedSoloMarathonDifficulty);
             pendingValidationMessage = string.Empty;
-            currentLevelVariationLabel = "Variation: pending";
+            currentLevelVariationLabel = "Stage mix: pending";
             isDiagnosticsOverlayVisible = false;
             isDeveloperRunActive = false;
             isTurnBasedSetupActive = false;
@@ -971,7 +970,7 @@ namespace GetBricked.Gameplay
             selectedRunSetupField = turnBased ? BreakoutRunSetupField.PlayerCount : BreakoutRunSetupField.Seed;
             isTurnBasedSetupActive = turnBased;
             pendingValidationMessage = string.Empty;
-            currentLevelVariationLabel = "Variation: pending";
+            currentLevelVariationLabel = "Stage mix: pending";
             isDiagnosticsOverlayVisible = false;
             isDeveloperRunActive = false;
             turnBasedMultiplayerController?.ClearRun();
@@ -989,7 +988,7 @@ namespace GetBricked.Gameplay
             selectedOverlayActionIndex = 0;
             isTurnBasedSetupActive = false;
             pendingValidationMessage = string.Empty;
-            currentLevelVariationLabel = "Variation: pending";
+            currentLevelVariationLabel = "Stage mix: pending";
             isDiagnosticsOverlayVisible = false;
             isDeveloperRunActive = false;
             turnBasedMultiplayerController?.ClearRun();
@@ -1007,7 +1006,7 @@ namespace GetBricked.Gameplay
             selectedDeveloperLaunchField = BreakoutDeveloperLaunchField.Encounter;
             isTurnBasedSetupActive = false;
             pendingValidationMessage = string.Empty;
-            currentLevelVariationLabel = "Variation: pending";
+            currentLevelVariationLabel = "Stage mix: pending";
             isDiagnosticsOverlayVisible = false;
             activeRunState?.Reset();
             ResetRuntimeForMetaFlow();
@@ -2695,7 +2694,6 @@ namespace GetBricked.Gameplay
             {
                 currentLevel = null;
                 currentLevelIndex = 0;
-                currentLevelDisplayName = "No levels loaded";
                 requiredBricksRemaining = 0;
                 roundState = RoundState.GameOver;
                 selectedOverlayActionIndex = 0;
@@ -2711,7 +2709,6 @@ namespace GetBricked.Gameplay
             if (currentLevel == null)
             {
                 currentLevelIndex = 0;
-                currentLevelDisplayName = "No levels loaded";
                 requiredBricksRemaining = 0;
                 roundState = RoundState.GameOver;
                 selectedOverlayActionIndex = 0;
@@ -2724,9 +2721,6 @@ namespace GetBricked.Gameplay
             UpdateBackgroundVisuals();
             PlayMusicForCurrentLevel();
             var levelPlan = BuildLevelLayoutPlan(currentLevel);
-            currentLevelDisplayName = string.IsNullOrWhiteSpace(levelPlan.DisplayName)
-                ? currentLevel.DisplayName
-                : levelPlan.DisplayName;
 
             ApplyLevelTuning(levelPlan);
             BuildBrickWall(levelPlan);
@@ -4200,7 +4194,7 @@ namespace GetBricked.Gameplay
                     : activeRunSettings != null && activeRunSettings.IsRogueMode ? "Ladder Wiped Out" : "Run Over"
                 : HasNextLevel()
                     ? "Level Cleared"
-                    : (activeRunSettings != null && activeRunSettings.IsRogueMode ? "Ladder Cleared" : "Final Layout Cleared");
+                    : (activeRunSettings != null && activeRunSettings.IsRogueMode ? "Ladder Cleared" : "Final Level Cleared");
             var summary = isGameOver
                 ? activeRunSettings != null && activeRunSettings.IsSoloMarathonMode
                     ? new[]
@@ -4583,7 +4577,7 @@ namespace GetBricked.Gameplay
         {
             return currentLevel == null
                 ? "No levels loaded"
-                : $"Level {currentLevelIndex + 1:00} - {currentLevelDisplayName}";
+                : $"Level {currentLevelIndex + 1:00}";
         }
 
         private string GetScoreDisplayLabel()

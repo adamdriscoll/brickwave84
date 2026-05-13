@@ -67,6 +67,64 @@ public sealed class BreakoutLevelPlannerTests
     }
 
     [Test]
+    public void ProceduralPlanDisplayNameUsesOnlyLevelNumber()
+    {
+        var level = CreateLevelDefinition();
+        SetPrivateField(level, "displayName", "Pressure Test");
+        var bricks = new List<BrickDefinition>
+        {
+            CreateBrickDefinition("Basic Brick", hitPoints: 1, isBreakable: true, null),
+        };
+        var planner = CreateLevelPlanner(new List<LevelDefinition> { level }, bricks);
+        var buildPlan = planner.GetType().GetMethod("BuildPlan", InstanceFlags);
+        Assert.That(buildPlan, Is.Not.Null);
+
+        var plan = buildPlan.Invoke(
+            planner,
+            new object[]
+            {
+                level,
+                3,
+                new DeterministicRandomService(4242),
+                CreateStandardRunSettings(),
+            });
+
+        var displayName = GetFieldValue<string>(plan, "DisplayName");
+        Assert.That(displayName, Is.EqualTo("Level 04"));
+        Assert.That(displayName, Does.Not.Contain("Pressure Test"));
+        Assert.That(displayName, Does.Not.Contain("["));
+    }
+
+    [Test]
+    public void ProceduralPlanVariationSummaryOmitsLayoutPatternText()
+    {
+        var level = CreateLevelDefinition();
+        var bricks = new List<BrickDefinition>
+        {
+            CreateBrickDefinition("Basic Brick", hitPoints: 1, isBreakable: true, null),
+        };
+        var planner = CreateLevelPlanner(new List<LevelDefinition> { level }, bricks);
+        var buildPlan = planner.GetType().GetMethod("BuildPlan", InstanceFlags);
+        Assert.That(buildPlan, Is.Not.Null);
+
+        var plan = buildPlan.Invoke(
+            planner,
+            new object[]
+            {
+                level,
+                5,
+                new DeterministicRandomService(4242),
+                CreateStandardRunSettings(),
+            });
+
+        var summary = GetFieldValue<string>(plan, "VariationSummary");
+        Assert.That(summary, Does.StartWith("Stage mix:"));
+        Assert.That(summary, Does.Not.Contain("Columns"));
+        Assert.That(summary, Does.Not.Contain("mirrored"));
+        Assert.That(summary, Does.Not.Contain("shifted rows"));
+    }
+
+    [Test]
     public void TinyBricksRemainRarerThanFullSizeBasicBricksWhenAvailable()
     {
         var tinyBrick = CreateBrickDefinition("Tiny Brick", hitPoints: 1, isBreakable: true, null);
@@ -292,6 +350,24 @@ public sealed class BreakoutLevelPlannerTests
         SetPrivateField(powerUp, "displayName", displayName);
         SetPrivateField(powerUp, "hudLabel", displayName.ToUpperInvariant());
         return powerUp;
+    }
+
+    private static RunSettings CreateStandardRunSettings()
+    {
+        return new RunSettings(
+            4242,
+            RunDifficultyPreset.Standard,
+            RunScoringMode.Classic,
+            3,
+            500,
+            1,
+            1f,
+            1f,
+            1f,
+            1f,
+            DropPoolMode.Mixed,
+            true,
+            null);
     }
 
     private static Type GetGameplayType(string fullName)
