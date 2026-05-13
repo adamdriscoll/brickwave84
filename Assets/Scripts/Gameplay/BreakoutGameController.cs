@@ -4027,6 +4027,8 @@ namespace GetBricked.Gameplay
                 ? activeCamera.WorldToScreenPoint(new Vector3(arenaLeft, 0f, 0f)).x
                 : 0f;
             var speed = GetDisplayedBallSpeed();
+            var speedBase = GetBallSpeedBase();
+            var maximumSpeed = GetMaximumBallSpeed();
             var isRogueRun = activeRunSettings != null && activeRunSettings.IsRogueMode;
             var intensity = isRogueRun
                 ? BreakoutRunProgression.ClampRogueIntensity(activeRunSettings.RogueIntensity)
@@ -4066,7 +4068,7 @@ namespace GetBricked.Gameplay
                     BounceZoneLeftScreen = bounceZoneLeftScreen,
                     IsDiagnosticsVisible = isDiagnosticsOverlayVisible,
                     Speed = speed,
-                    SpeedRatio = Mathf.Clamp01(speed / Mathf.Max(0.1f, GetMaximumBallSpeed())),
+                    SpeedRatio = Mathf.Clamp01(Mathf.InverseLerp(speedBase, maximumSpeed, speed)),
                 },
                 IntensityGauge = new BreakoutUiIntensityGaugeView
                 {

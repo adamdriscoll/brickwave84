@@ -17,6 +17,9 @@ namespace GetBricked.Gameplay
         private const float BrickCounterPulseDuration = 0.55f;
         private const float LifeLossAnimationDuration = 1.05f;
         private const float ScorePopDuration = 0.34f;
+        private const int SpeedGaugeTickCount = 48;
+        private const float SpeedGaugeStartAngle = -142f;
+        private const float SpeedGaugeSweepAngle = 284f;
         private static readonly string[] RetroUiFontNames = { "Consolas", "Courier New", "monospace" };
 
         private readonly Dictionary<Sprite, Texture2D> iconTextureCache = new Dictionary<Sprite, Texture2D>();
@@ -1480,28 +1483,104 @@ namespace GetBricked.Gameplay
                 return;
             }
 
-            var panelWidth = 56f;
-            var panelHeight = Mathf.Clamp(Screen.height - (view.IsDiagnosticsVisible ? 286f : 216f), 184f, 334f);
-            var panelX = Mathf.Clamp(view.BounceZoneLeftScreen - panelWidth - 18f, 12f, Mathf.Max(12f, Screen.width - panelWidth - 12f));
-            var panelY = 104f;
-            var panelRect = new Rect(panelX, panelY, panelWidth, panelHeight);
-            var trackRect = new Rect(panelRect.x + 17f, panelRect.y + 38f, 22f, panelRect.height - 92f);
-            var fillHeight = Mathf.Lerp(0f, trackRect.height, Mathf.Clamp01(view.SpeedRatio));
-            var fillRect = new Rect(trackRect.x + 3f, trackRect.yMax - fillHeight + 3f, trackRect.width - 6f, Mathf.Max(0f, fillHeight - 6f));
-            var meterColor = Color.Lerp(palette.AccentPrimary, palette.AccentWarm, Mathf.Clamp01(view.SpeedRatio));
+            var gaugeSize = 112f;
+            var gaugeX = Mathf.Clamp(
+                view.BounceZoneLeftScreen - gaugeSize - 18f,
+                12f,
+                Mathf.Max(12f, Screen.width - gaugeSize - 12f));
+            var gaugeY = view.IsDiagnosticsVisible ? 86f : 104f;
+            var gaugeRect = new Rect(gaugeX, gaugeY, gaugeSize, gaugeSize);
+            var center = gaugeRect.center;
+            var progress = Mathf.Clamp01(view.SpeedRatio);
+            var pulse = 0.5f + (0.5f * Mathf.Sin(Time.unscaledTime * Mathf.Lerp(2.2f, 7.4f, progress)));
+            var leadColor = ResolveSpeedGaugeColor(progress);
+            var activeTickCount = Mathf.Clamp(Mathf.CeilToInt(progress * SpeedGaugeTickCount), 1, SpeedGaugeTickCount);
+            var radius = gaugeSize * 0.42f;
 
-            DrawPanel(panelRect, palette.AccentPrimary, palette.AccentWarm, false);
-            DrawSolidRect(trackRect, WithAlpha(palette.BezelDark, 0.95f));
-            DrawOutline(trackRect, WithAlpha(palette.TextPrimary, 0.08f), 1f);
+            DrawSpeedGaugeGlow(center, radius, leadColor, progress, pulse);
+            DrawSpeedGaugeTicks(center, radius, activeTickCount, progress, pulse);
+            DrawSpeedGaugeNeedle(center, radius, progress, leadColor);
 
-            if (fillRect.height > 1f)
+            var valueStyle = new GUIStyle(speedMeterValueStyle)
             {
-                DrawSolidRect(fillRect, meterColor);
+                alignment = TextAnchor.MiddleCenter,
+                fontSize = 16,
+                fontStyle = FontStyle.Bold,
+            };
+            var captionStyle = new GUIStyle(speedMeterCaptionStyle)
+            {
+                alignment = TextAnchor.MiddleCenter,
+                fontSize = 11,
+            };
+
+            DrawTextWithShadow(new Rect(gaugeRect.x, center.y - 15f, gaugeRect.width, 24f), $"{view.Speed:0.00}u", valueStyle, palette.TextPrimary, 0.28f);
+            DrawTextWithShadow(new Rect(gaugeRect.x, center.y + 8f, gaugeRect.width, 16f), "SPD", captionStyle, WithAlpha(leadColor, 0.9f), 0.2f);
+        }
+
+        private void DrawSpeedGaugeGlow(Vector2 center, float radius, Color leadColor, float progress, float pulse)
+        {
+            var glowAlpha = Mathf.Lerp(0.08f, 0.2f, pulse) + (progress * 0.08f);
+
+            for (var index = 0; index < 24; index++)
+            {
+                var angle = SpeedGaugeStartAngle + (SpeedGaugeSweepAngle * (index / 23f));
+                DrawRadialTick(center, radius + 10f + (pulse * 3f), angle, 6f, 18f, WithAlpha(leadColor, glowAlpha * 0.32f));
             }
 
-            DrawTextWithShadow(new Rect(panelRect.x, panelRect.y + 10f, panelRect.width, 18f), "SPD", speedMeterCaptionStyle, palette.TextPrimary, 0.25f);
-            DrawTextWithShadow(new Rect(panelRect.x - 10f, panelRect.yMax - 38f, panelRect.width + 20f, 18f), $"{view.Speed:0.00}", speedMeterValueStyle, palette.TextPrimary, 0.2f);
-            DrawTextWithShadow(new Rect(panelRect.x - 10f, panelRect.yMax - 22f, panelRect.width + 20f, 16f), "u/s", speedMeterValueStyle, palette.TextMuted, 0.2f);
+            for (var index = 0; index < 18; index++)
+            {
+                var angle = index * (360f / 18f);
+                DrawRadialTick(center, radius * 0.45f, angle, 2f, 8f, WithAlpha(leadColor, 0.08f + (pulse * 0.04f)));
+            }
+        }
+
+        private void DrawSpeedGaugeTicks(Vector2 center, float radius, int activeTickCount, float progress, float pulse)
+        {
+            for (var index = 0; index < SpeedGaugeTickCount; index++)
+            {
+                var tickProgress = index / (float)(SpeedGaugeTickCount - 1);
+                var isActive = index < activeTickCount;
+                var isMajor = index % 6 == 0;
+                var tickColor = isActive
+                    ? ResolveSpeedGaugeColor(tickProgress)
+                    : WithAlpha(palette.TextMuted, 0.32f);
+                var tickAlpha = isActive ? Mathf.Lerp(0.72f, 1f, pulse) : 0.2f;
+                var tickWidth = isMajor ? 3.2f : 2.1f;
+                var tickHeight = isActive
+                    ? (isMajor ? 14f : 11f) + (pulse * Mathf.Lerp(0.5f, 2f, progress))
+                    : isMajor ? 9f : 7f;
+                var angle = SpeedGaugeStartAngle + (SpeedGaugeSweepAngle * tickProgress);
+
+                DrawRadialTick(center, radius, angle, tickWidth, tickHeight, WithAlpha(tickColor, tickAlpha));
+            }
+        }
+
+        private void DrawSpeedGaugeNeedle(Vector2 center, float radius, float progress, Color leadColor)
+        {
+            var angle = SpeedGaugeStartAngle + (SpeedGaugeSweepAngle * progress);
+            DrawRadialTick(center, radius * 0.73f, angle, 3f, 24f, WithAlpha(leadColor, 0.78f));
+            DrawRadialTick(center, radius * 0.34f, angle, 2f, 13f, WithAlpha(palette.TextPrimary, 0.42f));
+        }
+
+        private static void DrawRadialTick(Vector2 center, float radius, float angleDegrees, float width, float height, Color color)
+        {
+            var previousMatrix = GUI.matrix;
+            var tickRect = new Rect(center.x - (width * 0.5f), center.y - radius - height, width, height);
+            GUIUtility.RotateAroundPivot(angleDegrees, center);
+            DrawSolidRect(tickRect, color);
+            GUI.matrix = previousMatrix;
+        }
+
+        private static Color ResolveSpeedGaugeColor(float progress)
+        {
+            var green = new Color(0.36f, 1f, 0.55f, 1f);
+            var yellow = new Color(1f, 0.88f, 0.24f, 1f);
+            var red = new Color(1f, 0.19f, 0.18f, 1f);
+            var t = Mathf.Clamp01(progress);
+
+            return t < 0.58f
+                ? Color.Lerp(green, yellow, Mathf.SmoothStep(0f, 1f, t / 0.58f))
+                : Color.Lerp(yellow, red, Mathf.SmoothStep(0f, 1f, (t - 0.58f) / 0.42f));
         }
 
         private void DrawIntensityGauge(Rect rect, BreakoutUiIntensityGaugeView view)
