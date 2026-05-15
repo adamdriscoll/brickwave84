@@ -223,7 +223,7 @@ Permanent run upgrades are always available in the between-stage draft pool. Dro
 | `Repair Stock` | A stocked service bay grants an immediate extra life and keeps the cabinet run alive longer. | Draft pool | N/A | Build | Run upgrade | Implemented |
 | `Split Serve` | Every new serve launches an extra ball, letting the run snowball faster between resets. | Draft pool | N/A | Build | Run upgrade | Implemented |
 | `Wide Loader` | Your paddle chassis expands for the rest of the run, opening more forgiving save angles. | Draft pool | N/A | Build | Run upgrade | Implemented |
-| `Brick Magnet` | Fresh serves tug slightly toward uncleared brick clusters, helping dead runs find action faster. | Draft pool | N/A | Build | Run upgrade | Proposed |
+| `Brick Magnet` | Balls tug slightly toward uncleared brick clusters, helping dead runs find action faster. | Draft pool | N/A | Build | Run upgrade | Implemented |
 | `Spare Fuse` | The first time you would lose your last life, the cabinet pops a fuse and saves the run once. | Draft pool | N/A | Build | Run upgrade | Proposed |
 | `Combo Cassette` | Consecutive brick breaks build a louder score streak before cooling off between slow moments. | Draft pool | N/A | Build | Run upgrade | Proposed |
 | `Punch Card` | Every few bricks broken stamps the card and triggers a small bonus payout. | Draft pool | N/A | Build | Run upgrade | Proposed |

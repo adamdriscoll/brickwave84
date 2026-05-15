@@ -5,6 +5,7 @@ using UnityEngine;
 public sealed class RunUpgradeSpriteHookupTests
 {
     [TestCase("Upgrades/Afterburn", "Sprites/afterburn")]
+    [TestCase("Upgrades/BrickMagnet", "Sprites/brick-magnet")]
     [TestCase("Upgrades/FluxLine", "Sprites/flux-line")]
     [TestCase("Upgrades/LuckyCircuit", "Sprites/lucky-circuit")]
     [TestCase("Upgrades/NeonInsurance", "Sprites/neon-insurance")]

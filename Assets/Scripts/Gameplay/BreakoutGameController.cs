@@ -6207,7 +6207,7 @@ namespace GetBricked.Gameplay
         {
             return activeRunState != null
                 ? activeRunState.CalculateModifiers()
-                : new BreakoutRunUpgradeModifiers(1f, 1f, 1f, 1f, 0f, 0);
+                : new BreakoutRunUpgradeModifiers(1f, 1f, 1f, 1f, 0f, 0f, 0);
         }
 
         private int GetEffectiveBallsPerServe()
@@ -6226,6 +6226,13 @@ namespace GetBricked.Gameplay
         private float GetEffectivePickupFallSpeedMultiplier()
         {
             return Mathf.Clamp(GetPersistentRunUpgradeModifiers().PickupFallSpeedMultiplier, 0.35f, 1.5f);
+        }
+
+        private float GetEffectiveBrickMagnetStrength()
+        {
+            return Mathf.Clamp01(Mathf.Max(
+                activeEffectModifiers.BrickMagnetStrength,
+                GetPersistentRunUpgradeModifiers().BrickMagnetStrength));
         }
 
         private int GetChosenUpgradeCount()
@@ -6367,6 +6374,11 @@ namespace GetBricked.Gameplay
             if (upgrade.WavyPaddleStrength > 0.001f)
             {
                 parts.Add($"Wave {upgrade.WavyPaddleStrength:0.00}");
+            }
+
+            if (upgrade.BrickMagnetStrength > 0.001f)
+            {
+                parts.Add($"Brick pull {upgrade.BrickMagnetStrength:0.00}");
             }
 
             return parts.Count == 0 ? "Passive build mod" : string.Join(" | ", parts);
@@ -6696,13 +6708,15 @@ namespace GetBricked.Gameplay
 
         private void RefreshBrickMagnetTargets()
         {
-            if (activeEffectModifiers.BrickMagnetStrength <= 0.001f)
+            var brickMagnetStrength = GetEffectiveBrickMagnetStrength();
+
+            if (brickMagnetStrength <= 0.001f)
             {
                 ClearBrickMagnetTargets();
                 return;
             }
 
-            ApplyBrickMagnetTarget(serveBall);
+            ApplyBrickMagnetTarget(serveBall, brickMagnetStrength);
 
             for (var index = activeBalls.Count - 1; index >= 0; index--)
             {
@@ -6714,7 +6728,7 @@ namespace GetBricked.Gameplay
                     continue;
                 }
 
-                ApplyBrickMagnetTarget(activeBall);
+                ApplyBrickMagnetTarget(activeBall, brickMagnetStrength);
             }
         }
 
@@ -6736,7 +6750,7 @@ namespace GetBricked.Gameplay
             }
         }
 
-        private void ApplyBrickMagnetTarget(BallController ball)
+        private void ApplyBrickMagnetTarget(BallController ball, float brickMagnetStrength)
         {
             if (ball == null)
             {
@@ -6745,7 +6759,7 @@ namespace GetBricked.Gameplay
 
             if (TryFindNearestBreakableBrick(ball.transform.position, out var targetPosition))
             {
-                ball.SetBrickMagnetTarget(targetPosition, activeEffectModifiers.BrickMagnetStrength);
+                ball.SetBrickMagnetTarget(targetPosition, brickMagnetStrength);
                 return;
             }
 

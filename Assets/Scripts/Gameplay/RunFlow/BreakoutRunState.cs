@@ -13,6 +13,7 @@ namespace GetBricked.Gameplay
             float dropChanceMultiplier,
             float pickupFallSpeedMultiplier,
             float wavyPaddleStrength,
+            float brickMagnetStrength,
             int extraBallsPerServe)
         {
             PaddleWidthMultiplier = paddleWidthMultiplier;
@@ -20,6 +21,7 @@ namespace GetBricked.Gameplay
             DropChanceMultiplier = dropChanceMultiplier;
             PickupFallSpeedMultiplier = pickupFallSpeedMultiplier;
             WavyPaddleStrength = wavyPaddleStrength;
+            BrickMagnetStrength = brickMagnetStrength;
             ExtraBallsPerServe = extraBallsPerServe;
         }
 
@@ -32,6 +34,8 @@ namespace GetBricked.Gameplay
         public float PickupFallSpeedMultiplier { get; }
 
         public float WavyPaddleStrength { get; }
+
+        public float BrickMagnetStrength { get; }
 
         public int ExtraBallsPerServe { get; }
     }
@@ -222,6 +226,7 @@ namespace GetBricked.Gameplay
             var dropChanceMultiplier = 1f;
             var pickupFallSpeedMultiplier = 1f;
             var wavyPaddleStrength = 0f;
+            var brickMagnetStrength = 0f;
             var extraBallsPerServe = 0;
 
             for (var index = 0; index < chosenUpgrades.Count; index++)
@@ -238,6 +243,7 @@ namespace GetBricked.Gameplay
                 dropChanceMultiplier *= upgrade.DropChanceMultiplier;
                 pickupFallSpeedMultiplier *= upgrade.PickupFallSpeedMultiplier;
                 wavyPaddleStrength = Mathf.Max(wavyPaddleStrength, upgrade.WavyPaddleStrength);
+                brickMagnetStrength = Mathf.Max(brickMagnetStrength, upgrade.BrickMagnetStrength);
                 extraBallsPerServe += upgrade.ExtraBallsPerServe;
             }
 
@@ -247,6 +253,7 @@ namespace GetBricked.Gameplay
                 dropChanceMultiplier,
                 pickupFallSpeedMultiplier,
                 wavyPaddleStrength,
+                brickMagnetStrength,
                 extraBallsPerServe);
         }
 
