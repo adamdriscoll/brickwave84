@@ -1,0 +1,33 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: aa7a315cf1c5489f8503b6d3309305e1, type: 3}
+  m_Name: HotShrapnel
+  m_EditorClassIdentifier: 
+  upgradeId: hot-shrapnel
+  displayName: Hot Shrapnel
+  hudLabel: SHRAP
+  iconResourcePath: Sprites/hot-shrapnel
+  description: Explosive and split brick effects hit harder for the rest of the run.
+  draftWeight: 0.85
+  maxStacks: 2
+  excludedUpgradeIds: []
+  themeSlot: 11
+  accentColor: {r: 0.99, g: 0.49, b: 0.45, a: 1}
+  paddleWidthMultiplier: 1
+  ballSpeedMultiplier: 1
+  dropChanceMultiplier: 1
+  pickupFallSpeedMultiplier: 1
+  wavyPaddleStrength: 0
+  brickMagnetStrength: 0
+  specialBrickEffectMultiplier: 1.2
+  extraBallsPerServe: 0
+  bonusLives: 0

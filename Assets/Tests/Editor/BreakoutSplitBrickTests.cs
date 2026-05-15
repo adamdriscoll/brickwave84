@@ -48,7 +48,12 @@ public sealed class BreakoutSplitBrickTests
         var brickServiceType = typeof(BreakoutGameController).Assembly.GetType("GetBricked.Gameplay.BreakoutBrickService", throwOnError: false);
         Assert.That(brickServiceType, Is.Not.Null);
 
-        var method = brickServiceType.GetMethod("BuildSplitBrickOffsets", BindingFlags.Static | InstanceFlags);
+        var method = brickServiceType.GetMethod(
+            "BuildSplitBrickOffsets",
+            BindingFlags.Static | InstanceFlags,
+            null,
+            new[] { typeof(Vector2), typeof(BrickDefinition) },
+            null);
         Assert.That(method, Is.Not.Null);
 
         var offsets = (Vector2[])method.Invoke(null, new object[] { new Vector2(1.6f, 0.7f), fragmentDefinition });
@@ -58,6 +63,27 @@ public sealed class BreakoutSplitBrickTests
         AssertVectorNearlyEqual(new Vector2(0.416f, 0.182f), offsets[1]);
         AssertVectorNearlyEqual(new Vector2(-0.416f, -0.182f), offsets[2]);
         AssertVectorNearlyEqual(new Vector2(0.416f, -0.182f), offsets[3]);
+    }
+
+    [Test]
+    public void HotShrapnelMultiplierAddsSplitBrickFragments()
+    {
+        fragmentDefinition = CreateBrickDefinition("Tiny Brick", 1, 0.5f);
+        var brickServiceType = typeof(BreakoutGameController).Assembly.GetType("GetBricked.Gameplay.BreakoutBrickService", throwOnError: false);
+        Assert.That(brickServiceType, Is.Not.Null);
+
+        var method = brickServiceType.GetMethod(
+            "BuildSplitBrickOffsets",
+            BindingFlags.Static | InstanceFlags,
+            null,
+            new[] { typeof(Vector2), typeof(BrickDefinition), typeof(int) },
+            null);
+        Assert.That(method, Is.Not.Null);
+
+        var offsets = (Vector2[])method.Invoke(null, new object[] { new Vector2(1.6f, 0.7f), fragmentDefinition, 5 });
+
+        Assert.That(offsets, Has.Length.EqualTo(5));
+        Assert.That(offsets, Has.All.Matches<Vector2>(offset => offset.sqrMagnitude > 0.001f));
     }
 
     private static BrickDefinition CreateBrickDefinition(string displayName, int hitPoints, float sizeMultiplier)

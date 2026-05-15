@@ -14,6 +14,7 @@ namespace GetBricked.Gameplay
             float pickupFallSpeedMultiplier,
             float wavyPaddleStrength,
             float brickMagnetStrength,
+            float specialBrickEffectMultiplier,
             int extraBallsPerServe)
         {
             PaddleWidthMultiplier = paddleWidthMultiplier;
@@ -22,6 +23,7 @@ namespace GetBricked.Gameplay
             PickupFallSpeedMultiplier = pickupFallSpeedMultiplier;
             WavyPaddleStrength = wavyPaddleStrength;
             BrickMagnetStrength = brickMagnetStrength;
+            SpecialBrickEffectMultiplier = specialBrickEffectMultiplier;
             ExtraBallsPerServe = extraBallsPerServe;
         }
 
@@ -36,6 +38,8 @@ namespace GetBricked.Gameplay
         public float WavyPaddleStrength { get; }
 
         public float BrickMagnetStrength { get; }
+
+        public float SpecialBrickEffectMultiplier { get; }
 
         public int ExtraBallsPerServe { get; }
     }
@@ -227,6 +231,7 @@ namespace GetBricked.Gameplay
             var pickupFallSpeedMultiplier = 1f;
             var wavyPaddleStrength = 0f;
             var brickMagnetStrength = 0f;
+            var specialBrickEffectMultiplier = 1f;
             var extraBallsPerServe = 0;
 
             for (var index = 0; index < chosenUpgrades.Count; index++)
@@ -244,6 +249,7 @@ namespace GetBricked.Gameplay
                 pickupFallSpeedMultiplier *= upgrade.PickupFallSpeedMultiplier;
                 wavyPaddleStrength = Mathf.Max(wavyPaddleStrength, upgrade.WavyPaddleStrength);
                 brickMagnetStrength = Mathf.Max(brickMagnetStrength, upgrade.BrickMagnetStrength);
+                specialBrickEffectMultiplier *= upgrade.SpecialBrickEffectMultiplier;
                 extraBallsPerServe += upgrade.ExtraBallsPerServe;
             }
 
@@ -254,6 +260,7 @@ namespace GetBricked.Gameplay
                 pickupFallSpeedMultiplier,
                 wavyPaddleStrength,
                 brickMagnetStrength,
+                specialBrickEffectMultiplier,
                 extraBallsPerServe);
         }
 

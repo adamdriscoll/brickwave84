@@ -245,7 +245,7 @@ namespace GetBricked.Gameplay
             destroyRuntimeObject(brick.gameObject);
         }
 
-        public int SpawnSplitBricks(BrickDefinition parentDefinition, Vector2 splitCenter)
+        public int SpawnSplitBricks(BrickDefinition parentDefinition, Vector2 splitCenter, float specialBrickEffectMultiplier = 1f)
         {
             var splitDefinition = parentDefinition != null ? parentDefinition.SplitBrickDefinition : null;
 
@@ -255,7 +255,10 @@ namespace GetBricked.Gameplay
             }
 
             var requiredBrickCount = 0;
-            var offsets = BuildSplitBrickOffsets(brickSize, splitDefinition);
+            var offsets = BuildSplitBrickOffsets(
+                brickSize,
+                splitDefinition,
+                ResolveSplitBrickFragmentCount(specialBrickEffectMultiplier));
 
             for (var index = 0; index < offsets.Length; index++)
             {
@@ -378,22 +381,53 @@ namespace GetBricked.Gameplay
 
         internal static Vector2[] BuildSplitBrickOffsets(Vector2 baseBrickSize, BrickDefinition splitDefinition)
         {
+            return BuildSplitBrickOffsets(baseBrickSize, splitDefinition, 4);
+        }
+
+        internal static Vector2[] BuildSplitBrickOffsets(Vector2 baseBrickSize, BrickDefinition splitDefinition, int fragmentCount)
+        {
             if (splitDefinition == null)
             {
                 return Array.Empty<Vector2>();
             }
 
+            var resolvedFragmentCount = Mathf.Clamp(fragmentCount, 1, 8);
+
             var fragmentOffset = new Vector2(
                 baseBrickSize.x * splitDefinition.SizeMultiplier * 0.52f,
                 baseBrickSize.y * splitDefinition.SizeMultiplier * 0.52f);
 
-            return new[]
+            if (resolvedFragmentCount == 4)
             {
-                new Vector2(-fragmentOffset.x, fragmentOffset.y),
-                new Vector2(fragmentOffset.x, fragmentOffset.y),
-                new Vector2(-fragmentOffset.x, -fragmentOffset.y),
-                new Vector2(fragmentOffset.x, -fragmentOffset.y),
-            };
+                return new[]
+                {
+                    new Vector2(-fragmentOffset.x, fragmentOffset.y),
+                    new Vector2(fragmentOffset.x, fragmentOffset.y),
+                    new Vector2(-fragmentOffset.x, -fragmentOffset.y),
+                    new Vector2(fragmentOffset.x, -fragmentOffset.y),
+                };
+            }
+
+            var offsets = new Vector2[resolvedFragmentCount];
+            var radius = Mathf.Max(fragmentOffset.x, fragmentOffset.y);
+            var yScale = fragmentOffset.x > 0.001f
+                ? Mathf.Clamp(fragmentOffset.y / fragmentOffset.x, 0.35f, 1f)
+                : 1f;
+
+            for (var index = 0; index < resolvedFragmentCount; index++)
+            {
+                var angle = (Mathf.PI * 2f * index / resolvedFragmentCount) + (Mathf.PI * 0.25f);
+                offsets[index] = new Vector2(
+                    Mathf.Cos(angle) * radius,
+                    Mathf.Sin(angle) * radius * yScale);
+            }
+
+            return offsets;
+        }
+
+        private static int ResolveSplitBrickFragmentCount(float specialBrickEffectMultiplier)
+        {
+            return Mathf.Clamp(Mathf.RoundToInt(4f * Mathf.Max(1f, specialBrickEffectMultiplier)), 4, 8);
         }
     }
 }

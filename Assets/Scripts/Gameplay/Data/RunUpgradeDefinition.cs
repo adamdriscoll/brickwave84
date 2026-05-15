@@ -23,6 +23,7 @@ namespace GetBricked.Gameplay.Data
         [SerializeField, Min(0.1f)] private float pickupFallSpeedMultiplier = 1f;
         [SerializeField, Range(0f, 1f)] private float wavyPaddleStrength;
         [SerializeField, Range(0f, 1f)] private float brickMagnetStrength;
+        [SerializeField, Min(0.1f)] private float specialBrickEffectMultiplier = 1f;
         [SerializeField, Min(0)] private int extraBallsPerServe;
         [SerializeField, Min(0)] private int bonusLives;
 
@@ -57,6 +58,8 @@ namespace GetBricked.Gameplay.Data
         public float WavyPaddleStrength => Mathf.Clamp01(wavyPaddleStrength);
 
         public float BrickMagnetStrength => Mathf.Clamp01(brickMagnetStrength);
+
+        public float SpecialBrickEffectMultiplier => Mathf.Max(0.1f, specialBrickEffectMultiplier);
 
         public int ExtraBallsPerServe => Mathf.Max(0, extraBallsPerServe);
 

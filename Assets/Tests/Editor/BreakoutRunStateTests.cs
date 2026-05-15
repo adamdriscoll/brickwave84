@@ -38,6 +38,7 @@ public sealed class BreakoutRunStateTests
             pickupFallSpeedMultiplier: 0.84f,
             wavyPaddleStrength: 0.35f,
             brickMagnetStrength: 0.18f,
+            specialBrickEffectMultiplier: 1.25f,
             extraBallsPerServe: 1);
 
         runState.SetPendingDraftOffers(new[] { BreakoutRunDraftOffer.FromRunUpgrade(upgrade) });
@@ -56,6 +57,7 @@ public sealed class BreakoutRunStateTests
         Assert.That(modifiers.PickupFallSpeedMultiplier, Is.EqualTo(0.84f).Within(0.0001f));
         Assert.That(modifiers.WavyPaddleStrength, Is.EqualTo(0.35f).Within(0.0001f));
         Assert.That(modifiers.BrickMagnetStrength, Is.EqualTo(0.18f).Within(0.0001f));
+        Assert.That(modifiers.SpecialBrickEffectMultiplier, Is.EqualTo(1.25f).Within(0.0001f));
         Assert.That(modifiers.ExtraBallsPerServe, Is.EqualTo(1));
     }
 
@@ -140,6 +142,7 @@ public sealed class BreakoutRunStateTests
         float pickupFallSpeedMultiplier = 1f,
         float wavyPaddleStrength = 0f,
         float brickMagnetStrength = 0f,
+        float specialBrickEffectMultiplier = 1f,
         int extraBallsPerServe = 0,
         int bonusLives = 0)
     {
@@ -157,6 +160,7 @@ public sealed class BreakoutRunStateTests
         SetPrivateField(upgrade, "pickupFallSpeedMultiplier", pickupFallSpeedMultiplier);
         SetPrivateField(upgrade, "wavyPaddleStrength", wavyPaddleStrength);
         SetPrivateField(upgrade, "brickMagnetStrength", brickMagnetStrength);
+        SetPrivateField(upgrade, "specialBrickEffectMultiplier", specialBrickEffectMultiplier);
         SetPrivateField(upgrade, "extraBallsPerServe", extraBallsPerServe);
         SetPrivateField(upgrade, "bonusLives", bonusLives);
         return upgrade;

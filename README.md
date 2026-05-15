@@ -12,7 +12,7 @@
   - `4` authored level profiles
   - `9` brick definitions
   - `36` pickup definitions
-  - `7` permanent run upgrades
+  - `8` permanent run upgrades
   - `3` themes
   - `3` authored Rogue paddle definitions (alternate types are currently disabled)
 - Current UI state: runtime OnGUI menus, HUD, pause, upgrade draft, and end-state flow
@@ -136,6 +136,7 @@ Difficulty presets already change more than labels:
   - extra lives
   - extra balls on every serve
   - a persistent mild wavy-paddle modifier
+  - stronger explosive and split-brick effects
 
 ## Content Catalog
 
@@ -227,7 +228,7 @@ Permanent run upgrades are always available in the between-stage draft pool. Dro
 | `Spare Fuse` | The first time you would lose your last life, the cabinet pops a fuse and saves the run once. | Draft pool | N/A | Build | Run upgrade | Proposed |
 | `Combo Cassette` | Consecutive brick breaks build a louder score streak before cooling off between slow moments. | Draft pool | N/A | Build | Run upgrade | Proposed |
 | `Punch Card` | Every few bricks broken stamps the card and triggers a small bonus payout. | Draft pool | N/A | Build | Run upgrade | Proposed |
-| `Hot Shrapnel` | Explosive and split brick effects hit a little harder for the rest of the run. | Draft pool | N/A | Build | Run upgrade | Proposed |
+| `Hot Shrapnel` | Explosive and split brick effects hit a little harder for the rest of the run. | Draft pool | N/A | Build | Run upgrade | Implemented |
 | `Neon Insurance` | Dropped pickups linger longer before fading, giving you more time to route for them. | Draft pool | N/A | Build | Run upgrade | Implemented |
 | `Gremlin Filter` | The next glitch each level is softened, delayed, or reduced in strength. | Draft pool | N/A | Build | Run upgrade | Proposed |
 | `Tilt Warning` | Once per level, a near-miss below the paddle bumps the ball slightly upward instead of losing it. | Draft pool | N/A | Build | Run upgrade | Proposed |

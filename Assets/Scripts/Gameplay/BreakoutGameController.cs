@@ -525,10 +525,11 @@ namespace GetBricked.Gameplay
 
             if (shouldExplode && destructionCause == BrickDestructionCause.Impact && scoringBall != null)
             {
+                var specialBrickEffectMultiplier = GetEffectiveSpecialBrickEffectMultiplier();
                 SplitBallFromExplosiveBrick(
                     scoringBall,
                     explosionCenter,
-                    brickDefinition.ExplosionSpeedMultiplier,
+                    ResolveSpecialBrickSpeedBurstMultiplier(brickDefinition.ExplosionSpeedMultiplier, specialBrickEffectMultiplier),
                     brickDefinition.ExplosionSpeedDuration);
             }
 
@@ -567,7 +568,11 @@ namespace GetBricked.Gameplay
 
             if (shouldExplode)
             {
-                explosionHitCount += brickService.DestroyBricksInExplosionRadius(explosionCenter, brickDefinition.ExplosionRadius, brick, scoringBall);
+                explosionHitCount += brickService.DestroyBricksInExplosionRadius(
+                    explosionCenter,
+                    brickDefinition.ExplosionRadius * GetEffectiveSpecialBrickEffectMultiplier(),
+                    brick,
+                    scoringBall);
             }
 
             if (shouldTriggerExplosiveBall)
@@ -587,7 +592,10 @@ namespace GetBricked.Gameplay
             }
 
             TryTriggerChainLightning(explosionCenter, brick, scoringBall, destructionCause);
-            requiredBricksRemaining += brickService.SpawnSplitBricks(brickDefinition, explosionCenter);
+            requiredBricksRemaining += brickService.SpawnSplitBricks(
+                brickDefinition,
+                explosionCenter,
+                GetEffectiveSpecialBrickEffectMultiplier());
 
             EvaluateLevelCompletion();
         }
@@ -6207,7 +6215,7 @@ namespace GetBricked.Gameplay
         {
             return activeRunState != null
                 ? activeRunState.CalculateModifiers()
-                : new BreakoutRunUpgradeModifiers(1f, 1f, 1f, 1f, 0f, 0f, 0);
+                : new BreakoutRunUpgradeModifiers(1f, 1f, 1f, 1f, 0f, 0f, 1f, 0);
         }
 
         private int GetEffectiveBallsPerServe()
@@ -6233,6 +6241,11 @@ namespace GetBricked.Gameplay
             return Mathf.Clamp01(Mathf.Max(
                 activeEffectModifiers.BrickMagnetStrength,
                 GetPersistentRunUpgradeModifiers().BrickMagnetStrength));
+        }
+
+        private float GetEffectiveSpecialBrickEffectMultiplier()
+        {
+            return Mathf.Clamp(GetPersistentRunUpgradeModifiers().SpecialBrickEffectMultiplier, 1f, 2f);
         }
 
         private int GetChosenUpgradeCount()
@@ -6381,7 +6394,17 @@ namespace GetBricked.Gameplay
                 parts.Add($"Brick pull {upgrade.BrickMagnetStrength:0.00}");
             }
 
+            if (!Mathf.Approximately(upgrade.SpecialBrickEffectMultiplier, 1f))
+            {
+                parts.Add($"Brick FX x{upgrade.SpecialBrickEffectMultiplier:0.00}");
+            }
+
             return parts.Count == 0 ? "Passive build mod" : string.Join(" | ", parts);
+        }
+
+        private static float ResolveSpecialBrickSpeedBurstMultiplier(float speedBurstMultiplier, float specialBrickEffectMultiplier)
+        {
+            return 1f + ((Mathf.Max(1f, speedBurstMultiplier) - 1f) * Mathf.Max(1f, specialBrickEffectMultiplier));
         }
 
         private Color ResolveRunUpgradeAccentColor(RunUpgradeDefinition upgrade)

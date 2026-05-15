@@ -540,6 +540,35 @@ public sealed class BreakoutGameControllerPowerUpTests
     }
 
     [Test]
+    public void HotShrapnelUpgradeExtendsExplosiveBrickBlastRadius()
+    {
+        var controller = CreateControllerHarness(out var paddle);
+        var scoringBall = CreateBallHarness(controller, paddle);
+        var sourceBrick = CreateBrickHarness(controller, "Explosive Brick", 250, Vector2.zero);
+        var nearBrick = CreateBrickHarness(controller, "Near", 100, new Vector2(1.7f, 0f));
+        var farBrick = CreateBrickHarness(controller, "Far", 100, new Vector2(3.5f, 0f));
+        var brickDefinition = sourceBrick.Definition;
+        var activeRunState = new BreakoutRunState();
+        var hotShrapnel = CreateRunUpgrade("hot-shrapnel", specialBrickEffectMultiplier: 1.25f);
+        var activeBalls = GetPrivateField<List<BallController>>(controller, "activeBalls");
+        var bricks = GetPrivateField<List<Brick>>(controller, "bricks");
+
+        SetPrivateField(brickDefinition, "explosive", true);
+        SetPrivateField(brickDefinition, "explosionRadius", 1.5f);
+        activeRunState.SetPendingDraftOffers(new[] { BreakoutRunDraftOffer.FromRunUpgrade(hotShrapnel) });
+        Assert.That(activeRunState.TryApplyPendingDraftOffer(0, out _), Is.True);
+        SetPrivateField(controller, "activeRunState", activeRunState);
+        activeBalls.Add(scoringBall);
+        bricks.Add(sourceBrick);
+        bricks.Add(nearBrick);
+        bricks.Add(farBrick);
+
+        controller.HandleBrickDestroyed(sourceBrick, scoringBall, BrickDestructionCause.Impact);
+
+        Assert.That(bricks, Is.EqualTo(new[] { farBrick }));
+    }
+
+    [Test]
     public void ApplyingShieldWallPowerUpGrantsAndConsumesRescueCharge()
     {
         var controller = CreateControllerHarness(out var paddle);
@@ -1021,6 +1050,18 @@ public sealed class BreakoutGameControllerPowerUpTests
         SetPrivateField(powerUp, "scalar", scalar);
         SetPrivateField(powerUp, "extraBallCount", 0);
         return powerUp;
+    }
+
+    private RunUpgradeDefinition CreateRunUpgrade(string upgradeId, float specialBrickEffectMultiplier)
+    {
+        var upgrade = ScriptableObject.CreateInstance<RunUpgradeDefinition>();
+        runtimeObjects.Add(upgrade);
+        SetPrivateField(upgrade, "upgradeId", upgradeId);
+        SetPrivateField(upgrade, "displayName", upgradeId);
+        SetPrivateField(upgrade, "draftWeight", 1f);
+        SetPrivateField(upgrade, "maxStacks", 1);
+        SetPrivateField(upgrade, "specialBrickEffectMultiplier", specialBrickEffectMultiplier);
+        return upgrade;
     }
 
     private LevelDefinition CreateLevelDefinition(string displayName)

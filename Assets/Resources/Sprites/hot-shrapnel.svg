@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
+  <title id="title">Hot Shrapnel</title>
+  <desc id="desc">A monochrome neon icon showing an explosive brick bursting into sharp heated shards.</desc>
+  <defs>
+    <filter id="softGlow" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="2.25" result="blur"/>
+      <feColorMatrix in="blur" type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 .8 0" result="glow"/>
+      <feMerge>
+        <feMergeNode in="glow"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <style><![CDATA[
+      .icon { fill: none; stroke: #fff; stroke-linecap: round; stroke-linejoin: round; filter: url(#softGlow); }
+      .main { stroke-width: 12; opacity: .94; }
+      .mid { stroke-width: 8; opacity: .86; }
+      .thin { stroke-width: 4; opacity: .46; }
+      .fill { fill: #fff; stroke: none; opacity: .9; filter: url(#softGlow); }
+    ]]></style>
+  </defs>
+  <g class="icon">
+    <rect class="main" x="84" y="86" width="88" height="74" rx="7"/>
+    <path class="mid" d="M103 105h50M103 126h50M103 147h50"/>
+    <path class="main" d="M128 66v-31M128 190v31M66 123H35M190 123h31"/>
+    <path class="mid" d="M84 79L62 57M172 79l22-22M84 167l-22 22M172 167l22 22"/>
+    <path class="thin" d="M99 54l-9-22M157 54l9-22M99 202l-9 22M157 202l9 22"/>
+    <path class="fill" d="M128 94l12 24 26 4-19 18 5 26-24-13-24 13 5-26-19-18 26-4z"/>
+  </g>
+</svg>
