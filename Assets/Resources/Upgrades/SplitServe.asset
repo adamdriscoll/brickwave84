@@ -24,6 +24,7 @@ MonoBehaviour:
   paddleWidthMultiplier: 1
   ballSpeedMultiplier: 1
   dropChanceMultiplier: 1
+  pickupFallSpeedMultiplier: 1
   wavyPaddleStrength: 0
   extraBallsPerServe: 1
   bonusLives: 0

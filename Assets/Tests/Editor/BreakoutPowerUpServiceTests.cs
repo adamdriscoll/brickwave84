@@ -469,6 +469,30 @@ public sealed class BreakoutPowerUpServiceTests
     }
 
     [Test]
+    public void TrySpawnPickupAppliesPickupFallSpeedMultiplier()
+    {
+        var service = CreateService();
+        var powerUp = CreatePowerUp("Wide Paddle", PowerUpEffectType.PaddleWidthMultiplier, true, 10f, 1.2f);
+        var brick = CreateBrick(CreateBrickDefinition(dropChance: 1f, powerUp));
+        var pickupsRoot = CreateRuntimeRoot("Pickups");
+
+        var pickup = service.TrySpawnPickup(
+            brick,
+            activeRunSettings: null,
+            activeRunState: null,
+            effectiveDropChanceMultiplier: 1f,
+            nextGameplayRandomFloat: (_, _) => 0f,
+            pickupsRoot,
+            arenaBottom: -4f,
+            themeService: null,
+            controller: null,
+            pickupFallSpeedMultiplier: 0.5f);
+
+        Assert.That(pickup, Is.Not.Null);
+        Assert.That(GetPrivateField<float>(pickup, "fallSpeed"), Is.EqualTo(1.6f).Within(0.0001f));
+    }
+
+    [Test]
     public void TrySpawnPickupReturnsNullWhenDropDoesNotPassChance()
     {
         var service = CreateService();

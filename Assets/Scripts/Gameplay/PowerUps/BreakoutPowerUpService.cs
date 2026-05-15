@@ -467,7 +467,8 @@ namespace GetBricked.Gameplay
             BreakoutThemeService themeService,
             BreakoutGameController controller,
             PowerUpDefinition forcedDropDefinition = null,
-            IReadOnlyList<PowerUpDefinition> forcedDropCandidatePool = null)
+            IReadOnlyList<PowerUpDefinition> forcedDropCandidatePool = null,
+            float pickupFallSpeedMultiplier = 1f)
         {
             if (brick == null || brick.Definition == null)
             {
@@ -535,7 +536,8 @@ namespace GetBricked.Gameplay
                 pickupsRoot,
                 arenaBottom,
                 themeService,
-                controller);
+                controller,
+                pickupFallSpeedMultiplier);
         }
 
         private static PowerUpDefinition SelectDropFromTable(
@@ -1012,7 +1014,8 @@ namespace GetBricked.Gameplay
             Transform pickupsRoot,
             float arenaBottom,
             BreakoutThemeService themeService,
-            BreakoutGameController controller)
+            BreakoutGameController controller,
+            float pickupFallSpeedMultiplier)
         {
             var pickupObject = new GameObject(powerUpDefinition.DisplayName);
             pickupObject.transform.SetParent(pickupsRoot, false);
@@ -1033,7 +1036,7 @@ namespace GetBricked.Gameplay
             pickup.Configure(
                 controller,
                 powerUpDefinition,
-                pickupFallSpeed,
+                pickupFallSpeed * Mathf.Clamp(pickupFallSpeedMultiplier, 0.35f, 1.5f),
                 arenaBottom - 0.9f,
                 ResolvePickupStartingRotation(powerUpDefinition),
                 ResolvePickupSpinDegreesPerSecond(powerUpDefinition),

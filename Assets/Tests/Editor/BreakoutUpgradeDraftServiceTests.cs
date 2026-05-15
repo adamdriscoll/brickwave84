@@ -247,6 +247,7 @@ public sealed class BreakoutUpgradeDraftServiceTests
         SetPrivateField(upgrade, "paddleWidthMultiplier", 1f);
         SetPrivateField(upgrade, "ballSpeedMultiplier", ballSpeedMultiplier);
         SetPrivateField(upgrade, "dropChanceMultiplier", 1f);
+        SetPrivateField(upgrade, "pickupFallSpeedMultiplier", 1f);
         SetPrivateField(upgrade, "bonusLives", bonusLives);
         return upgrade;
     }

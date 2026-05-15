@@ -10,21 +10,21 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: aa7a315cf1c5489f8503b6d3309305e1, type: 3}
-  m_Name: LuckyCircuit
+  m_Name: NeonInsurance
   m_EditorClassIdentifier: 
-  upgradeId: lucky-circuit
-  displayName: Lucky Circuit
-  hudLabel: LUCK
-  description: Pickup routing stays juiced, raising permanent drop odds for the rest of the cabinet run.
-  draftWeight: 1.1
+  upgradeId: neon-insurance
+  displayName: Neon Insurance
+  hudLabel: INS
+  description: Dropped pickups linger longer before fading, giving you more time to route for them.
+  draftWeight: 0.95
   maxStacks: 3
   excludedUpgradeIds: []
   themeSlot: 9
-  accentColor: {r: 0.01, g: 0.93, b: 0.98, a: 1}
+  accentColor: {r: 0.45, g: 0.95, b: 0.72, a: 1}
   paddleWidthMultiplier: 1
   ballSpeedMultiplier: 1
-  dropChanceMultiplier: 1.2
-  pickupFallSpeedMultiplier: 1
+  dropChanceMultiplier: 1
+  pickupFallSpeedMultiplier: 0.84
   wavyPaddleStrength: 0
   extraBallsPerServe: 0
   bonusLives: 0

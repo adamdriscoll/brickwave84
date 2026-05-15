@@ -11,12 +11,14 @@ namespace GetBricked.Gameplay
             float paddleWidthMultiplier,
             float ballSpeedMultiplier,
             float dropChanceMultiplier,
+            float pickupFallSpeedMultiplier,
             float wavyPaddleStrength,
             int extraBallsPerServe)
         {
             PaddleWidthMultiplier = paddleWidthMultiplier;
             BallSpeedMultiplier = ballSpeedMultiplier;
             DropChanceMultiplier = dropChanceMultiplier;
+            PickupFallSpeedMultiplier = pickupFallSpeedMultiplier;
             WavyPaddleStrength = wavyPaddleStrength;
             ExtraBallsPerServe = extraBallsPerServe;
         }
@@ -26,6 +28,8 @@ namespace GetBricked.Gameplay
         public float BallSpeedMultiplier { get; }
 
         public float DropChanceMultiplier { get; }
+
+        public float PickupFallSpeedMultiplier { get; }
 
         public float WavyPaddleStrength { get; }
 
@@ -216,6 +220,7 @@ namespace GetBricked.Gameplay
             var paddleWidthMultiplier = 1f;
             var ballSpeedMultiplier = 1f;
             var dropChanceMultiplier = 1f;
+            var pickupFallSpeedMultiplier = 1f;
             var wavyPaddleStrength = 0f;
             var extraBallsPerServe = 0;
 
@@ -231,6 +236,7 @@ namespace GetBricked.Gameplay
                 paddleWidthMultiplier *= upgrade.PaddleWidthMultiplier;
                 ballSpeedMultiplier *= upgrade.BallSpeedMultiplier;
                 dropChanceMultiplier *= upgrade.DropChanceMultiplier;
+                pickupFallSpeedMultiplier *= upgrade.PickupFallSpeedMultiplier;
                 wavyPaddleStrength = Mathf.Max(wavyPaddleStrength, upgrade.WavyPaddleStrength);
                 extraBallsPerServe += upgrade.ExtraBallsPerServe;
             }
@@ -239,6 +245,7 @@ namespace GetBricked.Gameplay
                 paddleWidthMultiplier,
                 ballSpeedMultiplier,
                 dropChanceMultiplier,
+                pickupFallSpeedMultiplier,
                 wavyPaddleStrength,
                 extraBallsPerServe);
         }

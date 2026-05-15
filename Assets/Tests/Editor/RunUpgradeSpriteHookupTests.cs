@@ -7,6 +7,7 @@ public sealed class RunUpgradeSpriteHookupTests
     [TestCase("Upgrades/Afterburn", "Sprites/afterburn")]
     [TestCase("Upgrades/FluxLine", "Sprites/flux-line")]
     [TestCase("Upgrades/LuckyCircuit", "Sprites/lucky-circuit")]
+    [TestCase("Upgrades/NeonInsurance", "Sprites/neon-insurance")]
     [TestCase("Upgrades/RepairStock", "Sprites/repair-stock")]
     [TestCase("Upgrades/SplitServe", "Sprites/split-serve")]
     [TestCase("Upgrades/WideLoader", "Sprites/wide-loader")]

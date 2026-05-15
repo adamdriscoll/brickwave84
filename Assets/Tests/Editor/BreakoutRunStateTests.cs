@@ -35,6 +35,7 @@ public sealed class BreakoutRunStateTests
             paddleWidthMultiplier: 1.15f,
             ballSpeedMultiplier: 1.08f,
             dropChanceMultiplier: 1.2f,
+            pickupFallSpeedMultiplier: 0.84f,
             wavyPaddleStrength: 0.35f,
             extraBallsPerServe: 1);
 
@@ -51,6 +52,7 @@ public sealed class BreakoutRunStateTests
         Assert.That(modifiers.PaddleWidthMultiplier, Is.EqualTo(1.15f).Within(0.0001f));
         Assert.That(modifiers.BallSpeedMultiplier, Is.EqualTo(1.08f).Within(0.0001f));
         Assert.That(modifiers.DropChanceMultiplier, Is.EqualTo(1.2f).Within(0.0001f));
+        Assert.That(modifiers.PickupFallSpeedMultiplier, Is.EqualTo(0.84f).Within(0.0001f));
         Assert.That(modifiers.WavyPaddleStrength, Is.EqualTo(0.35f).Within(0.0001f));
         Assert.That(modifiers.ExtraBallsPerServe, Is.EqualTo(1));
     }
@@ -133,6 +135,7 @@ public sealed class BreakoutRunStateTests
         float paddleWidthMultiplier = 1f,
         float ballSpeedMultiplier = 1f,
         float dropChanceMultiplier = 1f,
+        float pickupFallSpeedMultiplier = 1f,
         float wavyPaddleStrength = 0f,
         int extraBallsPerServe = 0,
         int bonusLives = 0)
@@ -148,6 +151,7 @@ public sealed class BreakoutRunStateTests
         SetPrivateField(upgrade, "paddleWidthMultiplier", paddleWidthMultiplier);
         SetPrivateField(upgrade, "ballSpeedMultiplier", ballSpeedMultiplier);
         SetPrivateField(upgrade, "dropChanceMultiplier", dropChanceMultiplier);
+        SetPrivateField(upgrade, "pickupFallSpeedMultiplier", pickupFallSpeedMultiplier);
         SetPrivateField(upgrade, "wavyPaddleStrength", wavyPaddleStrength);
         SetPrivateField(upgrade, "extraBallsPerServe", extraBallsPerServe);
         SetPrivateField(upgrade, "bonusLives", bonusLives);

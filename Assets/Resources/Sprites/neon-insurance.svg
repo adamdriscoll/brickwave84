@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
+  <title id="title">Neon Insurance</title>
+  <desc id="desc">A monochrome neon icon showing a shield slowing a falling capsule.</desc>
+
+  <defs>
+    <filter id="softGlow" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="2.25" result="blur"/>
+      <feColorMatrix in="blur" type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 .8 0" result="glow"/>
+      <feMerge>
+        <feMergeNode in="glow"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <style><![CDATA[
+      .icon { fill: none; stroke: #fff; stroke-linecap: round; stroke-linejoin: round; filter: url(#softGlow); }
+      .main { stroke-width: 10; opacity: .96; }
+      .mid { stroke-width: 7; opacity: .82; }
+      .thin { stroke-width: 4; opacity: .48; }
+      .fill { fill: #fff; stroke: none; opacity: .92; filter: url(#softGlow); }
+      .soft { fill: #fff; stroke: none; opacity: .2; filter: url(#softGlow); }
+    ]]></style>
+  </defs>
+
+  <g class="icon">
+    <path class="main" d="M128 38 L190 62 V118 C190 159 164 193 128 213 C92 193 66 159 66 118 V62 Z"/>
+    <path class="thin" d="M128 61 L169 77 V118 C169 145 153 169 128 186 C103 169 87 145 87 118 V77 Z"/>
+
+    <rect class="main" x="104" y="72" width="48" height="76" rx="24"/>
+    <path class="mid" d="M105 110 H151"/>
+    <path class="thin" d="M82 87 H54"/>
+    <path class="thin" d="M82 111 H46"/>
+    <path class="thin" d="M82 135 H56"/>
+    <path class="thin" d="M174 87 H202"/>
+    <path class="thin" d="M174 111 H210"/>
+    <path class="thin" d="M174 135 H200"/>
+
+    <path class="mid" d="M99 171 C115 161 141 161 157 171"/>
+    <path class="thin" d="M91 190 C113 177 143 177 165 190"/>
+    <circle class="fill" cx="128" cy="89" r="5"/>
+    <circle class="fill" cx="128" cy="132" r="5"/>
+    <circle class="soft" cx="128" cy="110" r="40"/>
+  </g>
+</svg>

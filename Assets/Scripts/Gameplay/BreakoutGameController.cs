@@ -5153,7 +5153,8 @@ namespace GetBricked.Gameplay
                 themeService,
                 this,
                 ResolveDeveloperForcedDrop(),
-                loadedPowerUpDefinitions);
+                loadedPowerUpDefinitions,
+                GetEffectivePickupFallSpeedMultiplier());
 
             if (spawnedPickup != null)
             {
@@ -6206,7 +6207,7 @@ namespace GetBricked.Gameplay
         {
             return activeRunState != null
                 ? activeRunState.CalculateModifiers()
-                : new BreakoutRunUpgradeModifiers(1f, 1f, 1f, 0f, 0);
+                : new BreakoutRunUpgradeModifiers(1f, 1f, 1f, 1f, 0f, 0);
         }
 
         private int GetEffectiveBallsPerServe()
@@ -6220,6 +6221,11 @@ namespace GetBricked.Gameplay
         {
             var baseMultiplier = activeRunSettings?.DropChanceMultiplier ?? 1f;
             return Mathf.Clamp(baseMultiplier * GetPersistentRunUpgradeModifiers().DropChanceMultiplier, 0f, 3f);
+        }
+
+        private float GetEffectivePickupFallSpeedMultiplier()
+        {
+            return Mathf.Clamp(GetPersistentRunUpgradeModifiers().PickupFallSpeedMultiplier, 0.35f, 1.5f);
         }
 
         private int GetChosenUpgradeCount()
@@ -6341,6 +6347,11 @@ namespace GetBricked.Gameplay
             if (!Mathf.Approximately(upgrade.DropChanceMultiplier, 1f))
             {
                 parts.Add($"Drops x{upgrade.DropChanceMultiplier:0.00}");
+            }
+
+            if (!Mathf.Approximately(upgrade.PickupFallSpeedMultiplier, 1f))
+            {
+                parts.Add($"Pickup fall x{upgrade.PickupFallSpeedMultiplier:0.00}");
             }
 
             if (upgrade.ExtraBallsPerServe > 0)

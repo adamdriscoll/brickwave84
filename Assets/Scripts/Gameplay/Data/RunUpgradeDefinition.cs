@@ -20,6 +20,7 @@ namespace GetBricked.Gameplay.Data
         [SerializeField, Min(0.1f)] private float paddleWidthMultiplier = 1f;
         [SerializeField, Min(0.1f)] private float ballSpeedMultiplier = 1f;
         [SerializeField, Min(0.1f)] private float dropChanceMultiplier = 1f;
+        [SerializeField, Min(0.1f)] private float pickupFallSpeedMultiplier = 1f;
         [SerializeField, Range(0f, 1f)] private float wavyPaddleStrength;
         [SerializeField, Min(0)] private int extraBallsPerServe;
         [SerializeField, Min(0)] private int bonusLives;
@@ -49,6 +50,8 @@ namespace GetBricked.Gameplay.Data
         public float BallSpeedMultiplier => Mathf.Max(0.1f, ballSpeedMultiplier);
 
         public float DropChanceMultiplier => Mathf.Max(0.1f, dropChanceMultiplier);
+
+        public float PickupFallSpeedMultiplier => Mathf.Max(0.1f, pickupFallSpeedMultiplier);
 
         public float WavyPaddleStrength => Mathf.Clamp01(wavyPaddleStrength);
 

@@ -12,7 +12,7 @@
   - `4` authored level profiles
   - `9` brick definitions
   - `36` pickup definitions
-  - `6` permanent run upgrades
+  - `7` permanent run upgrades
   - `3` themes
   - `3` authored Rogue paddle definitions (alternate types are currently disabled)
 - Current UI state: runtime OnGUI menus, HUD, pause, upgrade draft, and end-state flow
@@ -223,6 +223,16 @@ Permanent run upgrades are always available in the between-stage draft pool. Dro
 | `Repair Stock` | A stocked service bay grants an immediate extra life and keeps the cabinet run alive longer. | Draft pool | N/A | Build | Run upgrade | Implemented |
 | `Split Serve` | Every new serve launches an extra ball, letting the run snowball faster between resets. | Draft pool | N/A | Build | Run upgrade | Implemented |
 | `Wide Loader` | Your paddle chassis expands for the rest of the run, opening more forgiving save angles. | Draft pool | N/A | Build | Run upgrade | Implemented |
+| `Brick Magnet` | Fresh serves tug slightly toward uncleared brick clusters, helping dead runs find action faster. | Draft pool | N/A | Build | Run upgrade | Proposed |
+| `Spare Fuse` | The first time you would lose your last life, the cabinet pops a fuse and saves the run once. | Draft pool | N/A | Build | Run upgrade | Proposed |
+| `Combo Cassette` | Consecutive brick breaks build a louder score streak before cooling off between slow moments. | Draft pool | N/A | Build | Run upgrade | Proposed |
+| `Punch Card` | Every few bricks broken stamps the card and triggers a small bonus payout. | Draft pool | N/A | Build | Run upgrade | Proposed |
+| `Hot Shrapnel` | Explosive and split brick effects hit a little harder for the rest of the run. | Draft pool | N/A | Build | Run upgrade | Proposed |
+| `Neon Insurance` | Dropped pickups linger longer before fading, giving you more time to route for them. | Draft pool | N/A | Build | Run upgrade | Implemented |
+| `Gremlin Filter` | The next glitch each level is softened, delayed, or reduced in strength. | Draft pool | N/A | Build | Run upgrade | Proposed |
+| `Tilt Warning` | Once per level, a near-miss below the paddle bumps the ball slightly upward instead of losing it. | Draft pool | N/A | Build | Run upgrade | Proposed |
+| `Arcade Grease` | Paddle movement gets smoother and slightly more responsive for the rest of the run. | Draft pool | N/A | Build | Run upgrade | Proposed |
+| `Prize Hopper` | The first pickup collected each level has a chance to duplicate itself. | Draft pool | N/A | Build | Run upgrade | Proposed |
 
 ### Themes
 
