@@ -260,6 +260,28 @@ public sealed class BreakoutPowerUpServiceTests
     }
 
     [Test]
+    public void PrismPopConsumesOneArmedChargeAtATime()
+    {
+        var service = CreateService();
+        var prismPop = CreatePowerUp("Prism Pop", PowerUpEffectType.PrismPop, true, 10f, 4f, BreakoutContentRarity.Epic);
+
+        service.ApplyPowerUp(prismPop, null);
+        service.ApplyPowerUp(prismPop, null);
+
+        Assert.That(service.ActiveTimedEffects, Has.Count.EqualTo(1));
+        Assert.That(service.ActiveTimedEffects[0].StackCount, Is.EqualTo(2));
+        Assert.That(service.TryConsumePrismPopCharge(out var firstDefinition, out var firstMultiplier), Is.True);
+        Assert.That(firstDefinition, Is.SameAs(prismPop));
+        Assert.That(firstMultiplier, Is.EqualTo(1f).Within(0.0001f));
+        Assert.That(service.ActiveTimedEffects, Has.Count.EqualTo(1));
+        Assert.That(service.ActiveTimedEffects[0].StackCount, Is.EqualTo(1));
+        Assert.That(service.TryConsumePrismPopCharge(out var secondDefinition, out _), Is.True);
+        Assert.That(secondDefinition, Is.SameAs(prismPop));
+        Assert.That(service.ActiveTimedEffects, Is.Empty);
+        Assert.That(service.TryConsumePrismPopCharge(out _, out _), Is.False);
+    }
+
+    [Test]
     public void BankBonusChargeCapsToPreventWallFarming()
     {
         var service = CreateService();

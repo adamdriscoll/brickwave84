@@ -28,6 +28,10 @@ namespace GetBricked.Gameplay
         private const float ExplosiveBallSpeedBurstDuration = 1.45f;
         private const int ExplosiveBrickSplitBallCount = 3;
         private const float ExplosiveBrickSplitBallSizeMultiplier = 0.55f;
+        private const float PrismPopCopyBallSizeMultiplier = 0.72f;
+        private const float PrismPopFallbackCopyLifetimeSeconds = 4f;
+        private const float PrismPopLaunchOffsetMultiplier = 1.15f;
+        private const float PrismPopMinimumHorizontalDirection = 0.22f;
         private const float TurboRailSpeedBurstMultiplier = 1.35f;
         private const float TurboRailSpeedBurstDuration = 4f;
         private const float TurboRailSpeedBurstStackMultiplier = 0.12f;
@@ -99,6 +103,19 @@ namespace GetBricked.Gameplay
             QuitGame,
         }
 
+        private sealed class TemporaryBallLifetime
+        {
+            public TemporaryBallLifetime(BallController ball, float remainingSeconds)
+            {
+                Ball = ball;
+                RemainingSeconds = Mathf.Max(0f, remainingSeconds);
+            }
+
+            public BallController Ball { get; }
+
+            public float RemainingSeconds { get; set; }
+        }
+
         [Header("Camera")]
         [SerializeField] private float cameraHalfHeight = 5.2f;
         [SerializeField] private Color backgroundColor = new Color(0.07f, 0.03f, 0.08f, 1f);
@@ -159,6 +176,7 @@ namespace GetBricked.Gameplay
         private readonly List<RunUpgradeDefinition> loadedRunUpgradeDefinitions = new List<RunUpgradeDefinition>();
         private readonly List<PowerUpDefinition> loadedPowerUpDefinitions = new List<PowerUpDefinition>();
         private readonly List<BallController> activeBalls = new List<BallController>();
+        private readonly List<TemporaryBallLifetime> temporaryBallLifetimes = new List<TemporaryBallLifetime>();
         private readonly List<SpriteRenderer> wallRenderers = new List<SpriteRenderer>();
         private readonly Dictionary<string, Sprite> runUpgradeSpriteCache = new Dictionary<string, Sprite>(StringComparer.OrdinalIgnoreCase);
         private readonly Dictionary<string, Sprite> powerUpIconSpriteCache = new Dictionary<string, Sprite>(StringComparer.OrdinalIgnoreCase);
@@ -389,6 +407,7 @@ namespace GetBricked.Gameplay
         private void Update()
         {
             UpdateTimedEffects();
+            UpdateTemporaryBallLifetimes();
             RefreshBrickMagnetTargets();
             RefreshCapsuleMagnetTargets();
             UpdateVectorSightVisual();
@@ -534,6 +553,7 @@ namespace GetBricked.Gameplay
             }
 
             scoreService?.RegisterBrickScoreEvent(scoringBall, scoreAward.BasePoints > 0, Time.time);
+            TryTriggerPrismPop(scoringBall, explosionCenter, destructionCause);
             TrySpawnPickup(brick);
 
             if (brick.CountsTowardLevelCompletion)
@@ -579,6 +599,7 @@ namespace GetBricked.Gameplay
                 return;
             }
 
+            RemoveTemporaryBallLifetime(lostBall);
             var isServeBall = lostBall == serveBall;
             if (lostBall == stickyCaughtBall)
             {
@@ -791,11 +812,12 @@ namespace GetBricked.Gameplay
             runStatsService?.RegisterBallLaunched();
         }
 
-        public void HandleBrickHit(Brick brick)
+        public void HandleBrickHit(Brick brick, BallController scoringBall = null)
         {
             runStatsService?.RegisterBrickHit();
             audioService?.PlayBrickHit(brick?.Definition);
             AwardBankBonusIfAvailable(brick != null ? (Vector2)brick.transform.position : Vector2.zero);
+            TryTriggerPrismPop(scoringBall, brick != null ? (Vector2)brick.transform.position : Vector2.zero, BrickDestructionCause.Impact);
         }
 
         public void HandlePickupCaught(PowerUpPickup pickup)
@@ -1037,6 +1059,7 @@ namespace GetBricked.Gameplay
             ClearLevelGlitches();
             StopAllBalls();
             DestroyAdditionalBalls();
+            temporaryBallLifetimes.Clear();
             activeBalls.Clear();
             activeRunState?.ClearPendingDraftOffers();
             selectedUpgradeDraftIndex = 0;
@@ -1132,6 +1155,7 @@ namespace GetBricked.Gameplay
             ClearPickups();
             StopAllBalls();
             DestroyAdditionalBalls();
+            temporaryBallLifetimes.Clear();
             activeBalls.Clear();
             stickyCaughtBall = null;
         }
@@ -2629,6 +2653,7 @@ namespace GetBricked.Gameplay
             runStatsService?.ResetMovementTracking();
             EnsureServeBallExists();
             DestroyAdditionalBalls();
+            temporaryBallLifetimes.Clear();
             activeBalls.Clear();
             serveBall.SetMovementSpeed(GetCurrentBallSpeed());
             serveBall.ResetToPaddle();
@@ -5526,6 +5551,88 @@ namespace GetBricked.Gameplay
             }
         }
 
+        private void TryTriggerPrismPop(BallController sourceBall, Vector2 splitCenter, BrickDestructionCause destructionCause)
+        {
+            if (destructionCause != BrickDestructionCause.Impact
+                || sourceBall == null
+                || ballSpawnService == null
+                || powerUpService == null
+                || !powerUpService.TryConsumePrismPopCharge(out var prismPopDefinition, out var effectMultiplier))
+            {
+                return;
+            }
+
+            SpawnPrismPopCopyBall(sourceBall, splitCenter, prismPopDefinition, effectMultiplier);
+            ApplyActiveEffects();
+        }
+
+        private void SpawnPrismPopCopyBall(
+            BallController sourceBall,
+            Vector2 splitCenter,
+            PowerUpDefinition prismPopDefinition,
+            float effectMultiplier)
+        {
+            var sourceDirection = ResolveBallTravelDirection(sourceBall);
+            var copyDirection = ResolvePrismPopCopyDirection(sourceDirection);
+            var copyBall = CreateBall(false);
+            copyBall.SetBaseSizeMultiplier(PrismPopCopyBallSizeMultiplier);
+            copyBall.SetWorldPosition(splitCenter + (copyDirection * ResolvePrismPopLaunchOffset()));
+            copyBall.Launch(copyDirection);
+            activeBalls.Add(copyBall);
+            temporaryBallLifetimes.Add(new TemporaryBallLifetime(
+                copyBall,
+                ResolvePrismPopCopyLifetime(prismPopDefinition, effectMultiplier)));
+            powerUpService?.ShowStatusBanner("PRISM POP!", ResolvePrismPopColor(prismPopDefinition), 1.25f);
+        }
+
+        private Vector2 ResolveBallTravelDirection(BallController ball)
+        {
+            if (ball == null)
+            {
+                return Vector2.up;
+            }
+
+            var velocity = ball.CurrentVelocity;
+            return velocity.sqrMagnitude > 0.01f ? velocity.normalized : Vector2.up;
+        }
+
+        private Vector2 ResolvePrismPopCopyDirection(Vector2 sourceDirection)
+        {
+            var resolvedDirection = sourceDirection.sqrMagnitude > 0.01f ? sourceDirection.normalized : Vector2.up;
+            var mirroredDirection = new Vector2(-resolvedDirection.x, resolvedDirection.y);
+
+            if (Mathf.Abs(mirroredDirection.x) < PrismPopMinimumHorizontalDirection)
+            {
+                var horizontalSign = NextGameplayRandomBool() ? -1f : 1f;
+                mirroredDirection.x = PrismPopMinimumHorizontalDirection * horizontalSign;
+            }
+
+            return mirroredDirection.sqrMagnitude > 0.01f ? mirroredDirection.normalized : Vector2.up;
+        }
+
+        private float ResolvePrismPopCopyLifetime(PowerUpDefinition definition, float effectMultiplier)
+        {
+            var baseLifetime = definition != null && definition.Scalar > 0f
+                ? definition.Scalar
+                : PrismPopFallbackCopyLifetimeSeconds;
+            return Mathf.Max(0.5f, baseLifetime * Mathf.Max(0.1f, effectMultiplier));
+        }
+
+        private float ResolvePrismPopLaunchOffset()
+        {
+            return Mathf.Max(0.04f, ballRadius * PrismPopCopyBallSizeMultiplier * PrismPopLaunchOffsetMultiplier);
+        }
+
+        private Color ResolvePrismPopColor(PowerUpDefinition definition)
+        {
+            if (themeService != null && definition != null)
+            {
+                return themeService.ResolvePowerUpStyle(definition).PrimaryColor;
+            }
+
+            return definition != null ? definition.PickupColor : new Color(0.01f, 0.93f, 0.98f, 1f);
+        }
+
         private void SplitBallFromExplosiveBrick(
             BallController sourceBall,
             Vector2 splitCenter,
@@ -5592,6 +5699,94 @@ namespace GetBricked.Gameplay
             }
 
             return directions;
+        }
+
+        private void UpdateTemporaryBallLifetimes()
+        {
+            if (!IsGameplaySimulationActive() || temporaryBallLifetimes.Count == 0)
+            {
+                return;
+            }
+
+            for (var index = temporaryBallLifetimes.Count - 1; index >= 0; index--)
+            {
+                var lifetime = temporaryBallLifetimes[index];
+                var ball = lifetime.Ball;
+
+                if (ball == null)
+                {
+                    temporaryBallLifetimes.RemoveAt(index);
+                    continue;
+                }
+
+                lifetime.RemainingSeconds = Mathf.Max(0f, lifetime.RemainingSeconds - Time.deltaTime);
+
+                if (lifetime.RemainingSeconds > 0f)
+                {
+                    continue;
+                }
+
+                ExpireTemporaryBall(index, ball);
+            }
+        }
+
+        private void ExpireTemporaryBall(int lifetimeIndex, BallController ball)
+        {
+            temporaryBallLifetimes.RemoveAt(lifetimeIndex);
+
+            if (ball == null)
+            {
+                return;
+            }
+
+            if (CountActiveBallsExcluding(ball) <= 0)
+            {
+                HandleBallLost(ball);
+                return;
+            }
+
+            if (stickyCaughtBall == ball)
+            {
+                stickyCaughtBall = null;
+            }
+
+            activeBalls.Remove(ball);
+            ball.Stop();
+            ball.gameObject.SetActive(false);
+            DestroyRuntimeObject(ball.gameObject);
+        }
+
+        private int CountActiveBallsExcluding(BallController excludedBall)
+        {
+            var count = 0;
+
+            for (var index = 0; index < activeBalls.Count; index++)
+            {
+                var activeBall = activeBalls[index];
+
+                if (activeBall != null && activeBall != excludedBall)
+                {
+                    count++;
+                }
+            }
+
+            return count;
+        }
+
+        private void RemoveTemporaryBallLifetime(BallController ball)
+        {
+            if (ball == null)
+            {
+                return;
+            }
+
+            for (var index = temporaryBallLifetimes.Count - 1; index >= 0; index--)
+            {
+                if (temporaryBallLifetimes[index].Ball == ball)
+                {
+                    temporaryBallLifetimes.RemoveAt(index);
+                }
+            }
         }
 
         private void ClearPickups()
@@ -5672,6 +5867,7 @@ namespace GetBricked.Gameplay
                     continue;
                 }
 
+                RemoveTemporaryBallLifetime(activeBall);
                 DestroyRuntimeObject(activeBall.gameObject);
             }
         }
@@ -6104,6 +6300,7 @@ namespace GetBricked.Gameplay
                 PowerUpEffectType.VectorSight => $"Aim preview for {definition.DurationSeconds:0.#}s",
                 PowerUpEffectType.CapsuleMagnet => $"Helpful capsules drift for {definition.DurationSeconds:0.#}s",
                 PowerUpEffectType.BankBonus => $"+{Mathf.Max(1, Mathf.RoundToInt(definition.Scalar))}/wall bank for {definition.DurationSeconds:0.#}s",
+                PowerUpEffectType.PrismPop => $"Next brick hit splits a {definition.Scalar:0.#}s copy ball",
                 PowerUpEffectType.RandomHarmfulDrop => "Disguised random hazard",
                 _ => $"{definition.HudLabel} for {definition.DurationSeconds:0.#}s",
             };

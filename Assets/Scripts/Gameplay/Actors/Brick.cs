@@ -223,7 +223,7 @@ namespace GetBricked.Gameplay
 
             if (!definition.IsBreakable)
             {
-                gameController?.HandleBrickHit(this);
+                gameController?.HandleBrickHit(this, scoringBall);
                 return;
             }
 
@@ -498,7 +498,7 @@ namespace GetBricked.Gameplay
                 return;
             }
 
-            gameController?.HandleBrickHit(this);
+            gameController?.HandleBrickHit(this, scoringBall);
             RefreshVisual();
         }
 

@@ -63,7 +63,6 @@ namespace GetBricked.Gameplay
             new BreakoutProgressionPlaceholderItem("Chrome Rail", "Drop", "Control", "Paddle widens slightly and sends cleaner bank angles.", 32, ControlAccent),
             new BreakoutProgressionPlaceholderItem("Clean Catch", "Drop", "Control", "Next paddle hit catches, then releases with stronger aim.", 33, ControlAccent),
             new BreakoutProgressionPlaceholderItem("Solar Shot", "Drop", "Damage", "Ball burns through the next weak brick it touches.", 35, DamageAccent),
-            new BreakoutProgressionPlaceholderItem("Prism Pop", "Drop", "Split", "First brick hit splits a short-lived copy ball.", 36, SplitAccent),
         };
 
         private static readonly BreakoutProgressionPlaceholderItem[] PlaceholderGlitches =
@@ -245,6 +244,7 @@ namespace GetBricked.Gameplay
                 PowerUpEffectType.RandomHarmfulDrop => "Looks helpful, then rolls a random hazard.",
                 PowerUpEffectType.CapsuleMagnet => $"Nearby helpful capsules drift toward the paddle for {definition.DurationSeconds:0.#}s.",
                 PowerUpEffectType.BankBonus => $"Wall bounces bank +{Mathf.Max(1, Mathf.RoundToInt(definition.Scalar))} points until the next brick hit for {definition.DurationSeconds:0.#}s.",
+                PowerUpEffectType.PrismPop => $"First brick hit within {definition.DurationSeconds:0.#}s splits a short-lived copy ball.",
                 _ => $"{definition.HudLabel} for {definition.DurationSeconds:0.#}s.",
             };
         }

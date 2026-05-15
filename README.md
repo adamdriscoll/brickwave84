@@ -11,7 +11,7 @@
 - Current content counts:
   - `4` authored level profiles
   - `9` brick definitions
-  - `33` pickup definitions
+  - `36` pickup definitions
   - `6` permanent run upgrades
   - `3` themes
   - `3` authored Rogue paddle definitions (alternate types are currently disabled)
@@ -164,7 +164,7 @@ Difficulty presets already change more than labels:
 
 ### Unlock Progression
 
-Permanent run upgrades are always available in the between-stage draft pool. Drop and glitch unlocks enter the Neon Ladder ecosystem through a front-loaded one-unlock-per-Heat ladder: implemented content runs from Heat `01` through Heat `31`, then the current placeholder backlog runs from Heat `32` onward. Default drops and default glitches start unlocked for Neon Ladder runs. Rarity still tunes odds and draft weighting, but it no longer bundles multiple new unlocks onto the same Heat. Implementation status tracks whether the item has live runtime gameplay behavior or is currently only a progression-screen placeholder.
+Permanent run upgrades are always available in the between-stage draft pool. Drop and glitch unlocks enter the Neon Ladder ecosystem through a front-loaded one-unlock-per-Heat ladder: implemented content runs from Heat `01` through Heat `31`, with additional live drops at Heat `34` and Heat `36` among the placeholder backlog. Default drops and default glitches start unlocked for Neon Ladder runs. Rarity still tunes odds and draft weighting, but it no longer bundles multiple new unlocks onto the same Heat. Implementation status tracks whether the item has live runtime gameplay behavior or is currently only a progression-screen placeholder.
 
 | Name | Description | Default / unlock level | Rarity | Polarity | Type | Implementation |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -208,7 +208,7 @@ Permanent run upgrades are always available in the between-stage draft pool. Dro
 | `Clean Catch` | Next paddle hit catches, then releases with stronger aim. | Heat 33 | N/A | Helpful | Control drop | Not implemented (UI placeholder) |
 | `Bank Bonus` | Wall bounces bank +50 points until the next brick hit for 12s. | Heat 34 | Epic | Helpful | Precision drop | Implemented |
 | `Solar Shot` | Ball burns through the next weak brick it touches. | Heat 35 | N/A | Helpful | Damage drop | Not implemented (UI placeholder) |
-| `Prism Pop` | First brick hit splits a short-lived copy ball. | Heat 36 | N/A | Helpful | Split drop | Not implemented (UI placeholder) |
+| `Prism Pop` | First brick hit within 10s splits a short-lived copy ball. | Heat 36 | Epic | Helpful | Split drop | Implemented |
 | `Mirror Grid` | Brick layout mirrors horizontally halfway through the stage. | Heat 37 | N/A | Glitch | Layout glitch | Not implemented (UI placeholder) |
 | `Row Rewrite` | One row rerolls into a new brick pattern after a timer. | Heat 38 | N/A | Glitch | Layout glitch | Not implemented (UI placeholder) |
 | `Prism Lanes` | Marked lanes refract the ball into sharper angles. | Heat 39 | N/A | Glitch | Precision glitch | Not implemented (UI placeholder) |

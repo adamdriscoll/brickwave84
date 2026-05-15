@@ -31,6 +31,17 @@ namespace GetBricked.Gameplay
             RemainingDuration = Mathf.Max(0f, durationSeconds);
         }
 
+        public bool ConsumeStack()
+        {
+            if (StackCount <= 1)
+            {
+                return false;
+            }
+
+            StackCount -= 1;
+            return true;
+        }
+
         public void MultiplyEffect(float multiplier)
         {
             EffectMultiplier *= Mathf.Max(0.1f, multiplier);
@@ -736,6 +747,35 @@ namespace GetBricked.Gameplay
 
             BankBonusChargePoints = 0;
             return true;
+        }
+
+        public bool TryConsumePrismPopCharge(out PowerUpDefinition definition, out float effectMultiplier)
+        {
+            definition = null;
+            effectMultiplier = 1f;
+
+            for (var index = ActiveTimedEffects.Count - 1; index >= 0; index--)
+            {
+                var activeEffect = ActiveTimedEffects[index];
+                var activeDefinition = activeEffect?.Definition;
+
+                if (activeDefinition == null || activeDefinition.EffectType != PowerUpEffectType.PrismPop)
+                {
+                    continue;
+                }
+
+                definition = activeDefinition;
+                effectMultiplier = activeEffect.EffectMultiplier;
+
+                if (!activeEffect.ConsumeStack())
+                {
+                    ActiveTimedEffects.RemoveAt(index);
+                }
+
+                return true;
+            }
+
+            return false;
         }
 
         public void ClearBankBonusCharge()

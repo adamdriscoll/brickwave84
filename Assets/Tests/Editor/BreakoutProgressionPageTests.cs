@@ -93,7 +93,7 @@ public sealed class BreakoutProgressionPageTests
             .Select(definition => definition.LadderUnlockIntensity)
             .OrderBy(heat => heat)
             .ToArray();
-        var expectedDropHeats = Enumerable.Range(1, 30).Append(34).ToArray();
+        var expectedDropHeats = Enumerable.Range(1, 30).Append(34).Append(36).ToArray();
 
         Assert.That(unlockHeats, Is.EqualTo(expectedDropHeats));
 
@@ -118,6 +118,22 @@ public sealed class BreakoutProgressionPageTests
         Assert.That(card.Description, Does.Contain("Wall bounces bank +50 points"));
         Assert.That(card.Family, Does.Contain("Epic Helpful"));
         Assert.That(card.StateLabel, Is.EqualTo("Locked"));
+    }
+
+    [Test]
+    public void ProgressionPageShowsPrismPopAsLiveHeatThirtySixDrop()
+    {
+        var prismPop = Resources.Load<PowerUpDefinition>("PowerUps/PrismPop");
+        Assert.That(prismPop, Is.Not.Null);
+
+        var view = new BreakoutProgressionPageService().BuildView(new[] { prismPop });
+        var card = view.Cards.First(item => item.Title == "Prism Pop");
+
+        Assert.That(card.UnlockHint, Does.Contain("Heat 36"));
+        Assert.That(card.Description, Does.Contain("short-lived copy ball"));
+        Assert.That(card.Family, Does.Contain("Epic Helpful"));
+        Assert.That(card.StateLabel, Is.EqualTo("Locked"));
+        Assert.That(view.Cards.Count(item => item.Title == "Prism Pop"), Is.EqualTo(1));
     }
 
     [Test]

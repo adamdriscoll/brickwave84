@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
+  <title id="title">Prism Pop</title>
+  <desc id="desc">A monochrome neon icon showing a ball splitting into a mirrored copy through a prism.</desc>
+  <defs>
+    <filter id="softGlow" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="2.25" result="blur"/>
+      <feColorMatrix in="blur" type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 .8 0" result="glow"/>
+      <feMerge>
+        <feMergeNode in="glow"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <style><![CDATA[
+      .icon { fill: none; stroke: #fff; stroke-linecap: round; stroke-linejoin: round; filter: url(#softGlow); }
+      .main { stroke-width: 11; opacity: .94; }
+      .beam { stroke-width: 8; opacity: .82; }
+      .echo { stroke-width: 4; opacity: .34; }
+      .core { fill: #fff; stroke: none; opacity: .96; filter: url(#softGlow); }
+      .copy { fill: #fff; stroke: none; opacity: .58; filter: url(#softGlow); }
+    ]]></style>
+  </defs>
+  <g class="icon">
+    <path class="main" d="M128 50 L184 154 H72 Z"/>
+    <path class="echo" d="M128 76 L162 143 H94 Z"/>
+    <path class="beam" d="M42 112 H98"/>
+    <path class="beam" d="M158 112 L214 70"/>
+    <path class="beam" d="M158 112 L214 154"/>
+    <path class="echo" d="M163 128 L204 188"/>
+    <circle class="core" cx="42" cy="112" r="17"/>
+    <circle class="copy" cx="214" cy="70" r="13"/>
+    <circle class="copy" cx="214" cy="154" r="13"/>
+    <path class="echo" d="M88 198 C112 177, 143 177, 168 198"/>
+    <path class="echo" d="M104 214 H152"/>
+  </g>
+</svg>
