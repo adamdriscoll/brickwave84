@@ -66,6 +66,8 @@ namespace GetBricked.Gameplay
         private GUIStyle capsuleMadnessStyle;
         private Font retroUiFont;
         private Material vectorIconMaterial;
+        private Material spriteIconMaterial;
+        private Texture2D fallbackLifeIconTexture;
         private BreakoutUiThemePalette palette = new BreakoutUiThemePalette();
 
         private readonly struct ActionGroupRange
@@ -84,6 +86,37 @@ namespace GetBricked.Gameplay
         public void ConfigureTheme(BreakoutUiThemePalette themePalette)
         {
             palette = themePalette ?? new BreakoutUiThemePalette();
+        }
+
+        public void Dispose()
+        {
+            foreach (var cachedTexture in iconTextureCache.Values)
+            {
+                if (cachedTexture != null)
+                {
+                    DestroyRuntimeObject(cachedTexture);
+                }
+            }
+
+            iconTextureCache.Clear();
+
+            if (vectorIconMaterial != null)
+            {
+                DestroyRuntimeObject(vectorIconMaterial);
+                vectorIconMaterial = null;
+            }
+
+            if (spriteIconMaterial != null)
+            {
+                DestroyRuntimeObject(spriteIconMaterial);
+                spriteIconMaterial = null;
+            }
+
+            if (fallbackLifeIconTexture != null)
+            {
+                DestroyRuntimeObject(fallbackLifeIconTexture);
+                fallbackLifeIconTexture = null;
+            }
         }
 
         public void DrawCabinetBackdrop(BreakoutUiChromeView view)
@@ -1838,7 +1871,7 @@ namespace GetBricked.Gameplay
 
             if (iconTexture == null)
             {
-                DrawSolidRect(rect, WithAlpha(accent, 0.9f));
+                DrawFallbackLifeIcon(rect, accent);
             }
             else
             {
@@ -2462,7 +2495,7 @@ namespace GetBricked.Gameplay
 
             if (iconTexture == null)
             {
-                DrawSolidRect(new Rect(rect.x + 13f, rect.y + 13f, rect.width - 26f, rect.height - 26f), WithAlpha(accent, 0.86f));
+                DrawFallbackIconGlyph(new Rect(rect.x + 11f, rect.y + 11f, rect.width - 22f, rect.height - 22f), accent, emphasize);
                 return;
             }
 
@@ -2674,7 +2707,7 @@ namespace GetBricked.Gameplay
                 return rasterizedTexture;
             }
 
-            if (sprite.texture == null)
+            if (sprite.texture == null || !HasVisiblePixels(sprite.texture, sprite.textureRect))
             {
                 return null;
             }
@@ -2695,23 +2728,36 @@ namespace GetBricked.Gameplay
                 return cachedTexture;
             }
 
+            Texture2D renderedTexture = null;
             var material = ResolveVectorIconMaterial();
 
-            if (material == null)
+            if (material != null)
             {
-                iconTextureCache[sprite] = null;
-                return null;
+                try
+                {
+                    renderedTexture = VectorUtils.RenderSpriteToTexture2D(sprite, IconTextureSize, IconTextureSize, material, 4);
+                }
+                catch (Exception exception)
+                {
+                    Debug.LogWarning($"Could not rasterize UI icon sprite '{sprite.name}': {exception.Message}");
+                }
             }
 
-            Texture2D renderedTexture = null;
-
-            try
+            if (renderedTexture != null && !HasVisiblePixels(renderedTexture))
             {
-                renderedTexture = VectorUtils.RenderSpriteToTexture2D(sprite, IconTextureSize, IconTextureSize, material, 4);
+                DestroyRuntimeObject(renderedTexture);
+                renderedTexture = null;
             }
-            catch (Exception exception)
+
+            if (renderedTexture == null)
             {
-                Debug.LogWarning($"Could not rasterize UI icon sprite '{sprite.name}': {exception.Message}");
+                renderedTexture = RenderSpriteIconWithCamera(sprite);
+            }
+
+            if (renderedTexture != null && !HasVisiblePixels(renderedTexture))
+            {
+                DestroyRuntimeObject(renderedTexture);
+                renderedTexture = null;
             }
 
             if (renderedTexture != null)
@@ -2726,6 +2772,15 @@ namespace GetBricked.Gameplay
 
         private Material ResolveVectorIconMaterial()
         {
+            if (vectorIconMaterial != null)
+            {
+                return vectorIconMaterial;
+            }
+
+            vectorIconMaterial = BreakoutRuntimeVisualFactory.CreateMaterialFromResource(
+                "Materials/RuntimeUiIconVector",
+                "RuntimeUiIconVector");
+
             if (vectorIconMaterial != null)
             {
                 return vectorIconMaterial;
@@ -2749,6 +2804,256 @@ namespace GetBricked.Gameplay
                 hideFlags = HideFlags.DontSave,
             };
             return vectorIconMaterial;
+        }
+
+        private Material ResolveSpriteIconMaterial()
+        {
+            if (spriteIconMaterial != null)
+            {
+                return spriteIconMaterial;
+            }
+
+            spriteIconMaterial = BreakoutRuntimeVisualFactory.CreateMaterialFromResource(
+                "Materials/RuntimeSpriteUnlit",
+                "RuntimeUiIconSpriteMaterial");
+
+            if (spriteIconMaterial != null)
+            {
+                return spriteIconMaterial;
+            }
+
+            spriteIconMaterial = BreakoutRuntimeVisualFactory.CreateSpriteUnlitMaterial();
+            return spriteIconMaterial;
+        }
+
+        private Texture2D RenderSpriteIconWithCamera(Sprite sprite)
+        {
+            var material = ResolveSpriteIconMaterial();
+
+            if (sprite == null || material == null)
+            {
+                return null;
+            }
+
+            var previousActive = RenderTexture.active;
+            var renderTexture = RenderTexture.GetTemporary(IconTextureSize, IconTextureSize, 24, RenderTextureFormat.ARGB32);
+            var root = new GameObject("Runtime UI Icon Rasterizer")
+            {
+                hideFlags = HideFlags.HideAndDontSave,
+            };
+            var cameraObject = new GameObject("Runtime UI Icon Camera")
+            {
+                hideFlags = HideFlags.HideAndDontSave,
+            };
+            var spriteObject = new GameObject("Runtime UI Icon Sprite")
+            {
+                hideFlags = HideFlags.HideAndDontSave,
+            };
+            Texture2D renderedTexture = null;
+
+            try
+            {
+                cameraObject.transform.SetParent(root.transform, false);
+                spriteObject.transform.SetParent(root.transform, false);
+
+                var origin = new Vector3(10000f, 10000f, 0f);
+                spriteObject.transform.position = origin;
+
+                var spriteRenderer = spriteObject.AddComponent<SpriteRenderer>();
+                spriteRenderer.sprite = sprite;
+                spriteRenderer.color = Color.white;
+                spriteRenderer.sharedMaterial = material;
+                spriteRenderer.sortingOrder = 0;
+
+                var boundsSize = sprite.bounds.size;
+                var visibleSize = Mathf.Max(0.01f, boundsSize.x, boundsSize.y);
+                var camera = cameraObject.AddComponent<Camera>();
+                camera.transform.position = origin + new Vector3(0f, 0f, -10f);
+                camera.clearFlags = CameraClearFlags.SolidColor;
+                camera.backgroundColor = Color.clear;
+                camera.orthographic = true;
+                camera.orthographicSize = visibleSize * 0.58f;
+                camera.nearClipPlane = 0.01f;
+                camera.farClipPlane = 30f;
+                camera.allowHDR = false;
+                camera.allowMSAA = true;
+                camera.enabled = false;
+                camera.targetTexture = renderTexture;
+                camera.Render();
+
+                RenderTexture.active = renderTexture;
+                renderedTexture = new Texture2D(IconTextureSize, IconTextureSize, TextureFormat.RGBA32, false)
+                {
+                    filterMode = FilterMode.Bilinear,
+                    wrapMode = TextureWrapMode.Clamp,
+                    hideFlags = HideFlags.DontSave,
+                };
+                renderedTexture.ReadPixels(new Rect(0f, 0f, IconTextureSize, IconTextureSize), 0, 0);
+                renderedTexture.Apply(false, false);
+            }
+            catch (Exception exception)
+            {
+                Debug.LogWarning($"Could not render UI icon sprite '{sprite.name}' with the SpriteRenderer fallback: {exception.Message}");
+
+                if (renderedTexture != null)
+                {
+                    DestroyRuntimeObject(renderedTexture);
+                    renderedTexture = null;
+                }
+            }
+            finally
+            {
+                RenderTexture.active = previousActive;
+                RenderTexture.ReleaseTemporary(renderTexture);
+                DestroyRuntimeObject(root);
+            }
+
+            return renderedTexture;
+        }
+
+        private void DrawFallbackLifeIcon(Rect rect, Color accent)
+        {
+            var texture = ResolveFallbackLifeIconTexture();
+
+            if (texture == null)
+            {
+                DrawSolidRect(Inflate(rect, -rect.width * 0.28f), WithAlpha(accent, 0.95f));
+                DrawOutline(Inflate(rect, -rect.width * 0.18f), WithAlpha(palette.TextPrimary, 0.2f), 1f);
+                return;
+            }
+
+            var previousGuiColor = GUI.color;
+            GUI.color = WithAlpha(accent, 0.28f);
+            GUI.DrawTexture(Inflate(rect, rect.width * 0.18f), texture, ScaleMode.ScaleToFit, true);
+            GUI.color = accent;
+            GUI.DrawTexture(rect, texture, ScaleMode.ScaleToFit, true);
+            GUI.color = WithAlpha(palette.TextPrimary, 0.26f);
+            GUI.DrawTexture(Inflate(rect, -rect.width * 0.26f), texture, ScaleMode.ScaleToFit, true);
+            GUI.color = previousGuiColor;
+        }
+
+        private Texture2D ResolveFallbackLifeIconTexture()
+        {
+            if (fallbackLifeIconTexture != null)
+            {
+                return fallbackLifeIconTexture;
+            }
+
+            const int size = 64;
+            var pixels = new Color32[size * size];
+            var center = (size - 1) * 0.5f;
+            var radius = size * 0.38f;
+            var outerRadius = size * 0.49f;
+
+            for (var y = 0; y < size; y++)
+            {
+                for (var x = 0; x < size; x++)
+                {
+                    var dx = x - center;
+                    var dy = y - center;
+                    var distance = Mathf.Sqrt((dx * dx) + (dy * dy));
+                    var body = 1f - Mathf.Clamp01((distance - radius) / Mathf.Max(0.01f, outerRadius - radius));
+                    var highlightDistance = Mathf.Sqrt(((x - (size * 0.36f)) * (x - (size * 0.36f))) + ((y - (size * 0.32f)) * (y - (size * 0.32f))));
+                    var highlight = Mathf.Clamp01(1f - (highlightDistance / (size * 0.18f)));
+                    var alpha = Mathf.Clamp01(body);
+                    var value = (byte)Mathf.RoundToInt(Mathf.Lerp(180f, 255f, highlight) * alpha);
+                    pixels[(y * size) + x] = new Color32(value, value, value, (byte)Mathf.RoundToInt(255f * alpha));
+                }
+            }
+
+            fallbackLifeIconTexture = new Texture2D(size, size, TextureFormat.RGBA32, false)
+            {
+                name = "RuntimeFallbackLifeIcon",
+                filterMode = FilterMode.Bilinear,
+                wrapMode = TextureWrapMode.Clamp,
+                hideFlags = HideFlags.DontSave,
+            };
+            fallbackLifeIconTexture.SetPixels32(pixels);
+            fallbackLifeIconTexture.Apply(false, false);
+            return fallbackLifeIconTexture;
+        }
+
+        private static bool HasVisiblePixels(Texture2D texture)
+        {
+            if (texture == null)
+            {
+                return false;
+            }
+
+            return HasVisiblePixels(texture, new Rect(0f, 0f, texture.width, texture.height));
+        }
+
+        private static bool HasVisiblePixels(Texture2D texture, Rect textureRect)
+        {
+            if (texture == null)
+            {
+                return false;
+            }
+
+            try
+            {
+                var pixels = texture.GetPixels32();
+                var minX = Mathf.Clamp(Mathf.FloorToInt(textureRect.xMin), 0, texture.width - 1);
+                var maxX = Mathf.Clamp(Mathf.CeilToInt(textureRect.xMax), minX + 1, texture.width);
+                var minY = Mathf.Clamp(Mathf.FloorToInt(textureRect.yMin), 0, texture.height - 1);
+                var maxY = Mathf.Clamp(Mathf.CeilToInt(textureRect.yMax), minY + 1, texture.height);
+                var width = maxX - minX;
+                var height = maxY - minY;
+                var sampleCount = Mathf.Max(1, Mathf.Min(2048, width * height));
+                var step = Mathf.Max(1, (width * height) / sampleCount);
+                var visited = 0;
+
+                for (var y = minY; y < maxY; y++)
+                {
+                    for (var x = minX; x < maxX; x++)
+                    {
+                        if ((visited++ % step) != 0)
+                        {
+                            continue;
+                        }
+
+                        var pixel = pixels[(y * texture.width) + x];
+
+                        if (pixel.a > 8 && pixel.r + pixel.g + pixel.b > 18)
+                        {
+                            return true;
+                        }
+                    }
+                }
+            }
+            catch (UnityException)
+            {
+                return true;
+            }
+
+            return false;
+        }
+
+        private void DrawFallbackIconGlyph(Rect rect, Color accent, bool emphasize)
+        {
+            var center = rect.center;
+            var coreSize = Mathf.Min(rect.width, rect.height) * (emphasize ? 0.56f : 0.5f);
+            var coreRect = new Rect(center.x - (coreSize * 0.5f), center.y - (coreSize * 0.5f), coreSize, coreSize);
+            DrawSolidRect(coreRect, WithAlpha(accent, 0.86f));
+            DrawOutline(coreRect, WithAlpha(palette.TextPrimary, 0.18f), 1f);
+            DrawSolidRect(new Rect(center.x - 1.5f, rect.y + 3f, 3f, rect.height - 6f), WithAlpha(palette.TextPrimary, 0.2f));
+            DrawSolidRect(new Rect(rect.x + 3f, center.y - 1.5f, rect.width - 6f, 3f), WithAlpha(palette.TextPrimary, 0.2f));
+        }
+
+        private static void DestroyRuntimeObject(UnityEngine.Object target)
+        {
+            if (target == null)
+            {
+                return;
+            }
+
+            if (Application.isPlaying)
+            {
+                UnityEngine.Object.Destroy(target);
+                return;
+            }
+
+            UnityEngine.Object.DestroyImmediate(target);
         }
 
         private static Color WithAlpha(Color color, float alpha)

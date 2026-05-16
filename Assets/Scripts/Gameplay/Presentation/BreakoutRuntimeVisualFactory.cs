@@ -4,6 +4,10 @@ namespace GetBricked.Gameplay
 {
     internal static class BreakoutRuntimeVisualFactory
     {
+        private const string SpriteUnlitMaterialResourcePath = "Materials/RuntimeSpriteUnlit";
+        private const string AdditiveSpriteMaterialResourcePath = "Materials/RuntimeSpriteAdditive";
+        private const string AdditiveLineMaterialResourcePath = "Materials/RuntimeLineAdditive";
+
         public static Sprite LoadSpriteResource(string resourcePath, Sprite fallbackSprite)
         {
             if (string.IsNullOrWhiteSpace(resourcePath))
@@ -17,6 +21,13 @@ namespace GetBricked.Gameplay
 
         public static Material CreateSpriteUnlitMaterial()
         {
+            var includedMaterial = CreateMaterialFromResource(SpriteUnlitMaterialResourcePath, "RuntimeSpriteUnlit");
+
+            if (includedMaterial != null)
+            {
+                return includedMaterial;
+            }
+
             var shader = Shader.Find("Universal Render Pipeline/2D/Sprite-Unlit-Default");
 
             if (shader == null)
@@ -34,6 +45,14 @@ namespace GetBricked.Gameplay
 
         public static Material CreateAdditiveSpriteMaterial()
         {
+            var includedMaterial = CreateMaterialFromResource(AdditiveSpriteMaterialResourcePath, "RuntimeSpriteAdditive");
+
+            if (includedMaterial != null)
+            {
+                includedMaterial.renderQueue = 3000;
+                return includedMaterial;
+            }
+
             var shader = Shader.Find("Get Bricked/Sprite Additive");
 
             if (shader == null)
@@ -73,6 +92,14 @@ namespace GetBricked.Gameplay
 
         public static Material CreateAdditiveLineMaterial()
         {
+            var includedMaterial = CreateMaterialFromResource(AdditiveLineMaterialResourcePath, "RuntimeLineAdditive");
+
+            if (includedMaterial != null)
+            {
+                includedMaterial.renderQueue = 3000;
+                return includedMaterial;
+            }
+
             var shader = Shader.Find("Universal Render Pipeline/Particles/Unlit");
 
             if (shader == null)
@@ -99,6 +126,22 @@ namespace GetBricked.Gameplay
             material.SetColor("_BaseColor", Color.white);
             material.SetColor("_EmissionColor", Color.white * 2f);
             return material;
+        }
+
+        public static Material CreateMaterialFromResource(string resourcePath, string materialName)
+        {
+            var materialAsset = Resources.Load<Material>(resourcePath);
+
+            if (materialAsset == null)
+            {
+                return null;
+            }
+
+            return new Material(materialAsset)
+            {
+                name = materialName,
+                hideFlags = HideFlags.DontSave,
+            };
         }
 
         public static Sprite CreateSquareSprite()

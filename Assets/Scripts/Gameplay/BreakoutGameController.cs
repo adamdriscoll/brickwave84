@@ -405,6 +405,8 @@ namespace GetBricked.Gameplay
             {
                 Destroy(runtimeVolumeProfile);
             }
+
+            uiRenderer?.Dispose();
         }
 
         private void Update()
