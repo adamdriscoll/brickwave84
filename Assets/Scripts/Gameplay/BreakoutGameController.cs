@@ -2939,7 +2939,8 @@ namespace GetBricked.Gameplay
             bloom.scatter.Override(bloomScatter);
             bloom.clamp.Override(65472f);
             bloom.tint.Override(Color.white);
-            bloom.highQualityFiltering.Override(true);
+            // Keep this aligned with the project volume profile so release builds keep the needed URP bloom variant.
+            bloom.highQualityFiltering.Override(false);
             bloom.downscale.Override(BloomDownscaleMode.Half);
             bloom.maxIterations.Override(6);
         }
