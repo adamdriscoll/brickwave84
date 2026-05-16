@@ -39,7 +39,8 @@ public sealed class BreakoutRunStateTests
             wavyPaddleStrength: 0.35f,
             brickMagnetStrength: 0.18f,
             specialBrickEffectMultiplier: 1.25f,
-            extraBallsPerServe: 1);
+            extraBallsPerServe: 1,
+            tiltWarningSavesPerLevel: 1);
 
         runState.SetPendingDraftOffers(new[] { BreakoutRunDraftOffer.FromRunUpgrade(upgrade) });
 
@@ -59,6 +60,7 @@ public sealed class BreakoutRunStateTests
         Assert.That(modifiers.BrickMagnetStrength, Is.EqualTo(0.18f).Within(0.0001f));
         Assert.That(modifiers.SpecialBrickEffectMultiplier, Is.EqualTo(1.25f).Within(0.0001f));
         Assert.That(modifiers.ExtraBallsPerServe, Is.EqualTo(1));
+        Assert.That(modifiers.TiltWarningSavesPerLevel, Is.EqualTo(1));
     }
 
     [Test]
@@ -144,7 +146,8 @@ public sealed class BreakoutRunStateTests
         float brickMagnetStrength = 0f,
         float specialBrickEffectMultiplier = 1f,
         int extraBallsPerServe = 0,
-        int bonusLives = 0)
+        int bonusLives = 0,
+        int tiltWarningSavesPerLevel = 0)
     {
         var upgrade = ScriptableObject.CreateInstance<RunUpgradeDefinition>();
         runtimeObjects.Add(upgrade);
@@ -163,6 +166,7 @@ public sealed class BreakoutRunStateTests
         SetPrivateField(upgrade, "specialBrickEffectMultiplier", specialBrickEffectMultiplier);
         SetPrivateField(upgrade, "extraBallsPerServe", extraBallsPerServe);
         SetPrivateField(upgrade, "bonusLives", bonusLives);
+        SetPrivateField(upgrade, "tiltWarningSavesPerLevel", tiltWarningSavesPerLevel);
         return upgrade;
     }
 

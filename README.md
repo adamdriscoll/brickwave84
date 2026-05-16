@@ -231,7 +231,7 @@ Permanent run upgrades are always available in the between-stage draft pool. Dro
 | `Hot Shrapnel` | Explosive and split brick effects hit a little harder for the rest of the run. | Draft pool | N/A | Build | Run upgrade | Implemented |
 | `Neon Insurance` | Dropped pickups linger longer before fading, giving you more time to route for them. | Draft pool | N/A | Build | Run upgrade | Implemented |
 | `Gremlin Filter` | The next glitch each level is softened, delayed, or reduced in strength. | Draft pool | N/A | Build | Run upgrade | Proposed |
-| `Tilt Warning` | Once per level, a near-miss below the paddle bumps the ball slightly upward instead of losing it. | Draft pool | N/A | Build | Run upgrade | Proposed |
+| `Tilt Warning` | Once per level, a near-miss below the paddle bumps the ball slightly upward instead of losing it. | Draft pool | N/A | Build | Run upgrade | Implemented |
 | `Arcade Grease` | Paddle movement gets smoother and slightly more responsive for the rest of the run. | Draft pool | N/A | Build | Run upgrade | Proposed |
 | `Prize Hopper` | The first pickup collected each level has a chance to duplicate itself. | Draft pool | N/A | Build | Run upgrade | Proposed |
 

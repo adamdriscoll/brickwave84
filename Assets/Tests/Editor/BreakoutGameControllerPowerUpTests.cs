@@ -611,6 +611,36 @@ public sealed class BreakoutGameControllerPowerUpTests
     }
 
     [Test]
+    public void TiltWarningRescuesNearMissAndConsumesLevelCharge()
+    {
+        var controller = CreateControllerHarness(out var paddle);
+        var serveBall = CreateBallHarness(controller, paddle);
+        SetPrivateEnumField(controller, "roundState", "Playing");
+        SetPrivateField(controller, "tiltWarningSavesRemaining", 1);
+        serveBall.SetWorldPosition(new Vector2(paddle.transform.position.x, -6.1f));
+        serveBall.GetComponent<Rigidbody2D>().linearVelocity = Vector2.down * 8f;
+
+        Assert.That(controller.TryRescueBallWithTiltWarning(serveBall), Is.True);
+        Assert.That(GetPrivateField<int>(controller, "tiltWarningSavesRemaining"), Is.Zero);
+        Assert.That(serveBall.CurrentVelocity.y, Is.GreaterThan(0f));
+    }
+
+    [Test]
+    public void TiltWarningIgnoresWideMiss()
+    {
+        var controller = CreateControllerHarness(out var paddle);
+        var serveBall = CreateBallHarness(controller, paddle);
+        SetPrivateEnumField(controller, "roundState", "Playing");
+        SetPrivateField(controller, "tiltWarningSavesRemaining", 1);
+        serveBall.SetWorldPosition(new Vector2(paddle.transform.position.x + 4f, -6.1f));
+        serveBall.GetComponent<Rigidbody2D>().linearVelocity = Vector2.down * 8f;
+
+        Assert.That(controller.TryRescueBallWithTiltWarning(serveBall), Is.False);
+        Assert.That(GetPrivateField<int>(controller, "tiltWarningSavesRemaining"), Is.EqualTo(1));
+        Assert.That(serveBall.CurrentVelocity.y, Is.LessThan(0f));
+    }
+
+    [Test]
     public void LosingALifeInHighScoreModeSubtractsPenaltyFromScoreAndKeepsRunAlive()
     {
         var controller = CreateControllerHarness(out var paddle);
@@ -1052,7 +1082,10 @@ public sealed class BreakoutGameControllerPowerUpTests
         return powerUp;
     }
 
-    private RunUpgradeDefinition CreateRunUpgrade(string upgradeId, float specialBrickEffectMultiplier)
+    private RunUpgradeDefinition CreateRunUpgrade(
+        string upgradeId,
+        float specialBrickEffectMultiplier,
+        int tiltWarningSavesPerLevel = 0)
     {
         var upgrade = ScriptableObject.CreateInstance<RunUpgradeDefinition>();
         runtimeObjects.Add(upgrade);
@@ -1061,6 +1094,7 @@ public sealed class BreakoutGameControllerPowerUpTests
         SetPrivateField(upgrade, "draftWeight", 1f);
         SetPrivateField(upgrade, "maxStacks", 1);
         SetPrivateField(upgrade, "specialBrickEffectMultiplier", specialBrickEffectMultiplier);
+        SetPrivateField(upgrade, "tiltWarningSavesPerLevel", tiltWarningSavesPerLevel);
         return upgrade;
     }
 

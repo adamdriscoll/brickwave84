@@ -12,6 +12,7 @@ public sealed class RunUpgradeSpriteHookupTests
     [TestCase("Upgrades/NeonInsurance", "Sprites/neon-insurance")]
     [TestCase("Upgrades/RepairStock", "Sprites/repair-stock")]
     [TestCase("Upgrades/SplitServe", "Sprites/split-serve")]
+    [TestCase("Upgrades/TiltWarning", "Sprites/tilt-warning")]
     [TestCase("Upgrades/WideLoader", "Sprites/wide-loader")]
     public void UpgradeAssetResolvesImportedSprite(string upgradeAssetPath, string spriteResourcePath)
     {

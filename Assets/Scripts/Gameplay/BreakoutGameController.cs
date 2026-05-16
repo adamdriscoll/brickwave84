@@ -43,6 +43,8 @@ namespace GetBricked.Gameplay
         private const int AutoSaveScoreCostIncreasePerHeat = 1000;
         private const int AutoSaveMaximumRogueHeat = 40;
         private const float AutoSaveBurstDurationSeconds = 2.6f;
+        private const float TiltWarningNearMissPaddleWidthMultiplier = 1.55f;
+        private const float TiltWarningRescueHeightPadding = 0.16f;
         private const string DefaultRoguePaddleLabel = BreakoutRogueRunResultStore.DefaultPaddleLabel;
         private const float MenuAttractRestartDelaySeconds = 0.2f;
         private const float MenuAttractPickupLeadDistance = 1.35f;
@@ -235,6 +237,7 @@ namespace GetBricked.Gameplay
         private float autoSaveBurstTimer;
         private bool lastLifeLossUsedAutoSave;
         private int lastAutoSaveScoreCost = AutoSaveBaseScoreCost;
+        private int tiltWarningSavesRemaining;
         private int requiredBricksRemaining;
         private float arenaLeft;
         private float arenaRight;
@@ -757,6 +760,50 @@ namespace GetBricked.Gameplay
             return true;
         }
 
+        public bool TryRescueBallWithTiltWarning(BallController ball)
+        {
+            if (!IsGameplaySimulationActive()
+                || isMenuAttractModeActive
+                || ball == null
+                || tiltWarningSavesRemaining <= 0
+                || !IsBallAtTiltWarningNearMiss(ball))
+            {
+                return false;
+            }
+
+            tiltWarningSavesRemaining = Mathf.Max(0, tiltWarningSavesRemaining - 1);
+            ball.BounceFromShield(GetTiltWarningRescueY());
+            powerUpService?.ShowStatusBanner("TILT WARNING!", ResolveTiltWarningColor(), 1.35f);
+            return true;
+        }
+
+        private bool IsBallAtTiltWarningNearMiss(BallController ball)
+        {
+            if (ball == null || paddleCollider == null || ball.CurrentVelocity.y >= -0.01f)
+            {
+                return false;
+            }
+
+            var paddleBounds = paddleCollider.bounds;
+            var ballPosition = ball.transform.position;
+            var halfRescueWidth = Mathf.Max(
+                paddleBounds.extents.x,
+                paddleBounds.extents.x * TiltWarningNearMissPaddleWidthMultiplier);
+
+            return ballPosition.y < paddleBounds.max.y
+                && Mathf.Abs(ballPosition.x - paddleBounds.center.x) <= halfRescueWidth;
+        }
+
+        private float GetTiltWarningRescueY()
+        {
+            if (paddleCollider == null)
+            {
+                return arenaBottom + paddleFloorOffset + TiltWarningRescueHeightPadding;
+            }
+
+            return paddleCollider.bounds.max.y + ballRadius + TiltWarningRescueHeightPadding;
+        }
+
         public bool TryHandleBallPaddleCollision(BallController ball, PaddleController hitPaddle, Collision2D collision)
         {
             if (ball == null || hitPaddle == null || collision == null)
@@ -893,6 +940,7 @@ namespace GetBricked.Gameplay
             score = 0;
             autoSaveBurstTimer = 0f;
             lastLifeLossUsedAutoSave = false;
+            tiltWarningSavesRemaining = 0;
             activeRunResultRecorded = false;
             activeSoloMarathonResultRecorded = false;
             activeSoloMarathonNewHighScore = false;
@@ -1073,6 +1121,7 @@ namespace GetBricked.Gameplay
             selectedUpgradeDraftIndex = 0;
             stickyCaughtBall = null;
             shieldWallCharges = 0;
+            tiltWarningSavesRemaining = 0;
             laserShotCooldownTimer = 0f;
             scoreService?.ResetComboTracking(clearPopups: true);
             UpdateShieldWallVisual();
@@ -1236,6 +1285,7 @@ namespace GetBricked.Gameplay
             activeSoloMarathonNewHighScore = false;
             activeSoloMarathonRecord = null;
             shieldWallCharges = 0;
+            tiltWarningSavesRemaining = 0;
             laserShotCooldownTimer = 0f;
             stickyCaughtBall = null;
             manualBallSpeedMultiplier = 1f;
@@ -2752,6 +2802,7 @@ namespace GetBricked.Gameplay
             ClearTimedEffects();
             ClearLevelGlitches();
             scoreService?.ResetComboTracking(clearPopups: true);
+            tiltWarningSavesRemaining = GetEffectiveTiltWarningSavesPerLevel();
 
             if (loadedLevels.Count == 0 || levelIndex < 0)
             {
@@ -6126,6 +6177,17 @@ namespace GetBricked.Gameplay
                 : new Color(0.45f, 0.95f, 0.72f, 1f);
         }
 
+        private Color ResolveTiltWarningColor()
+        {
+            return themeService != null
+                ? themeService.ResolveThemeStyle(
+                    ThemeVisualSlot.PickupBeneficial,
+                    new Color(0.45f, 0.95f, 0.72f, 1f),
+                    new Color(0.45f, 0.95f, 0.72f, 1f),
+                    squareSprite).PrimaryColor
+                : new Color(0.45f, 0.95f, 0.72f, 1f);
+        }
+
         private float GetMaximumBallSpeed()
         {
             return GetBallSpeedBase() * Mathf.Max(1f, manualBallSpeedMaxMultiplier);
@@ -6215,7 +6277,7 @@ namespace GetBricked.Gameplay
         {
             return activeRunState != null
                 ? activeRunState.CalculateModifiers()
-                : new BreakoutRunUpgradeModifiers(1f, 1f, 1f, 1f, 0f, 0f, 1f, 0);
+                : new BreakoutRunUpgradeModifiers(1f, 1f, 1f, 1f, 0f, 0f, 1f, 0, 0);
         }
 
         private int GetEffectiveBallsPerServe()
@@ -6223,6 +6285,11 @@ namespace GetBricked.Gameplay
             var baseBallsPerServe = activeRunSettings == null ? 1 : activeRunSettings.BallsPerServe;
             var persistentModifiers = GetPersistentRunUpgradeModifiers();
             return Mathf.Clamp(baseBallsPerServe + persistentModifiers.ExtraBallsPerServe, 1, 6);
+        }
+
+        private int GetEffectiveTiltWarningSavesPerLevel()
+        {
+            return Mathf.Clamp(GetPersistentRunUpgradeModifiers().TiltWarningSavesPerLevel, 0, 3);
         }
 
         private float GetEffectiveDropChanceMultiplier()

@@ -441,6 +441,11 @@ namespace GetBricked.Gameplay
 
             if (transform.position.y < lossThresholdY)
             {
+                if (gameController != null && gameController.TryRescueBallWithTiltWarning(this))
+                {
+                    return;
+                }
+
                 if (gameController != null && gameController.TryRescueBallWithShield(this))
                 {
                     return;

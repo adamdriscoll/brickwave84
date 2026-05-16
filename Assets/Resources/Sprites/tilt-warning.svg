@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
+  <title id="title">Tilt Warning</title>
+  <desc id="desc">A monochrome neon icon showing a paddle warning line nudging a falling ball upward.</desc>
+
+  <defs>
+    <filter id="softGlow" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="2.25" result="blur"/>
+      <feColorMatrix in="blur" type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 .8 0" result="glow"/>
+      <feMerge>
+        <feMergeNode in="glow"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <style><![CDATA[
+      .icon { fill: none; stroke: #fff; stroke-linecap: round; stroke-linejoin: round; filter: url(#softGlow); }
+      .main { stroke-width: 12; opacity: .96; }
+      .mid { stroke-width: 8; opacity: .82; }
+      .thin { stroke-width: 4; opacity: .42; }
+      .fill { fill: #fff; stroke: none; opacity: .94; filter: url(#softGlow); }
+      .soft { fill: #fff; stroke: none; opacity: .16; filter: url(#softGlow); }
+    ]]></style>
+  </defs>
+
+  <g class="icon">
+    <path class="thin" d="M55 55 L30 83"/>
+    <path class="thin" d="M201 55 L226 83"/>
+    <path class="main" d="M62 177 H194"/>
+    <path class="mid" d="M78 198 H178"/>
+    <path class="thin" d="M82 158 C103 147 153 147 174 158"/>
+    <path class="mid" d="M128 136 V72"/>
+    <path class="mid" d="M102 98 L128 72 L154 98"/>
+    <circle class="fill" cx="128" cy="54" r="18"/>
+    <circle class="soft" cx="128" cy="54" r="34"/>
+    <path class="thin" d="M70 112 C92 128 164 128 186 112"/>
+    <path class="thin" d="M92 133 C111 142 145 142 164 133"/>
+  </g>
+</svg>

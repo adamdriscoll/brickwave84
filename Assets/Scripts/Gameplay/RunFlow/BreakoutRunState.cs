@@ -15,7 +15,8 @@ namespace GetBricked.Gameplay
             float wavyPaddleStrength,
             float brickMagnetStrength,
             float specialBrickEffectMultiplier,
-            int extraBallsPerServe)
+            int extraBallsPerServe,
+            int tiltWarningSavesPerLevel)
         {
             PaddleWidthMultiplier = paddleWidthMultiplier;
             BallSpeedMultiplier = ballSpeedMultiplier;
@@ -25,6 +26,7 @@ namespace GetBricked.Gameplay
             BrickMagnetStrength = brickMagnetStrength;
             SpecialBrickEffectMultiplier = specialBrickEffectMultiplier;
             ExtraBallsPerServe = extraBallsPerServe;
+            TiltWarningSavesPerLevel = tiltWarningSavesPerLevel;
         }
 
         public float PaddleWidthMultiplier { get; }
@@ -42,6 +44,8 @@ namespace GetBricked.Gameplay
         public float SpecialBrickEffectMultiplier { get; }
 
         public int ExtraBallsPerServe { get; }
+
+        public int TiltWarningSavesPerLevel { get; }
     }
 
     internal sealed class BreakoutRunState
@@ -233,6 +237,7 @@ namespace GetBricked.Gameplay
             var brickMagnetStrength = 0f;
             var specialBrickEffectMultiplier = 1f;
             var extraBallsPerServe = 0;
+            var tiltWarningSavesPerLevel = 0;
 
             for (var index = 0; index < chosenUpgrades.Count; index++)
             {
@@ -251,6 +256,7 @@ namespace GetBricked.Gameplay
                 brickMagnetStrength = Mathf.Max(brickMagnetStrength, upgrade.BrickMagnetStrength);
                 specialBrickEffectMultiplier *= upgrade.SpecialBrickEffectMultiplier;
                 extraBallsPerServe += upgrade.ExtraBallsPerServe;
+                tiltWarningSavesPerLevel += upgrade.TiltWarningSavesPerLevel;
             }
 
             return new BreakoutRunUpgradeModifiers(
@@ -261,7 +267,8 @@ namespace GetBricked.Gameplay
                 wavyPaddleStrength,
                 brickMagnetStrength,
                 specialBrickEffectMultiplier,
-                extraBallsPerServe);
+                extraBallsPerServe,
+                tiltWarningSavesPerLevel);
         }
 
         private void ApplyUpgrade(RunUpgradeDefinition definition)
