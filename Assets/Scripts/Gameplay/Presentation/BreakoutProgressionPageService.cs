@@ -60,14 +60,14 @@ namespace GetBricked.Gameplay
 
         private static readonly BreakoutProgressionPlaceholderItem[] PlaceholderDrops =
         {
-            new BreakoutProgressionPlaceholderItem("Chrome Rail", "Drop", "Control", "Paddle widens slightly and sends cleaner bank angles.", 32, ControlAccent),
-            new BreakoutProgressionPlaceholderItem("Solar Shot", "Drop", "Damage", "Ball burns through the next weak brick it touches.", 35, DamageAccent),
+            new BreakoutProgressionPlaceholderItem("Chrome Rail", "Drop", "Control", "Paddle widens slightly and sends cleaner bank angles.", 35, ControlAccent),
+            new BreakoutProgressionPlaceholderItem("Solar Shot", "Drop", "Damage", "Ball burns through the next weak brick it touches.", 36, DamageAccent),
         };
 
         private static readonly BreakoutProgressionPlaceholderItem[] PlaceholderGlitches =
         {
-            new BreakoutProgressionPlaceholderItem("Row Rewrite", "Glitch", "Layout", "One row rerolls into a new brick pattern after a timer.", 38, LayoutAccent),
-            new BreakoutProgressionPlaceholderItem("Prism Lanes", "Glitch", "Precision", "Marked lanes refract the ball into sharper angles.", 39, PrecisionAccent),
+            new BreakoutProgressionPlaceholderItem("Row Rewrite", "Glitch", "Layout", "One row rerolls into a new brick pattern after a timer.", 6, LayoutAccent),
+            new BreakoutProgressionPlaceholderItem("Prism Lanes", "Glitch", "Precision", "Marked lanes refract the ball into sharper angles.", 7, PrecisionAccent),
         };
 
         public BreakoutUiProgressionView BuildView(IReadOnlyList<PowerUpDefinition> loadedPowerUps, BreakoutThemeService themeService = null)
@@ -77,10 +77,12 @@ namespace GetBricked.Gameplay
             var selectedAvailable = BreakoutRogueIntensityProgressStore.GetAvailableIntensity(progressPaddleLabel);
             var selectedBestStage = BreakoutRogueIntensityProgressStore.GetBestStageReached(progressPaddleLabel, selectedAvailable);
             var defaultDropCount = CountDefaultDrops(loadedPowerUps);
+            var unlockedLiveDrops = CountEarnedLiveDrops(loadedPowerUps, selectedHighest);
+            var unlockedLiveGlitches = CountEarnedLiveGlitches(selectedHighest);
             var unlockedPlaceholderDrops = CountEarnedPlaceholders(PlaceholderDrops, selectedHighest);
             var unlockedPlaceholderGlitches = CountEarnedPlaceholders(PlaceholderGlitches, selectedHighest);
-            var lockedDropCount = Mathf.Max(0, PlannedDropUnlockCount - unlockedPlaceholderDrops);
-            var lockedGlitchCount = Mathf.Max(0, PlannedGlitchUnlockCount - unlockedPlaceholderGlitches);
+            var lockedDropCount = Mathf.Max(0, PlannedDropUnlockCount - unlockedLiveDrops - unlockedPlaceholderDrops);
+            var lockedGlitchCount = Mathf.Max(0, PlannedGlitchUnlockCount - unlockedLiveGlitches - unlockedPlaceholderGlitches);
 
             return new BreakoutUiProgressionView
             {
@@ -95,9 +97,9 @@ namespace GetBricked.Gameplay
                 },
                 MeterLines = new[]
                 {
-                    $"Drops: {defaultDropCount:00} Default | {unlockedPlaceholderDrops:00} Placeholder Unlocked | {lockedDropCount:00} Locked",
-                    $"Glitches: {DefaultGlitchCount:00} Default | {unlockedPlaceholderGlitches:00} Placeholder Unlocked | {lockedGlitchCount:00} Locked",
-                    "Modes: Ladder adds one new signal per Heat while rarity tunes capsule odds.",
+                    $"Drops: {defaultDropCount:00} Default | {unlockedLiveDrops + unlockedPlaceholderDrops:00} Earned | {lockedDropCount:00} Locked",
+                    $"Glitches: {DefaultGlitchCount:00} Default | {unlockedLiveGlitches + unlockedPlaceholderGlitches:00} Earned | {lockedGlitchCount:00} Locked",
+                    "Modes: each cleared Heat adds one drop and one glitch signal.",
                 },
                 NextSignal = BuildNextSignal(selectedAvailable, selectedBestStage),
                 IntensityGauge = new BreakoutUiIntensityGaugeView
@@ -109,7 +111,7 @@ namespace GetBricked.Gameplay
                     PulseRate = 1.35f,
                     Color = BreakoutRunProgression.GetRogueIntensityGaugeColor(selectedAvailable),
                 },
-                Cards = BuildCards(loadedPowerUps, selectedHighest, selectedAvailable, themeService),
+                Cards = BuildCards(loadedPowerUps, selectedHighest, themeService),
                 FooterText = "Space starts. Esc backs out. Mouse wheel scrolls.",
             };
         }
@@ -117,46 +119,45 @@ namespace GetBricked.Gameplay
         private BreakoutUiProgressionCardView[] BuildCards(
             IReadOnlyList<PowerUpDefinition> loadedPowerUps,
             int highestCompletedIntensity,
-            int availableIntensity,
             BreakoutThemeService themeService)
         {
             var cards = new List<BreakoutUiProgressionCardView>();
-            AppendDropCards(cards, loadedPowerUps, availableIntensity, themeService);
+            AppendDropCards(cards, loadedPowerUps, highestCompletedIntensity, themeService);
             cards.Add(BuildDefaultGlitchCard("Warp Gates", "Layout", "Linked portals reroute ball paths.", LayoutAccent));
             cards.Add(BuildUnlockableGlitchCard(
                 "Turbo Rail",
                 "Speed Rare Glitch",
                 "A hot wall rail accelerates rebounds.",
                 BreakoutLevelGlitchPlanner.TurboRailLadderUnlockIntensity,
-                availableIntensity,
+                highestCompletedIntensity,
                 SplitAccent));
             cards.Add(BuildUnlockableGlitchCard(
                 "Mirror Grid",
                 "Layout Rare Glitch",
                 "Brick layout mirrors horizontally halfway through the stage.",
                 BreakoutLevelGlitchPlanner.MirrorGridLadderUnlockIntensity,
-                availableIntensity,
+                highestCompletedIntensity,
                 LayoutAccent));
             cards.Add(BuildUnlockableGlitchCard(
                 "Token Storm",
                 "Pickup Epic Glitch",
                 "More capsules spawn, but fall at mixed speeds.",
                 BreakoutLevelGlitchPlanner.TokenStormLadderUnlockIntensity,
-                availableIntensity,
+                highestCompletedIntensity,
                 ControlAccent));
             cards.Add(BuildUnlockableGlitchCard(
                 "Gravity Pocket",
                 "Speed Epic Glitch",
                 "A slow drifting pocket bends nearby ball paths.",
                 BreakoutLevelGlitchPlanner.GravityPocketLadderUnlockIntensity,
-                availableIntensity,
+                highestCompletedIntensity,
                 SplitAccent));
             cards.Add(BuildUnlockableGlitchCard(
                 "Static Wall",
                 "Paddle Epic Glitch",
                 "One side wall flickers between normal and weak bounce.",
                 BreakoutLevelGlitchPlanner.StaticWallLadderUnlockIntensity,
-                availableIntensity,
+                highestCompletedIntensity,
                 HazardAccent));
             AppendPlaceholderCards(cards, PlaceholderDrops, highestCompletedIntensity);
             AppendPlaceholderCards(cards, PlaceholderGlitches, highestCompletedIntensity);
@@ -168,7 +169,7 @@ namespace GetBricked.Gameplay
         private void AppendDropCards(
             List<BreakoutUiProgressionCardView> cards,
             IReadOnlyList<PowerUpDefinition> loadedPowerUps,
-            int availableIntensity,
+            int highestCompletedIntensity,
             BreakoutThemeService themeService)
         {
             if (loadedPowerUps == null)
@@ -188,7 +189,7 @@ namespace GetBricked.Gameplay
                 var style = ResolvePowerUpStyle(definition, themeService);
                 var isDefault = IsDefaultDrop(definition);
                 var unlockIntensity = definition.LadderUnlockIntensity;
-                var isUnlocked = isDefault || definition.IsUnlockedForLadderIntensity(availableIntensity);
+                var isUnlocked = isDefault || definition.IsEarnedForCompletedLadderIntensity(highestCompletedIntensity);
                 cards.Add(new BreakoutUiProgressionCardView
                 {
                     Title = definition.DisplayName,
@@ -198,8 +199,8 @@ namespace GetBricked.Gameplay
                     UnlockHint = isDefault
                         ? "Default content"
                         : isUnlocked
-                            ? $"Unlocked at Heat {unlockIntensity:00}"
-                            : $"Reach Heat {unlockIntensity:00} in Neon Ladder",
+                            ? $"Cleared Heat {unlockIntensity:00}"
+                            : $"Clear Heat {unlockIntensity:00} in Neon Ladder",
                     StateLabel = isDefault ? "Default" : isUnlocked ? "Unlocked" : "Locked",
                     ModeAvailability = isUnlocked ? "Ladder | Marathon | Multiplayer" : "Ladder goal",
                     UnlockState = isDefault
@@ -318,10 +319,10 @@ namespace GetBricked.Gameplay
             string family,
             string description,
             int unlockIntensity,
-            int availableIntensity,
+            int highestCompletedIntensity,
             Color accent)
         {
-            var isUnlocked = BreakoutRunProgression.ClampRogueIntensity(availableIntensity)
+            var isUnlocked = Mathf.Clamp(highestCompletedIntensity, 0, BreakoutRunProgression.MaxRogueIntensity)
                 >= BreakoutRunProgression.ClampRogueIntensity(unlockIntensity);
 
             return new BreakoutUiProgressionCardView
@@ -331,8 +332,8 @@ namespace GetBricked.Gameplay
                 Family = family,
                 Description = description,
                 UnlockHint = isUnlocked
-                    ? $"Unlocked at Heat {unlockIntensity:00}"
-                    : $"Reach Heat {unlockIntensity:00} in Neon Ladder",
+                    ? $"Cleared Heat {unlockIntensity:00}"
+                    : $"Clear Heat {unlockIntensity:00} in Neon Ladder",
                 StateLabel = isUnlocked ? "Unlocked" : "Locked",
                 ModeAvailability = isUnlocked ? "Ladder | Marathon | Multiplayer" : "Ladder goal",
                 UnlockState = isUnlocked
@@ -407,6 +408,63 @@ namespace GetBricked.Gameplay
                 {
                     count++;
                 }
+            }
+
+            return count;
+        }
+
+        private static int CountEarnedLiveDrops(IReadOnlyList<PowerUpDefinition> loadedPowerUps, int highestCompletedIntensity)
+        {
+            var count = 0;
+
+            if (loadedPowerUps == null)
+            {
+                return count;
+            }
+
+            for (var index = 0; index < loadedPowerUps.Count; index++)
+            {
+                var definition = loadedPowerUps[index];
+
+                if (definition != null
+                    && !IsDefaultDrop(definition)
+                    && definition.IsEarnedForCompletedLadderIntensity(highestCompletedIntensity))
+                {
+                    count++;
+                }
+            }
+
+            return count;
+        }
+
+        private static int CountEarnedLiveGlitches(int highestCompletedIntensity)
+        {
+            var completedIntensity = Mathf.Clamp(highestCompletedIntensity, 0, BreakoutRunProgression.MaxRogueIntensity);
+            var count = 0;
+
+            if (completedIntensity >= BreakoutLevelGlitchPlanner.TurboRailLadderUnlockIntensity)
+            {
+                count++;
+            }
+
+            if (completedIntensity >= BreakoutLevelGlitchPlanner.MirrorGridLadderUnlockIntensity)
+            {
+                count++;
+            }
+
+            if (completedIntensity >= BreakoutLevelGlitchPlanner.TokenStormLadderUnlockIntensity)
+            {
+                count++;
+            }
+
+            if (completedIntensity >= BreakoutLevelGlitchPlanner.GravityPocketLadderUnlockIntensity)
+            {
+                count++;
+            }
+
+            if (completedIntensity >= BreakoutLevelGlitchPlanner.StaticWallLadderUnlockIntensity)
+            {
+                count++;
             }
 
             return count;

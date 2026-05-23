@@ -68,7 +68,8 @@ namespace GetBricked.Gameplay.Data
             float levelGlitchChanceMultiplier = 1f,
             LevelGlitchSelection levelGlitchSelection = LevelGlitchSelection.Random,
             bool forceLevelGlitchRoll = false,
-            bool ignoreLevelGlitchUnlocks = false)
+            bool ignoreLevelGlitchUnlocks = false,
+            int levelGlitchUnlockIntensityOverride = -1)
         {
             Seed = seed == int.MinValue ? int.MaxValue : Mathf.Abs(seed);
             DifficultyPreset = difficultyPreset;
@@ -97,6 +98,9 @@ namespace GetBricked.Gameplay.Data
             LevelGlitchChanceMultiplier = Mathf.Clamp(levelGlitchChanceMultiplier, 0f, 3f);
             ForceLevelGlitchRoll = forceLevelGlitchRoll && LevelGlitchesEnabled;
             IgnoreLevelGlitchUnlocks = ignoreLevelGlitchUnlocks;
+            LevelGlitchUnlockIntensity = levelGlitchUnlockIntensityOverride >= 0
+                ? Mathf.Clamp(levelGlitchUnlockIntensityOverride, 0, BreakoutRunProgression.MaxRogueIntensity)
+                : BreakoutRunProgression.GetCompletedUnlockIntensityForRun(RogueIntensity);
         }
 
         public int Seed { get; }
@@ -144,6 +148,8 @@ namespace GetBricked.Gameplay.Data
         public bool ForceLevelGlitchRoll { get; }
 
         public bool IgnoreLevelGlitchUnlocks { get; }
+
+        public int LevelGlitchUnlockIntensity { get; }
 
         public string DifficultyLabel => !string.IsNullOrWhiteSpace(CustomDifficultyLabel)
             ? CustomDifficultyLabel

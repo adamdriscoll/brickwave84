@@ -159,6 +159,11 @@ namespace GetBricked.Gameplay.Data
             return BreakoutRunProgression.ClampRogueIntensity(intensity) >= LadderUnlockIntensity;
         }
 
+        public bool IsEarnedForCompletedLadderIntensity(int completedIntensity)
+        {
+            return Mathf.Clamp(completedIntensity, 0, BreakoutRunProgression.MaxRogueIntensity) >= LadderUnlockIntensity;
+        }
+
         public string ResolvePickupSpriteResourcePath()
         {
             if (!string.IsNullOrWhiteSpace(iconResourcePath))

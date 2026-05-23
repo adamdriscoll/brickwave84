@@ -37,7 +37,8 @@ namespace GetBricked.Gameplay
             int? intensityOverride = null,
             LevelGlitchSelection levelGlitchSelection = LevelGlitchSelection.Random,
             bool forceLevelGlitchRoll = false,
-            bool ignoreLevelGlitchUnlocks = false)
+            bool ignoreLevelGlitchUnlocks = false,
+            int levelGlitchUnlockIntensityOverride = -1)
         {
             var selectedPaddle = BreakoutRoguePaddleCatalog.Resolve(selectedPaddleLabel);
             var intensity = intensityOverride.HasValue
@@ -65,7 +66,8 @@ namespace GetBricked.Gameplay
                 levelGlitchChanceMultiplier: 1f,
                 levelGlitchSelection: levelGlitchSelection,
                 forceLevelGlitchRoll: forceLevelGlitchRoll,
-                ignoreLevelGlitchUnlocks: ignoreLevelGlitchUnlocks);
+                ignoreLevelGlitchUnlocks: ignoreLevelGlitchUnlocks,
+                levelGlitchUnlockIntensityOverride: levelGlitchUnlockIntensityOverride);
         }
 
         public void InitializeRunState(BreakoutRunState runState)
@@ -98,13 +100,37 @@ namespace GetBricked.Gameplay
             var intensity = runSettings != null
                 ? runSettings.RogueIntensity
                 : BreakoutRunProgression.MinRogueIntensity;
-            var hazards = BuildSortedHazardDropPool(intensity);
+            var completedUnlockIntensity = BreakoutRunProgression.GetCompletedUnlockIntensityForRun(intensity);
+            var hazards = BuildSortedHazardDropPool(completedUnlockIntensity);
             var targetHazardCount = Mathf.Min(hazards.Count, GetAutoHazardUnlockCount(runState.ClearedLevelCount, intensity));
             var unlockedCount = 0;
 
             for (var index = 0; index < targetHazardCount; index++)
             {
                 if (runState.UnlockDrop(hazards[index]))
+                {
+                    unlockedCount++;
+                }
+            }
+
+            return unlockedCount;
+        }
+
+        public int UnlockDropsThroughHeat(BreakoutRunState runState, int completedUnlockIntensity)
+        {
+            if (runState == null)
+            {
+                return 0;
+            }
+
+            var unlockedCount = 0;
+            var clampedIntensity = Mathf.Clamp(completedUnlockIntensity, 0, BreakoutRunProgression.MaxRogueIntensity);
+
+            for (var index = 0; index < loadedPowerUpDefinitions.Count; index++)
+            {
+                var definition = loadedPowerUpDefinitions[index];
+
+                if (definition != null && definition.IsEarnedForCompletedLadderIntensity(clampedIntensity) && runState.UnlockDrop(definition))
                 {
                     unlockedCount++;
                 }
@@ -175,7 +201,7 @@ namespace GetBricked.Gameplay
 
                 if (definition != null
                     && !definition.IsBeneficial
-                    && definition.IsUnlockedForLadderIntensity(intensity))
+                    && definition.IsEarnedForCompletedLadderIntensity(intensity))
                 {
                     hazards.Add(definition);
                 }

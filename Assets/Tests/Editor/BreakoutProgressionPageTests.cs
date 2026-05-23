@@ -71,12 +71,12 @@ public sealed class BreakoutProgressionPageTests
     }
 
     [Test]
-    public void ProgressionPageUsesSavedHeatForPlaceholderUnlockPreview()
+    public void ProgressionPageUsesSavedHeatForGlitchPlaceholderUnlockPreview()
     {
         BreakoutRogueRunResultStore.Save(new BreakoutRogueRunResult
         {
             Completed = true,
-            CurrentIntensity = 32,
+            CurrentIntensity = 6,
             SelectedPaddle = BreakoutRogueRunResultStore.DefaultPaddleLabel,
             StageReached = BreakoutRunProgression.TargetLevelCount,
             Score = 1000,
@@ -84,21 +84,21 @@ public sealed class BreakoutProgressionPageTests
         });
 
         var view = new BreakoutProgressionPageService().BuildView(Array.Empty<PowerUpDefinition>());
-        var chromeRail = view.Cards.First(card => card.Title == "Chrome Rail");
-        var solarShot = view.Cards.First(card => card.Title == "Solar Shot");
+        var rowRewrite = view.Cards.First(card => card.Title == "Row Rewrite");
+        var prismLanes = view.Cards.First(card => card.Title == "Prism Lanes");
 
-        Assert.That(view.LadderLines, Has.Some.Contains("Heat 32"));
+        Assert.That(view.LadderLines, Has.Some.Contains("Heat 06"));
         Assert.That(view.LadderLines.Any(line => line.Contains("Paddle")), Is.False);
         Assert.That(view.NextSignal, Does.Not.Contain("Paddle"));
         Assert.That(view.Paddles, Is.Empty);
-        Assert.That(chromeRail.UnlockState, Is.EqualTo(BreakoutUiProgressionUnlockState.Unlocked));
-        Assert.That(solarShot.UnlockState, Is.EqualTo(BreakoutUiProgressionUnlockState.SeenLocked));
-        Assert.That(chromeRail.UnlockHint, Does.Contain("preview"));
-        Assert.That(solarShot.UnlockHint, Does.Contain("Heat 35"));
+        Assert.That(rowRewrite.UnlockState, Is.EqualTo(BreakoutUiProgressionUnlockState.Unlocked));
+        Assert.That(prismLanes.UnlockState, Is.EqualTo(BreakoutUiProgressionUnlockState.SeenLocked));
+        Assert.That(rowRewrite.UnlockHint, Does.Contain("preview"));
+        Assert.That(prismLanes.UnlockHint, Does.Contain("Heat 07"));
     }
 
     [Test]
-    public void AuthoredLiveUnlocksUseOneSignalPerHeatBeforeBacklog()
+    public void AuthoredLiveUnlocksUseParallelDropAndGlitchHeatTracks()
     {
         var drops = Resources.LoadAll<PowerUpDefinition>("PowerUps");
         var unlockHeats = drops
@@ -106,7 +106,7 @@ public sealed class BreakoutProgressionPageTests
             .Select(definition => definition.LadderUnlockIntensity)
             .OrderBy(heat => heat)
             .ToArray();
-        var expectedDropHeats = Enumerable.Range(1, 30).Append(33).Append(34).Append(36).Append(43).ToArray();
+        var expectedDropHeats = Enumerable.Range(1, 34).ToArray();
 
         Assert.That(unlockHeats, Is.EqualTo(expectedDropHeats));
 
@@ -117,20 +117,20 @@ public sealed class BreakoutProgressionPageTests
         var gravityPocket = view.Cards.First(card => card.Title == "Gravity Pocket");
         var chromeRail = view.Cards.First(card => card.Title == "Chrome Rail");
 
-        Assert.That(turboRail.UnlockHint, Does.Contain("Heat 31"));
-        Assert.That(mirrorGrid.UnlockHint, Does.Contain("Heat 37"));
+        Assert.That(turboRail.UnlockHint, Does.Contain("Heat 01"));
+        Assert.That(mirrorGrid.UnlockHint, Does.Contain("Heat 02"));
         Assert.That(mirrorGrid.UnlockHint, Does.Not.Contain("preview"));
-        Assert.That(gravityPocket.UnlockHint, Does.Contain("Heat 41"));
+        Assert.That(gravityPocket.UnlockHint, Does.Contain("Heat 04"));
         Assert.That(gravityPocket.UnlockHint, Does.Not.Contain("preview"));
         Assert.That(gravityPocket.Family, Does.Contain("Epic"));
-        Assert.That(tokenStorm.UnlockHint, Does.Contain("Heat 40"));
+        Assert.That(tokenStorm.UnlockHint, Does.Contain("Heat 03"));
         Assert.That(tokenStorm.UnlockHint, Does.Not.Contain("preview"));
         Assert.That(tokenStorm.Family, Does.Contain("Epic"));
-        Assert.That(chromeRail.UnlockHint, Does.Contain("Heat 32"));
+        Assert.That(chromeRail.UnlockHint, Does.Contain("Heat 35"));
     }
 
     [Test]
-    public void ProgressionPageShowsBankBonusAsLiveHeatThirtyFourDrop()
+    public void ProgressionPageShowsBankBonusAsLiveHeatThirtyTwoDrop()
     {
         var bankBonus = Resources.Load<PowerUpDefinition>("PowerUps/BankBonus");
         Assert.That(bankBonus, Is.Not.Null);
@@ -138,14 +138,14 @@ public sealed class BreakoutProgressionPageTests
         var view = new BreakoutProgressionPageService().BuildView(new[] { bankBonus });
         var card = view.Cards.First(item => item.Title == "Bank Bonus");
 
-        Assert.That(card.UnlockHint, Does.Contain("Heat 34"));
+        Assert.That(card.UnlockHint, Does.Contain("Heat 32"));
         Assert.That(card.Description, Does.Contain("Wall bounces bank +50 points"));
         Assert.That(card.Family, Does.Contain("Epic Helpful"));
         Assert.That(card.StateLabel, Is.EqualTo("Locked"));
     }
 
     [Test]
-    public void ProgressionPageShowsPrismPopAsLiveHeatThirtySixDrop()
+    public void ProgressionPageShowsPrismPopAsLiveHeatThirtyThreeDrop()
     {
         var prismPop = Resources.Load<PowerUpDefinition>("PowerUps/PrismPop");
         Assert.That(prismPop, Is.Not.Null);
@@ -153,7 +153,7 @@ public sealed class BreakoutProgressionPageTests
         var view = new BreakoutProgressionPageService().BuildView(new[] { prismPop });
         var card = view.Cards.First(item => item.Title == "Prism Pop");
 
-        Assert.That(card.UnlockHint, Does.Contain("Heat 36"));
+        Assert.That(card.UnlockHint, Does.Contain("Heat 33"));
         Assert.That(card.Description, Does.Contain("short-lived copy ball"));
         Assert.That(card.Family, Does.Contain("Epic Helpful"));
         Assert.That(card.StateLabel, Is.EqualTo("Locked"));
@@ -161,7 +161,7 @@ public sealed class BreakoutProgressionPageTests
     }
 
     [Test]
-    public void ProgressionPageShowsCleanCatchAsLiveHeatThirtyThreeDrop()
+    public void ProgressionPageShowsCleanCatchAsLiveHeatThirtyOneDrop()
     {
         var cleanCatch = Resources.Load<PowerUpDefinition>("PowerUps/CleanCatch");
         Assert.That(cleanCatch, Is.Not.Null);
@@ -169,7 +169,7 @@ public sealed class BreakoutProgressionPageTests
         var view = new BreakoutProgressionPageService().BuildView(new[] { cleanCatch });
         var card = view.Cards.First(item => item.Title == "Clean Catch");
 
-        Assert.That(card.UnlockHint, Does.Contain("Heat 33"));
+        Assert.That(card.UnlockHint, Does.Contain("Heat 31"));
         Assert.That(card.Description, Does.Contain("releases with aim"));
         Assert.That(card.Family, Does.Contain("Epic Helpful"));
         Assert.That(card.StateLabel, Is.EqualTo("Locked"));
@@ -177,7 +177,7 @@ public sealed class BreakoutProgressionPageTests
     }
 
     [Test]
-    public void ProgressionPageShowsMysteryTapeAsLiveHeatFortyThreeDrop()
+    public void ProgressionPageShowsMysteryTapeAsLiveHeatThirtyFourDrop()
     {
         var mysteryTape = Resources.Load<PowerUpDefinition>("PowerUps/MysteryTape");
         Assert.That(mysteryTape, Is.Not.Null);
@@ -185,7 +185,7 @@ public sealed class BreakoutProgressionPageTests
         var view = new BreakoutProgressionPageService().BuildView(new[] { mysteryTape });
         var card = view.Cards.First(item => item.Title == "Mystery Tape");
 
-        Assert.That(card.UnlockHint, Does.Contain("Heat 43"));
+        Assert.That(card.UnlockHint, Does.Contain("Heat 34"));
         Assert.That(card.Description, Does.Contain("helpful drop and"));
         Assert.That(card.Family, Does.Contain("Epic Helpful"));
         Assert.That(card.StateLabel, Is.EqualTo("Locked"));

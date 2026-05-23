@@ -169,8 +169,9 @@ namespace GetBricked.Gameplay
                 return false;
             }
 
+            var completedUnlockIntensity = BreakoutRunProgression.GetCompletedUnlockIntensityForRun(runSettings.RogueIntensity);
             return definition.IsBeneficial
-                && definition.IsUnlockedForLadderIntensity(runSettings.RogueIntensity);
+                && definition.IsEarnedForCompletedLadderIntensity(completedUnlockIntensity);
         }
 
         private static bool IsUpgradeCompatibleWithRun(RunUpgradeDefinition definition, RunSettings runSettings)

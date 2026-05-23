@@ -226,9 +226,9 @@ namespace GetBricked.Gameplay
                     return new[]
                     {
                         $"Heat {context.AvailableRogueIntensity:00}/50 is the next Neon Ladder goal.",
-                        "Drops and glitches show Default, placeholder Unlocked, Locked, and Unknown slots.",
+                        "Drops and glitches show Default, Earned, Locked, and Unknown slots.",
                         "Marathon and multiplayer badges preview where earned content will appear later.",
-                        "Status: presentation shell. Unlock effects are not wired into gameplay pools yet.",
+                        "Status: paired Heat tracks with live drops and glitches wired into gameplay pools.",
                     };
                 case BreakoutMainMenuAction.SoloMarathon:
                     return new[]

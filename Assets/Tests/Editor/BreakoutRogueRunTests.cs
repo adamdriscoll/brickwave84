@@ -237,7 +237,7 @@ public sealed class BreakoutRogueRunTests
             controller.InitializeRunState(runState);
             Assert.That(runState.IsDropUnlocked(blackout), Is.False);
 
-            var lowHeatSettings = CreateRogueSettings(1010, intensity: 1);
+            var lowHeatSettings = CreateRogueSettings(1010, intensity: 2);
             var highHeatSettings = CreateRogueSettings(1010, intensity: 50);
 
             runState.RegisterLevelClear();
@@ -281,8 +281,8 @@ public sealed class BreakoutRogueRunTests
                 new List<RunUpgradeDefinition>(),
                 new List<PowerUpDefinition> { rareHazard, commonHazard });
             var runState = new BreakoutRunState();
-            var lowHeatSettings = CreateRogueSettings(1010, intensity: 8);
-            var rareHeatSettings = CreateRogueSettings(1010, intensity: 18);
+            var lowHeatSettings = CreateRogueSettings(1010, intensity: 9);
+            var rareHeatSettings = CreateRogueSettings(1010, intensity: 19);
 
             for (var index = 0; index < 6; index++)
             {
@@ -452,10 +452,51 @@ public sealed class BreakoutRogueRunTests
     {
         var controller = new BreakoutRogueRunController(new List<RunUpgradeDefinition>(), new List<PowerUpDefinition>());
 
-        var settings = controller.BuildRunSettings(4040, 500, null, intensityOverride: 42);
+        var settings = controller.BuildRunSettings(
+            4040,
+            500,
+            null,
+            intensityOverride: 42,
+            levelGlitchUnlockIntensityOverride: 42);
 
         Assert.That(settings.RogueIntensity, Is.EqualTo(42));
+        Assert.That(settings.LevelGlitchUnlockIntensity, Is.EqualTo(42));
         Assert.That(settings.BallSpeedMultiplier, Is.EqualTo(BreakoutRunProgression.GetRogueIntensityBallSpeedMultiplier(42)).Within(0.0001f));
+    }
+
+    [Test]
+    public void DeveloperHeatUnlocksDropsForThatRunWithoutPersistence()
+    {
+        var earlyDrop = CreatePowerUp("Fast Ball", "fast_ball", beneficial: false);
+        var heatFiveDrop = CreatePowerUp("Bogus Tape", "bogus_tape", beneficial: false, BreakoutContentRarity.Uncommon);
+        var laterDrop = CreatePowerUp("Laser Grid", "laser_grid", beneficial: true, BreakoutContentRarity.Epic);
+        var defaultDrop = CreatePowerUp("Wide Paddle", "large_paddle", beneficial: true);
+        SetPrivateField(earlyDrop, "ladderUnlockIntensityOverride", 1);
+        SetPrivateField(heatFiveDrop, "ladderUnlockIntensityOverride", 5);
+        SetPrivateField(laterDrop, "ladderUnlockIntensityOverride", 29);
+
+        try
+        {
+            var controller = new BreakoutRogueRunController(
+                new List<RunUpgradeDefinition>(),
+                new List<PowerUpDefinition> { laterDrop, heatFiveDrop, earlyDrop, defaultDrop });
+            var runState = new BreakoutRunState();
+
+            controller.InitializeRunState(runState);
+            var unlockedCount = controller.UnlockDropsThroughHeat(runState, completedUnlockIntensity: 5);
+
+            Assert.That(unlockedCount, Is.EqualTo(2));
+            Assert.That(runState.IsDropUnlocked(earlyDrop), Is.True);
+            Assert.That(runState.IsDropUnlocked(heatFiveDrop), Is.True);
+            Assert.That(runState.IsDropUnlocked(laterDrop), Is.False);
+        }
+        finally
+        {
+            Object.DestroyImmediate(earlyDrop);
+            Object.DestroyImmediate(heatFiveDrop);
+            Object.DestroyImmediate(laterDrop);
+            Object.DestroyImmediate(defaultDrop);
+        }
     }
 
     private static RunSettings CreateRogueSettings(int seed, int intensity)

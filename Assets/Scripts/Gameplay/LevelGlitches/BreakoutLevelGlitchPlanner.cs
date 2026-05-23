@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using GetBricked.Gameplay.Data;
 using UnityEngine;
 
@@ -165,7 +166,8 @@ namespace GetBricked.Gameplay
             BreakoutTurboRailSpec turboRail,
             BreakoutTokenStormSpec tokenStorm = default,
             BreakoutGravityPocketSpec gravityPocket = default,
-            BreakoutStaticWallSpec staticWall = default)
+            BreakoutStaticWallSpec staticWall = default,
+            BreakoutLevelGlitchType[] activeGlitchTypes = null)
         {
             GlitchType = glitchType;
             Rarity = BreakoutRarityRules.Clamp(rarity);
@@ -177,6 +179,11 @@ namespace GetBricked.Gameplay
             TokenStorm = tokenStorm;
             GravityPocket = gravityPocket;
             StaticWall = staticWall;
+            ActiveGlitchTypes = activeGlitchTypes != null && activeGlitchTypes.Length > 0
+                ? activeGlitchTypes
+                : glitchType != BreakoutLevelGlitchType.None
+                    ? new[] { glitchType }
+                    : Array.Empty<BreakoutLevelGlitchType>();
         }
 
         public BreakoutLevelGlitchType GlitchType { get; }
@@ -199,16 +206,31 @@ namespace GetBricked.Gameplay
 
         public BreakoutStaticWallSpec StaticWall { get; }
 
-        public bool IsActive => GlitchType != BreakoutLevelGlitchType.None;
+        public BreakoutLevelGlitchType[] ActiveGlitchTypes { get; }
+
+        public bool IsActive => ActiveGlitchTypes.Length > 0;
+
+        public bool HasGlitch(BreakoutLevelGlitchType glitchType)
+        {
+            for (var index = 0; index < ActiveGlitchTypes.Length; index++)
+            {
+                if (ActiveGlitchTypes[index] == glitchType)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
     }
 
     internal static class BreakoutLevelGlitchPlanner
     {
-        public const int TurboRailLadderUnlockIntensity = 31;
-        public const int MirrorGridLadderUnlockIntensity = 37;
-        public const int TokenStormLadderUnlockIntensity = 40;
-        public const int GravityPocketLadderUnlockIntensity = 41;
-        public const int StaticWallLadderUnlockIntensity = 42;
+        public const int TurboRailLadderUnlockIntensity = 1;
+        public const int MirrorGridLadderUnlockIntensity = 2;
+        public const int TokenStormLadderUnlockIntensity = 3;
+        public const int GravityPocketLadderUnlockIntensity = 4;
+        public const int StaticWallLadderUnlockIntensity = 5;
 
         private const float WarpGateScoreMultiplier = 1.35f;
         private const float TurboRailScoreMultiplier = 1.25f;
@@ -261,14 +283,14 @@ namespace GetBricked.Gameplay
                 return BreakoutLevelGlitchPlan.None;
             }
 
-            if (settings.IsRogueMode && BreakoutRunProgression.IsFinalStage(levelIndex))
+            if (settings.ForceLevelGlitchRoll || IsForcedLevelGlitchSelection(settings.SelectedLevelGlitch))
             {
                 return BuildSelectedGlitchPlan(random, settings, settings.SelectedLevelGlitch);
             }
 
-            if (settings.ForceLevelGlitchRoll || IsForcedLevelGlitchSelection(settings.SelectedLevelGlitch))
+            if (settings.IsRogueMode && BreakoutRunProgression.IsFinalStage(levelIndex))
             {
-                return BuildSelectedGlitchPlan(random, settings, settings.SelectedLevelGlitch);
+                return BuildRandomGlitchPlan(random, settings, levelIndex);
             }
 
             var chance = GetGlitchChance(settings, levelIndex);
@@ -278,7 +300,7 @@ namespace GetBricked.Gameplay
                 return BreakoutLevelGlitchPlan.None;
             }
 
-            return BuildSelectedGlitchPlan(random, settings, settings.SelectedLevelGlitch);
+            return BuildRandomGlitchPlan(random, settings, levelIndex);
         }
 
         private static BreakoutLevelGlitchPlan BuildSelectedGlitchPlan(
@@ -293,6 +315,13 @@ namespace GetBricked.Gameplay
                 return BreakoutLevelGlitchPlan.None;
             }
 
+            return BuildPlanFromDefinition(random, definition);
+        }
+
+        private static BreakoutLevelGlitchPlan BuildPlanFromDefinition(
+            DeterministicRandomService random,
+            BreakoutLevelGlitchDefinition definition)
+        {
             if (definition.GlitchType == BreakoutLevelGlitchType.TurboRail)
             {
                 return BuildTurboRailPlan(random, definition.Rarity);
@@ -319,6 +348,156 @@ namespace GetBricked.Gameplay
             }
 
             return BuildWarpGatePlan(random, definition.Rarity);
+        }
+
+        private static BreakoutLevelGlitchPlan BuildRandomGlitchPlan(
+            DeterministicRandomService random,
+            RunSettings settings,
+            int levelIndex)
+        {
+            var targetCount = GetRandomGlitchTargetCount(random, settings, levelIndex);
+            var definitions = new List<BreakoutLevelGlitchDefinition>();
+            var selectedTypes = new HashSet<BreakoutLevelGlitchType>();
+
+            for (var index = 0; index < targetCount; index++)
+            {
+                var definition = PickRandomGlitchDefinition(random, settings, selectedTypes);
+
+                if (definition.GlitchType == BreakoutLevelGlitchType.None)
+                {
+                    break;
+                }
+
+                definitions.Add(definition);
+                selectedTypes.Add(definition.GlitchType);
+            }
+
+            if (definitions.Count == 0)
+            {
+                return BreakoutLevelGlitchPlan.None;
+            }
+
+            if (definitions.Count == 1)
+            {
+                return BuildPlanFromDefinition(random, definitions[0]);
+            }
+
+            return BuildCompositePlan(random, definitions);
+        }
+
+        internal static int GetRandomGlitchTargetCount(DeterministicRandomService random, RunSettings settings, int levelIndex)
+        {
+            if (random == null || settings == null)
+            {
+                return 1;
+            }
+
+            var unlockIntensity = settings.IsRogueMode
+                ? settings.LevelGlitchUnlockIntensity
+                : BreakoutRunProgression.MaxRogueIntensity;
+            var levelPressure = Mathf.Clamp01(levelIndex / 9f);
+            var maxCount = unlockIntensity >= 35
+                ? 3
+                : unlockIntensity >= 18
+                    ? 2
+                    : 1;
+            var count = 1;
+
+            if (maxCount >= 2)
+            {
+                var secondChance = Mathf.Clamp01(Mathf.InverseLerp(12f, 35f, unlockIntensity) * 0.45f + levelPressure * 0.25f);
+
+                if (BreakoutRunProgression.IsFinalStage(levelIndex))
+                {
+                    secondChance = Mathf.Clamp01(secondChance + 0.2f);
+                }
+
+                if (random.NextFloat() <= secondChance)
+                {
+                    count++;
+                }
+            }
+
+            if (maxCount >= 3 && count >= 2)
+            {
+                var thirdChance = Mathf.Clamp01(Mathf.InverseLerp(35f, BreakoutRunProgression.MaxRogueIntensity, unlockIntensity) * 0.35f + levelPressure * 0.15f);
+
+                if (BreakoutRunProgression.IsFinalStage(levelIndex))
+                {
+                    thirdChance = Mathf.Clamp01(thirdChance + 0.15f);
+                }
+
+                if (random.NextFloat() <= thirdChance)
+                {
+                    count++;
+                }
+            }
+
+            return Mathf.Clamp(count, 1, maxCount);
+        }
+
+        private static BreakoutLevelGlitchPlan BuildCompositePlan(
+            DeterministicRandomService random,
+            List<BreakoutLevelGlitchDefinition> definitions)
+        {
+            var activeTypes = new BreakoutLevelGlitchType[definitions.Count];
+            var displayName = string.Empty;
+            var scoreMultiplier = 1f;
+            var rarity = BreakoutContentRarity.Common;
+            var warpGates = Array.Empty<BreakoutWarpGateSpec>();
+            var turboRail = default(BreakoutTurboRailSpec);
+            var tokenStorm = default(BreakoutTokenStormSpec);
+            var gravityPocket = default(BreakoutGravityPocketSpec);
+            var staticWall = default(BreakoutStaticWallSpec);
+
+            for (var index = 0; index < definitions.Count; index++)
+            {
+                var plan = BuildPlanFromDefinition(random, definitions[index]);
+                activeTypes[index] = plan.GlitchType;
+                displayName = string.IsNullOrWhiteSpace(displayName)
+                    ? plan.DisplayName
+                    : $"{displayName} + {plan.DisplayName}";
+                scoreMultiplier *= Mathf.Max(1f, plan.ScoreMultiplier);
+                rarity = (BreakoutContentRarity)Mathf.Max((int)rarity, (int)plan.Rarity);
+
+                if (plan.HasGlitch(BreakoutLevelGlitchType.WarpGates))
+                {
+                    warpGates = plan.WarpGates;
+                }
+
+                if (plan.HasGlitch(BreakoutLevelGlitchType.TurboRail))
+                {
+                    turboRail = plan.TurboRail;
+                }
+
+                if (plan.HasGlitch(BreakoutLevelGlitchType.TokenStorm))
+                {
+                    tokenStorm = plan.TokenStorm;
+                }
+
+                if (plan.HasGlitch(BreakoutLevelGlitchType.GravityPocket))
+                {
+                    gravityPocket = plan.GravityPocket;
+                }
+
+                if (plan.HasGlitch(BreakoutLevelGlitchType.StaticWall))
+                {
+                    staticWall = plan.StaticWall;
+                }
+            }
+
+            return new BreakoutLevelGlitchPlan(
+                activeTypes[0],
+                rarity,
+                displayName,
+                $"Glitch Stack x{scoreMultiplier:0.00}",
+                scoreMultiplier,
+                warpGates,
+                turboRail,
+                tokenStorm,
+                gravityPocket,
+                staticWall,
+                activeTypes);
         }
 
         private static BreakoutLevelGlitchPlan BuildWarpGatePlan(DeterministicRandomService random, BreakoutContentRarity rarity)
@@ -407,7 +586,7 @@ namespace GetBricked.Gameplay
                 return 0f;
             }
 
-            if (settings.IsRogueMode && !HasUnlockedRogueGlitch(settings.RogueIntensity))
+            if (settings.IsRogueMode && !HasUnlockedRogueGlitch(settings))
             {
                 return 0f;
             }
@@ -418,18 +597,19 @@ namespace GetBricked.Gameplay
             if (settings.IsRogueMode)
             {
                 var intensity = BreakoutRunProgression.ClampRogueIntensity(settings.RogueIntensity);
+                var completedUnlockIntensity = settings.LevelGlitchUnlockIntensity;
 
                 if (BreakoutRunProgression.IsFinalStage(levelIndex))
                 {
                     return 1f;
                 }
 
-                if (intensity < 8)
+                if (completedUnlockIntensity <= 0)
                 {
                     return 0f;
                 }
 
-                baseChance = Mathf.Lerp(0.12f, 0.58f, Mathf.InverseLerp(8f, BreakoutRunProgression.MaxRogueIntensity, intensity));
+                baseChance = Mathf.Lerp(0.12f, 0.58f, Mathf.InverseLerp(1f, BreakoutRunProgression.MaxRogueIntensity, completedUnlockIntensity));
                 baseChance += levelPressure * 0.1f;
             }
             else if (settings.IsTurnBasedMode)
@@ -524,13 +704,24 @@ namespace GetBricked.Gameplay
             DeterministicRandomService random,
             RunSettings settings)
         {
+            return PickRandomGlitchDefinition(random, settings, null);
+        }
+
+        private static BreakoutLevelGlitchDefinition PickRandomGlitchDefinition(
+            DeterministicRandomService random,
+            RunSettings settings,
+            HashSet<BreakoutLevelGlitchType> excludedTypes)
+        {
             var totalWeight = 0f;
 
             for (var index = 0; index < GlitchDefinitions.Length; index++)
             {
-                if (IsGlitchUnlockedForSettings(GlitchDefinitions[index], settings))
+                var definition = GlitchDefinitions[index];
+
+                if (IsGlitchUnlockedForSettings(definition, settings)
+                    && (excludedTypes == null || !excludedTypes.Contains(definition.GlitchType)))
                 {
-                    totalWeight += BreakoutRarityRules.GetDropWeightMultiplier(GlitchDefinitions[index].Rarity);
+                    totalWeight += BreakoutRarityRules.GetDropWeightMultiplier(definition.Rarity);
                 }
             }
 
@@ -545,7 +736,8 @@ namespace GetBricked.Gameplay
             {
                 var definition = GlitchDefinitions[index];
 
-                if (!IsGlitchUnlockedForSettings(definition, settings))
+                if (!IsGlitchUnlockedForSettings(definition, settings)
+                    || (excludedTypes != null && excludedTypes.Contains(definition.GlitchType)))
                 {
                     continue;
                 }
@@ -587,22 +779,32 @@ namespace GetBricked.Gameplay
                 && (settings == null
                     || !settings.IsRogueMode
                     || settings.IgnoreLevelGlitchUnlocks
-                    || BreakoutRunProgression.ClampRogueIntensity(settings.RogueIntensity) >= definition.LadderUnlockIntensity);
+                    || IsDefaultRogueGlitch(definition)
+                    || settings.LevelGlitchUnlockIntensity >= definition.LadderUnlockIntensity);
         }
 
-        private static bool HasUnlockedRogueGlitch(int intensity)
+        private static bool HasUnlockedRogueGlitch(RunSettings settings)
         {
-            var clampedIntensity = BreakoutRunProgression.ClampRogueIntensity(intensity);
+            var completedUnlockIntensity = settings != null
+                ? settings.LevelGlitchUnlockIntensity
+                : 0;
 
             for (var index = 0; index < GlitchDefinitions.Length; index++)
             {
-                if (clampedIntensity >= GlitchDefinitions[index].LadderUnlockIntensity)
+                var definition = GlitchDefinitions[index];
+
+                if (IsDefaultRogueGlitch(definition) || completedUnlockIntensity >= definition.LadderUnlockIntensity)
                 {
                     return true;
                 }
             }
 
             return false;
+        }
+
+        private static bool IsDefaultRogueGlitch(BreakoutLevelGlitchDefinition definition)
+        {
+            return definition.GlitchType == BreakoutLevelGlitchType.WarpGates;
         }
 
         private static bool IsForcedLevelGlitchSelection(LevelGlitchSelection selection)

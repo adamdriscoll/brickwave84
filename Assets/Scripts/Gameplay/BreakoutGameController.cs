@@ -1019,6 +1019,11 @@ namespace GetBricked.Gameplay
                 rogueRunController?.InitializeRunState(activeRunState);
             }
 
+            if (applyDeveloperSelections && activeRunSettings.IsRogueMode)
+            {
+                rogueRunController?.UnlockDropsThroughHeat(activeRunState, activeRunSettings.RogueIntensity);
+            }
+
             if (applyDeveloperSelections)
             {
                 ApplyDeveloperSelectionsToRunState();
@@ -1356,11 +1361,13 @@ namespace GetBricked.Gameplay
 
             rogueRunController?.InitializeRunState(activeRunState);
 
+            var completedUnlockIntensity = BreakoutRunProgression.GetCompletedUnlockIntensityForRun(intensity);
+
             for (var index = 0; index < loadedPowerUpDefinitions.Count; index++)
             {
                 var definition = loadedPowerUpDefinitions[index];
 
-                if (definition != null && definition.IsUnlockedForLadderIntensity(intensity))
+                if (definition != null && definition.IsEarnedForCompletedLadderIntensity(completedUnlockIntensity))
                 {
                     activeRunState.UnlockDrop(definition);
                 }
@@ -2177,7 +2184,8 @@ namespace GetBricked.Gameplay
                     intensity,
                     selectedGlitch,
                     shouldForceGlitch,
-                    shouldForceGlitch)
+                    shouldForceGlitch,
+                    intensity)
                 : new RunSettings(
                     GenerateSeed(),
                     RunDifficultyPreset.Standard,
@@ -2199,7 +2207,8 @@ namespace GetBricked.Gameplay
                     levelGlitchesEnabled: true,
                     levelGlitchSelection: selectedGlitch,
                     forceLevelGlitchRoll: shouldForceGlitch,
-                    ignoreLevelGlitchUnlocks: shouldForceGlitch);
+                    ignoreLevelGlitchUnlocks: shouldForceGlitch,
+                    levelGlitchUnlockIntensityOverride: intensity);
 
             var encounter = developerLaunchState.ResolveEncounter();
             pendingValidationMessage = $"Dev jump loaded: {encounter.DisplayName} with {activeRunSettings.SelectedPaddleLabel} at Heat {activeRunSettings.RogueIntensity:00}. {BuildDeveloperForcedGlitchMessage(forcedGlitch)}";
@@ -3267,31 +3276,36 @@ namespace GetBricked.Gameplay
 
             runStatsService?.RegisterGlitchEncountered();
 
-            if (activeLevelGlitchPlan.GlitchType == BreakoutLevelGlitchType.WarpGates)
+            if (activeLevelGlitchPlan.HasGlitch(BreakoutLevelGlitchType.WarpGates))
             {
                 CreateWarpGates(activeLevelGlitchPlan);
                 powerUpService?.ShowStatusBanner("WARP GATES!", new Color(0.03f, 0.93f, 0.98f, 1f), 2.2f);
             }
-            else if (activeLevelGlitchPlan.GlitchType == BreakoutLevelGlitchType.TurboRail)
+
+            if (activeLevelGlitchPlan.HasGlitch(BreakoutLevelGlitchType.TurboRail))
             {
                 CreateTurboRail(activeLevelGlitchPlan);
                 powerUpService?.ShowStatusBanner("TURBO RAIL!", new Color(1f, 0.22f, 0.84f, 1f), 2.2f);
             }
-            else if (activeLevelGlitchPlan.GlitchType == BreakoutLevelGlitchType.MirrorGrid)
+
+            if (activeLevelGlitchPlan.HasGlitch(BreakoutLevelGlitchType.MirrorGrid))
             {
                 ArmMirrorGrid();
                 powerUpService?.ShowStatusBanner("MIRROR GRID!", new Color(0.72f, 0.62f, 1f, 1f), 2.2f);
             }
-            else if (activeLevelGlitchPlan.GlitchType == BreakoutLevelGlitchType.GravityPocket)
+
+            if (activeLevelGlitchPlan.HasGlitch(BreakoutLevelGlitchType.GravityPocket))
             {
                 CreateGravityPocket(activeLevelGlitchPlan);
                 powerUpService?.ShowStatusBanner("GRAVITY POCKET!", new Color(0.03f, 0.93f, 0.98f, 1f), 2.2f);
             }
-            else if (activeLevelGlitchPlan.GlitchType == BreakoutLevelGlitchType.TokenStorm)
+
+            if (activeLevelGlitchPlan.HasGlitch(BreakoutLevelGlitchType.TokenStorm))
             {
                 powerUpService?.ShowStatusBanner("TOKEN STORM!", new Color(1f, 0.87f, 0.36f, 1f), 2.2f);
             }
-            else if (activeLevelGlitchPlan.GlitchType == BreakoutLevelGlitchType.StaticWall)
+
+            if (activeLevelGlitchPlan.HasGlitch(BreakoutLevelGlitchType.StaticWall))
             {
                 CreateStaticWall(activeLevelGlitchPlan);
                 powerUpService?.ShowStatusBanner("STATIC WALL!", new Color(0.99f, 0.27f, 0.31f, 1f), 2.2f);
@@ -3652,7 +3666,7 @@ namespace GetBricked.Gameplay
         {
             if (activeGravityPocketVisual == null
                 || activeLevelGlitchPlan == null
-                || activeLevelGlitchPlan.GlitchType != BreakoutLevelGlitchType.GravityPocket)
+                || !activeLevelGlitchPlan.HasGlitch(BreakoutLevelGlitchType.GravityPocket))
             {
                 return;
             }
@@ -3679,7 +3693,7 @@ namespace GetBricked.Gameplay
             }
 
             if (activeLevelGlitchPlan != null
-                && activeLevelGlitchPlan.GlitchType == BreakoutLevelGlitchType.GravityPocket
+                && activeLevelGlitchPlan.HasGlitch(BreakoutLevelGlitchType.GravityPocket)
                 && activeGravityPocketVisual != null)
             {
                 var spec = activeLevelGlitchPlan.GravityPocket;
@@ -6676,7 +6690,7 @@ namespace GetBricked.Gameplay
         {
             var baseMultiplier = activeRunSettings?.DropChanceMultiplier ?? 1f;
             var tokenStormMultiplier = activeLevelGlitchPlan != null
-                && activeLevelGlitchPlan.GlitchType == BreakoutLevelGlitchType.TokenStorm
+                && activeLevelGlitchPlan.HasGlitch(BreakoutLevelGlitchType.TokenStorm)
                 ? activeLevelGlitchPlan.TokenStorm.DropChanceMultiplier
                 : 1f;
             return Mathf.Clamp(
@@ -6694,7 +6708,7 @@ namespace GetBricked.Gameplay
         {
             if (pickup == null
                 || activeLevelGlitchPlan == null
-                || activeLevelGlitchPlan.GlitchType != BreakoutLevelGlitchType.TokenStorm)
+                || !activeLevelGlitchPlan.HasGlitch(BreakoutLevelGlitchType.TokenStorm))
             {
                 return;
             }

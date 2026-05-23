@@ -31,6 +31,11 @@ namespace GetBricked.Gameplay
             return Mathf.Clamp(intensity, MinRogueIntensity, MaxRogueIntensity);
         }
 
+        public static int GetCompletedUnlockIntensityForRun(int activeIntensity)
+        {
+            return Mathf.Clamp(activeIntensity - 1, 0, MaxRogueIntensity);
+        }
+
         public static float GetRogueIntensityProgress(int intensity)
         {
             return Mathf.InverseLerp(MinRogueIntensity, MaxRogueIntensity, ClampRogueIntensity(intensity));

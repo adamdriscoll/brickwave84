@@ -114,7 +114,7 @@ public sealed class BreakoutUpgradeDraftServiceTests
 
         var draft = service.GenerateDraft(
             runState,
-            CreateRunSettings(RunScoringMode.Classic, RunGameMode.Rogue),
+            CreateRunSettings(RunScoringMode.Classic, RunGameMode.Rogue, rogueIntensity: 2),
             runSeed: 123,
             levelIndex: 1,
             offerCount: 3);
@@ -125,7 +125,7 @@ public sealed class BreakoutUpgradeDraftServiceTests
     }
 
     [Test]
-    public void RogueDraftOnlyOffersDropsUnlockedForCurrentHeat()
+    public void RogueDraftOnlyOffersDropsEarnedByClearedHeat()
     {
         var common = CreatePowerUp("Common Drop", "common_drop", beneficial: true);
         var rare = CreatePowerUp("Rare Drop", "rare_drop", beneficial: true, BreakoutContentRarity.Rare);
@@ -139,7 +139,7 @@ public sealed class BreakoutUpgradeDraftServiceTests
 
         var earlyDraft = service.GenerateDraft(
             runState,
-            CreateRunSettings(RunScoringMode.Classic, RunGameMode.Rogue, rogueIntensity: 8),
+            CreateRunSettings(RunScoringMode.Classic, RunGameMode.Rogue, rogueIntensity: 9),
             runSeed: 123,
             levelIndex: 1,
             offerCount: 3);
@@ -148,7 +148,7 @@ public sealed class BreakoutUpgradeDraftServiceTests
 
         var laterDraft = service.GenerateDraft(
             runState,
-            CreateRunSettings(RunScoringMode.Classic, RunGameMode.Rogue, rogueIntensity: 9),
+            CreateRunSettings(RunScoringMode.Classic, RunGameMode.Rogue, rogueIntensity: 10),
             runSeed: 123,
             levelIndex: 1,
             offerCount: 3);
@@ -169,13 +169,13 @@ public sealed class BreakoutUpgradeDraftServiceTests
 
         var lockedDraft = service.GenerateDraft(
             runState,
-            CreateRunSettings(RunScoringMode.Classic, RunGameMode.Rogue, rogueIntensity: 5),
+            CreateRunSettings(RunScoringMode.Classic, RunGameMode.Rogue, rogueIntensity: 6),
             runSeed: 123,
             levelIndex: 1,
             offerCount: 3);
         var unlockedDraft = service.GenerateDraft(
             runState,
-            CreateRunSettings(RunScoringMode.Classic, RunGameMode.Rogue, rogueIntensity: 6),
+            CreateRunSettings(RunScoringMode.Classic, RunGameMode.Rogue, rogueIntensity: 7),
             runSeed: 123,
             levelIndex: 1,
             offerCount: 3);

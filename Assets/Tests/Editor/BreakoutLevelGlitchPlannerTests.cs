@@ -15,10 +15,10 @@ public sealed class BreakoutLevelGlitchPlannerTests
     }
 
     [Test]
-    public void RogueGlitchesStartAtHigherHeat()
+    public void RogueGlitchesStartAfterFirstHeatClear()
     {
-        var earlySettings = CreateRogueSettings(rogueIntensity: 7);
-        var harderSettings = CreateRogueSettings(rogueIntensity: 30);
+        var earlySettings = CreateRogueSettings(rogueIntensity: 1);
+        var harderSettings = CreateRogueSettings(rogueIntensity: 2);
 
         Assert.That(BreakoutLevelGlitchPlanner.GetGlitchChance(earlySettings, levelIndex: 5), Is.Zero);
         Assert.That(BreakoutLevelGlitchPlanner.GetGlitchChance(harderSettings, levelIndex: 5), Is.GreaterThan(0f));
@@ -39,10 +39,10 @@ public sealed class BreakoutLevelGlitchPlannerTests
     public void RogueGlitchHeatControlsWhenTurboRailCanUnlock()
     {
         var lockedSettings = CreateRogueSettings(
-            rogueIntensity: BreakoutLevelGlitchPlanner.TurboRailLadderUnlockIntensity - 1,
+            rogueIntensity: BreakoutLevelGlitchPlanner.TurboRailLadderUnlockIntensity,
             levelGlitchSelection: LevelGlitchSelection.TurboRail);
         var unlockedSettings = CreateRogueSettings(
-            rogueIntensity: BreakoutLevelGlitchPlanner.TurboRailLadderUnlockIntensity,
+            rogueIntensity: BreakoutLevelGlitchPlanner.TurboRailLadderUnlockIntensity + 1,
             levelGlitchSelection: LevelGlitchSelection.TurboRail);
 
         var lockedPlan = BreakoutLevelGlitchPlanner.BuildPlan(new DeterministicRandomService(7), lockedSettings, levelIndex: 9);
@@ -58,10 +58,10 @@ public sealed class BreakoutLevelGlitchPlannerTests
     public void RogueGlitchHeatControlsWhenMirrorGridCanUnlock()
     {
         var lockedSettings = CreateRogueSettings(
-            rogueIntensity: BreakoutLevelGlitchPlanner.MirrorGridLadderUnlockIntensity - 1,
+            rogueIntensity: BreakoutLevelGlitchPlanner.MirrorGridLadderUnlockIntensity,
             levelGlitchSelection: LevelGlitchSelection.MirrorGrid);
         var unlockedSettings = CreateRogueSettings(
-            rogueIntensity: BreakoutLevelGlitchPlanner.MirrorGridLadderUnlockIntensity,
+            rogueIntensity: BreakoutLevelGlitchPlanner.MirrorGridLadderUnlockIntensity + 1,
             levelGlitchSelection: LevelGlitchSelection.MirrorGrid);
 
         var lockedPlan = BreakoutLevelGlitchPlanner.BuildPlan(new DeterministicRandomService(7), lockedSettings, levelIndex: 9);
@@ -79,10 +79,10 @@ public sealed class BreakoutLevelGlitchPlannerTests
     public void RogueGlitchHeatControlsWhenGravityPocketCanUnlock()
     {
         var lockedSettings = CreateRogueSettings(
-            rogueIntensity: BreakoutLevelGlitchPlanner.GravityPocketLadderUnlockIntensity - 1,
+            rogueIntensity: BreakoutLevelGlitchPlanner.GravityPocketLadderUnlockIntensity,
             levelGlitchSelection: LevelGlitchSelection.GravityPocket);
         var unlockedSettings = CreateRogueSettings(
-            rogueIntensity: BreakoutLevelGlitchPlanner.GravityPocketLadderUnlockIntensity,
+            rogueIntensity: BreakoutLevelGlitchPlanner.GravityPocketLadderUnlockIntensity + 1,
             levelGlitchSelection: LevelGlitchSelection.GravityPocket);
 
         var lockedPlan = BreakoutLevelGlitchPlanner.BuildPlan(new DeterministicRandomService(7), lockedSettings, levelIndex: 9);
@@ -103,10 +103,10 @@ public sealed class BreakoutLevelGlitchPlannerTests
     public void RogueGlitchHeatControlsWhenTokenStormCanUnlock()
     {
         var lockedSettings = CreateRogueSettings(
-            rogueIntensity: BreakoutLevelGlitchPlanner.TokenStormLadderUnlockIntensity - 1,
+            rogueIntensity: BreakoutLevelGlitchPlanner.TokenStormLadderUnlockIntensity,
             levelGlitchSelection: LevelGlitchSelection.TokenStorm);
         var unlockedSettings = CreateRogueSettings(
-            rogueIntensity: BreakoutLevelGlitchPlanner.TokenStormLadderUnlockIntensity,
+            rogueIntensity: BreakoutLevelGlitchPlanner.TokenStormLadderUnlockIntensity + 1,
             levelGlitchSelection: LevelGlitchSelection.TokenStorm);
 
         var lockedPlan = BreakoutLevelGlitchPlanner.BuildPlan(new DeterministicRandomService(7), lockedSettings, levelIndex: 9);
@@ -127,10 +127,10 @@ public sealed class BreakoutLevelGlitchPlannerTests
     public void RogueGlitchHeatControlsWhenStaticWallCanUnlock()
     {
         var lockedSettings = CreateRogueSettings(
-            rogueIntensity: BreakoutLevelGlitchPlanner.StaticWallLadderUnlockIntensity - 1,
+            rogueIntensity: BreakoutLevelGlitchPlanner.StaticWallLadderUnlockIntensity,
             levelGlitchSelection: LevelGlitchSelection.StaticWall);
         var unlockedSettings = CreateRogueSettings(
-            rogueIntensity: BreakoutLevelGlitchPlanner.StaticWallLadderUnlockIntensity,
+            rogueIntensity: BreakoutLevelGlitchPlanner.StaticWallLadderUnlockIntensity + 1,
             levelGlitchSelection: LevelGlitchSelection.StaticWall);
 
         var lockedPlan = BreakoutLevelGlitchPlanner.BuildPlan(new DeterministicRandomService(7), lockedSettings, levelIndex: 9);
@@ -300,6 +300,59 @@ public sealed class BreakoutLevelGlitchPlannerTests
     }
 
     [Test]
+    public void DeveloperHeatUnlockOverrideAllowsGlitchesForSelectedHeat()
+    {
+        var normalHeatFiveSettings = new RunSettings(
+            1234,
+            RunDifficultyPreset.Standard,
+            RunScoringMode.Classic,
+            3,
+            500,
+            1,
+            1f,
+            1f,
+            1f,
+            1f,
+            DropPoolMode.Mixed,
+            false,
+            null,
+            RunGameMode.Rogue,
+            rogueIntensity: 5,
+            levelGlitchesEnabled: true,
+            levelGlitchChanceMultiplier: 1f,
+            levelGlitchSelection: LevelGlitchSelection.StaticWall,
+            forceLevelGlitchRoll: true);
+        var developerHeatFiveSettings = new RunSettings(
+            1234,
+            RunDifficultyPreset.Standard,
+            RunScoringMode.Classic,
+            3,
+            500,
+            1,
+            1f,
+            1f,
+            1f,
+            1f,
+            DropPoolMode.Mixed,
+            false,
+            null,
+            RunGameMode.Rogue,
+            rogueIntensity: 5,
+            levelGlitchesEnabled: true,
+            levelGlitchChanceMultiplier: 1f,
+            levelGlitchSelection: LevelGlitchSelection.StaticWall,
+            forceLevelGlitchRoll: true,
+            levelGlitchUnlockIntensityOverride: 5);
+
+        var normalPlan = BreakoutLevelGlitchPlanner.BuildPlan(new DeterministicRandomService(3), normalHeatFiveSettings, levelIndex: 0);
+        var developerPlan = BreakoutLevelGlitchPlanner.BuildPlan(new DeterministicRandomService(3), developerHeatFiveSettings, levelIndex: 0);
+
+        Assert.That(normalPlan.IsActive, Is.False);
+        Assert.That(developerPlan.IsActive, Is.True);
+        Assert.That(developerPlan.GlitchType, Is.EqualTo(BreakoutLevelGlitchType.StaticWall));
+    }
+
+    [Test]
     public void RandomSelectionStillUsesGlitchChance()
     {
         var settings = CreateSettings(
@@ -310,6 +363,75 @@ public sealed class BreakoutLevelGlitchPlannerTests
         var plan = BreakoutLevelGlitchPlanner.BuildPlan(new DeterministicRandomService(3), settings, levelIndex: 9);
 
         Assert.That(plan.IsActive, Is.False);
+    }
+
+    [Test]
+    public void RogueGlitchChanceRisesWithHeatAndLevelPressure()
+    {
+        var lowHeatEarlyStage = CreateRogueSettings(rogueIntensity: 2);
+        var highHeatEarlyStage = CreateRogueSettings(rogueIntensity: 50);
+        var highHeatLateStage = CreateRogueSettings(rogueIntensity: 50);
+
+        var lowChance = BreakoutLevelGlitchPlanner.GetGlitchChance(lowHeatEarlyStage, levelIndex: 1);
+        var highEarlyChance = BreakoutLevelGlitchPlanner.GetGlitchChance(highHeatEarlyStage, levelIndex: 1);
+        var highLateChance = BreakoutLevelGlitchPlanner.GetGlitchChance(highHeatLateStage, levelIndex: 8);
+
+        Assert.That(highEarlyChance, Is.GreaterThan(lowChance));
+        Assert.That(highLateChance, Is.GreaterThan(highEarlyChance));
+    }
+
+    [Test]
+    public void HighHeatRandomGlitchesCanStackDistinctGlitches()
+    {
+        var settings = new RunSettings(
+            1234,
+            RunDifficultyPreset.Standard,
+            RunScoringMode.Classic,
+            3,
+            500,
+            1,
+            1f,
+            1f,
+            1f,
+            1f,
+            DropPoolMode.Mixed,
+            false,
+            null,
+            RunGameMode.Rogue,
+            rogueIntensity: 50,
+            levelGlitchesEnabled: true,
+            levelGlitchSelection: LevelGlitchSelection.Random,
+            levelGlitchUnlockIntensityOverride: 50);
+        BreakoutLevelGlitchPlan stackedPlan = null;
+
+        for (var seed = 1; seed <= 100; seed++)
+        {
+            var plan = BreakoutLevelGlitchPlanner.BuildPlan(new DeterministicRandomService(seed), settings, levelIndex: 9);
+
+            if (plan.ActiveGlitchTypes.Length > 1)
+            {
+                stackedPlan = plan;
+                break;
+            }
+        }
+
+        Assert.That(stackedPlan, Is.Not.Null);
+        Assert.That(stackedPlan.ActiveGlitchTypes.Length, Is.GreaterThanOrEqualTo(2));
+        Assert.That(stackedPlan.ScoreMultiplier, Is.GreaterThan(1.4f));
+        Assert.That(stackedPlan.HudLabel, Does.Contain("Glitch Stack"));
+    }
+
+    [Test]
+    public void ForcedGlitchesStaySingleEvenAtHighHeat()
+    {
+        var settings = CreateRogueSettings(
+            rogueIntensity: 50,
+            levelGlitchSelection: LevelGlitchSelection.StaticWall);
+
+        var plan = BreakoutLevelGlitchPlanner.BuildPlan(new DeterministicRandomService(3), settings, levelIndex: 9);
+
+        Assert.That(plan.IsActive, Is.True);
+        Assert.That(plan.ActiveGlitchTypes, Is.EqualTo(new[] { BreakoutLevelGlitchType.StaticWall }));
     }
 
     private static RunSettings CreateSettings(

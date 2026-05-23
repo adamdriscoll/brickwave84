@@ -166,7 +166,7 @@ Difficulty presets already change more than labels:
 
 ### Unlock Progression
 
-Permanent run upgrades are always available in the between-stage draft pool. Drop and glitch unlocks enter the Neon Ladder ecosystem through a front-loaded one-unlock-per-Heat ladder: implemented content runs from Heat `01` through Heat `31`, with additional live drops at Heat `33`, Heat `34`, Heat `36`, and Heat `43`, plus live glitches at Heat `37`, Heat `40`, Heat `41`, and Heat `42`, among the placeholder backlog. Default drops and default glitches start unlocked for Neon Ladder runs. Rarity still tunes odds and draft weighting, but it no longer bundles multiple new unlocks onto the same Heat. Implementation status tracks whether the item has live runtime gameplay behavior or is currently only a progression-screen placeholder.
+Permanent run upgrades are always available in the between-stage draft pool. Drop and glitch unlocks now advance on parallel 50-Heat tracks: clearing a Heat can award one drop signal and one glitch signal. Implemented live drops currently fill Heat `01` through Heat `34`, with placeholder drops at Heat `35` and Heat `36`. Implemented live glitches currently fill Heat `01` through Heat `05`, with placeholder glitches at Heat `06` and Heat `07`. Default drops and default glitches start unlocked for Neon Ladder runs. Rarity still tunes odds and draft weighting, but it no longer controls unlock Heat. Implementation status tracks whether the item has live runtime gameplay behavior or is currently only a progression-screen placeholder.
 
 | Name | Description | Default / unlock level | Rarity | Polarity | Type | Implementation |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -204,20 +204,20 @@ Permanent run upgrades are always available in the between-stage draft pool. Dro
 | `Hot Potato Ball` | Ball speed and score x1.28 for 9s. | Heat 28 | Epic | Helpful | Speed/score risk | Implemented |
 | `Laser Grid` | Enables paddle laser fire for 10s. | Heat 29 | Epic | Helpful | Laser paddle | Implemented |
 | `Paddle Clone` | Adds a clone rail for 10s. | Heat 30 | Epic | Helpful | Paddle clone | Implemented |
+| `Clean Catch` | Next paddle hit catches, then releases with stronger aim. | Heat 31 | Epic | Helpful | Control drop | Implemented |
+| `Bank Bonus` | Wall bounces bank +50 points until the next brick hit for 12s. | Heat 32 | Epic | Helpful | Precision drop | Implemented |
+| `Prism Pop` | First brick hit within 10s splits a short-lived copy ball. | Heat 33 | Epic | Helpful | Split drop | Implemented |
+| `Mystery Tape` | Rolls one random unlocked helpful drop and one random unlocked hazard from a mystery capsule. | Heat 34 | Epic | Mixed | Mystery drop | Implemented |
+| `Chrome Rail` | Paddle widens slightly and sends cleaner bank angles. | Heat 35 | N/A | Helpful | Control drop | Not implemented (UI placeholder) |
+| `Solar Shot` | Ball burns through the next weak brick it touches. | Heat 36 | N/A | Helpful | Damage drop | Not implemented (UI placeholder) |
 | `Warp Gates` | Linked portals reroute ball paths. | Default | Common | Glitch | Level glitch | Implemented |
-| `Turbo Rail` | A hot wall rail accelerates rebounds. | Heat 31 | Rare | Glitch | Level glitch | Implemented |
-| `Chrome Rail` | Paddle widens slightly and sends cleaner bank angles. | Heat 32 | N/A | Helpful | Control drop | Not implemented (UI placeholder) |
-| `Clean Catch` | Next paddle hit catches, then releases with stronger aim. | Heat 33 | Epic | Helpful | Control drop | Implemented |
-| `Bank Bonus` | Wall bounces bank +50 points until the next brick hit for 12s. | Heat 34 | Epic | Helpful | Precision drop | Implemented |
-| `Solar Shot` | Ball burns through the next weak brick it touches. | Heat 35 | N/A | Helpful | Damage drop | Not implemented (UI placeholder) |
-| `Prism Pop` | First brick hit within 10s splits a short-lived copy ball. | Heat 36 | Epic | Helpful | Split drop | Implemented |
-| `Mirror Grid` | Brick layout mirrors horizontally halfway through the stage. | Heat 37 | Rare | Glitch | Layout glitch | Implemented |
-| `Row Rewrite` | One row rerolls into a new brick pattern after a timer. | Heat 38 | N/A | Glitch | Layout glitch | Not implemented (UI placeholder) |
-| `Prism Lanes` | Marked lanes refract the ball into sharper angles. | Heat 39 | N/A | Glitch | Precision glitch | Not implemented (UI placeholder) |
-| `Token Storm` | More capsules spawn, but fall at mixed speeds. | Heat 40 | Epic | Glitch | Pickup glitch | Implemented |
-| `Gravity Pocket` | A slow drifting pocket bends nearby ball paths. | Heat 41 | Epic | Glitch | Speed glitch | Implemented |
-| `Static Wall` | One side wall flickers between normal and weak bounce. | Heat 42 | Epic | Glitch | Paddle glitch | Implemented |
-| `Mystery Tape` | Rolls one random unlocked helpful drop and one random unlocked hazard from a mystery capsule. | Heat 43 | Epic | Mixed | Mystery drop | Implemented |
+| `Turbo Rail` | A hot wall rail accelerates rebounds. | Heat 01 | Rare | Glitch | Level glitch | Implemented |
+| `Mirror Grid` | Brick layout mirrors horizontally halfway through the stage. | Heat 02 | Rare | Glitch | Layout glitch | Implemented |
+| `Token Storm` | More capsules spawn, but fall at mixed speeds. | Heat 03 | Epic | Glitch | Pickup glitch | Implemented |
+| `Gravity Pocket` | A slow drifting pocket bends nearby ball paths. | Heat 04 | Epic | Glitch | Speed glitch | Implemented |
+| `Static Wall` | One side wall flickers between normal and weak bounce. | Heat 05 | Epic | Glitch | Paddle glitch | Implemented |
+| `Row Rewrite` | One row rerolls into a new brick pattern after a timer. | Heat 06 | N/A | Glitch | Layout glitch | Not implemented (UI placeholder) |
+| `Prism Lanes` | Marked lanes refract the ball into sharper angles. | Heat 07 | N/A | Glitch | Precision glitch | Not implemented (UI placeholder) |
 | `Afterburn Coil` | The cabinet overclocks every serve, keeping the ball hotter for all remaining levels. | Draft pool | N/A | Build | Run upgrade | Implemented |
 | `Flux Line` | The paddle develops a gentle permanent drift pattern that trades chaos for wider coverage arcs. | Draft pool | N/A | Build | Run upgrade | Implemented |
 | `Lucky Circuit` | Pickup routing stays juiced, raising permanent drop odds for the rest of the cabinet run. | Draft pool | N/A | Build | Run upgrade | Implemented |
