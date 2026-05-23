@@ -11,8 +11,9 @@ Use this skill to reproduce and diagnose Unity compile failures for `Get Bricked
 
 1. Run `python .codex/skills/unity-compile/scripts/run_unity_compile.py` from the repo root.
 2. Read the script output first.
-3. If the compile fails, inspect the referenced log excerpt and fix the reported script or batchmode issue.
-4. Re-run the script after every fix until it reports success.
+3. If the open-editor bridge times out, inspect the referenced log before retrying. Treat `*** Tundra build success` in the log as evidence that scripts compiled even if the wrapper failed to receive a bridge response.
+4. If the compile fails, inspect the referenced log excerpt and fix the reported script or batchmode issue.
+5. Re-run the script after every fix until it reports success.
 
 ## Workflow
 
@@ -22,6 +23,7 @@ Use this skill to reproduce and diagnose Unity compile failures for `Get Bricked
 - Use `--log <path>` if a task needs a separate log artifact.
 - Leave Unity open when useful. The script detects the open editor through `Library/EditorInstance.json` and uses the editor bridge instead of launching a second Unity process.
 - The open-editor bridge defaults to a 600-second wait, matching the test helper, because Unity imports and domain reloads can take longer than a normal script compile.
+- Do not repeat 600-second waits if the bridge is wedged. Check `Logs/codex-unity-compile.log`, look for compiler errors or `Tundra build success`, and report the bridge timeout separately from the compile result.
 - Use `--force-batchmode` only when you intentionally want the old batchmode path and the project is not already open.
 - Treat a clean compile check as a fast pre-build guard, not a full player build.
 

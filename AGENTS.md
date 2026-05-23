@@ -84,6 +84,9 @@ python .codex/skills/unity-tests/scripts/run_unity_tests.py --platform editmode
 
 - Use Play Mode validation for scene lifecycle, collisions, physics timing, spawned runtime objects, input flow, and visual integration.
 - Before marking a user-facing task complete, create a production/player build and launch the built game so the user can inspect the result. Use the enabled build scene and a disposable ignored output path such as `Builds/Codex/`. If a dedicated build helper exists, use it; otherwise use Unity's build pipeline or editor build UI. Keep the built player running when handing off unless the user asks otherwise.
+- Unity project locks can block batchmode builds when an editor or stale batchmode worker already has this project open. If a build reports `Multiple Unity instances cannot open the same project`, inspect `Unity.exe` command lines, stop the project-locking Unity/batchmode worker processes when the user has authorized that, then retry the build.
+- Do not repeat long open-editor bridge waits blindly. If a compile helper times out, inspect the Unity log for `Tundra build success` or compiler errors and report the bridge timeout separately from the actual compile result.
+- When invoking `Unity.exe -buildWindows64Player` directly, include `-batchmode -quit`; without `-quit`, Unity can log a successful build and leave the editor process running. After the command returns, still verify no matching Unity process is lingering before deciding the build result.
 - If Unity cannot run in the environment, report that clearly and include the closest completed validation.
 - If the production build or launch fails, do not call the task complete; report the build/run blocker, include the closest completed validation, and suggest the next concrete fix.
 - Let Unity regenerate project files after adding or renaming scripts instead of hand-maintaining generated solution files.

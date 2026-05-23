@@ -68,7 +68,6 @@ namespace GetBricked.Gameplay
         {
             new BreakoutProgressionPlaceholderItem("Row Rewrite", "Glitch", "Layout", "One row rerolls into a new brick pattern after a timer.", 38, LayoutAccent),
             new BreakoutProgressionPlaceholderItem("Prism Lanes", "Glitch", "Precision", "Marked lanes refract the ball into sharper angles.", 39, PrecisionAccent),
-            new BreakoutProgressionPlaceholderItem("Static Wall", "Glitch", "Paddle", "One side wall flickers between normal and weak bounce.", 42, HazardAccent),
         };
 
         public BreakoutUiProgressionView BuildView(IReadOnlyList<PowerUpDefinition> loadedPowerUps, BreakoutThemeService themeService = null)
@@ -152,6 +151,13 @@ namespace GetBricked.Gameplay
                 BreakoutLevelGlitchPlanner.GravityPocketLadderUnlockIntensity,
                 availableIntensity,
                 SplitAccent));
+            cards.Add(BuildUnlockableGlitchCard(
+                "Static Wall",
+                "Paddle Epic Glitch",
+                "One side wall flickers between normal and weak bounce.",
+                BreakoutLevelGlitchPlanner.StaticWallLadderUnlockIntensity,
+                availableIntensity,
+                HazardAccent));
             AppendPlaceholderCards(cards, PlaceholderDrops, highestCompletedIntensity);
             AppendPlaceholderCards(cards, PlaceholderGlitches, highestCompletedIntensity);
             cards.Add(BuildHiddenSlotCard("Future Drop Slot", "Drop", "Hidden", "Future drop signal pending."));

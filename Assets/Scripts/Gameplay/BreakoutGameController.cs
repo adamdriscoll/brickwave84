@@ -38,6 +38,9 @@ namespace GetBricked.Gameplay
         private const float TurboRailSpeedBurstMaximumMultiplier = 1.85f;
         private const float TurboRailSpeedBurstStackDuration = 1.25f;
         private const float TurboRailSpeedBurstMaximumDuration = 7.5f;
+        private const float StaticWallThickness = 0.22f;
+        private const float StaticWallBottomInset = 1.15f;
+        private const float StaticWallTopInset = 0.55f;
         private const float GravityPocketArenaHorizontalPadding = 1.35f;
         private const float GravityPocketArenaBottomPadding = 2.1f;
         private const float GravityPocketArenaTopPadding = 1.2f;
@@ -289,6 +292,7 @@ namespace GetBricked.Gameplay
         private BreakoutLevelGlitchPlan activeLevelGlitchPlan = BreakoutLevelGlitchPlan.None;
         private BreakoutWarpGateController activeWarpGateController;
         private BreakoutTurboRailSection activeTurboRailSection;
+        private BreakoutStaticWallSection activeStaticWallSection;
         private BreakoutGravityPocketVisual activeGravityPocketVisual;
         private BreakoutMirrorGridVisual activeMirrorGridVisual;
         private bool isMirrorGridArmed;
@@ -3272,6 +3276,11 @@ namespace GetBricked.Gameplay
             {
                 powerUpService?.ShowStatusBanner("TOKEN STORM!", new Color(1f, 0.87f, 0.36f, 1f), 2.2f);
             }
+            else if (activeLevelGlitchPlan.GlitchType == BreakoutLevelGlitchType.StaticWall)
+            {
+                CreateStaticWall(activeLevelGlitchPlan);
+                powerUpService?.ShowStatusBanner("STATIC WALL!", new Color(0.99f, 0.27f, 0.31f, 1f), 2.2f);
+            }
         }
 
         private void ClearLevelGlitches()
@@ -3291,6 +3300,12 @@ namespace GetBricked.Gameplay
             {
                 DestroyRuntimeObject(activeTurboRailSection.gameObject);
                 activeTurboRailSection = null;
+            }
+
+            if (activeStaticWallSection != null)
+            {
+                DestroyRuntimeObject(activeStaticWallSection.gameObject);
+                activeStaticWallSection = null;
             }
 
             if (activeGravityPocketVisual != null)
@@ -3490,6 +3505,61 @@ namespace GetBricked.Gameplay
             }
 
             return new Vector2(0.22f, Mathf.Lerp(1.7f, 2.85f, spec.NormalizedLength));
+        }
+
+        private void CreateStaticWall(BreakoutLevelGlitchPlan glitchPlan)
+        {
+            if (glitchPlan == null || squareSprite == null)
+            {
+                return;
+            }
+
+            var staticWallObject = new GameObject("Static Wall");
+            staticWallObject.transform.SetParent(glitchesRoot != null ? glitchesRoot : runtimeRoot, false);
+            staticWallObject.transform.position = ResolveStaticWallPosition(glitchPlan.StaticWall);
+
+            var size = ResolveStaticWallSize();
+            staticWallObject.transform.localScale = new Vector3(size.x, size.y, 1f);
+            var renderer = staticWallObject.AddComponent<SpriteRenderer>();
+            renderer.sprite = squareSprite;
+            renderer.sharedMaterial = additiveSpriteMaterial != null ? additiveSpriteMaterial : spriteUnlitMaterial;
+            renderer.sortingOrder = 11;
+
+            var collider = staticWallObject.AddComponent<BoxCollider2D>();
+            collider.sharedMaterial = bounceMaterial;
+
+            activeStaticWallSection = staticWallObject.AddComponent<BreakoutStaticWallSection>();
+            activeStaticWallSection.Configure(
+                this,
+                glitchPlan.StaticWall.Wall,
+                renderer,
+                size,
+                glitchPlan.StaticWall.WeakCycleSeconds,
+                glitchPlan.StaticWall.WeakDurationSeconds,
+                glitchPlan.StaticWall.PhaseOffsetSeconds);
+        }
+
+        private Vector2 ResolveStaticWallPosition(BreakoutStaticWallSpec spec)
+        {
+            var x = spec.Wall == BreakoutWarpGateWall.Right
+                ? arenaRight - (StaticWallThickness * 0.5f)
+                : arenaLeft + (StaticWallThickness * 0.5f);
+            var minY = arenaBottom + StaticWallBottomInset;
+            var maxY = arenaTop - StaticWallTopInset;
+
+            if (maxY <= minY)
+            {
+                minY = arenaBottom;
+                maxY = arenaTop;
+            }
+
+            return new Vector2(x, (minY + maxY) * 0.5f);
+        }
+
+        private Vector2 ResolveStaticWallSize()
+        {
+            var height = Mathf.Max(1f, (arenaTop - StaticWallTopInset) - (arenaBottom + StaticWallBottomInset));
+            return new Vector2(StaticWallThickness, height);
         }
 
         private void CreateGravityPocket(BreakoutLevelGlitchPlan glitchPlan)
@@ -5302,6 +5372,7 @@ namespace GetBricked.Gameplay
                 LevelGlitchSelection.MirrorGrid => "Mirror Grid",
                 LevelGlitchSelection.GravityPocket => "Gravity Pocket",
                 LevelGlitchSelection.TokenStorm => "Token Storm",
+                LevelGlitchSelection.StaticWall => "Static Wall",
                 _ => "Off",
             };
         }

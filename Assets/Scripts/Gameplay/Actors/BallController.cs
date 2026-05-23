@@ -505,6 +505,20 @@ namespace GetBricked.Gameplay
                 }
             }
 
+            if (collision.collider.TryGetComponent<BreakoutStaticWallSection>(out var staticWall))
+            {
+                RegisterRicochet();
+
+                if (staticWall.TryHandleBallCollision(this))
+                {
+                    return;
+                }
+
+                gameController?.HandleBallHitWall();
+                ClampBallVelocity();
+                return;
+            }
+
             if (collision.collider.TryGetComponent<PaddleController>(out var hitPaddle))
             {
                 gameController?.HandleBallHitPaddle();

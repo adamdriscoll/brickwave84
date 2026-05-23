@@ -124,6 +124,31 @@ public sealed class BreakoutLevelGlitchPlannerTests
     }
 
     [Test]
+    public void RogueGlitchHeatControlsWhenStaticWallCanUnlock()
+    {
+        var lockedSettings = CreateRogueSettings(
+            rogueIntensity: BreakoutLevelGlitchPlanner.StaticWallLadderUnlockIntensity - 1,
+            levelGlitchSelection: LevelGlitchSelection.StaticWall);
+        var unlockedSettings = CreateRogueSettings(
+            rogueIntensity: BreakoutLevelGlitchPlanner.StaticWallLadderUnlockIntensity,
+            levelGlitchSelection: LevelGlitchSelection.StaticWall);
+
+        var lockedPlan = BreakoutLevelGlitchPlanner.BuildPlan(new DeterministicRandomService(7), lockedSettings, levelIndex: 9);
+        var unlockedPlan = BreakoutLevelGlitchPlanner.BuildPlan(new DeterministicRandomService(7), unlockedSettings, levelIndex: 9);
+
+        Assert.That(lockedPlan.IsActive, Is.False);
+        Assert.That(unlockedPlan.IsActive, Is.True);
+        Assert.That(unlockedPlan.GlitchType, Is.EqualTo(BreakoutLevelGlitchType.StaticWall));
+        Assert.That(unlockedPlan.DisplayName, Is.EqualTo("Static Wall"));
+        Assert.That(unlockedPlan.Rarity, Is.EqualTo(BreakoutContentRarity.Epic));
+        Assert.That(unlockedPlan.ScoreMultiplier, Is.EqualTo(1.34f).Within(0.0001f));
+        Assert.That(unlockedPlan.StaticWall.Wall, Is.EqualTo(BreakoutWarpGateWall.Left).Or.EqualTo(BreakoutWarpGateWall.Right));
+        Assert.That(unlockedPlan.StaticWall.WeakCycleSeconds, Is.InRange(2.1f, 2.85f));
+        Assert.That(unlockedPlan.StaticWall.WeakDurationSeconds, Is.InRange(0.72f, 1.05f));
+    }
+
+
+    [Test]
     public void ForcedWarpGatePlanBuildsSmallPortalSetAndScoreBonus()
     {
         var settings = CreateSettings(
@@ -227,6 +252,21 @@ public sealed class BreakoutLevelGlitchPlannerTests
         Assert.That(plan.IsActive, Is.True);
         Assert.That(plan.GlitchType, Is.EqualTo(BreakoutLevelGlitchType.TokenStorm));
     }
+
+    [Test]
+    public void SelectedStaticWallAlwaysBuildsStaticWallEvenWhenChanceIsDisabled()
+    {
+        var settings = CreateSettings(
+            levelGlitchesEnabled: true,
+            chanceMultiplier: 0f,
+            levelGlitchSelection: LevelGlitchSelection.StaticWall);
+
+        var plan = BreakoutLevelGlitchPlanner.BuildPlan(new DeterministicRandomService(3), settings, levelIndex: 9);
+
+        Assert.That(plan.IsActive, Is.True);
+        Assert.That(plan.GlitchType, Is.EqualTo(BreakoutLevelGlitchType.StaticWall));
+    }
+
 
     [Test]
     public void ForcedDeveloperGlitchBypassesRogueHeatUnlock()

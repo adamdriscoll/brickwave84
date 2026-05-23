@@ -144,7 +144,7 @@ public sealed class BreakoutRogueRunTests
     }
 
     [Test]
-    public void DeveloperForcedGlitchMenuCyclesThroughTokenStorm()
+    public void DeveloperForcedGlitchMenuCyclesThroughStaticWall()
     {
         var state = new BreakoutDeveloperLaunchState();
 
@@ -164,10 +164,13 @@ public sealed class BreakoutRogueRunTests
         Assert.That(state.ForcedLevelGlitchSelection, Is.EqualTo(LevelGlitchSelection.TokenStorm));
 
         state.AdjustField(BreakoutDeveloperLaunchField.ForcedGlitch, 1, null, null);
+        Assert.That(state.ForcedLevelGlitchSelection, Is.EqualTo(LevelGlitchSelection.StaticWall));
+
+        state.AdjustField(BreakoutDeveloperLaunchField.ForcedGlitch, 1, null, null);
         Assert.That(state.ForcedLevelGlitchSelection, Is.EqualTo(LevelGlitchSelection.Off));
 
         state.AdjustField(BreakoutDeveloperLaunchField.ForcedGlitch, -1, null, null);
-        Assert.That(state.ForcedLevelGlitchSelection, Is.EqualTo(LevelGlitchSelection.TokenStorm));
+        Assert.That(state.ForcedLevelGlitchSelection, Is.EqualTo(LevelGlitchSelection.StaticWall));
     }
 
     [Test]

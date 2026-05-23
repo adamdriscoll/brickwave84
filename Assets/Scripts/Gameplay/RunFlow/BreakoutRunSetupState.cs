@@ -372,6 +372,7 @@ namespace GetBricked.Gameplay
                 LevelGlitchSelection.MirrorGrid => "Mirror Grid",
                 LevelGlitchSelection.GravityPocket => "Gravity Pocket",
                 LevelGlitchSelection.TokenStorm => "Token Storm",
+                LevelGlitchSelection.StaticWall => "Static Wall",
                 _ => "Random glitches",
             };
         }

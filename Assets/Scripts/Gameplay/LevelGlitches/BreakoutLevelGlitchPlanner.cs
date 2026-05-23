@@ -12,6 +12,7 @@ namespace GetBricked.Gameplay
         MirrorGrid = 3,
         GravityPocket = 4,
         TokenStorm = 5,
+        StaticWall = 6,
     }
 
     internal readonly struct BreakoutLevelGlitchDefinition
@@ -120,6 +121,27 @@ namespace GetBricked.Gameplay
         public float MaximumFallSpeedMultiplier { get; }
     }
 
+    internal readonly struct BreakoutStaticWallSpec
+    {
+        public BreakoutStaticWallSpec(BreakoutWarpGateWall wall, float weakCycleSeconds, float weakDurationSeconds, float phaseOffsetSeconds)
+        {
+            Wall = wall == BreakoutWarpGateWall.Right
+                ? BreakoutWarpGateWall.Right
+                : BreakoutWarpGateWall.Left;
+            WeakCycleSeconds = Mathf.Max(0.75f, weakCycleSeconds);
+            WeakDurationSeconds = Mathf.Clamp(weakDurationSeconds, 0.18f, WeakCycleSeconds * 0.75f);
+            PhaseOffsetSeconds = Mathf.Max(0f, phaseOffsetSeconds);
+        }
+
+        public BreakoutWarpGateWall Wall { get; }
+
+        public float WeakCycleSeconds { get; }
+
+        public float WeakDurationSeconds { get; }
+
+        public float PhaseOffsetSeconds { get; }
+    }
+
     internal sealed class BreakoutLevelGlitchPlan
     {
         public static readonly BreakoutLevelGlitchPlan None = new BreakoutLevelGlitchPlan(
@@ -142,7 +164,8 @@ namespace GetBricked.Gameplay
             BreakoutWarpGateSpec[] warpGates,
             BreakoutTurboRailSpec turboRail,
             BreakoutTokenStormSpec tokenStorm = default,
-            BreakoutGravityPocketSpec gravityPocket = default)
+            BreakoutGravityPocketSpec gravityPocket = default,
+            BreakoutStaticWallSpec staticWall = default)
         {
             GlitchType = glitchType;
             Rarity = BreakoutRarityRules.Clamp(rarity);
@@ -153,6 +176,7 @@ namespace GetBricked.Gameplay
             TurboRail = turboRail;
             TokenStorm = tokenStorm;
             GravityPocket = gravityPocket;
+            StaticWall = staticWall;
         }
 
         public BreakoutLevelGlitchType GlitchType { get; }
@@ -173,6 +197,8 @@ namespace GetBricked.Gameplay
 
         public BreakoutGravityPocketSpec GravityPocket { get; }
 
+        public BreakoutStaticWallSpec StaticWall { get; }
+
         public bool IsActive => GlitchType != BreakoutLevelGlitchType.None;
     }
 
@@ -182,12 +208,14 @@ namespace GetBricked.Gameplay
         public const int MirrorGridLadderUnlockIntensity = 37;
         public const int TokenStormLadderUnlockIntensity = 40;
         public const int GravityPocketLadderUnlockIntensity = 41;
+        public const int StaticWallLadderUnlockIntensity = 42;
 
         private const float WarpGateScoreMultiplier = 1.35f;
         private const float TurboRailScoreMultiplier = 1.25f;
         private const float MirrorGridScoreMultiplier = 1.3f;
         private const float TokenStormScoreMultiplier = 1.32f;
         private const float GravityPocketScoreMultiplier = 1.38f;
+        private const float StaticWallScoreMultiplier = 1.34f;
 
         private static readonly BreakoutLevelGlitchDefinition[] GlitchDefinitions =
         {
@@ -216,6 +244,11 @@ namespace GetBricked.Gameplay
                 LevelGlitchSelection.GravityPocket,
                 BreakoutContentRarity.Epic,
                 GravityPocketLadderUnlockIntensity),
+            new BreakoutLevelGlitchDefinition(
+                BreakoutLevelGlitchType.StaticWall,
+                LevelGlitchSelection.StaticWall,
+                BreakoutContentRarity.Epic,
+                StaticWallLadderUnlockIntensity),
         };
 
         public static BreakoutLevelGlitchPlan BuildPlan(
@@ -278,6 +311,11 @@ namespace GetBricked.Gameplay
             if (definition.GlitchType == BreakoutLevelGlitchType.TokenStorm)
             {
                 return BuildTokenStormPlan(definition.Rarity);
+            }
+
+            if (definition.GlitchType == BreakoutLevelGlitchType.StaticWall)
+            {
+                return BuildStaticWallPlan(random, definition.Rarity);
             }
 
             return BuildWarpGatePlan(random, definition.Rarity);
@@ -345,6 +383,21 @@ namespace GetBricked.Gameplay
                 Array.Empty<BreakoutWarpGateSpec>(),
                 default,
                 new BreakoutTokenStormSpec(1.65f, 0.55f, 1.45f));
+        }
+
+        private static BreakoutLevelGlitchPlan BuildStaticWallPlan(DeterministicRandomService random, BreakoutContentRarity rarity)
+        {
+            return new BreakoutLevelGlitchPlan(
+                BreakoutLevelGlitchType.StaticWall,
+                rarity,
+                "Static Wall",
+                $"Static Wall x{StaticWallScoreMultiplier:0.00}",
+                StaticWallScoreMultiplier,
+                Array.Empty<BreakoutWarpGateSpec>(),
+                default,
+                default,
+                default,
+                BuildStaticWall(random));
         }
 
         public static float GetGlitchChance(RunSettings settings, int levelIndex)
@@ -441,6 +494,15 @@ namespace GetBricked.Gameplay
                 random.Range(0.58f, 0.78f),
                 random.Range(0.18f, 0.28f),
                 random.Range(0f, Mathf.PI * 2f));
+        }
+
+        private static BreakoutStaticWallSpec BuildStaticWall(DeterministicRandomService random)
+        {
+            return new BreakoutStaticWallSpec(
+                random.NextBool() ? BreakoutWarpGateWall.Right : BreakoutWarpGateWall.Left,
+                random.Range(2.1f, 2.85f),
+                random.Range(0.72f, 1.05f),
+                random.Range(0f, 2.85f));
         }
 
         private static BreakoutLevelGlitchDefinition ResolveGlitchDefinition(
@@ -549,7 +611,8 @@ namespace GetBricked.Gameplay
                 || selection == LevelGlitchSelection.TurboRail
                 || selection == LevelGlitchSelection.MirrorGrid
                 || selection == LevelGlitchSelection.GravityPocket
-                || selection == LevelGlitchSelection.TokenStorm;
+                || selection == LevelGlitchSelection.TokenStorm
+                || selection == LevelGlitchSelection.StaticWall;
         }
 
         private static BreakoutWarpGateWall ResolveGateWall(DeterministicRandomService random, int index)
