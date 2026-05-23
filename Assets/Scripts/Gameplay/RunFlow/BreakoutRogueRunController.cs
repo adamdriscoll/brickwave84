@@ -34,7 +34,10 @@ namespace GetBricked.Gameplay
             int lifeLossScorePenalty,
             ThemeDefinition themeDefinition,
             string selectedPaddleLabel = null,
-            int? intensityOverride = null)
+            int? intensityOverride = null,
+            LevelGlitchSelection levelGlitchSelection = LevelGlitchSelection.Random,
+            bool forceLevelGlitchRoll = false,
+            bool ignoreLevelGlitchUnlocks = false)
         {
             var selectedPaddle = BreakoutRoguePaddleCatalog.Resolve(selectedPaddleLabel);
             var intensity = intensityOverride.HasValue
@@ -59,7 +62,10 @@ namespace GetBricked.Gameplay
                 selectedPaddle.DisplayName,
                 selectedPaddle.SpeedMultiplier,
                 levelGlitchesEnabled: true,
-                levelGlitchChanceMultiplier: 1f);
+                levelGlitchChanceMultiplier: 1f,
+                levelGlitchSelection: levelGlitchSelection,
+                forceLevelGlitchRoll: forceLevelGlitchRoll,
+                ignoreLevelGlitchUnlocks: ignoreLevelGlitchUnlocks);
         }
 
         public void InitializeRunState(BreakoutRunState runState)

@@ -299,6 +299,27 @@ namespace GetBricked.Gameplay
             bricks.Clear();
         }
 
+        public int MirrorBrickGridHorizontally(float centerX)
+        {
+            var mirroredCount = 0;
+
+            for (var index = bricks.Count - 1; index >= 0; index--)
+            {
+                var brick = bricks[index];
+
+                if (brick == null)
+                {
+                    bricks.RemoveAt(index);
+                    continue;
+                }
+
+                brick.MirrorHorizontally(centerX);
+                mirroredCount++;
+            }
+
+            return mirroredCount;
+        }
+
         public int DestroyBricksInExplosionRadius(
             Vector2 explosionCenter,
             float explosionRadius,

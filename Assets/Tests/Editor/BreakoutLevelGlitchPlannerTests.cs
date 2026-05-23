@@ -55,6 +55,27 @@ public sealed class BreakoutLevelGlitchPlannerTests
     }
 
     [Test]
+    public void RogueGlitchHeatControlsWhenMirrorGridCanUnlock()
+    {
+        var lockedSettings = CreateRogueSettings(
+            rogueIntensity: BreakoutLevelGlitchPlanner.MirrorGridLadderUnlockIntensity - 1,
+            levelGlitchSelection: LevelGlitchSelection.MirrorGrid);
+        var unlockedSettings = CreateRogueSettings(
+            rogueIntensity: BreakoutLevelGlitchPlanner.MirrorGridLadderUnlockIntensity,
+            levelGlitchSelection: LevelGlitchSelection.MirrorGrid);
+
+        var lockedPlan = BreakoutLevelGlitchPlanner.BuildPlan(new DeterministicRandomService(7), lockedSettings, levelIndex: 9);
+        var unlockedPlan = BreakoutLevelGlitchPlanner.BuildPlan(new DeterministicRandomService(7), unlockedSettings, levelIndex: 9);
+
+        Assert.That(lockedPlan.IsActive, Is.False);
+        Assert.That(unlockedPlan.IsActive, Is.True);
+        Assert.That(unlockedPlan.GlitchType, Is.EqualTo(BreakoutLevelGlitchType.MirrorGrid));
+        Assert.That(unlockedPlan.DisplayName, Is.EqualTo("Mirror Grid"));
+        Assert.That(unlockedPlan.ScoreMultiplier, Is.EqualTo(1.3f).Within(0.0001f));
+        Assert.That(unlockedPlan.WarpGates, Is.Empty);
+    }
+
+    [Test]
     public void ForcedWarpGatePlanBuildsSmallPortalSetAndScoreBonus()
     {
         var settings = CreateSettings(
@@ -115,6 +136,51 @@ public sealed class BreakoutLevelGlitchPlannerTests
 
         Assert.That(plan.IsActive, Is.True);
         Assert.That(plan.GlitchType, Is.EqualTo(BreakoutLevelGlitchType.WarpGates));
+    }
+
+    [Test]
+    public void SelectedMirrorGridAlwaysBuildsMirrorGridEvenWhenChanceIsDisabled()
+    {
+        var settings = CreateSettings(
+            levelGlitchesEnabled: true,
+            chanceMultiplier: 0f,
+            levelGlitchSelection: LevelGlitchSelection.MirrorGrid);
+
+        var plan = BreakoutLevelGlitchPlanner.BuildPlan(new DeterministicRandomService(3), settings, levelIndex: 9);
+
+        Assert.That(plan.IsActive, Is.True);
+        Assert.That(plan.GlitchType, Is.EqualTo(BreakoutLevelGlitchType.MirrorGrid));
+    }
+
+    [Test]
+    public void ForcedDeveloperGlitchBypassesRogueHeatUnlock()
+    {
+        var settings = new RunSettings(
+            1234,
+            RunDifficultyPreset.Standard,
+            RunScoringMode.Classic,
+            3,
+            500,
+            1,
+            1f,
+            1f,
+            1f,
+            1f,
+            DropPoolMode.Mixed,
+            false,
+            null,
+            RunGameMode.Rogue,
+            rogueIntensity: 1,
+            levelGlitchesEnabled: true,
+            levelGlitchChanceMultiplier: 0f,
+            levelGlitchSelection: LevelGlitchSelection.MirrorGrid,
+            forceLevelGlitchRoll: true,
+            ignoreLevelGlitchUnlocks: true);
+
+        var plan = BreakoutLevelGlitchPlanner.BuildPlan(new DeterministicRandomService(3), settings, levelIndex: 0);
+
+        Assert.That(plan.IsActive, Is.True);
+        Assert.That(plan.GlitchType, Is.EqualTo(BreakoutLevelGlitchType.MirrorGrid));
     }
 
     [Test]

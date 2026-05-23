@@ -102,6 +102,47 @@ namespace GetBricked.Gameplay
             RefreshVisual();
         }
 
+        internal void MirrorHorizontally(float centerX)
+        {
+            var position = (Vector2)transform.position;
+            var mirroredPosition = new Vector2(centerX - (position.x - centerX), position.y);
+            transform.position = mirroredPosition;
+
+            if (hasMotion && lastMovementDirection.sqrMagnitude > 0.0001f)
+            {
+                lastMovementDirection = new Vector2(-lastMovementDirection.x, lastMovementDirection.y).normalized;
+            }
+
+            if (brickBody == null)
+            {
+                return;
+            }
+
+            brickBody.position = mirroredPosition;
+
+            if (hasMotion)
+            {
+                brickBody.linearVelocity = lastMovementDirection * movementSpeed;
+            }
+            else
+            {
+                var velocity = brickBody.linearVelocity;
+                brickBody.linearVelocity = new Vector2(-velocity.x, velocity.y);
+            }
+
+            if (canSpin)
+            {
+                brickBody.angularVelocity = -brickBody.angularVelocity;
+            }
+
+            if (spinJoint != null)
+            {
+                spinJoint.connectedAnchor = mirroredPosition;
+            }
+
+            brickBody.WakeUp();
+        }
+
         public void ApplyTheme(ThemeVisualStyle visualStyle)
         {
             spriteRenderer ??= GetComponentInChildren<SpriteRenderer>();

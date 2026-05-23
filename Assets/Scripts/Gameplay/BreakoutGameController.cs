@@ -286,6 +286,10 @@ namespace GetBricked.Gameplay
         private BreakoutLevelGlitchPlan activeLevelGlitchPlan = BreakoutLevelGlitchPlan.None;
         private BreakoutWarpGateController activeWarpGateController;
         private BreakoutTurboRailSection activeTurboRailSection;
+        private BreakoutMirrorGridVisual activeMirrorGridVisual;
+        private bool isMirrorGridArmed;
+        private bool hasMirrorGridTriggered;
+        private int mirrorGridInitialRequiredBricks;
         private bool isDeveloperRunActive;
         private bool isMenuAttractModeActive;
         private float menuAttractRestartTimer;
@@ -571,6 +575,7 @@ namespace GetBricked.Gameplay
             }
 
             brickService.DisableAndDestroyBrick(brick);
+            TryTriggerMirrorGrid();
 
             var explosionHitCount = 0;
 
@@ -1833,7 +1838,7 @@ namespace GetBricked.Gameplay
 
             if (keyboard.downArrowKey.wasPressedThisFrame || keyboard.sKey.wasPressedThisFrame)
             {
-                selectedDeveloperLaunchField = (BreakoutDeveloperLaunchField)Mathf.Min((int)BreakoutDeveloperLaunchField.ForcedDrop, (int)selectedDeveloperLaunchField + 1);
+                selectedDeveloperLaunchField = (BreakoutDeveloperLaunchField)Mathf.Min((int)BreakoutDeveloperLaunchField.ForcedGlitch, (int)selectedDeveloperLaunchField + 1);
             }
 
             if (keyboard.leftArrowKey.wasPressedThisFrame || keyboard.aKey.wasPressedThisFrame)
@@ -2134,8 +2139,21 @@ namespace GetBricked.Gameplay
             developerLaunchState ??= new BreakoutDeveloperLaunchState();
             var selectedPaddle = developerLaunchState.ResolvePaddle();
             var intensity = BreakoutRunProgression.ClampRogueIntensity(developerLaunchState.Intensity);
+            var forcedGlitch = developerLaunchState.ForcedLevelGlitchSelection;
+            var shouldForceGlitch = forcedGlitch != LevelGlitchSelection.Off;
+            var selectedGlitch = shouldForceGlitch
+                ? forcedGlitch
+                : LevelGlitchSelection.Random;
             activeRunSettings = rogueRunController != null
-                ? rogueRunController.BuildRunSettings(GenerateSeed(), lifeLossScorePenalty, ResolvePendingThemeDefinition(), selectedPaddle.DisplayName, intensity)
+                ? rogueRunController.BuildRunSettings(
+                    GenerateSeed(),
+                    lifeLossScorePenalty,
+                    ResolvePendingThemeDefinition(),
+                    selectedPaddle.DisplayName,
+                    intensity,
+                    selectedGlitch,
+                    shouldForceGlitch,
+                    shouldForceGlitch)
                 : new RunSettings(
                     GenerateSeed(),
                     RunDifficultyPreset.Standard,
@@ -2154,10 +2172,13 @@ namespace GetBricked.Gameplay
                     intensity,
                     selectedPaddle.DisplayName,
                     selectedPaddle.SpeedMultiplier,
-                    levelGlitchesEnabled: true);
+                    levelGlitchesEnabled: true,
+                    levelGlitchSelection: selectedGlitch,
+                    forceLevelGlitchRoll: shouldForceGlitch,
+                    ignoreLevelGlitchUnlocks: shouldForceGlitch);
 
             var encounter = developerLaunchState.ResolveEncounter();
-            pendingValidationMessage = $"Dev jump loaded: {encounter.DisplayName} with {activeRunSettings.SelectedPaddleLabel} at Heat {activeRunSettings.RogueIntensity:00}.";
+            pendingValidationMessage = $"Dev jump loaded: {encounter.DisplayName} with {activeRunSettings.SelectedPaddleLabel} at Heat {activeRunSettings.RogueIntensity:00}. {BuildDeveloperForcedGlitchMessage(forcedGlitch)}";
             StartNewRun(encounter, developerLaunchState.LivesRemaining, applyDeveloperSelections: true);
         }
 
@@ -3230,11 +3251,19 @@ namespace GetBricked.Gameplay
                 CreateTurboRail(activeLevelGlitchPlan);
                 powerUpService?.ShowStatusBanner("TURBO RAIL!", new Color(1f, 0.22f, 0.84f, 1f), 2.2f);
             }
+            else if (activeLevelGlitchPlan.GlitchType == BreakoutLevelGlitchType.MirrorGrid)
+            {
+                ArmMirrorGrid();
+                powerUpService?.ShowStatusBanner("MIRROR GRID!", new Color(0.72f, 0.62f, 1f, 1f), 2.2f);
+            }
         }
 
         private void ClearLevelGlitches()
         {
             activeLevelGlitchPlan = BreakoutLevelGlitchPlan.None;
+            isMirrorGridArmed = false;
+            hasMirrorGridTriggered = false;
+            mirrorGridInitialRequiredBricks = 0;
 
             if (activeWarpGateController != null)
             {
@@ -3247,6 +3276,63 @@ namespace GetBricked.Gameplay
                 DestroyRuntimeObject(activeTurboRailSection.gameObject);
                 activeTurboRailSection = null;
             }
+
+            if (activeMirrorGridVisual != null)
+            {
+                DestroyRuntimeObject(activeMirrorGridVisual.gameObject);
+                activeMirrorGridVisual = null;
+            }
+        }
+
+        private void ArmMirrorGrid()
+        {
+            mirrorGridInitialRequiredBricks = Mathf.Max(0, requiredBricksRemaining);
+            isMirrorGridArmed = mirrorGridInitialRequiredBricks > 1;
+            hasMirrorGridTriggered = false;
+        }
+
+        private void TryTriggerMirrorGrid()
+        {
+            if (!isMirrorGridArmed || hasMirrorGridTriggered || mirrorGridInitialRequiredBricks <= 1)
+            {
+                return;
+            }
+
+            var destroyedRequiredBricks = mirrorGridInitialRequiredBricks - Mathf.Max(0, requiredBricksRemaining);
+            var triggerCount = Mathf.CeilToInt(mirrorGridInitialRequiredBricks * 0.5f);
+
+            if (destroyedRequiredBricks < triggerCount)
+            {
+                return;
+            }
+
+            hasMirrorGridTriggered = true;
+            isMirrorGridArmed = false;
+            CreateMirrorGridBurst();
+            brickService?.MirrorBrickGridHorizontally(0f);
+            powerUpService?.ShowStatusBanner("GRID FLIP!", new Color(0.72f, 0.62f, 1f, 1f), 1.8f);
+        }
+
+        private void CreateMirrorGridBurst()
+        {
+            if (squareSprite == null || additiveSpriteMaterial == null)
+            {
+                return;
+            }
+
+            if (activeMirrorGridVisual != null)
+            {
+                DestroyRuntimeObject(activeMirrorGridVisual.gameObject);
+                activeMirrorGridVisual = null;
+            }
+
+            var visualObject = new GameObject("Mirror Grid Burst");
+            visualObject.transform.SetParent(glitchesRoot != null ? glitchesRoot : runtimeRoot, false);
+            activeMirrorGridVisual = visualObject.AddComponent<BreakoutMirrorGridVisual>();
+            activeMirrorGridVisual.Configure(
+                squareSprite,
+                additiveSpriteMaterial,
+                Rect.MinMaxRect(arenaLeft, arenaBottom + 0.35f, arenaRight, arenaTop));
         }
 
         private void CreateWarpGates(BreakoutLevelGlitchPlan glitchPlan)
@@ -4056,6 +4142,7 @@ namespace GetBricked.Gameplay
             var upgradeSelected = currentUpgrade != null && developerLaunchState.IsUpgradeSelected(currentUpgrade);
             var dropSelected = currentDrop != null && developerLaunchState.IsDropUnlockSelected(currentDrop);
             var forcedDropEnabled = developerLaunchState.ForcedDropEnabled && forcedDrop != null;
+            var forcedGlitch = developerLaunchState.ForcedLevelGlitchSelection;
 
             return new BreakoutUiRunSetupView
             {
@@ -4069,9 +4156,10 @@ namespace GetBricked.Gameplay
                     $"Upgrade: {FormatDeveloperToggle(upgradeSelected)} {FormatDeveloperUpgradeLabel(currentUpgrade)}",
                     $"Drop Unlock: {FormatDeveloperToggle(dropSelected)} {FormatDeveloperDropLabel(currentDrop)}",
                     $"Forced Drop: {FormatDeveloperToggle(forcedDropEnabled)} {FormatDeveloperDropLabel(forcedDrop)}",
+                    $"Forced Glitch: {FormatDeveloperForcedGlitchLabel(forcedGlitch)}",
                 },
                 SelectedFieldIndex = (int)selectedDeveloperLaunchField,
-                PreviewLine = $"Preview: {FormatDeveloperEncounterLabel(encounter)} | Heat {developerLaunchState.Intensity:00} | Balls {developerLaunchState.LivesRemaining:00} | Paddle x{selectedPaddle.WidthMultiplier:0.00} speed x{selectedPaddle.SpeedMultiplier:0.00} | Build {developerLaunchState.SelectedUpgradeCount:00} upgrades, {developerLaunchState.SelectedDropUnlockCount:00} drops | Force {FormatDeveloperForcedDropPreview(forcedDropEnabled, forcedDrop)} | Theme {ResolvePendingThemeDefinition()?.DisplayName ?? "Fallback"}",
+                PreviewLine = $"Preview: {FormatDeveloperEncounterLabel(encounter)} | Heat {developerLaunchState.Intensity:00} | Balls {developerLaunchState.LivesRemaining:00} | Paddle x{selectedPaddle.WidthMultiplier:0.00} speed x{selectedPaddle.SpeedMultiplier:0.00} | Build {developerLaunchState.SelectedUpgradeCount:00} upgrades, {developerLaunchState.SelectedDropUnlockCount:00} drops | Force {FormatDeveloperForcedDropPreview(forcedDropEnabled, forcedDrop)} | Glitch {FormatDeveloperForcedGlitchPreview(forcedGlitch)} | Theme {ResolvePendingThemeDefinition()?.DisplayName ?? "Fallback"}",
                 ValidationText = "Encounter cycles through Stage 01-10. Dev runs do not update the saved Neon Ladder result.",
                 HintText = "Up/Down selects. Left/Right changes. T toggles. N clears. Esc backs out. Space launches.",
             };
@@ -5061,6 +5149,7 @@ namespace GetBricked.Gameplay
                 LevelGlitchSelection.Random => "Random",
                 LevelGlitchSelection.WarpGates => "Warp Gates",
                 LevelGlitchSelection.TurboRail => "Turbo Rail",
+                LevelGlitchSelection.MirrorGrid => "Mirror Grid",
                 _ => "Off",
             };
         }
@@ -5205,6 +5294,27 @@ namespace GetBricked.Gameplay
             }
 
             return drop.DisplayName;
+        }
+
+        private static string FormatDeveloperForcedGlitchLabel(LevelGlitchSelection selection)
+        {
+            return selection == LevelGlitchSelection.Off
+                ? "Off"
+                : $"[ON] {FormatLevelGlitchSelectionLabel(selection)}";
+        }
+
+        private static string FormatDeveloperForcedGlitchPreview(LevelGlitchSelection selection)
+        {
+            return selection == LevelGlitchSelection.Off
+                ? "normal rolls"
+                : FormatLevelGlitchSelectionLabel(selection);
+        }
+
+        private static string BuildDeveloperForcedGlitchMessage(LevelGlitchSelection selection)
+        {
+            return selection == LevelGlitchSelection.Off
+                ? "Glitches use normal Rogue rules."
+                : $"{FormatLevelGlitchSelectionLabel(selection)} forced for this stage.";
         }
 
         private void UpdateTimedEffects()

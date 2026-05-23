@@ -36,7 +36,8 @@ namespace GetBricked.Gameplay.Data
         Off = 0,
         WarpGates = 1,
         TurboRail = 2,
-        Random = 3,
+        MirrorGrid = 3,
+        Random = 4,
     }
 
     public sealed class RunSettings
@@ -62,7 +63,9 @@ namespace GetBricked.Gameplay.Data
             string difficultyLabel = null,
             bool levelGlitchesEnabled = false,
             float levelGlitchChanceMultiplier = 1f,
-            LevelGlitchSelection levelGlitchSelection = LevelGlitchSelection.Random)
+            LevelGlitchSelection levelGlitchSelection = LevelGlitchSelection.Random,
+            bool forceLevelGlitchRoll = false,
+            bool ignoreLevelGlitchUnlocks = false)
         {
             Seed = seed == int.MinValue ? int.MaxValue : Mathf.Abs(seed);
             DifficultyPreset = difficultyPreset;
@@ -89,6 +92,8 @@ namespace GetBricked.Gameplay.Data
             SelectedLevelGlitch = NormalizeLevelGlitchSelection(levelGlitchesEnabled, levelGlitchSelection);
             LevelGlitchesEnabled = SelectedLevelGlitch != LevelGlitchSelection.Off;
             LevelGlitchChanceMultiplier = Mathf.Clamp(levelGlitchChanceMultiplier, 0f, 3f);
+            ForceLevelGlitchRoll = forceLevelGlitchRoll && LevelGlitchesEnabled;
+            IgnoreLevelGlitchUnlocks = ignoreLevelGlitchUnlocks;
         }
 
         public int Seed { get; }
@@ -132,6 +137,10 @@ namespace GetBricked.Gameplay.Data
         public LevelGlitchSelection SelectedLevelGlitch { get; }
 
         public float LevelGlitchChanceMultiplier { get; }
+
+        public bool ForceLevelGlitchRoll { get; }
+
+        public bool IgnoreLevelGlitchUnlocks { get; }
 
         public string DifficultyLabel => !string.IsNullOrWhiteSpace(CustomDifficultyLabel)
             ? CustomDifficultyLabel
@@ -182,6 +191,7 @@ namespace GetBricked.Gameplay.Data
             LevelGlitchSelection.Random => "Random Glitches",
             LevelGlitchSelection.WarpGates => "Warp Gates Armed",
             LevelGlitchSelection.TurboRail => "Turbo Rail Armed",
+            LevelGlitchSelection.MirrorGrid => "Mirror Grid Armed",
             _ => "Clean Walls",
         };
 

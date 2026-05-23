@@ -369,6 +369,7 @@ namespace GetBricked.Gameplay
             {
                 LevelGlitchSelection.WarpGates => "Warp Gates",
                 LevelGlitchSelection.TurboRail => "Turbo Rail",
+                LevelGlitchSelection.MirrorGrid => "Mirror Grid",
                 _ => "Random glitches",
             };
         }

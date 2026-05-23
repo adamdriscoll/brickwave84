@@ -165,7 +165,7 @@ Difficulty presets already change more than labels:
 
 ### Unlock Progression
 
-Permanent run upgrades are always available in the between-stage draft pool. Drop and glitch unlocks enter the Neon Ladder ecosystem through a front-loaded one-unlock-per-Heat ladder: implemented content runs from Heat `01` through Heat `31`, with additional live drops at Heat `34` and Heat `36` among the placeholder backlog. Default drops and default glitches start unlocked for Neon Ladder runs. Rarity still tunes odds and draft weighting, but it no longer bundles multiple new unlocks onto the same Heat. Implementation status tracks whether the item has live runtime gameplay behavior or is currently only a progression-screen placeholder.
+Permanent run upgrades are always available in the between-stage draft pool. Drop and glitch unlocks enter the Neon Ladder ecosystem through a front-loaded one-unlock-per-Heat ladder: implemented content runs from Heat `01` through Heat `31`, with additional live drops at Heat `33`, Heat `34`, and Heat `36`, plus the live `Mirror Grid` glitch at Heat `37`, among the placeholder backlog. Default drops and default glitches start unlocked for Neon Ladder runs. Rarity still tunes odds and draft weighting, but it no longer bundles multiple new unlocks onto the same Heat. Implementation status tracks whether the item has live runtime gameplay behavior or is currently only a progression-screen placeholder.
 
 | Name | Description | Default / unlock level | Rarity | Polarity | Type | Implementation |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -210,7 +210,7 @@ Permanent run upgrades are always available in the between-stage draft pool. Dro
 | `Bank Bonus` | Wall bounces bank +50 points until the next brick hit for 12s. | Heat 34 | Epic | Helpful | Precision drop | Implemented |
 | `Solar Shot` | Ball burns through the next weak brick it touches. | Heat 35 | N/A | Helpful | Damage drop | Not implemented (UI placeholder) |
 | `Prism Pop` | First brick hit within 10s splits a short-lived copy ball. | Heat 36 | Epic | Helpful | Split drop | Implemented |
-| `Mirror Grid` | Brick layout mirrors horizontally halfway through the stage. | Heat 37 | N/A | Glitch | Layout glitch | Not implemented (UI placeholder) |
+| `Mirror Grid` | Brick layout mirrors horizontally halfway through the stage. | Heat 37 | Rare | Glitch | Layout glitch | Implemented |
 | `Row Rewrite` | One row rerolls into a new brick pattern after a timer. | Heat 38 | N/A | Glitch | Layout glitch | Not implemented (UI placeholder) |
 | `Prism Lanes` | Marked lanes refract the ball into sharper angles. | Heat 39 | N/A | Glitch | Precision glitch | Not implemented (UI placeholder) |
 | `Token Storm` | More capsules spawn, but fall at mixed speeds. | Heat 40 | N/A | Glitch | Pickup glitch | Not implemented (UI placeholder) |

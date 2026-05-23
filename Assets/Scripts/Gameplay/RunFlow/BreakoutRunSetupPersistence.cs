@@ -7,7 +7,7 @@ namespace GetBricked.Gameplay
     internal static class BreakoutRunSetupPersistence
     {
         private const string PersistedRunSetupKey = "GetBricked.RunSetup";
-        private const int PersistedRunSetupVersion = 5;
+        private const int PersistedRunSetupVersion = 6;
 
         [Serializable]
         private sealed class PersistedRunSetup
@@ -54,6 +54,7 @@ namespace GetBricked.Gameplay
                         && persistedRunSetup.Version != 2
                         && persistedRunSetup.Version != 3
                         && persistedRunSetup.Version != 4
+                        && persistedRunSetup.Version != 5
                         && persistedRunSetup.Version != PersistedRunSetupVersion))
                 {
                     return;
@@ -82,10 +83,9 @@ namespace GetBricked.Gameplay
                         (int)DropPoolMode.Disabled),
                     persistedRunSetup.Version >= 2 && persistedRunSetup.IsCapsulePartyEnabled,
                     persistedRunSetup.Version >= 5
-                        ? (LevelGlitchSelection)Mathf.Clamp(
-                            persistedRunSetup.LevelGlitchSelection,
-                            (int)LevelGlitchSelection.Off,
-                            (int)LevelGlitchSelection.Random)
+                        ? NormalizePersistedLevelGlitchSelection(
+                            persistedRunSetup.Version,
+                            persistedRunSetup.LevelGlitchSelection)
                         : persistedRunSetup.Version >= 4 && persistedRunSetup.AreLevelGlitchesEnabled
                             ? LevelGlitchSelection.WarpGates
                             : LevelGlitchSelection.Off,
@@ -135,6 +135,19 @@ namespace GetBricked.Gameplay
         private static int GenerateSeed(Func<int> seedGenerator)
         {
             return seedGenerator != null ? seedGenerator() : 0;
+        }
+
+        private static LevelGlitchSelection NormalizePersistedLevelGlitchSelection(int version, int persistedSelection)
+        {
+            if (version < PersistedRunSetupVersion && persistedSelection == 3)
+            {
+                return LevelGlitchSelection.Random;
+            }
+
+            return (LevelGlitchSelection)Mathf.Clamp(
+                persistedSelection,
+                (int)LevelGlitchSelection.Off,
+                (int)LevelGlitchSelection.Random);
         }
     }
 }

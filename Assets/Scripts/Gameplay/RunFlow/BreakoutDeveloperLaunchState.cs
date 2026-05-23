@@ -13,6 +13,7 @@ namespace GetBricked.Gameplay
         Upgrade = 3,
         DropUnlock = 4,
         ForcedDrop = 5,
+        ForcedGlitch = 6,
     }
 
     internal readonly struct BreakoutDeveloperEncounter
@@ -48,6 +49,8 @@ namespace GetBricked.Gameplay
 
         public bool ForcedDropEnabled { get; private set; }
 
+        public LevelGlitchSelection ForcedLevelGlitchSelection { get; private set; } = LevelGlitchSelection.Off;
+
         public int SelectedUpgradeCount => selectedUpgradeIds.Count;
 
         public int SelectedDropUnlockCount => selectedDropIds.Count;
@@ -61,6 +64,7 @@ namespace GetBricked.Gameplay
             DropUnlockIndex = 0;
             ForcedDropIndex = 0;
             ForcedDropEnabled = false;
+            ForcedLevelGlitchSelection = LevelGlitchSelection.Off;
             selectedUpgradeIds.Clear();
             selectedDropIds.Clear();
         }
@@ -95,6 +99,12 @@ namespace GetBricked.Gameplay
                     break;
                 case BreakoutDeveloperLaunchField.ForcedDrop:
                     ForcedDropIndex = Wrap(ForcedDropIndex + direction, Mathf.Max(1, drops?.Count ?? 0));
+                    break;
+                case BreakoutDeveloperLaunchField.ForcedGlitch:
+                    ForcedLevelGlitchSelection = (LevelGlitchSelection)Mathf.Clamp(
+                        (int)ForcedLevelGlitchSelection + direction,
+                        (int)LevelGlitchSelection.Off,
+                        (int)LevelGlitchSelection.Random);
                     break;
             }
         }

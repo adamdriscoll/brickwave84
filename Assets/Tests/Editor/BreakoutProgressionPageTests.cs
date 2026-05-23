@@ -99,9 +99,12 @@ public sealed class BreakoutProgressionPageTests
 
         var view = new BreakoutProgressionPageService().BuildView(Array.Empty<PowerUpDefinition>());
         var turboRail = view.Cards.First(card => card.Title == "Turbo Rail");
+        var mirrorGrid = view.Cards.First(card => card.Title == "Mirror Grid");
         var chromeRail = view.Cards.First(card => card.Title == "Chrome Rail");
 
         Assert.That(turboRail.UnlockHint, Does.Contain("Heat 31"));
+        Assert.That(mirrorGrid.UnlockHint, Does.Contain("Heat 37"));
+        Assert.That(mirrorGrid.UnlockHint, Does.Not.Contain("preview"));
         Assert.That(chromeRail.UnlockHint, Does.Contain("Heat 32"));
     }
 

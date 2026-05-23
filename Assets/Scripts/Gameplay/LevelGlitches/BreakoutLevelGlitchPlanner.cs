@@ -9,6 +9,7 @@ namespace GetBricked.Gameplay
         None = 0,
         WarpGates = 1,
         TurboRail = 2,
+        MirrorGrid = 3,
     }
 
     internal readonly struct BreakoutLevelGlitchDefinition
@@ -119,9 +120,11 @@ namespace GetBricked.Gameplay
     internal static class BreakoutLevelGlitchPlanner
     {
         public const int TurboRailLadderUnlockIntensity = 31;
+        public const int MirrorGridLadderUnlockIntensity = 37;
 
         private const float WarpGateScoreMultiplier = 1.35f;
         private const float TurboRailScoreMultiplier = 1.25f;
+        private const float MirrorGridScoreMultiplier = 1.3f;
 
         private static readonly BreakoutLevelGlitchDefinition[] GlitchDefinitions =
         {
@@ -135,6 +138,11 @@ namespace GetBricked.Gameplay
                 LevelGlitchSelection.TurboRail,
                 BreakoutContentRarity.Rare,
                 TurboRailLadderUnlockIntensity),
+            new BreakoutLevelGlitchDefinition(
+                BreakoutLevelGlitchType.MirrorGrid,
+                LevelGlitchSelection.MirrorGrid,
+                BreakoutContentRarity.Rare,
+                MirrorGridLadderUnlockIntensity),
         };
 
         public static BreakoutLevelGlitchPlan BuildPlan(
@@ -152,7 +160,7 @@ namespace GetBricked.Gameplay
                 return BuildSelectedGlitchPlan(random, settings, settings.SelectedLevelGlitch);
             }
 
-            if (IsForcedLevelGlitchSelection(settings.SelectedLevelGlitch))
+            if (settings.ForceLevelGlitchRoll || IsForcedLevelGlitchSelection(settings.SelectedLevelGlitch))
             {
                 return BuildSelectedGlitchPlan(random, settings, settings.SelectedLevelGlitch);
             }
@@ -184,6 +192,11 @@ namespace GetBricked.Gameplay
                 return BuildTurboRailPlan(random, definition.Rarity);
             }
 
+            if (definition.GlitchType == BreakoutLevelGlitchType.MirrorGrid)
+            {
+                return BuildMirrorGridPlan(definition.Rarity);
+            }
+
             return BuildWarpGatePlan(random, definition.Rarity);
         }
 
@@ -210,6 +223,18 @@ namespace GetBricked.Gameplay
                 TurboRailScoreMultiplier,
                 Array.Empty<BreakoutWarpGateSpec>(),
                 BuildTurboRail(random));
+        }
+
+        private static BreakoutLevelGlitchPlan BuildMirrorGridPlan(BreakoutContentRarity rarity)
+        {
+            return new BreakoutLevelGlitchPlan(
+                BreakoutLevelGlitchType.MirrorGrid,
+                rarity,
+                "Mirror Grid",
+                $"Mirror Grid x{MirrorGridScoreMultiplier:0.00}",
+                MirrorGridScoreMultiplier,
+                Array.Empty<BreakoutWarpGateSpec>(),
+                default);
         }
 
         public static float GetGlitchChance(RunSettings settings, int levelIndex)
@@ -378,6 +403,7 @@ namespace GetBricked.Gameplay
             return definition.GlitchType != BreakoutLevelGlitchType.None
                 && (settings == null
                     || !settings.IsRogueMode
+                    || settings.IgnoreLevelGlitchUnlocks
                     || BreakoutRunProgression.ClampRogueIntensity(settings.RogueIntensity) >= definition.LadderUnlockIntensity);
         }
 
@@ -399,7 +425,8 @@ namespace GetBricked.Gameplay
         private static bool IsForcedLevelGlitchSelection(LevelGlitchSelection selection)
         {
             return selection == LevelGlitchSelection.WarpGates
-                || selection == LevelGlitchSelection.TurboRail;
+                || selection == LevelGlitchSelection.TurboRail
+                || selection == LevelGlitchSelection.MirrorGrid;
         }
 
         private static BreakoutWarpGateWall ResolveGateWall(DeterministicRandomService random, int index)

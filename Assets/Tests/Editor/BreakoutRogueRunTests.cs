@@ -117,6 +117,7 @@ public sealed class BreakoutRogueRunTests
             state.ToggleCurrentDropUnlock(new[] { drop });
             state.AdjustField(BreakoutDeveloperLaunchField.ForcedDrop, 1, null, new[] { drop, forcedDrop });
             state.ToggleForcedDrop();
+            state.AdjustField(BreakoutDeveloperLaunchField.ForcedGlitch, 3, null, null);
 
             Assert.That(state.SelectedUpgradeCount, Is.EqualTo(1));
             Assert.That(state.SelectedDropUnlockCount, Is.EqualTo(1));
@@ -124,12 +125,14 @@ public sealed class BreakoutRogueRunTests
             Assert.That(state.IsDropUnlockSelected(drop), Is.True);
             Assert.That(state.ResolveForcedDrop(new[] { drop, forcedDrop }), Is.EqualTo(forcedDrop));
             Assert.That(state.ForcedDropEnabled, Is.True);
+            Assert.That(state.ForcedLevelGlitchSelection, Is.EqualTo(LevelGlitchSelection.MirrorGrid));
 
             state.ClearBuild();
 
             Assert.That(state.SelectedUpgradeCount, Is.EqualTo(0));
             Assert.That(state.SelectedDropUnlockCount, Is.EqualTo(0));
             Assert.That(state.ForcedDropEnabled, Is.True);
+            Assert.That(state.ForcedLevelGlitchSelection, Is.EqualTo(LevelGlitchSelection.MirrorGrid));
             Assert.That(state.Intensity, Is.EqualTo(BreakoutRunProgression.MaxRogueIntensity));
         }
         finally
