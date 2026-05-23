@@ -575,6 +575,7 @@ namespace GetBricked.Gameplay
                 ? collision.GetContact(0).point
                 : (Vector2)transform.position;
 
+            gameController?.ApplyPaddleHitTilt(hitPaddle, contactPoint.x, ballBody.linearVelocity);
             ApplyCollisionResponse(ResolvePaddleBounceDirection(hitPaddle, contactPoint.x));
         }
 

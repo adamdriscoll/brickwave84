@@ -102,7 +102,8 @@ namespace GetBricked.Gameplay
             float vectorSightStrength,
             float capsuleMagnetStrength,
             bool mirrorImagePaddleEnabled,
-            float cleanCatchAimMultiplier)
+            float cleanCatchAimMultiplier,
+            float paddleHitTiltDegrees)
         {
             PaddleWidthMultiplier = paddleWidthMultiplier;
             WavyPaddleStrength = wavyPaddleStrength;
@@ -127,6 +128,7 @@ namespace GetBricked.Gameplay
             CapsuleMagnetStrength = capsuleMagnetStrength;
             MirrorImagePaddleEnabled = mirrorImagePaddleEnabled;
             CleanCatchAimMultiplier = cleanCatchAimMultiplier;
+            PaddleHitTiltDegrees = paddleHitTiltDegrees;
         }
 
         public float PaddleWidthMultiplier { get; }
@@ -174,6 +176,8 @@ namespace GetBricked.Gameplay
         public bool MirrorImagePaddleEnabled { get; }
 
         public float CleanCatchAimMultiplier { get; }
+
+        public float PaddleHitTiltDegrees { get; }
     }
 
     internal readonly struct BreakoutPowerUpApplicationResult
@@ -214,6 +218,7 @@ namespace GetBricked.Gameplay
         private float capsuleMagnetStrength;
         private bool mirrorImagePaddleEnabled;
         private float cleanCatchAimMultiplier;
+        private float paddleHitTiltDegrees;
 
         public BreakoutEffectModifierAccumulator(float basePaddleWidthMultiplier, float baseWavyPaddleStrength)
         {
@@ -240,6 +245,7 @@ namespace GetBricked.Gameplay
             capsuleMagnetStrength = 0f;
             mirrorImagePaddleEnabled = false;
             cleanCatchAimMultiplier = 1f;
+            paddleHitTiltDegrees = 0f;
         }
 
         public void Apply(BreakoutActiveTimedEffect activeEffect)
@@ -328,6 +334,11 @@ namespace GetBricked.Gameplay
                         cleanCatchAimMultiplier,
                         Mathf.Max(1f, powerUpDefinition.Scalar * activeEffect.EffectMultiplier));
                     break;
+                case PowerUpEffectType.PaddleHitTilt:
+                    paddleHitTiltDegrees = Mathf.Max(
+                        paddleHitTiltDegrees,
+                        Mathf.Clamp(powerUpDefinition.Scalar * effectStrength, 0f, 18f));
+                    break;
             }
         }
 
@@ -356,7 +367,8 @@ namespace GetBricked.Gameplay
                 vectorSightStrength,
                 capsuleMagnetStrength,
                 mirrorImagePaddleEnabled,
-                Mathf.Max(1f, cleanCatchAimMultiplier));
+                Mathf.Max(1f, cleanCatchAimMultiplier),
+                Mathf.Max(0f, paddleHitTiltDegrees));
         }
     }
 

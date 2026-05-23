@@ -848,6 +848,7 @@ namespace GetBricked.Gameplay
                 && powerUpService != null
                 && powerUpService.TryConsumeCleanCatchCharge(out var cleanCatchDefinition, out var aimMultiplier))
             {
+                ApplyPaddleHitTilt(hitPaddle, contactPoint.x, ball.CurrentVelocity);
                 stickyCaughtBall = ball;
                 stickyCaughtBallUsesCleanCatch = true;
                 cleanCatchReleaseOffsetNormalized = ResolvePaddleHitOffset(hitPaddle, contactPoint.x);
@@ -860,6 +861,7 @@ namespace GetBricked.Gameplay
 
             if (activeEffectModifiers.StickyPaddleEnabled && stickyCaughtBall == null)
             {
+                ApplyPaddleHitTilt(hitPaddle, contactPoint.x, ball.CurrentVelocity);
                 stickyCaughtBall = ball;
                 stickyCaughtBallUsesCleanCatch = false;
                 cleanCatchReleaseOffsetNormalized = 0f;
@@ -869,6 +871,21 @@ namespace GetBricked.Gameplay
             }
 
             return false;
+        }
+
+        public void ApplyPaddleHitTilt(PaddleController hitPaddle, float contactWorldX)
+        {
+            ApplyPaddleHitTilt(hitPaddle, contactWorldX, Vector2.zero);
+        }
+
+        public void ApplyPaddleHitTilt(PaddleController hitPaddle, float contactWorldX, Vector2 incomingVelocity)
+        {
+            if (hitPaddle == null || activeEffectModifiers.PaddleHitTiltDegrees <= 0.001f)
+            {
+                return;
+            }
+
+            hitPaddle.ApplyHitTilt(contactWorldX, incomingVelocity);
         }
 
         private bool IsBallAtShieldWallImpact(BallController ball)
@@ -5737,7 +5754,8 @@ namespace GetBricked.Gameplay
                     0f,
                     0f,
                     false,
-                    1f);
+                    1f,
+                    0f);
             paddle.SetMoveSpeed(currentLevelPaddleSpeed * (activeRunSettings?.PaddleSpeedMultiplier ?? 1f));
             var paddleHitMaximumWidth = paddle.SetWidthMultiplier(activeEffectModifiers.PaddleWidthMultiplier);
 
@@ -5760,6 +5778,7 @@ namespace GetBricked.Gameplay
             paddle.SetControlsReversed(activeEffectModifiers.ReverseControlsEnabled);
             paddle.SetSplitGapWidthNormalized(activeEffectModifiers.SplitPaddleGapNormalized);
             paddle.SetLagSpikeStrength(activeEffectModifiers.LagSpikeStrength);
+            paddle.SetHitTiltDegrees(activeEffectModifiers.PaddleHitTiltDegrees);
             paddle.SetClonePaddleEnabled(activeEffectModifiers.PaddleCloneEnabled);
             paddle.SetMirrorImagePaddleEnabled(activeEffectModifiers.MirrorImagePaddleEnabled);
 
@@ -6794,6 +6813,7 @@ namespace GetBricked.Gameplay
                 PowerUpEffectType.BallSizeMultiplier => $"Ball size x{definition.Scalar:0.00} for {definition.DurationSeconds:0.#}s",
                 PowerUpEffectType.MultiBallBurst => $"+{Mathf.Max(1, definition.ExtraBallCount)} balls",
                 PowerUpEffectType.WavyPaddle => $"Wave {definition.Scalar:0.00} for {definition.DurationSeconds:0.#}s",
+                PowerUpEffectType.PaddleHitTilt => $"Paddle tilts {definition.Scalar:0.#}deg per hit for {definition.DurationSeconds:0.#}s",
                 PowerUpEffectType.StickyPaddle => $"Catch ball for {definition.DurationSeconds:0.#}s",
                 PowerUpEffectType.CleanCatch => $"Catch next paddle hit, aim x{definition.Scalar:0.00}",
                 PowerUpEffectType.LaserPaddle => $"Laser paddle for {definition.DurationSeconds:0.#}s",

@@ -72,6 +72,80 @@ public sealed class BreakoutGameControllerPowerUpTests
     }
 
     [Test]
+    public void ApplyingTiltRailRotatesPaddleOnBallHitsAndAnimatesBackAfterExpiry()
+    {
+        var controller = CreateControllerHarness(out var paddle);
+        var tiltPowerUp = CreatePowerUp(
+            "Tilt Rail",
+            PowerUpEffectType.PaddleHitTilt,
+            beneficial: false,
+            durationSeconds: 12f,
+            scalar: 9f);
+
+        InvokePrivateMethod(controller, "ApplyPowerUp", tiltPowerUp);
+
+        for (var index = 0; index < 41; index++)
+        {
+            controller.ApplyPaddleHitTilt(paddle, paddle.transform.position.x + paddle.HalfWidthWorld);
+        }
+
+        Assert.That(GetPrivateField<float>(paddle, "hitTiltDegrees"), Is.EqualTo(9f).Within(0.0001f));
+        Assert.That(GetPrivateField<float>(paddle, "currentHitTiltRotation"), Is.GreaterThan(360f));
+
+        paddle.SetHitTiltDegrees(0f);
+
+        var returningRotation = GetPrivateField<float>(paddle, "currentHitTiltRotation");
+        Assert.That(GetPrivateField<bool>(paddle, "isHitTiltReturning"), Is.True);
+        Assert.That(returningRotation, Is.Not.Zero);
+        Assert.That(Mathf.Abs(returningRotation), Is.LessThan(180f));
+
+        InvokePrivateMethod(paddle, "UpdateHitTiltReturn", 0.02f);
+
+        Assert.That(
+            Mathf.Abs(GetPrivateField<float>(paddle, "currentHitTiltRotation")),
+            Is.LessThan(Mathf.Abs(returningRotation)));
+
+        InvokePrivateMethod(paddle, "UpdateHitTiltReturn", 1f);
+
+        Assert.That(GetPrivateField<float>(paddle, "currentHitTiltRotation"), Is.Zero);
+        Assert.That(GetPrivateField<bool>(paddle, "isHitTiltReturning"), Is.False);
+    }
+
+    [Test]
+    public void TiltRailUsesIncomingBallAngleForDirectionAndStrength()
+    {
+        var controller = CreateControllerHarness(out var paddle);
+        var tiltPowerUp = CreatePowerUp(
+            "Tilt Rail",
+            PowerUpEffectType.PaddleHitTilt,
+            beneficial: false,
+            durationSeconds: 12f,
+            scalar: 9f);
+
+        InvokePrivateMethod(controller, "ApplyPowerUp", tiltPowerUp);
+        controller.ApplyPaddleHitTilt(
+            paddle,
+            paddle.transform.position.x - paddle.HalfWidthWorld,
+            new Vector2(7f, -7f));
+
+        var diagonalTilt = GetPrivateField<float>(paddle, "currentHitTiltRotation");
+        Assert.That(diagonalTilt, Is.GreaterThan(9f));
+
+        paddle.SetHitTiltDegrees(0f);
+        InvokePrivateMethod(paddle, "UpdateHitTiltReturn", 1f);
+        paddle.SetHitTiltDegrees(9f);
+        controller.ApplyPaddleHitTilt(
+            paddle,
+            paddle.transform.position.x + paddle.HalfWidthWorld,
+            new Vector2(-0.2f, -9f));
+
+        var verticalTilt = GetPrivateField<float>(paddle, "currentHitTiltRotation");
+        Assert.That(verticalTilt, Is.GreaterThan(0f));
+        Assert.That(verticalTilt, Is.LessThan(9f));
+        Assert.That(diagonalTilt, Is.GreaterThan(verticalTilt));
+    }
+
+    [Test]
     public void BrickServiceUsesDefinitionSizeMultiplier()
     {
         var controller = CreateControllerHarness(out _);

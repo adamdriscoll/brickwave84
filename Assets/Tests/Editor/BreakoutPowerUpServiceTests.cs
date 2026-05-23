@@ -80,6 +80,7 @@ public sealed class BreakoutPowerUpServiceTests
         var capsuleMagnet = CreatePowerUp("Capsule Magnet", PowerUpEffectType.CapsuleMagnet, true, 12f, 1f);
         var mirrorImage = CreatePowerUp("Mirror Image", PowerUpEffectType.MirrorImagePaddle, true, 12f, 1f);
         var cleanCatch = CreatePowerUp("Clean Catch", PowerUpEffectType.CleanCatch, true, 10f, 1.35f);
+        var tiltRail = CreatePowerUp("Tilt Rail", PowerUpEffectType.PaddleHitTilt, false, 12f, 9f);
 
         service.ApplyPowerUp(magnet, null);
         service.ApplyPowerUp(scoreSurge, null);
@@ -92,6 +93,7 @@ public sealed class BreakoutPowerUpServiceTests
         service.ApplyPowerUp(capsuleMagnet, null);
         service.ApplyPowerUp(mirrorImage, null);
         service.ApplyPowerUp(cleanCatch, null);
+        service.ApplyPowerUp(tiltRail, null);
 
         var modifiers = service.CalculateEffectModifiers(1f, 0f);
 
@@ -107,6 +109,7 @@ public sealed class BreakoutPowerUpServiceTests
         Assert.That(modifiers.CapsuleMagnetStrength, Is.EqualTo(1f).Within(0.0001f));
         Assert.That(modifiers.MirrorImagePaddleEnabled, Is.True);
         Assert.That(modifiers.CleanCatchAimMultiplier, Is.EqualTo(1.35f).Within(0.0001f));
+        Assert.That(modifiers.PaddleHitTiltDegrees, Is.EqualTo(9f).Within(0.0001f));
     }
 
     [Test]

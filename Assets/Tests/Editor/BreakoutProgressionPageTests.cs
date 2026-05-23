@@ -106,7 +106,7 @@ public sealed class BreakoutProgressionPageTests
             .Select(definition => definition.LadderUnlockIntensity)
             .OrderBy(heat => heat)
             .ToArray();
-        var expectedDropHeats = Enumerable.Range(1, 34).ToArray();
+        var expectedDropHeats = Enumerable.Range(1, 35).ToArray();
 
         Assert.That(unlockHeats, Is.EqualTo(expectedDropHeats));
 
@@ -115,7 +115,7 @@ public sealed class BreakoutProgressionPageTests
         var mirrorGrid = view.Cards.First(card => card.Title == "Mirror Grid");
         var tokenStorm = view.Cards.First(card => card.Title == "Token Storm");
         var gravityPocket = view.Cards.First(card => card.Title == "Gravity Pocket");
-        var chromeRail = view.Cards.First(card => card.Title == "Chrome Rail");
+        var solarShot = view.Cards.First(card => card.Title == "Solar Shot");
 
         Assert.That(turboRail.UnlockHint, Does.Contain("Heat 01"));
         Assert.That(mirrorGrid.UnlockHint, Does.Contain("Heat 02"));
@@ -126,7 +126,22 @@ public sealed class BreakoutProgressionPageTests
         Assert.That(tokenStorm.UnlockHint, Does.Contain("Heat 03"));
         Assert.That(tokenStorm.UnlockHint, Does.Not.Contain("preview"));
         Assert.That(tokenStorm.Family, Does.Contain("Epic"));
-        Assert.That(chromeRail.UnlockHint, Does.Contain("Heat 35"));
+        Assert.That(solarShot.UnlockHint, Does.Contain("Heat 36"));
+    }
+
+    [Test]
+    public void ProgressionPageShowsTiltRailAsLiveHeatThirtyFiveHazardDrop()
+    {
+        var tiltRail = Resources.Load<PowerUpDefinition>("PowerUps/TiltRail");
+        Assert.That(tiltRail, Is.Not.Null);
+
+        var view = new BreakoutProgressionPageService().BuildView(new[] { tiltRail });
+        var card = view.Cards.First(item => item.Title == "Tilt Rail");
+
+        Assert.That(card.UnlockHint, Does.Contain("Heat 35"));
+        Assert.That(card.Description, Does.Contain("tilts the rail"));
+        Assert.That(card.Family, Does.Contain("Epic Hazard"));
+        Assert.That(card.StateLabel, Is.EqualTo("Locked"));
     }
 
     [Test]

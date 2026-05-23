@@ -101,6 +101,7 @@ namespace GetBricked.Gameplay.Data
         PrismPop = 27,
         CleanCatch = 28,
         RandomMixedDrop = 29,
+        PaddleHitTilt = 30,
     }
 
     [CreateAssetMenu(menuName = "Get Bricked/Power-Up Definition", fileName = "PowerUpDefinition")]

@@ -19,6 +19,11 @@ namespace GetBricked.Gameplay
         private const float BreakWiggleMaxRotationDegrees = 7f;
         private const float LagSpikeCycleSeconds = 0.72f;
         private const float LagSpikeMaxPauseSeconds = 0.14f;
+        private const float HitTiltCenterDeadZone = 0.08f;
+        private const float HitTiltVelocityDeadZone = 0.05f;
+        private const float HitTiltMinimumAngleMultiplier = 0.65f;
+        private const float HitTiltMaximumAngleMultiplier = 1.35f;
+        private const float HitTiltReturnDegreesPerSecond = 220f;
         private const float MaxArenaWidthCoverage = 0.9f;
         private const float ClonePaddleYOffset = 0.74f;
         private const float ClonePaddleWidthMultiplier = 0.62f;
@@ -53,6 +58,10 @@ namespace GetBricked.Gameplay
         private bool controlsReversed;
         private float splitGapWidthNormalized;
         private float lagSpikeStrength;
+        private float hitTiltDegrees;
+        private float currentHitTiltRotation;
+        private float lastHitTiltDirection = 1f;
+        private bool isHitTiltReturning;
         private bool isAutopilotEnabled;
         private float autopilotTargetX;
         private float autopilotInput;
@@ -157,6 +166,59 @@ namespace GetBricked.Gameplay
             mirrorImagePaddle?.SetLagSpikeStrength(lagSpikeStrength);
         }
 
+        public void SetHitTiltDegrees(float degrees)
+        {
+            var wasHitTiltActive = hitTiltDegrees > WavyStrengthEpsilon;
+            hitTiltDegrees = Mathf.Clamp(degrees, 0f, 18f);
+
+            if (hitTiltDegrees > WavyStrengthEpsilon)
+            {
+                isHitTiltReturning = false;
+            }
+            else if (wasHitTiltActive || Mathf.Abs(currentHitTiltRotation) > WavyStrengthEpsilon)
+            {
+                currentHitTiltRotation = Mathf.DeltaAngle(0f, currentHitTiltRotation);
+                isHitTiltReturning = Mathf.Abs(currentHitTiltRotation) > WavyStrengthEpsilon;
+
+                if (!isHitTiltReturning)
+                {
+                    currentHitTiltRotation = 0f;
+                    lastHitTiltDirection = 1f;
+                    ClampToBounds();
+                }
+            }
+
+            mirrorImagePaddle?.SetHitTiltDegrees(hitTiltDegrees);
+        }
+
+        public void ApplyHitTilt(float contactWorldX, Vector2 incomingVelocity)
+        {
+            if (hitTiltDegrees <= WavyStrengthEpsilon)
+            {
+                return;
+            }
+
+            var normalizedOffset = HalfWidthWorld > 0.001f
+                ? Mathf.Clamp((contactWorldX - transform.position.x) / HalfWidthWorld, -1f, 1f)
+                : 0f;
+            var hasIncomingAngle = incomingVelocity.sqrMagnitude > 0.0001f;
+            var incomingDirection = hasIncomingAngle ? incomingVelocity.normalized : Vector2.zero;
+            var tiltDirection = hasIncomingAngle && Mathf.Abs(incomingDirection.x) > HitTiltVelocityDeadZone
+                ? Mathf.Sign(incomingDirection.x)
+                : Mathf.Abs(normalizedOffset) > HitTiltCenterDeadZone
+                ? Mathf.Sign(normalizedOffset)
+                : lastHitTiltDirection;
+            var angleMultiplier = hasIncomingAngle
+                ? Mathf.Lerp(
+                    HitTiltMinimumAngleMultiplier,
+                    HitTiltMaximumAngleMultiplier,
+                    Mathf.InverseLerp(HitTiltVelocityDeadZone, 0.92f, Mathf.Abs(incomingDirection.x)))
+                : 1f;
+
+            lastHitTiltDirection = Mathf.Approximately(tiltDirection, 0f) ? lastHitTiltDirection : tiltDirection;
+            currentHitTiltRotation += hitTiltDegrees * angleMultiplier * lastHitTiltDirection;
+        }
+
         public void SetClonePaddleEnabled(bool enabled)
         {
             EnsureClonePaddle();
@@ -207,6 +269,9 @@ namespace GetBricked.Gameplay
 
             ResetWavyPoseForCurrentState();
             ResetBreakWiggle();
+            currentHitTiltRotation = 0f;
+            lastHitTiltDirection = 1f;
+            isHitTiltReturning = false;
             transform.SetPositionAndRotation(resetPosition, Quaternion.identity);
             paddleBody.position = resetPosition;
             paddleBody.rotation = 0f;
@@ -245,6 +310,7 @@ namespace GetBricked.Gameplay
 
             UpdateWavyMotion(Time.deltaTime);
             UpdateBreakWiggle(Time.deltaTime);
+            UpdateHitTiltReturn(Time.deltaTime);
         }
 
         private void FixedUpdate()
@@ -366,6 +432,26 @@ namespace GetBricked.Gameplay
             currentBreakWiggleRotation = 0f;
         }
 
+        private void UpdateHitTiltReturn(float deltaTime)
+        {
+            if (!isHitTiltReturning || deltaTime <= 0f)
+            {
+                return;
+            }
+
+            currentHitTiltRotation = Mathf.MoveTowards(
+                currentHitTiltRotation,
+                0f,
+                HitTiltReturnDegreesPerSecond * deltaTime);
+
+            if (Mathf.Abs(currentHitTiltRotation) <= WavyStrengthEpsilon)
+            {
+                currentHitTiltRotation = 0f;
+                lastHitTiltDirection = 1f;
+                isHitTiltReturning = false;
+            }
+        }
+
         private float GetCurrentVerticalOffset()
         {
             return currentWavyYOffset + currentBreakWiggleYOffset;
@@ -373,7 +459,7 @@ namespace GetBricked.Gameplay
 
         private float GetCurrentRotation()
         {
-            return currentWavyRotation + currentBreakWiggleRotation;
+            return currentWavyRotation + currentBreakWiggleRotation + currentHitTiltRotation;
         }
 
         private void RetargetWavyMotion()
@@ -486,6 +572,7 @@ namespace GetBricked.Gameplay
             mirrorImagePaddle.SetControlsReversed(controlsReversed);
             mirrorImagePaddle.SetSplitGapWidthNormalized(splitGapWidthNormalized);
             mirrorImagePaddle.SetLagSpikeStrength(lagSpikeStrength);
+            mirrorImagePaddle.SetHitTiltDegrees(hitTiltDegrees);
             mirrorImagePaddleObject.SetActive(false);
         }
 

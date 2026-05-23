@@ -60,7 +60,6 @@ namespace GetBricked.Gameplay
 
         private static readonly BreakoutProgressionPlaceholderItem[] PlaceholderDrops =
         {
-            new BreakoutProgressionPlaceholderItem("Chrome Rail", "Drop", "Control", "Paddle widens slightly and sends cleaner bank angles.", 35, ControlAccent),
             new BreakoutProgressionPlaceholderItem("Solar Shot", "Drop", "Damage", "Ball burns through the next weak brick it touches.", 36, DamageAccent),
         };
 
@@ -244,6 +243,7 @@ namespace GetBricked.Gameplay
                 PowerUpEffectType.BallSizeMultiplier => $"Ball size x{definition.Scalar:0.00} for {definition.DurationSeconds:0.#}s.",
                 PowerUpEffectType.MultiBallBurst => $"+{Mathf.Max(1, definition.ExtraBallCount)} balls from an active ball.",
                 PowerUpEffectType.WavyPaddle => $"Adds paddle sway for {definition.DurationSeconds:0.#}s.",
+                PowerUpEffectType.PaddleHitTilt => $"Each paddle hit tilts the rail {definition.Scalar:0.#}deg for {definition.DurationSeconds:0.#}s.",
                 PowerUpEffectType.StickyPaddle => $"Catch and relaunch the next paddle ball for {definition.DurationSeconds:0.#}s.",
                 PowerUpEffectType.CleanCatch => $"Next paddle hit catches, then releases with aim x{definition.Scalar:0.00}.",
                 PowerUpEffectType.LaserPaddle => $"Paddle fires lasers for {definition.DurationSeconds:0.#}s.",

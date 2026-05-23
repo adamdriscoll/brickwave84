@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
+  <title id="title">Tilt Rail</title>
+  <desc id="desc">A monochrome neon icon showing a paddle rail tilting around its center.</desc>
+
+  <defs>
+    <filter id="softGlow" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="2.25" result="blur"/>
+      <feColorMatrix in="blur" type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 .8 0" result="glow"/>
+      <feMerge>
+        <feMergeNode in="glow"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <style><![CDATA[
+      .icon { fill: none; stroke: #fff; stroke-linecap: round; stroke-linejoin: round; filter: url(#softGlow); }
+      .main { stroke-width: 11; opacity: .96; }
+      .mid { stroke-width: 7; opacity: .86; }
+      .thin { stroke-width: 4; opacity: .55; }
+      .dash { stroke-dasharray: 12 10; }
+      .fill { fill: #fff; stroke: none; opacity: .92; filter: url(#softGlow); }
+      .soft { fill: #fff; stroke: none; opacity: .2; filter: url(#softGlow); }
+    ]]></style>
+  </defs>
+
+  <g class="icon">
+    <circle class="thin dash" cx="128" cy="128" r="68"/>
+    <path class="thin" d="M 176 78 L 194 78 L 194 96"/>
+    <path class="thin" d="M 80 178 L 62 178 L 62 160"/>
+
+    <g transform="rotate(15 128 128)">
+      <rect class="main" x="48" y="112" width="160" height="32" rx="12"/>
+      <path class="mid" d="M 75 128 H 181"/>
+      <path class="soft" d="M 60 118 H 196 C 187 140 165 153 128 153 C 91 153 69 140 60 118 Z"/>
+    </g>
+
+    <circle class="fill" cx="128" cy="128" r="9"/>
+    <circle class="thin" cx="128" cy="128" r="18"/>
+    <path class="mid" d="M 128 83 V 63"/>
+    <path class="mid" d="M 128 193 V 173"/>
+    <path class="fill" d="M 205 54 L 209 64 L 220 68 L 209 72 L 205 82 L 201 72 L 190 68 L 201 64 Z"/>
+    <path class="fill" d="M 49 176 L 52 184 L 61 187 L 52 190 L 49 198 L 46 190 L 37 187 L 46 184 Z"/>
+  </g>
+</svg>

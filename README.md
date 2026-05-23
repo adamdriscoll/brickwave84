@@ -155,10 +155,10 @@ Difficulty presets already change more than labels:
 | Brick | HP | Score | Behavior | Current drop pool |
 | --- | --- | --- | --- | --- |
 | `Basic Brick` | `1` | `100` | Standard breakable starter brick | `Wide Paddle`, `Slow Ball`, `Multi-Ball`, `Narrow Paddle`, `Wavy Paddle`, `Sticky Paddle`, `Shield Wall` |
-| `Reinforced Brick` | `2` | `175` | Tougher breakable mid-tier brick | `Wide Paddle`, `Slow Ball`, `Fast Ball`, `Multi-Ball`, `Narrow Paddle`, `Wavy Paddle`, `Reverse Controls`, `Split Paddle`, `Lag Spike` |
+| `Reinforced Brick` | `2` | `175` | Tougher breakable mid-tier brick | `Wide Paddle`, `Slow Ball`, `Fast Ball`, `Multi-Ball`, `Narrow Paddle`, `Wavy Paddle`, `Reverse Controls`, `Split Paddle`, `Lag Spike`, `Tilt Rail` |
 | `Fortified Brick` | `3` | `250` | High-durability breakable brick | `Fast Ball`, `Multi-Ball`, `Wide Paddle`, `Narrow Paddle`, `Slow Ball`, `Wavy Paddle`, `Phase Ball`, `Gravity Well`, `Fog of War` |
 | `Tiny Brick` | `1` | `325` | Quarter-scale breakable precision brick that is rarer in procedural mixes and pays out extra score for the smaller hitbox | `Wide Paddle`, `Slow Ball`, `Multi-Ball`, `Narrow Paddle`, `Wavy Paddle`, `Sticky Paddle`, `Shield Wall` |
-| `Spinner Brick` | `2` | `225` | Breakable rotor brick that starts spinning when hit, is rotation-anchored at its center, and kicks the ball into stranger ricochet angles while nearby bricks can physically limit its spin | `Wide Paddle`, `Slow Ball`, `Fast Ball`, `Reverse Controls`, `Split Paddle` |
+| `Spinner Brick` | `2` | `225` | Breakable rotor brick that starts spinning when hit, is rotation-anchored at its center, and kicks the ball into stranger ricochet angles while nearby bricks can physically limit its spin | `Wide Paddle`, `Slow Ball`, `Fast Ball`, `Reverse Controls`, `Split Paddle`, `Tilt Rail` |
 | `Jelly Block` | `2` | `190` | Breakable squish brick that slows the ball briefly on contact and adds a wobble read to the impact | `Slow Ball`, `Sticky Paddle`, `Multi-Ball`, `Score Surge`, `Mega Ball` |
 | `Split Brick` | `2` | `175` | Breakable brick that splits into `Tiny Brick` pieces when destroyed | `Wide Paddle`, `Slow Ball`, `Fast Ball`, `Multi-Ball`, `Mondo Multi`, `Bogus Multi`, `Mega Ball` |
 | `Explosive Brick` | `1` | `250` | Breakable brick with an explosion burst that splits the impact ball into three smaller boosted balls | `Narrow Paddle`, `Slow Ball`, `Wavy Paddle`, `Chain Lightning`, `Laser Paddle` |
@@ -166,7 +166,7 @@ Difficulty presets already change more than labels:
 
 ### Unlock Progression
 
-Permanent run upgrades are always available in the between-stage draft pool. Drop and glitch unlocks now advance on parallel 50-Heat tracks: clearing a Heat can award one drop signal and one glitch signal. Implemented live drops currently fill Heat `01` through Heat `34`, with placeholder drops at Heat `35` and Heat `36`. Implemented live glitches currently fill Heat `01` through Heat `05`, with placeholder glitches at Heat `06` and Heat `07`. Default drops and default glitches start unlocked for Neon Ladder runs. Rarity still tunes odds and draft weighting, but it no longer controls unlock Heat. Implementation status tracks whether the item has live runtime gameplay behavior or is currently only a progression-screen placeholder.
+Permanent run upgrades are always available in the between-stage draft pool. Drop and glitch unlocks now advance on parallel 50-Heat tracks: clearing a Heat can award one drop signal and one glitch signal. Implemented live drops currently fill Heat `01` through Heat `35`, with a placeholder drop at Heat `36`. Implemented live glitches currently fill Heat `01` through Heat `05`, with placeholder glitches at Heat `06` and Heat `07`. Default drops and default glitches start unlocked for Neon Ladder runs. Rarity still tunes odds and draft weighting, but it no longer controls unlock Heat. Implementation status tracks whether the item has live runtime gameplay behavior or is currently only a progression-screen placeholder.
 
 | Name | Description | Default / unlock level | Rarity | Polarity | Type | Implementation |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -208,7 +208,7 @@ Permanent run upgrades are always available in the between-stage draft pool. Dro
 | `Bank Bonus` | Wall bounces bank +50 points until the next brick hit for 12s. | Heat 32 | Epic | Helpful | Precision drop | Implemented |
 | `Prism Pop` | First brick hit within 10s splits a short-lived copy ball. | Heat 33 | Epic | Helpful | Split drop | Implemented |
 | `Mystery Tape` | Rolls one random unlocked helpful drop and one random unlocked hazard from a mystery capsule. | Heat 34 | Epic | Mixed | Mystery drop | Implemented |
-| `Chrome Rail` | Paddle widens slightly and sends cleaner bank angles. | Heat 35 | N/A | Helpful | Control drop | Not implemented (UI placeholder) |
+| `Tilt Rail` | Each paddle hit tilts the rail 9 degrees for 12s. | Heat 35 | Epic | Hazard | Paddle tilt | Implemented |
 | `Solar Shot` | Ball burns through the next weak brick it touches. | Heat 36 | N/A | Helpful | Damage drop | Not implemented (UI placeholder) |
 | `Warp Gates` | Linked portals reroute ball paths. | Default | Common | Glitch | Level glitch | Implemented |
 | `Turbo Rail` | A hot wall rail accelerates rebounds. | Heat 01 | Rare | Glitch | Level glitch | Implemented |
