@@ -3074,10 +3074,15 @@ namespace GetBricked.Gameplay
         private void DrawTextWithShadow(Rect rect, string text, GUIStyle style, Color color, float shadowAlpha = 0.5f)
         {
             var previousGuiColor = GUI.color;
+            var previousTextColor = style.normal.textColor;
+            style.normal.textColor = Color.white;
+
             GUI.color = new Color(0f, 0f, 0f, shadowAlpha);
             GUI.Label(new Rect(rect.x + 1f, rect.y + 2f, rect.width, rect.height), text, style);
             GUI.color = color;
             GUI.Label(rect, text, style);
+
+            style.normal.textColor = previousTextColor;
             GUI.color = previousGuiColor;
         }
 
