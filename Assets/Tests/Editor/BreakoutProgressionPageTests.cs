@@ -93,7 +93,7 @@ public sealed class BreakoutProgressionPageTests
             .Select(definition => definition.LadderUnlockIntensity)
             .OrderBy(heat => heat)
             .ToArray();
-        var expectedDropHeats = Enumerable.Range(1, 30).Append(34).Append(36).ToArray();
+        var expectedDropHeats = Enumerable.Range(1, 30).Append(33).Append(34).Append(36).ToArray();
 
         Assert.That(unlockHeats, Is.EqualTo(expectedDropHeats));
 
@@ -134,6 +134,22 @@ public sealed class BreakoutProgressionPageTests
         Assert.That(card.Family, Does.Contain("Epic Helpful"));
         Assert.That(card.StateLabel, Is.EqualTo("Locked"));
         Assert.That(view.Cards.Count(item => item.Title == "Prism Pop"), Is.EqualTo(1));
+    }
+
+    [Test]
+    public void ProgressionPageShowsCleanCatchAsLiveHeatThirtyThreeDrop()
+    {
+        var cleanCatch = Resources.Load<PowerUpDefinition>("PowerUps/CleanCatch");
+        Assert.That(cleanCatch, Is.Not.Null);
+
+        var view = new BreakoutProgressionPageService().BuildView(new[] { cleanCatch });
+        var card = view.Cards.First(item => item.Title == "Clean Catch");
+
+        Assert.That(card.UnlockHint, Does.Contain("Heat 33"));
+        Assert.That(card.Description, Does.Contain("releases with aim"));
+        Assert.That(card.Family, Does.Contain("Epic Helpful"));
+        Assert.That(card.StateLabel, Is.EqualTo("Locked"));
+        Assert.That(view.Cards.Count(item => item.Title == "Clean Catch"), Is.EqualTo(1));
     }
 
     [Test]

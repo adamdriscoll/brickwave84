@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
+  <title id="title">Clean Catch</title>
+  <desc id="desc">A monochrome neon icon showing a paddle catching a ball and releasing it on a sharper aim line.</desc>
+  <defs>
+    <filter id="softGlow" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="2.25" result="blur"/>
+      <feColorMatrix in="blur" type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 .8 0" result="glow"/>
+      <feMerge>
+        <feMergeNode in="glow"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <style><![CDATA[
+      .icon { fill: none; stroke: #fff; stroke-linecap: round; stroke-linejoin: round; filter: url(#softGlow); }
+      .main { stroke-width: 10; opacity: .96; }
+      .mid { stroke-width: 6; opacity: .82; }
+      .thin { stroke-width: 3.5; opacity: .5; }
+      .dash { stroke-dasharray: 12 10; }
+      .fill { fill: #fff; stroke: none; opacity: .92; filter: url(#softGlow); }
+    ]]></style>
+  </defs>
+  <g class="icon">
+    <path class="main" d="M48 190 H208"/>
+    <path class="mid" d="M72 177 H184"/>
+    <circle class="main" cx="118" cy="132" r="24"/>
+    <path class="mid" d="M78 154 C95 176, 141 176, 158 154"/>
+    <path class="thin dash" d="M118 132 L86 85"/>
+    <path class="main" d="M135 118 L190 63"/>
+    <path class="mid" d="M172 63 H190 V81"/>
+    <circle class="fill" cx="190" cy="63" r="7"/>
+    <path class="thin" d="M63 207 H193"/>
+    <path class="thin" d="M53 91 C68 68, 93 51, 124 45"/>
+    <path class="thin" d="M141 44 C164 48, 184 58, 199 74"/>
+  </g>
+</svg>

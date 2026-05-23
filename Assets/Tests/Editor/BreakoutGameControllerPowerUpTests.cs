@@ -428,7 +428,10 @@ public sealed class BreakoutGameControllerPowerUpTests
         Assert.That(GetPrivateField<bool>(serveBall, "phaseThroughBricks"), Is.True);
         Assert.That(GetPrivateField<float>(serveBall, "gravityWellStrength"), Is.EqualTo(0.35f).Within(0.0001f));
         Assert.That(serveBall.IsExplosiveBall, Is.True);
-        Assert.That(ballRenderer.color.r, Is.GreaterThan(ballRenderer.color.g));
+        var ballTintBlock = new MaterialPropertyBlock();
+        ballRenderer.GetPropertyBlock(ballTintBlock);
+        var ballTint = ballTintBlock.GetColor(Shader.PropertyToID("_Color"));
+        Assert.That(ballTint.r, Is.GreaterThan(ballTint.g));
     }
 
     [Test]
@@ -453,6 +456,20 @@ public sealed class BreakoutGameControllerPowerUpTests
         Assert.That(GetPrivateField<bool>(mirrorPaddle, "controlsReversed"), Is.True);
         Assert.That(GetPrivateField<float>(mirrorPaddle, "splitGapWidthNormalized"), Is.EqualTo(GetPrivateField<float>(paddle, "splitGapWidthNormalized")).Within(0.0001f));
         Assert.That(GetPrivateField<float>(mirrorPaddle, "lagSpikeStrength"), Is.EqualTo(0.5f).Within(0.0001f));
+    }
+
+    [Test]
+    public void CleanCatchRelaunchesWithAmplifiedPaddleAim()
+    {
+        var controller = CreateControllerHarness(out var paddle);
+        var ball = CreateBallHarness(controller, paddle);
+
+        var regularDirection = ball.ResolvePaddleBounceDirection(paddle, paddle.transform.position.x + (paddle.HalfWidthWorld * 0.45f));
+        ball.AttachToPaddle();
+        ball.LaunchFromPaddleAim(0.45f, 1.35f);
+
+        Assert.That(ball.HasLaunched, Is.True);
+        Assert.That(ball.CurrentVelocity.normalized.x, Is.GreaterThan(regularDirection.x));
     }
 
     [Test]

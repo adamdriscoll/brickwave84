@@ -274,6 +274,9 @@ namespace GetBricked.Gameplay
         private bool isTurnBasedSetupActive;
         private BreakoutEffectModifiers activeEffectModifiers;
         private BallController stickyCaughtBall;
+        private bool stickyCaughtBallUsesCleanCatch;
+        private float cleanCatchReleaseOffsetNormalized;
+        private float cleanCatchReleaseAimMultiplier = 1f;
         private SpriteRenderer shieldWallRenderer;
         private Collider2D shieldWallCollider;
         private BreakoutShieldWallVisual shieldWallVisual;
@@ -617,6 +620,9 @@ namespace GetBricked.Gameplay
             if (lostBall == stickyCaughtBall)
             {
                 stickyCaughtBall = null;
+                stickyCaughtBallUsesCleanCatch = false;
+                cleanCatchReleaseOffsetNormalized = 0f;
+                cleanCatchReleaseAimMultiplier = 1f;
             }
 
             activeBalls.Remove(lostBall);
@@ -823,9 +829,27 @@ namespace GetBricked.Gameplay
                 return true;
             }
 
+            if (activeEffectModifiers.CleanCatchAimMultiplier > 1f
+                && stickyCaughtBall == null
+                && powerUpService != null
+                && powerUpService.TryConsumeCleanCatchCharge(out var cleanCatchDefinition, out var aimMultiplier))
+            {
+                stickyCaughtBall = ball;
+                stickyCaughtBallUsesCleanCatch = true;
+                cleanCatchReleaseOffsetNormalized = ResolvePaddleHitOffset(hitPaddle, contactPoint.x);
+                cleanCatchReleaseAimMultiplier = Mathf.Max(1f, aimMultiplier);
+                ball.AttachToPaddle();
+                powerUpService.ShowStatusBanner("CLEAN CATCH!", ResolvePowerUpAccentColor(cleanCatchDefinition), 1.25f);
+                ApplyActiveEffects();
+                return true;
+            }
+
             if (activeEffectModifiers.StickyPaddleEnabled && stickyCaughtBall == null)
             {
                 stickyCaughtBall = ball;
+                stickyCaughtBallUsesCleanCatch = false;
+                cleanCatchReleaseOffsetNormalized = 0f;
+                cleanCatchReleaseAimMultiplier = 1f;
                 ball.AttachToPaddle();
                 return true;
             }
@@ -5349,7 +5373,8 @@ namespace GetBricked.Gameplay
                     0f,
                     0f,
                     0f,
-                    false);
+                    false,
+                    1f);
             paddle.SetMoveSpeed(currentLevelPaddleSpeed * (activeRunSettings?.PaddleSpeedMultiplier ?? 1f));
             var paddleHitMaximumWidth = paddle.SetWidthMultiplier(activeEffectModifiers.PaddleWidthMultiplier);
 
@@ -5411,7 +5436,7 @@ namespace GetBricked.Gameplay
             UpdateShieldWallVisual();
             UpdateVectorSightVisual();
 
-            if (stickyCaughtBall != null && !activeEffectModifiers.StickyPaddleEnabled)
+            if (stickyCaughtBall != null && !stickyCaughtBallUsesCleanCatch && !activeEffectModifiers.StickyPaddleEnabled)
             {
                 ReleaseStickyCaughtBall();
             }
@@ -6382,6 +6407,7 @@ namespace GetBricked.Gameplay
                 PowerUpEffectType.MultiBallBurst => $"+{Mathf.Max(1, definition.ExtraBallCount)} balls",
                 PowerUpEffectType.WavyPaddle => $"Wave {definition.Scalar:0.00} for {definition.DurationSeconds:0.#}s",
                 PowerUpEffectType.StickyPaddle => $"Catch ball for {definition.DurationSeconds:0.#}s",
+                PowerUpEffectType.CleanCatch => $"Catch next paddle hit, aim x{definition.Scalar:0.00}",
                 PowerUpEffectType.LaserPaddle => $"Laser paddle for {definition.DurationSeconds:0.#}s",
                 PowerUpEffectType.ShieldWall => "Shield save",
                 PowerUpEffectType.PhaseBall => $"Phase ball for {definition.DurationSeconds:0.#}s",
@@ -6671,14 +6697,40 @@ namespace GetBricked.Gameplay
             }
 
             var releasedBall = stickyCaughtBall;
+            var releaseUsesCleanCatch = stickyCaughtBallUsesCleanCatch;
+            var releaseOffset = cleanCatchReleaseOffsetNormalized;
+            var releaseAimMultiplier = cleanCatchReleaseAimMultiplier;
             stickyCaughtBall = null;
+            stickyCaughtBallUsesCleanCatch = false;
+            cleanCatchReleaseOffsetNormalized = 0f;
+            cleanCatchReleaseAimMultiplier = 1f;
 
             if (releasedBall != null)
             {
-                releasedBall.Launch();
+                if (releaseUsesCleanCatch)
+                {
+                    releasedBall.LaunchFromPaddleAim(releaseOffset, releaseAimMultiplier);
+                }
+                else
+                {
+                    releasedBall.Launch();
+                }
             }
 
             return true;
+        }
+
+        private static float ResolvePaddleHitOffset(PaddleController hitPaddle, float contactWorldX)
+        {
+            if (hitPaddle == null || hitPaddle.HalfWidthWorld <= 0.001f)
+            {
+                return 0f;
+            }
+
+            return Mathf.Clamp(
+                (contactWorldX - hitPaddle.transform.position.x) / hitPaddle.HalfWidthWorld,
+                -1f,
+                1f);
         }
 
         private bool FireLaserVolley()

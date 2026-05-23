@@ -101,7 +101,8 @@ namespace GetBricked.Gameplay
             float explosiveBallStrength,
             float vectorSightStrength,
             float capsuleMagnetStrength,
-            bool mirrorImagePaddleEnabled)
+            bool mirrorImagePaddleEnabled,
+            float cleanCatchAimMultiplier)
         {
             PaddleWidthMultiplier = paddleWidthMultiplier;
             WavyPaddleStrength = wavyPaddleStrength;
@@ -125,6 +126,7 @@ namespace GetBricked.Gameplay
             VectorSightStrength = vectorSightStrength;
             CapsuleMagnetStrength = capsuleMagnetStrength;
             MirrorImagePaddleEnabled = mirrorImagePaddleEnabled;
+            CleanCatchAimMultiplier = cleanCatchAimMultiplier;
         }
 
         public float PaddleWidthMultiplier { get; }
@@ -170,6 +172,8 @@ namespace GetBricked.Gameplay
         public float CapsuleMagnetStrength { get; }
 
         public bool MirrorImagePaddleEnabled { get; }
+
+        public float CleanCatchAimMultiplier { get; }
     }
 
     internal readonly struct BreakoutPowerUpApplicationResult
@@ -209,6 +213,7 @@ namespace GetBricked.Gameplay
         private float vectorSightStrength;
         private float capsuleMagnetStrength;
         private bool mirrorImagePaddleEnabled;
+        private float cleanCatchAimMultiplier;
 
         public BreakoutEffectModifierAccumulator(float basePaddleWidthMultiplier, float baseWavyPaddleStrength)
         {
@@ -234,6 +239,7 @@ namespace GetBricked.Gameplay
             vectorSightStrength = 0f;
             capsuleMagnetStrength = 0f;
             mirrorImagePaddleEnabled = false;
+            cleanCatchAimMultiplier = 1f;
         }
 
         public void Apply(BreakoutActiveTimedEffect activeEffect)
@@ -317,6 +323,11 @@ namespace GetBricked.Gameplay
                 case PowerUpEffectType.MirrorImagePaddle:
                     mirrorImagePaddleEnabled = true;
                     break;
+                case PowerUpEffectType.CleanCatch:
+                    cleanCatchAimMultiplier = Mathf.Max(
+                        cleanCatchAimMultiplier,
+                        Mathf.Max(1f, powerUpDefinition.Scalar * activeEffect.EffectMultiplier));
+                    break;
             }
         }
 
@@ -344,7 +355,8 @@ namespace GetBricked.Gameplay
                 explosiveBallStrength,
                 vectorSightStrength,
                 capsuleMagnetStrength,
-                mirrorImagePaddleEnabled);
+                mirrorImagePaddleEnabled,
+                Mathf.Max(1f, cleanCatchAimMultiplier));
         }
     }
 
@@ -768,6 +780,35 @@ namespace GetBricked.Gameplay
 
                 definition = activeDefinition;
                 effectMultiplier = activeEffect.EffectMultiplier;
+
+                if (!activeEffect.ConsumeStack())
+                {
+                    ActiveTimedEffects.RemoveAt(index);
+                }
+
+                return true;
+            }
+
+            return false;
+        }
+
+        public bool TryConsumeCleanCatchCharge(out PowerUpDefinition definition, out float aimMultiplier)
+        {
+            definition = null;
+            aimMultiplier = 1f;
+
+            for (var index = ActiveTimedEffects.Count - 1; index >= 0; index--)
+            {
+                var activeEffect = ActiveTimedEffects[index];
+                var activeDefinition = activeEffect?.Definition;
+
+                if (activeDefinition == null || activeDefinition.EffectType != PowerUpEffectType.CleanCatch)
+                {
+                    continue;
+                }
+
+                definition = activeDefinition;
+                aimMultiplier = Mathf.Max(1f, activeDefinition.Scalar * activeEffect.EffectMultiplier);
 
                 if (!activeEffect.ConsumeStack())
                 {

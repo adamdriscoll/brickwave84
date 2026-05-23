@@ -408,6 +408,11 @@ namespace GetBricked.Gameplay
             return ResolvePaddleBounceDirection(normalizedOffset);
         }
 
+        public void LaunchFromPaddleAim(float normalizedPaddleOffset, float horizontalAimMultiplier)
+        {
+            Launch(ResolvePaddleBounceDirection(Mathf.Clamp(normalizedPaddleOffset, -1f, 1f) * Mathf.Max(1f, horizontalAimMultiplier)));
+        }
+
         private void FixedUpdate()
         {
             if (ballBody == null)

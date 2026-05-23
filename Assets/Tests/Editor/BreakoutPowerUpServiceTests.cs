@@ -79,6 +79,7 @@ public sealed class BreakoutPowerUpServiceTests
         var vectorSight = CreatePowerUp("Vector Sight", PowerUpEffectType.VectorSight, true, 14f, 1f);
         var capsuleMagnet = CreatePowerUp("Capsule Magnet", PowerUpEffectType.CapsuleMagnet, true, 12f, 1f);
         var mirrorImage = CreatePowerUp("Mirror Image", PowerUpEffectType.MirrorImagePaddle, true, 12f, 1f);
+        var cleanCatch = CreatePowerUp("Clean Catch", PowerUpEffectType.CleanCatch, true, 10f, 1.35f);
 
         service.ApplyPowerUp(magnet, null);
         service.ApplyPowerUp(scoreSurge, null);
@@ -90,6 +91,7 @@ public sealed class BreakoutPowerUpServiceTests
         service.ApplyPowerUp(vectorSight, null);
         service.ApplyPowerUp(capsuleMagnet, null);
         service.ApplyPowerUp(mirrorImage, null);
+        service.ApplyPowerUp(cleanCatch, null);
 
         var modifiers = service.CalculateEffectModifiers(1f, 0f);
 
@@ -104,6 +106,7 @@ public sealed class BreakoutPowerUpServiceTests
         Assert.That(modifiers.VectorSightStrength, Is.EqualTo(1f).Within(0.0001f));
         Assert.That(modifiers.CapsuleMagnetStrength, Is.EqualTo(1f).Within(0.0001f));
         Assert.That(modifiers.MirrorImagePaddleEnabled, Is.True);
+        Assert.That(modifiers.CleanCatchAimMultiplier, Is.EqualTo(1.35f).Within(0.0001f));
     }
 
     [Test]
@@ -279,6 +282,28 @@ public sealed class BreakoutPowerUpServiceTests
         Assert.That(secondDefinition, Is.SameAs(prismPop));
         Assert.That(service.ActiveTimedEffects, Is.Empty);
         Assert.That(service.TryConsumePrismPopCharge(out _, out _), Is.False);
+    }
+
+    [Test]
+    public void CleanCatchConsumesOneArmedChargeAtATime()
+    {
+        var service = CreateService();
+        var cleanCatch = CreatePowerUp("Clean Catch", PowerUpEffectType.CleanCatch, true, 10f, 1.35f, BreakoutContentRarity.Epic);
+
+        service.ApplyPowerUp(cleanCatch, null);
+        service.ApplyPowerUp(cleanCatch, null);
+
+        Assert.That(service.ActiveTimedEffects, Has.Count.EqualTo(1));
+        Assert.That(service.CalculateEffectModifiers(1f, 0f).CleanCatchAimMultiplier, Is.EqualTo(1.35f).Within(0.0001f));
+        Assert.That(service.TryConsumeCleanCatchCharge(out var firstDefinition, out var firstAimMultiplier), Is.True);
+        Assert.That(firstDefinition, Is.SameAs(cleanCatch));
+        Assert.That(firstAimMultiplier, Is.EqualTo(1.35f).Within(0.0001f));
+        Assert.That(service.ActiveTimedEffects, Has.Count.EqualTo(1));
+        Assert.That(service.ActiveTimedEffects[0].StackCount, Is.EqualTo(1));
+        Assert.That(service.TryConsumeCleanCatchCharge(out var secondDefinition, out _), Is.True);
+        Assert.That(secondDefinition, Is.SameAs(cleanCatch));
+        Assert.That(service.ActiveTimedEffects, Is.Empty);
+        Assert.That(service.TryConsumeCleanCatchCharge(out _, out _), Is.False);
     }
 
     [Test]

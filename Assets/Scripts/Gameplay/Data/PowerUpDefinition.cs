@@ -99,6 +99,7 @@ namespace GetBricked.Gameplay.Data
         MirrorImagePaddle = 25,
         BankBonus = 26,
         PrismPop = 27,
+        CleanCatch = 28,
     }
 
     [CreateAssetMenu(menuName = "Get Bricked/Power-Up Definition", fileName = "PowerUpDefinition")]
