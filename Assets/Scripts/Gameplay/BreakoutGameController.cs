@@ -38,6 +38,9 @@ namespace GetBricked.Gameplay
         private const float TurboRailSpeedBurstMaximumMultiplier = 1.85f;
         private const float TurboRailSpeedBurstStackDuration = 1.25f;
         private const float TurboRailSpeedBurstMaximumDuration = 7.5f;
+        private const float GravityPocketArenaHorizontalPadding = 1.35f;
+        private const float GravityPocketArenaBottomPadding = 2.1f;
+        private const float GravityPocketArenaTopPadding = 1.2f;
         private const int AutoSaveBaseScoreCost = 10000;
         private const int AutoSaveBaseCostMaximumRogueHeat = 10;
         private const int AutoSaveScoreCostIncreasePerHeat = 1000;
@@ -286,6 +289,7 @@ namespace GetBricked.Gameplay
         private BreakoutLevelGlitchPlan activeLevelGlitchPlan = BreakoutLevelGlitchPlan.None;
         private BreakoutWarpGateController activeWarpGateController;
         private BreakoutTurboRailSection activeTurboRailSection;
+        private BreakoutGravityPocketVisual activeGravityPocketVisual;
         private BreakoutMirrorGridVisual activeMirrorGridVisual;
         private bool isMirrorGridArmed;
         private bool hasMirrorGridTriggered;
@@ -431,6 +435,7 @@ namespace GetBricked.Gameplay
             laserShotCooldownTimer = Mathf.Max(0f, laserShotCooldownTimer - Time.deltaTime);
             UpdateServeBallRevealDelay();
             UpdateMenuAttractMode();
+            UpdateGravityPocketInfluence();
 
             var keyboard = Keyboard.current;
 
@@ -3200,7 +3205,9 @@ namespace GetBricked.Gameplay
 
         private BallController CreateBall(bool followsPaddleWhenIdle)
         {
-            return ballSpawnService.CreateBall(followsPaddleWhenIdle, arenaBottom - 1f);
+            var ball = ballSpawnService.CreateBall(followsPaddleWhenIdle, arenaBottom - 1f);
+            ApplyGravityPocketToBall(ball);
+            return ball;
         }
 
         private BreakoutLevelLayoutPlan BuildLevelLayoutPlan(LevelDefinition level)
@@ -3256,6 +3263,11 @@ namespace GetBricked.Gameplay
                 ArmMirrorGrid();
                 powerUpService?.ShowStatusBanner("MIRROR GRID!", new Color(0.72f, 0.62f, 1f, 1f), 2.2f);
             }
+            else if (activeLevelGlitchPlan.GlitchType == BreakoutLevelGlitchType.GravityPocket)
+            {
+                CreateGravityPocket(activeLevelGlitchPlan);
+                powerUpService?.ShowStatusBanner("GRAVITY POCKET!", new Color(0.03f, 0.93f, 0.98f, 1f), 2.2f);
+            }
         }
 
         private void ClearLevelGlitches()
@@ -3277,11 +3289,19 @@ namespace GetBricked.Gameplay
                 activeTurboRailSection = null;
             }
 
+            if (activeGravityPocketVisual != null)
+            {
+                DestroyRuntimeObject(activeGravityPocketVisual.gameObject);
+                activeGravityPocketVisual = null;
+            }
+
             if (activeMirrorGridVisual != null)
             {
                 DestroyRuntimeObject(activeMirrorGridVisual.gameObject);
                 activeMirrorGridVisual = null;
             }
+
+            ClearGravityPocketFromBalls();
         }
 
         private void ArmMirrorGrid()
@@ -3466,6 +3486,132 @@ namespace GetBricked.Gameplay
             }
 
             return new Vector2(0.22f, Mathf.Lerp(1.7f, 2.85f, spec.NormalizedLength));
+        }
+
+        private void CreateGravityPocket(BreakoutLevelGlitchPlan glitchPlan)
+        {
+            if (glitchPlan == null || circleSprite == null)
+            {
+                return;
+            }
+
+            var pocketObject = new GameObject("Gravity Pocket");
+            pocketObject.transform.SetParent(glitchesRoot != null ? glitchesRoot : runtimeRoot, false);
+            pocketObject.transform.position = ResolveGravityPocketPosition(glitchPlan.GravityPocket);
+
+            activeGravityPocketVisual = pocketObject.AddComponent<BreakoutGravityPocketVisual>();
+            activeGravityPocketVisual.Configure(
+                circleSprite,
+                squareSprite,
+                spriteUnlitMaterial,
+                additiveSpriteMaterial,
+                glitchPlan.GravityPocket.Radius,
+                ResolveGravityPocketMovementBounds(),
+                glitchPlan.GravityPocket.DriftSpeed,
+                glitchPlan.GravityPocket.DriftPhase);
+
+            ApplyGravityPocketToBalls();
+        }
+
+        private Vector2 ResolveGravityPocketPosition(BreakoutGravityPocketSpec spec)
+        {
+            var minX = arenaLeft + GravityPocketArenaHorizontalPadding;
+            var maxX = arenaRight - GravityPocketArenaHorizontalPadding;
+            var minY = arenaBottom + GravityPocketArenaBottomPadding;
+            var maxY = arenaTop - GravityPocketArenaTopPadding;
+
+            if (maxX <= minX)
+            {
+                minX = arenaLeft;
+                maxX = arenaRight;
+            }
+
+            if (maxY <= minY)
+            {
+                minY = arenaBottom;
+                maxY = arenaTop;
+            }
+
+            return new Vector2(
+                Mathf.Lerp(minX, maxX, spec.NormalizedX),
+                Mathf.Lerp(minY, maxY, spec.NormalizedY));
+        }
+
+        private Rect ResolveGravityPocketMovementBounds()
+        {
+            var minX = arenaLeft + GravityPocketArenaHorizontalPadding;
+            var maxX = arenaRight - GravityPocketArenaHorizontalPadding;
+            var minY = arenaBottom + GravityPocketArenaBottomPadding;
+            var maxY = arenaTop - GravityPocketArenaTopPadding;
+
+            if (maxX <= minX)
+            {
+                minX = arenaLeft;
+                maxX = arenaRight;
+            }
+
+            if (maxY <= minY)
+            {
+                minY = arenaBottom;
+                maxY = arenaTop;
+            }
+
+            return Rect.MinMaxRect(minX, minY, maxX, maxY);
+        }
+
+        private void UpdateGravityPocketInfluence()
+        {
+            if (activeGravityPocketVisual == null
+                || activeLevelGlitchPlan == null
+                || activeLevelGlitchPlan.GlitchType != BreakoutLevelGlitchType.GravityPocket)
+            {
+                return;
+            }
+
+            activeGravityPocketVisual.Tick(Time.time);
+            ApplyGravityPocketToBalls();
+        }
+
+        private void ApplyGravityPocketToBalls()
+        {
+            ApplyGravityPocketToBall(serveBall);
+
+            for (var index = activeBalls.Count - 1; index >= 0; index--)
+            {
+                ApplyGravityPocketToBall(activeBalls[index]);
+            }
+        }
+
+        private void ApplyGravityPocketToBall(BallController ball)
+        {
+            if (ball == null)
+            {
+                return;
+            }
+
+            if (activeLevelGlitchPlan != null
+                && activeLevelGlitchPlan.GlitchType == BreakoutLevelGlitchType.GravityPocket
+                && activeGravityPocketVisual != null)
+            {
+                var spec = activeLevelGlitchPlan.GravityPocket;
+                ball.SetGravityPocket(activeGravityPocketVisual.transform.position, spec.Radius, spec.Strength);
+                return;
+            }
+
+            ball.SetGravityPocket(Vector2.zero, 0f, 0f);
+        }
+
+        private void ClearGravityPocketFromBalls()
+        {
+            if (serveBall != null)
+            {
+                serveBall.SetGravityPocket(Vector2.zero, 0f, 0f);
+            }
+
+            for (var index = activeBalls.Count - 1; index >= 0; index--)
+            {
+                activeBalls[index]?.SetGravityPocket(Vector2.zero, 0f, 0f);
+            }
         }
 
         private LevelDefinition ResolveLevelTemplate(int levelIndex)
@@ -5150,6 +5296,7 @@ namespace GetBricked.Gameplay
                 LevelGlitchSelection.WarpGates => "Warp Gates",
                 LevelGlitchSelection.TurboRail => "Turbo Rail",
                 LevelGlitchSelection.MirrorGrid => "Mirror Grid",
+                LevelGlitchSelection.GravityPocket => "Gravity Pocket",
                 _ => "Off",
             };
         }
@@ -5519,6 +5666,7 @@ namespace GetBricked.Gameplay
                 serveBall.SetPhaseThroughBricks(activeEffectModifiers.PhaseBallEnabled);
                 serveBall.SetSizeMultiplier(activeEffectModifiers.BallSizeMultiplier);
                 serveBall.SetGravityWell(gravityWellCenter, activeEffectModifiers.GravityWellStrength);
+                ApplyGravityPocketToBall(serveBall);
                 serveBall.SetHotPotatoStrength(activeEffectModifiers.HotPotatoStrength);
                 serveBall.SetExplosiveBallStrength(activeEffectModifiers.ExplosiveBallStrength);
             }
@@ -5537,6 +5685,7 @@ namespace GetBricked.Gameplay
                 activeBall.SetPhaseThroughBricks(activeEffectModifiers.PhaseBallEnabled);
                 activeBall.SetSizeMultiplier(activeEffectModifiers.BallSizeMultiplier);
                 activeBall.SetGravityWell(gravityWellCenter, activeEffectModifiers.GravityWellStrength);
+                ApplyGravityPocketToBall(activeBall);
                 activeBall.SetHotPotatoStrength(activeEffectModifiers.HotPotatoStrength);
                 activeBall.SetExplosiveBallStrength(activeEffectModifiers.ExplosiveBallStrength);
             }

@@ -32,6 +32,15 @@ namespace GetBricked.Gameplay
     {
         public const int TotalEncounterCount = BreakoutRunProgression.TargetLevelCount;
 
+        private static readonly LevelGlitchSelection[] ForcedGlitchSelections =
+        {
+            LevelGlitchSelection.Off,
+            LevelGlitchSelection.WarpGates,
+            LevelGlitchSelection.TurboRail,
+            LevelGlitchSelection.MirrorGrid,
+            LevelGlitchSelection.GravityPocket,
+        };
+
         private readonly HashSet<string> selectedUpgradeIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         private readonly HashSet<string> selectedDropIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
@@ -101,10 +110,7 @@ namespace GetBricked.Gameplay
                     ForcedDropIndex = Wrap(ForcedDropIndex + direction, Mathf.Max(1, drops?.Count ?? 0));
                     break;
                 case BreakoutDeveloperLaunchField.ForcedGlitch:
-                    ForcedLevelGlitchSelection = (LevelGlitchSelection)Mathf.Clamp(
-                        (int)ForcedLevelGlitchSelection + direction,
-                        (int)LevelGlitchSelection.Off,
-                        (int)LevelGlitchSelection.Random);
+                    ForcedLevelGlitchSelection = ShiftForcedGlitchSelection(ForcedLevelGlitchSelection, direction);
                     break;
             }
         }
@@ -231,6 +237,12 @@ namespace GetBricked.Gameplay
             }
 
             return ((value % count) + count) % count;
+        }
+
+        private static LevelGlitchSelection ShiftForcedGlitchSelection(LevelGlitchSelection currentSelection, int direction)
+        {
+            var currentIndex = Array.IndexOf(ForcedGlitchSelections, currentSelection);
+            return ForcedGlitchSelections[Wrap(currentIndex + direction, ForcedGlitchSelections.Length)];
         }
     }
 }

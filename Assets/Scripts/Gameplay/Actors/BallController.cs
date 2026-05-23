@@ -31,6 +31,9 @@ namespace GetBricked.Gameplay
         private bool phaseThroughBricks;
         private float gravityWellStrength;
         private Vector2 gravityWellPoint;
+        private float gravityPocketStrength;
+        private float gravityPocketRadius;
+        private Vector2 gravityPocketPoint;
         private float brickMagnetStrength;
         private Vector2 brickMagnetPoint;
         private float hotPotatoStrength;
@@ -192,6 +195,13 @@ namespace GetBricked.Gameplay
         {
             gravityWellPoint = centerPoint;
             gravityWellStrength = Mathf.Clamp01(strength);
+        }
+
+        public void SetGravityPocket(Vector2 centerPoint, float radius, float strength)
+        {
+            gravityPocketPoint = centerPoint;
+            gravityPocketRadius = Mathf.Max(0f, radius);
+            gravityPocketStrength = gravityPocketRadius > 0.001f ? Mathf.Clamp01(strength) : 0f;
         }
 
         public void SetBrickMagnetTarget(Vector2 targetPoint, float strength)
@@ -464,6 +474,7 @@ namespace GetBricked.Gameplay
             UpdateSpeedBurstTimer();
             UpdateJellySlowTimer();
             ApplyGravityWell();
+            ApplyGravityPocket();
             ApplyBrickMagnet();
             ClampBallVelocity();
         }
@@ -654,6 +665,37 @@ namespace GetBricked.Gameplay
                 ? ballBody.linearVelocity.normalized
                 : lastTravelDirection.normalized;
             var bendFactor = gravityWellStrength * Time.fixedDeltaTime * 3.25f;
+            var curvedDirection = (currentDirection + (pullVector.normalized * bendFactor)).normalized;
+
+            if (curvedDirection.sqrMagnitude <= 0.0001f)
+            {
+                return;
+            }
+
+            lastTravelDirection = curvedDirection;
+            ballBody.linearVelocity = curvedDirection * GetTargetSpeed();
+        }
+
+        private void ApplyGravityPocket()
+        {
+            if (ballBody == null || gravityPocketStrength <= 0.001f || gravityPocketRadius <= 0.001f)
+            {
+                return;
+            }
+
+            var pullVector = gravityPocketPoint - ballBody.position;
+            var distance = pullVector.magnitude;
+
+            if (distance <= 0.0001f || distance > gravityPocketRadius)
+            {
+                return;
+            }
+
+            var currentDirection = ballBody.linearVelocity.sqrMagnitude > 0.01f
+                ? ballBody.linearVelocity.normalized
+                : lastTravelDirection.normalized;
+            var falloff = 1f - Mathf.Clamp01(distance / gravityPocketRadius);
+            var bendFactor = gravityPocketStrength * Mathf.Lerp(0.35f, 1f, falloff) * Time.fixedDeltaTime * 4.9f;
             var curvedDirection = (currentDirection + (pullVector.normalized * bendFactor)).normalized;
 
             if (curvedDirection.sqrMagnitude <= 0.0001f)

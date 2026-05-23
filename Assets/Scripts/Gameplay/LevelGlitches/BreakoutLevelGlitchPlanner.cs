@@ -10,6 +10,7 @@ namespace GetBricked.Gameplay
         WarpGates = 1,
         TurboRail = 2,
         MirrorGrid = 3,
+        GravityPocket = 4,
     }
 
     internal readonly struct BreakoutLevelGlitchDefinition
@@ -71,6 +72,37 @@ namespace GetBricked.Gameplay
         public float NormalizedLength { get; }
     }
 
+    internal readonly struct BreakoutGravityPocketSpec
+    {
+        public BreakoutGravityPocketSpec(
+            float normalizedX,
+            float normalizedY,
+            float radius,
+            float strength,
+            float driftSpeed = 0.24f,
+            float driftPhase = 0f)
+        {
+            NormalizedX = Mathf.Clamp01(normalizedX);
+            NormalizedY = Mathf.Clamp01(normalizedY);
+            Radius = Mathf.Max(0.5f, radius);
+            Strength = Mathf.Clamp01(strength);
+            DriftSpeed = Mathf.Max(0.01f, driftSpeed);
+            DriftPhase = driftPhase;
+        }
+
+        public float NormalizedX { get; }
+
+        public float NormalizedY { get; }
+
+        public float Radius { get; }
+
+        public float Strength { get; }
+
+        public float DriftSpeed { get; }
+
+        public float DriftPhase { get; }
+    }
+
     internal sealed class BreakoutLevelGlitchPlan
     {
         public static readonly BreakoutLevelGlitchPlan None = new BreakoutLevelGlitchPlan(
@@ -80,6 +112,7 @@ namespace GetBricked.Gameplay
             string.Empty,
             1f,
             Array.Empty<BreakoutWarpGateSpec>(),
+            default,
             default);
 
         public BreakoutLevelGlitchPlan(
@@ -89,7 +122,8 @@ namespace GetBricked.Gameplay
             string hudLabel,
             float scoreMultiplier,
             BreakoutWarpGateSpec[] warpGates,
-            BreakoutTurboRailSpec turboRail)
+            BreakoutTurboRailSpec turboRail,
+            BreakoutGravityPocketSpec gravityPocket = default)
         {
             GlitchType = glitchType;
             Rarity = BreakoutRarityRules.Clamp(rarity);
@@ -98,6 +132,7 @@ namespace GetBricked.Gameplay
             ScoreMultiplier = Mathf.Max(1f, scoreMultiplier);
             WarpGates = warpGates ?? Array.Empty<BreakoutWarpGateSpec>();
             TurboRail = turboRail;
+            GravityPocket = gravityPocket;
         }
 
         public BreakoutLevelGlitchType GlitchType { get; }
@@ -114,6 +149,8 @@ namespace GetBricked.Gameplay
 
         public BreakoutTurboRailSpec TurboRail { get; }
 
+        public BreakoutGravityPocketSpec GravityPocket { get; }
+
         public bool IsActive => GlitchType != BreakoutLevelGlitchType.None;
     }
 
@@ -121,10 +158,12 @@ namespace GetBricked.Gameplay
     {
         public const int TurboRailLadderUnlockIntensity = 31;
         public const int MirrorGridLadderUnlockIntensity = 37;
+        public const int GravityPocketLadderUnlockIntensity = 41;
 
         private const float WarpGateScoreMultiplier = 1.35f;
         private const float TurboRailScoreMultiplier = 1.25f;
         private const float MirrorGridScoreMultiplier = 1.3f;
+        private const float GravityPocketScoreMultiplier = 1.38f;
 
         private static readonly BreakoutLevelGlitchDefinition[] GlitchDefinitions =
         {
@@ -143,6 +182,11 @@ namespace GetBricked.Gameplay
                 LevelGlitchSelection.MirrorGrid,
                 BreakoutContentRarity.Rare,
                 MirrorGridLadderUnlockIntensity),
+            new BreakoutLevelGlitchDefinition(
+                BreakoutLevelGlitchType.GravityPocket,
+                LevelGlitchSelection.GravityPocket,
+                BreakoutContentRarity.Epic,
+                GravityPocketLadderUnlockIntensity),
         };
 
         public static BreakoutLevelGlitchPlan BuildPlan(
@@ -197,6 +241,11 @@ namespace GetBricked.Gameplay
                 return BuildMirrorGridPlan(definition.Rarity);
             }
 
+            if (definition.GlitchType == BreakoutLevelGlitchType.GravityPocket)
+            {
+                return BuildGravityPocketPlan(random, definition.Rarity);
+            }
+
             return BuildWarpGatePlan(random, definition.Rarity);
         }
 
@@ -235,6 +284,19 @@ namespace GetBricked.Gameplay
                 MirrorGridScoreMultiplier,
                 Array.Empty<BreakoutWarpGateSpec>(),
                 default);
+        }
+
+        private static BreakoutLevelGlitchPlan BuildGravityPocketPlan(DeterministicRandomService random, BreakoutContentRarity rarity)
+        {
+            return new BreakoutLevelGlitchPlan(
+                BreakoutLevelGlitchType.GravityPocket,
+                rarity,
+                "Gravity Pocket",
+                $"Gravity Pocket x{GravityPocketScoreMultiplier:0.00}",
+                GravityPocketScoreMultiplier,
+                Array.Empty<BreakoutWarpGateSpec>(),
+                default,
+                BuildGravityPocket(random));
         }
 
         public static float GetGlitchChance(RunSettings settings, int levelIndex)
@@ -320,6 +382,17 @@ namespace GetBricked.Gameplay
                 wall,
                 random.Range(0.18f, 0.82f),
                 random.Range(0.18f, 0.32f));
+        }
+
+        private static BreakoutGravityPocketSpec BuildGravityPocket(DeterministicRandomService random)
+        {
+            return new BreakoutGravityPocketSpec(
+                random.Range(0.24f, 0.76f),
+                random.Range(0.34f, 0.78f),
+                random.Range(1.9f, 2.45f),
+                random.Range(0.58f, 0.78f),
+                random.Range(0.18f, 0.28f),
+                random.Range(0f, Mathf.PI * 2f));
         }
 
         private static BreakoutLevelGlitchDefinition ResolveGlitchDefinition(
@@ -426,7 +499,8 @@ namespace GetBricked.Gameplay
         {
             return selection == LevelGlitchSelection.WarpGates
                 || selection == LevelGlitchSelection.TurboRail
-                || selection == LevelGlitchSelection.MirrorGrid;
+                || selection == LevelGlitchSelection.MirrorGrid
+                || selection == LevelGlitchSelection.GravityPocket;
         }
 
         private static BreakoutWarpGateWall ResolveGateWall(DeterministicRandomService random, int index)

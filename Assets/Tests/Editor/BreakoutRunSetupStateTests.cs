@@ -294,6 +294,50 @@ public sealed class BreakoutRunSetupStateTests
         Assert.That(runSettings.LevelGlitchLabel, Is.EqualTo("Mirror Grid Armed"));
     }
 
+    [Test]
+    public void BuildRunSettingsCarriesSelectedGravityPocketGlitch()
+    {
+        var state = CreateRunSetupState();
+        var stateType = state.GetType();
+
+        stateType.GetMethod("RestoreWithLevelGlitchSelection", InstanceFlags)?.Invoke(
+            state,
+            new object[]
+            {
+                1984,
+                "1984",
+                RunDifficultyPreset.Standard,
+                RunScoringMode.Classic,
+                1,
+                0,
+                0,
+                0,
+                DropPoolMode.Mixed,
+                true,
+                LevelGlitchSelection.GravityPocket,
+                string.Empty,
+            });
+
+        var buildRunSettings = stateType.GetMethod("BuildRunSettings", InstanceFlags);
+        Assert.That(buildRunSettings, Is.Not.Null);
+
+        var args = new object[]
+        {
+            3,
+            500,
+            null,
+            new Func<int>(() => 1984),
+            null,
+            true,
+        };
+
+        var runSettings = (RunSettings)buildRunSettings.Invoke(state, args);
+
+        Assert.That(runSettings.LevelGlitchesEnabled, Is.True);
+        Assert.That(runSettings.SelectedLevelGlitch, Is.EqualTo(LevelGlitchSelection.GravityPocket));
+        Assert.That(runSettings.LevelGlitchLabel, Is.EqualTo("Gravity Pocket Armed"));
+    }
+
     private static object CreateRunSetupState()
     {
         var stateType = typeof(BreakoutGameController).Assembly.GetType("GetBricked.Gameplay.BreakoutRunSetupState", throwOnError: false);

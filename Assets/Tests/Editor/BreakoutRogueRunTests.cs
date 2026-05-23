@@ -144,6 +144,30 @@ public sealed class BreakoutRogueRunTests
     }
 
     [Test]
+    public void DeveloperForcedGlitchMenuCyclesThroughGravityPocket()
+    {
+        var state = new BreakoutDeveloperLaunchState();
+
+        state.AdjustField(BreakoutDeveloperLaunchField.ForcedGlitch, 1, null, null);
+        Assert.That(state.ForcedLevelGlitchSelection, Is.EqualTo(LevelGlitchSelection.WarpGates));
+
+        state.AdjustField(BreakoutDeveloperLaunchField.ForcedGlitch, 1, null, null);
+        Assert.That(state.ForcedLevelGlitchSelection, Is.EqualTo(LevelGlitchSelection.TurboRail));
+
+        state.AdjustField(BreakoutDeveloperLaunchField.ForcedGlitch, 1, null, null);
+        Assert.That(state.ForcedLevelGlitchSelection, Is.EqualTo(LevelGlitchSelection.MirrorGrid));
+
+        state.AdjustField(BreakoutDeveloperLaunchField.ForcedGlitch, 1, null, null);
+        Assert.That(state.ForcedLevelGlitchSelection, Is.EqualTo(LevelGlitchSelection.GravityPocket));
+
+        state.AdjustField(BreakoutDeveloperLaunchField.ForcedGlitch, 1, null, null);
+        Assert.That(state.ForcedLevelGlitchSelection, Is.EqualTo(LevelGlitchSelection.Off));
+
+        state.AdjustField(BreakoutDeveloperLaunchField.ForcedGlitch, -1, null, null);
+        Assert.That(state.ForcedLevelGlitchSelection, Is.EqualTo(LevelGlitchSelection.GravityPocket));
+    }
+
+    [Test]
     public void RoguePaddleCatalogKeepsAlternatePaddlesDisabledForNormalProgression()
     {
         var initialPaddles = BreakoutRoguePaddleCatalog.BuildUnlockedPaddles();

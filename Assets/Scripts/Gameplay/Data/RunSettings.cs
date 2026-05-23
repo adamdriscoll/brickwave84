@@ -37,7 +37,8 @@ namespace GetBricked.Gameplay.Data
         WarpGates = 1,
         TurboRail = 2,
         MirrorGrid = 3,
-        Random = 4,
+        GravityPocket = 4,
+        Random = 5,
     }
 
     public sealed class RunSettings
@@ -192,6 +193,7 @@ namespace GetBricked.Gameplay.Data
             LevelGlitchSelection.WarpGates => "Warp Gates Armed",
             LevelGlitchSelection.TurboRail => "Turbo Rail Armed",
             LevelGlitchSelection.MirrorGrid => "Mirror Grid Armed",
+            LevelGlitchSelection.GravityPocket => "Gravity Pocket Armed",
             _ => "Clean Walls",
         };
 
