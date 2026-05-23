@@ -7,7 +7,7 @@ namespace GetBricked.Gameplay
     internal static class BreakoutRunSetupPersistence
     {
         private const string PersistedRunSetupKey = "GetBricked.RunSetup";
-        private const int PersistedRunSetupVersion = 7;
+        private const int PersistedRunSetupVersion = 8;
 
         [Serializable]
         private sealed class PersistedRunSetup
@@ -56,6 +56,7 @@ namespace GetBricked.Gameplay
                         && persistedRunSetup.Version != 4
                         && persistedRunSetup.Version != 5
                         && persistedRunSetup.Version != 6
+                        && persistedRunSetup.Version != 7
                         && persistedRunSetup.Version != PersistedRunSetupVersion))
                 {
                     return;
@@ -146,6 +147,11 @@ namespace GetBricked.Gameplay
             }
 
             if (version < 7 && persistedSelection == 4)
+            {
+                return LevelGlitchSelection.Random;
+            }
+
+            if (version < 8 && persistedSelection == 5)
             {
                 return LevelGlitchSelection.Random;
             }

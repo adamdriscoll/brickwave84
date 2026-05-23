@@ -68,7 +68,6 @@ namespace GetBricked.Gameplay
         {
             new BreakoutProgressionPlaceholderItem("Row Rewrite", "Glitch", "Layout", "One row rerolls into a new brick pattern after a timer.", 38, LayoutAccent),
             new BreakoutProgressionPlaceholderItem("Prism Lanes", "Glitch", "Precision", "Marked lanes refract the ball into sharper angles.", 39, PrecisionAccent),
-            new BreakoutProgressionPlaceholderItem("Token Storm", "Glitch", "Pickup", "More capsules spawn, but fall at mixed speeds.", 40, ControlAccent),
             new BreakoutProgressionPlaceholderItem("Static Wall", "Glitch", "Paddle", "One side wall flickers between normal and weak bounce.", 42, HazardAccent),
         };
 
@@ -139,6 +138,13 @@ namespace GetBricked.Gameplay
                 BreakoutLevelGlitchPlanner.MirrorGridLadderUnlockIntensity,
                 availableIntensity,
                 LayoutAccent));
+            cards.Add(BuildUnlockableGlitchCard(
+                "Token Storm",
+                "Pickup Epic Glitch",
+                "More capsules spawn, but fall at mixed speeds.",
+                BreakoutLevelGlitchPlanner.TokenStormLadderUnlockIntensity,
+                availableIntensity,
+                ControlAccent));
             cards.Add(BuildUnlockableGlitchCard(
                 "Gravity Pocket",
                 "Speed Epic Glitch",

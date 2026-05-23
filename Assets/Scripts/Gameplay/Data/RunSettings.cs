@@ -38,7 +38,8 @@ namespace GetBricked.Gameplay.Data
         TurboRail = 2,
         MirrorGrid = 3,
         GravityPocket = 4,
-        Random = 5,
+        TokenStorm = 5,
+        Random = 6,
     }
 
     public sealed class RunSettings
@@ -194,6 +195,7 @@ namespace GetBricked.Gameplay.Data
             LevelGlitchSelection.TurboRail => "Turbo Rail Armed",
             LevelGlitchSelection.MirrorGrid => "Mirror Grid Armed",
             LevelGlitchSelection.GravityPocket => "Gravity Pocket Armed",
+            LevelGlitchSelection.TokenStorm => "Token Storm Armed",
             _ => "Clean Walls",
         };
 

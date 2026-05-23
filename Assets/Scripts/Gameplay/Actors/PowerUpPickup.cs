@@ -31,6 +31,11 @@ namespace GetBricked.Gameplay
 
         public bool UsesHelpfulVisualDisguise { get; private set; }
 
+        public void MultiplyFallSpeed(float multiplier)
+        {
+            fallSpeed = Mathf.Max(0.1f, fallSpeed * Mathf.Clamp(multiplier, 0.35f, 1.5f));
+        }
+
         public void SetCapsuleMagnetTarget(Vector2 targetPosition, float strength)
         {
             capsuleMagnetTarget = targetPosition;

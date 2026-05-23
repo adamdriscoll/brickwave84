@@ -100,6 +100,7 @@ public sealed class BreakoutProgressionPageTests
         var view = new BreakoutProgressionPageService().BuildView(Array.Empty<PowerUpDefinition>());
         var turboRail = view.Cards.First(card => card.Title == "Turbo Rail");
         var mirrorGrid = view.Cards.First(card => card.Title == "Mirror Grid");
+        var tokenStorm = view.Cards.First(card => card.Title == "Token Storm");
         var gravityPocket = view.Cards.First(card => card.Title == "Gravity Pocket");
         var chromeRail = view.Cards.First(card => card.Title == "Chrome Rail");
 
@@ -109,6 +110,9 @@ public sealed class BreakoutProgressionPageTests
         Assert.That(gravityPocket.UnlockHint, Does.Contain("Heat 41"));
         Assert.That(gravityPocket.UnlockHint, Does.Not.Contain("preview"));
         Assert.That(gravityPocket.Family, Does.Contain("Epic"));
+        Assert.That(tokenStorm.UnlockHint, Does.Contain("Heat 40"));
+        Assert.That(tokenStorm.UnlockHint, Does.Not.Contain("preview"));
+        Assert.That(tokenStorm.Family, Does.Contain("Epic"));
         Assert.That(chromeRail.UnlockHint, Does.Contain("Heat 32"));
     }
 

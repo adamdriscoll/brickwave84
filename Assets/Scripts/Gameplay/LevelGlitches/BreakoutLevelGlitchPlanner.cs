@@ -11,6 +11,7 @@ namespace GetBricked.Gameplay
         TurboRail = 2,
         MirrorGrid = 3,
         GravityPocket = 4,
+        TokenStorm = 5,
     }
 
     internal readonly struct BreakoutLevelGlitchDefinition
@@ -103,6 +104,22 @@ namespace GetBricked.Gameplay
         public float DriftPhase { get; }
     }
 
+    internal readonly struct BreakoutTokenStormSpec
+    {
+        public BreakoutTokenStormSpec(float dropChanceMultiplier, float minimumFallSpeedMultiplier, float maximumFallSpeedMultiplier)
+        {
+            DropChanceMultiplier = Mathf.Max(1f, dropChanceMultiplier);
+            MinimumFallSpeedMultiplier = Mathf.Clamp(minimumFallSpeedMultiplier, 0.35f, 1.5f);
+            MaximumFallSpeedMultiplier = Mathf.Clamp(maximumFallSpeedMultiplier, MinimumFallSpeedMultiplier, 1.5f);
+        }
+
+        public float DropChanceMultiplier { get; }
+
+        public float MinimumFallSpeedMultiplier { get; }
+
+        public float MaximumFallSpeedMultiplier { get; }
+    }
+
     internal sealed class BreakoutLevelGlitchPlan
     {
         public static readonly BreakoutLevelGlitchPlan None = new BreakoutLevelGlitchPlan(
@@ -112,6 +129,7 @@ namespace GetBricked.Gameplay
             string.Empty,
             1f,
             Array.Empty<BreakoutWarpGateSpec>(),
+            default,
             default,
             default);
 
@@ -123,6 +141,7 @@ namespace GetBricked.Gameplay
             float scoreMultiplier,
             BreakoutWarpGateSpec[] warpGates,
             BreakoutTurboRailSpec turboRail,
+            BreakoutTokenStormSpec tokenStorm = default,
             BreakoutGravityPocketSpec gravityPocket = default)
         {
             GlitchType = glitchType;
@@ -132,6 +151,7 @@ namespace GetBricked.Gameplay
             ScoreMultiplier = Mathf.Max(1f, scoreMultiplier);
             WarpGates = warpGates ?? Array.Empty<BreakoutWarpGateSpec>();
             TurboRail = turboRail;
+            TokenStorm = tokenStorm;
             GravityPocket = gravityPocket;
         }
 
@@ -149,6 +169,8 @@ namespace GetBricked.Gameplay
 
         public BreakoutTurboRailSpec TurboRail { get; }
 
+        public BreakoutTokenStormSpec TokenStorm { get; }
+
         public BreakoutGravityPocketSpec GravityPocket { get; }
 
         public bool IsActive => GlitchType != BreakoutLevelGlitchType.None;
@@ -158,11 +180,13 @@ namespace GetBricked.Gameplay
     {
         public const int TurboRailLadderUnlockIntensity = 31;
         public const int MirrorGridLadderUnlockIntensity = 37;
+        public const int TokenStormLadderUnlockIntensity = 40;
         public const int GravityPocketLadderUnlockIntensity = 41;
 
         private const float WarpGateScoreMultiplier = 1.35f;
         private const float TurboRailScoreMultiplier = 1.25f;
         private const float MirrorGridScoreMultiplier = 1.3f;
+        private const float TokenStormScoreMultiplier = 1.32f;
         private const float GravityPocketScoreMultiplier = 1.38f;
 
         private static readonly BreakoutLevelGlitchDefinition[] GlitchDefinitions =
@@ -182,6 +206,11 @@ namespace GetBricked.Gameplay
                 LevelGlitchSelection.MirrorGrid,
                 BreakoutContentRarity.Rare,
                 MirrorGridLadderUnlockIntensity),
+            new BreakoutLevelGlitchDefinition(
+                BreakoutLevelGlitchType.TokenStorm,
+                LevelGlitchSelection.TokenStorm,
+                BreakoutContentRarity.Epic,
+                TokenStormLadderUnlockIntensity),
             new BreakoutLevelGlitchDefinition(
                 BreakoutLevelGlitchType.GravityPocket,
                 LevelGlitchSelection.GravityPocket,
@@ -246,6 +275,11 @@ namespace GetBricked.Gameplay
                 return BuildGravityPocketPlan(random, definition.Rarity);
             }
 
+            if (definition.GlitchType == BreakoutLevelGlitchType.TokenStorm)
+            {
+                return BuildTokenStormPlan(definition.Rarity);
+            }
+
             return BuildWarpGatePlan(random, definition.Rarity);
         }
 
@@ -296,7 +330,21 @@ namespace GetBricked.Gameplay
                 GravityPocketScoreMultiplier,
                 Array.Empty<BreakoutWarpGateSpec>(),
                 default,
+                default,
                 BuildGravityPocket(random));
+        }
+
+        private static BreakoutLevelGlitchPlan BuildTokenStormPlan(BreakoutContentRarity rarity)
+        {
+            return new BreakoutLevelGlitchPlan(
+                BreakoutLevelGlitchType.TokenStorm,
+                rarity,
+                "Token Storm",
+                $"Token Storm x{TokenStormScoreMultiplier:0.00}",
+                TokenStormScoreMultiplier,
+                Array.Empty<BreakoutWarpGateSpec>(),
+                default,
+                new BreakoutTokenStormSpec(1.65f, 0.55f, 1.45f));
         }
 
         public static float GetGlitchChance(RunSettings settings, int levelIndex)
@@ -500,7 +548,8 @@ namespace GetBricked.Gameplay
             return selection == LevelGlitchSelection.WarpGates
                 || selection == LevelGlitchSelection.TurboRail
                 || selection == LevelGlitchSelection.MirrorGrid
-                || selection == LevelGlitchSelection.GravityPocket;
+                || selection == LevelGlitchSelection.GravityPocket
+                || selection == LevelGlitchSelection.TokenStorm;
         }
 
         private static BreakoutWarpGateWall ResolveGateWall(DeterministicRandomService random, int index)

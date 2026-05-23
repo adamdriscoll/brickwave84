@@ -100,6 +100,30 @@ public sealed class BreakoutLevelGlitchPlannerTests
     }
 
     [Test]
+    public void RogueGlitchHeatControlsWhenTokenStormCanUnlock()
+    {
+        var lockedSettings = CreateRogueSettings(
+            rogueIntensity: BreakoutLevelGlitchPlanner.TokenStormLadderUnlockIntensity - 1,
+            levelGlitchSelection: LevelGlitchSelection.TokenStorm);
+        var unlockedSettings = CreateRogueSettings(
+            rogueIntensity: BreakoutLevelGlitchPlanner.TokenStormLadderUnlockIntensity,
+            levelGlitchSelection: LevelGlitchSelection.TokenStorm);
+
+        var lockedPlan = BreakoutLevelGlitchPlanner.BuildPlan(new DeterministicRandomService(7), lockedSettings, levelIndex: 9);
+        var unlockedPlan = BreakoutLevelGlitchPlanner.BuildPlan(new DeterministicRandomService(7), unlockedSettings, levelIndex: 9);
+
+        Assert.That(lockedPlan.IsActive, Is.False);
+        Assert.That(unlockedPlan.IsActive, Is.True);
+        Assert.That(unlockedPlan.GlitchType, Is.EqualTo(BreakoutLevelGlitchType.TokenStorm));
+        Assert.That(unlockedPlan.DisplayName, Is.EqualTo("Token Storm"));
+        Assert.That(unlockedPlan.Rarity, Is.EqualTo(BreakoutContentRarity.Epic));
+        Assert.That(unlockedPlan.ScoreMultiplier, Is.EqualTo(1.32f).Within(0.0001f));
+        Assert.That(unlockedPlan.TokenStorm.DropChanceMultiplier, Is.EqualTo(1.65f).Within(0.0001f));
+        Assert.That(unlockedPlan.TokenStorm.MinimumFallSpeedMultiplier, Is.EqualTo(0.55f).Within(0.0001f));
+        Assert.That(unlockedPlan.TokenStorm.MaximumFallSpeedMultiplier, Is.EqualTo(1.45f).Within(0.0001f));
+    }
+
+    [Test]
     public void ForcedWarpGatePlanBuildsSmallPortalSetAndScoreBonus()
     {
         var settings = CreateSettings(
@@ -188,6 +212,20 @@ public sealed class BreakoutLevelGlitchPlannerTests
 
         Assert.That(plan.IsActive, Is.True);
         Assert.That(plan.GlitchType, Is.EqualTo(BreakoutLevelGlitchType.GravityPocket));
+    }
+
+    [Test]
+    public void SelectedTokenStormAlwaysBuildsTokenStormEvenWhenChanceIsDisabled()
+    {
+        var settings = CreateSettings(
+            levelGlitchesEnabled: true,
+            chanceMultiplier: 0f,
+            levelGlitchSelection: LevelGlitchSelection.TokenStorm);
+
+        var plan = BreakoutLevelGlitchPlanner.BuildPlan(new DeterministicRandomService(3), settings, levelIndex: 9);
+
+        Assert.That(plan.IsActive, Is.True);
+        Assert.That(plan.GlitchType, Is.EqualTo(BreakoutLevelGlitchType.TokenStorm));
     }
 
     [Test]

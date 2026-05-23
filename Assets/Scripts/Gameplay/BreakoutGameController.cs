@@ -3268,6 +3268,10 @@ namespace GetBricked.Gameplay
                 CreateGravityPocket(activeLevelGlitchPlan);
                 powerUpService?.ShowStatusBanner("GRAVITY POCKET!", new Color(0.03f, 0.93f, 0.98f, 1f), 2.2f);
             }
+            else if (activeLevelGlitchPlan.GlitchType == BreakoutLevelGlitchType.TokenStorm)
+            {
+                powerUpService?.ShowStatusBanner("TOKEN STORM!", new Color(1f, 0.87f, 0.36f, 1f), 2.2f);
+            }
         }
 
         private void ClearLevelGlitches()
@@ -5297,6 +5301,7 @@ namespace GetBricked.Gameplay
                 LevelGlitchSelection.TurboRail => "Turbo Rail",
                 LevelGlitchSelection.MirrorGrid => "Mirror Grid",
                 LevelGlitchSelection.GravityPocket => "Gravity Pocket",
+                LevelGlitchSelection.TokenStorm => "Token Storm",
                 _ => "Off",
             };
         }
@@ -5502,6 +5507,7 @@ namespace GetBricked.Gameplay
 
             if (spawnedPickup != null)
             {
+                ApplyTokenStormFallSpeed(spawnedPickup);
                 runStatsService?.RegisterDropDropped(spawnedPickup.Definition);
                 audioService?.PlayPickupDropped();
             }
@@ -6583,12 +6589,35 @@ namespace GetBricked.Gameplay
         private float GetEffectiveDropChanceMultiplier()
         {
             var baseMultiplier = activeRunSettings?.DropChanceMultiplier ?? 1f;
-            return Mathf.Clamp(baseMultiplier * GetPersistentRunUpgradeModifiers().DropChanceMultiplier, 0f, 3f);
+            var tokenStormMultiplier = activeLevelGlitchPlan != null
+                && activeLevelGlitchPlan.GlitchType == BreakoutLevelGlitchType.TokenStorm
+                ? activeLevelGlitchPlan.TokenStorm.DropChanceMultiplier
+                : 1f;
+            return Mathf.Clamp(
+                baseMultiplier * GetPersistentRunUpgradeModifiers().DropChanceMultiplier * tokenStormMultiplier,
+                0f,
+                3f);
         }
 
         private float GetEffectivePickupFallSpeedMultiplier()
         {
             return Mathf.Clamp(GetPersistentRunUpgradeModifiers().PickupFallSpeedMultiplier, 0.35f, 1.5f);
+        }
+
+        private void ApplyTokenStormFallSpeed(PowerUpPickup pickup)
+        {
+            if (pickup == null
+                || activeLevelGlitchPlan == null
+                || activeLevelGlitchPlan.GlitchType != BreakoutLevelGlitchType.TokenStorm)
+            {
+                return;
+            }
+
+            var tokenStorm = activeLevelGlitchPlan.TokenStorm;
+            var fallSpeedMultiplier = NextGameplayRandomFloat(
+                tokenStorm.MinimumFallSpeedMultiplier,
+                tokenStorm.MaximumFallSpeedMultiplier);
+            pickup.MultiplyFallSpeed(fallSpeedMultiplier);
         }
 
         private float GetEffectiveBrickMagnetStrength()
