@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
+  <title id="title">Mystery Tape</title>
+  <desc id="desc">A monochrome neon icon showing a mystery cassette capsule split between helpful and harmful payloads.</desc>
+  <defs>
+    <filter id="softGlow" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="2.25" result="blur"/>
+      <feColorMatrix in="blur" type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 .8 0" result="glow"/>
+      <feMerge>
+        <feMergeNode in="glow"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <style><![CDATA[
+      .icon{fill:none;stroke:#fff;stroke-linecap:round;stroke-linejoin:round;filter:url(#softGlow)}
+      .main{stroke-width:11;opacity:.94}
+      .mid{stroke-width:8;opacity:.82}
+      .thin{stroke-width:4;opacity:.36}
+      .fill{fill:#fff;stroke:none;opacity:.88;filter:url(#softGlow)}
+      .ghost{fill:#fff;stroke:none;opacity:.42;filter:url(#softGlow)}
+    ]]></style>
+  </defs>
+  <g class="icon">
+    <path class="main" d="M54 72h148c9 0 16 7 16 16v80c0 9-7 16-16 16H54c-9 0-16-7-16-16V88c0-9 7-16 16-16Z"/>
+    <path class="thin" d="M68 56h120"/>
+    <path class="thin" d="M68 200h120"/>
+    <path class="mid" d="M80 104h96"/>
+    <path class="thin" d="M128 84v88"/>
+    <circle class="main" cx="90" cy="146" r="25"/>
+    <circle class="main" cx="166" cy="146" r="25"/>
+    <circle class="fill" cx="90" cy="146" r="8"/>
+    <circle class="fill" cx="166" cy="146" r="8"/>
+    <path class="mid" d="M82 96l-14-14"/>
+    <path class="mid" d="M82 96l-14 14"/>
+    <path class="mid" d="M174 96l14-14"/>
+    <path class="mid" d="M174 96l14 14"/>
+    <path class="mid" d="M116 38c8-11 28-11 36 0 8 12 1 25-10 31-8 5-12 10-12 18"/>
+    <circle class="fill" cx="130" cy="108" r="6"/>
+    <path class="ghost" d="M69 146l21-21 21 21-21 21Z"/>
+    <path class="ghost" d="M145 146l21-21 21 21-21 21Z"/>
+  </g>
+</svg>

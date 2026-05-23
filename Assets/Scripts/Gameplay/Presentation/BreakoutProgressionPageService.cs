@@ -269,6 +269,7 @@ namespace GetBricked.Gameplay
                 PowerUpEffectType.CapsuleMagnet => $"Nearby helpful capsules drift toward the paddle for {definition.DurationSeconds:0.#}s.",
                 PowerUpEffectType.BankBonus => $"Wall bounces bank +{Mathf.Max(1, Mathf.RoundToInt(definition.Scalar))} points until the next brick hit for {definition.DurationSeconds:0.#}s.",
                 PowerUpEffectType.PrismPop => $"First brick hit within {definition.DurationSeconds:0.#}s splits a short-lived copy ball.",
+                PowerUpEffectType.RandomMixedDrop => "Rolls one random unlocked helpful drop and one random unlocked hazard.",
                 _ => $"{definition.HudLabel} for {definition.DurationSeconds:0.#}s.",
             };
         }

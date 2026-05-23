@@ -100,6 +100,7 @@ namespace GetBricked.Gameplay.Data
         BankBonus = 26,
         PrismPop = 27,
         CleanCatch = 28,
+        RandomMixedDrop = 29,
     }
 
     [CreateAssetMenu(menuName = "Get Bricked/Power-Up Definition", fileName = "PowerUpDefinition")]
@@ -150,6 +151,7 @@ namespace GetBricked.Gameplay.Data
         public bool IsTimed => effectType != PowerUpEffectType.MultiBallBurst
             && effectType != PowerUpEffectType.ActiveDropMultiplier
             && effectType != PowerUpEffectType.RandomHarmfulDrop
+            && effectType != PowerUpEffectType.RandomMixedDrop
             && DurationSeconds > 0f;
 
         public bool IsUnlockedForLadderIntensity(int intensity)
@@ -187,7 +189,8 @@ namespace GetBricked.Gameplay.Data
                 || effectType == PowerUpEffectType.ExplosiveBall
                 || effectType == PowerUpEffectType.BallSizeMultiplier
                 || effectType == PowerUpEffectType.BankBonus
-                || effectType == PowerUpEffectType.PrismPop)
+                || effectType == PowerUpEffectType.PrismPop
+                || effectType == PowerUpEffectType.RandomMixedDrop)
             {
                 return ThemeVisualSlot.PickupBurst;
             }

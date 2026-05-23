@@ -933,7 +933,16 @@ namespace GetBricked.Gameplay
                 AwardCapsuleMadnessPickupBonus(pickupPosition);
             }
 
-            ApplyPowerUp(pickup.Definition);
+            var primaryDefinition = pickup.PrimaryPayloadDefinition != null
+                ? pickup.PrimaryPayloadDefinition
+                : pickup.Definition;
+            ApplyPowerUp(primaryDefinition);
+
+            if (pickup.SecondaryPayloadDefinition != null)
+            {
+                ApplyPowerUp(pickup.SecondaryPayloadDefinition);
+            }
+
             pickup.gameObject.SetActive(false);
             DestroyRuntimeObject(pickup.gameObject);
         }
@@ -6784,6 +6793,7 @@ namespace GetBricked.Gameplay
                 PowerUpEffectType.BankBonus => $"+{Mathf.Max(1, Mathf.RoundToInt(definition.Scalar))}/wall bank for {definition.DurationSeconds:0.#}s",
                 PowerUpEffectType.PrismPop => $"Next brick hit splits a {definition.Scalar:0.#}s copy ball",
                 PowerUpEffectType.RandomHarmfulDrop => "Disguised random hazard",
+                PowerUpEffectType.RandomMixedDrop => "Random helpful drop and hazard",
                 _ => $"{definition.HudLabel} for {definition.DurationSeconds:0.#}s",
             };
         }

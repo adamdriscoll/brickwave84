@@ -707,6 +707,92 @@ public sealed class BreakoutPowerUpServiceTests
     }
 
     [Test]
+    public void MysteryTapeSpawnsVisibleMysteryPickupWithHelpfulAndHarmfulPayloads()
+    {
+        var service = CreateService();
+        var wide = CreatePowerUp("Wide Paddle", PowerUpEffectType.PaddleWidthMultiplier, true, 10f, 1.2f);
+        var mysteryTape = CreatePowerUp("Mystery Tape", PowerUpEffectType.RandomMixedDrop, true, 0f, 1f);
+        var narrow = CreatePowerUp("Narrow Paddle", PowerUpEffectType.PaddleWidthMultiplier, false, 10f, 0.7f);
+        var brick = CreateBrick(CreateBrickDefinition(dropChance: 1f, wide, mysteryTape, narrow));
+        var pickupsRoot = CreateRuntimeRoot("Pickups");
+        var rolls = new Queue<float>(new[] { 0f, 1.5f, 0f, 0f });
+
+        var pickup = service.TrySpawnPickup(
+            brick,
+            activeRunSettings: null,
+            activeRunState: null,
+            effectiveDropChanceMultiplier: 1f,
+            nextGameplayRandomFloat: (_, _) => rolls.Dequeue(),
+            pickupsRoot,
+            arenaBottom: -4f,
+            themeService: null,
+            controller: null);
+
+        Assert.That(pickup, Is.Not.Null);
+        Assert.That(pickup.Definition, Is.SameAs(mysteryTape));
+        Assert.That(pickup.VisualDefinition, Is.SameAs(mysteryTape));
+        Assert.That(pickup.PrimaryPayloadDefinition, Is.SameAs(wide));
+        Assert.That(pickup.SecondaryPayloadDefinition, Is.SameAs(narrow));
+        Assert.That(pickup.UsesHelpfulVisualDisguise, Is.False);
+    }
+
+    [Test]
+    public void MysteryTapeChoosesPayloadsFromBothPolarityPools()
+    {
+        var service = CreateService();
+        var wide = CreatePowerUp("Wide Paddle", PowerUpEffectType.PaddleWidthMultiplier, true, 10f, 1.2f);
+        var laser = CreatePowerUp("Laser Paddle", PowerUpEffectType.LaserPaddle, true, 10f, 1f);
+        var mysteryTape = CreatePowerUp("Mystery Tape", PowerUpEffectType.RandomMixedDrop, true, 0f, 1f);
+        var narrow = CreatePowerUp("Narrow Paddle", PowerUpEffectType.PaddleWidthMultiplier, false, 10f, 0.7f);
+        var fog = CreatePowerUp("Fog", PowerUpEffectType.FogOfWar, false, 10f, 0.45f);
+        var brick = CreateBrick(CreateBrickDefinition(dropChance: 1f, wide, laser, mysteryTape, narrow, fog));
+        var pickupsRoot = CreateRuntimeRoot("Pickups");
+        var rolls = new Queue<float>(new[] { 0f, 2.5f, 1.5f, 1.5f });
+
+        var pickup = service.TrySpawnPickup(
+            brick,
+            activeRunSettings: null,
+            activeRunState: null,
+            effectiveDropChanceMultiplier: 1f,
+            nextGameplayRandomFloat: (_, _) => rolls.Dequeue(),
+            pickupsRoot,
+            arenaBottom: -4f,
+            themeService: null,
+            controller: null);
+
+        Assert.That(pickup, Is.Not.Null);
+        Assert.That(pickup.Definition, Is.SameAs(mysteryTape));
+        Assert.That(pickup.VisualDefinition, Is.SameAs(mysteryTape));
+        Assert.That(pickup.PrimaryPayloadDefinition, Is.SameAs(laser));
+        Assert.That(pickup.SecondaryPayloadDefinition, Is.SameAs(fog));
+    }
+
+    [Test]
+    public void MysteryTapeDoesNotSpawnWithoutBothHelpfulAndHarmfulTargets()
+    {
+        var service = CreateService();
+        var wide = CreatePowerUp("Wide Paddle", PowerUpEffectType.PaddleWidthMultiplier, true, 10f, 1.2f);
+        var mysteryTape = CreatePowerUp("Mystery Tape", PowerUpEffectType.RandomMixedDrop, true, 0f, 1f);
+        var brick = CreateBrick(CreateBrickDefinition(dropChance: 1f, wide, mysteryTape));
+        var pickupsRoot = CreateRuntimeRoot("Pickups");
+        var rolls = new Queue<float>(new[] { 0f, 1.5f });
+
+        var pickup = service.TrySpawnPickup(
+            brick,
+            activeRunSettings: null,
+            activeRunState: null,
+            effectiveDropChanceMultiplier: 1f,
+            nextGameplayRandomFloat: (_, _) => rolls.Dequeue(),
+            pickupsRoot,
+            arenaBottom: -4f,
+            themeService: null,
+            controller: null);
+
+        Assert.That(pickup, Is.Null);
+        Assert.That(service.ActivePickups, Is.Empty);
+    }
+
+    [Test]
     public void TrySpawnPickupAppliesRarityWeightsToAuthoredDropTable()
     {
         var service = CreateService();

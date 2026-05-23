@@ -524,6 +524,8 @@ namespace GetBricked.Gameplay
 
             var visualPowerUp = selectedPowerUp;
             var usesHelpfulVisualDisguise = false;
+            PowerUpDefinition primaryPayloadDefinition = null;
+            PowerUpDefinition secondaryPayloadDefinition = null;
 
             if (selectedPowerUp.EffectType == PowerUpEffectType.RandomHarmfulDrop
                 && !TryResolveRandomHarmfulDrop(
@@ -540,11 +542,27 @@ namespace GetBricked.Gameplay
                 return null;
             }
 
+            if (selectedPowerUp.EffectType == PowerUpEffectType.RandomMixedDrop
+                && !TryResolveRandomMixedDrop(
+                    selectedPowerUp,
+                    dropTable,
+                    activeRunSettings,
+                    activeRunState,
+                    nextGameplayRandomFloat,
+                    forceSpecificDrop,
+                    out primaryPayloadDefinition,
+                    out secondaryPayloadDefinition))
+            {
+                return null;
+            }
+
             return CreatePickup(
                 (Vector2)brick.transform.position,
                 selectedPowerUp,
                 visualPowerUp,
                 usesHelpfulVisualDisguise,
+                primaryPayloadDefinition,
+                secondaryPayloadDefinition,
                 pickupsRoot,
                 arenaBottom,
                 themeService,
@@ -1052,6 +1070,8 @@ namespace GetBricked.Gameplay
             PowerUpDefinition powerUpDefinition,
             PowerUpDefinition visualPowerUpDefinition,
             bool usesHelpfulVisualDisguise,
+            PowerUpDefinition primaryPayloadDefinition,
+            PowerUpDefinition secondaryPayloadDefinition,
             Transform pickupsRoot,
             float arenaBottom,
             BreakoutThemeService themeService,
@@ -1083,7 +1103,9 @@ namespace GetBricked.Gameplay
                 ResolvePickupSpinDegreesPerSecond(powerUpDefinition),
                 pickupStyle,
                 resolvedVisualPowerUp,
-                usesHelpfulVisualDisguise);
+                usesHelpfulVisualDisguise,
+                primaryPayloadDefinition,
+                secondaryPayloadDefinition);
             ActivePickups.Add(pickup);
             EvaluateCapsuleMadnessActivation();
             return pickup;
@@ -1144,6 +1166,65 @@ namespace GetBricked.Gameplay
             visualDefinition = PickWeightedDefinition(helpfulCandidates, nextGameplayRandomFloat);
             usesHelpfulVisualDisguise = harmfulDefinition != null && visualDefinition != null;
             return usesHelpfulVisualDisguise;
+        }
+
+        private static bool TryResolveRandomMixedDrop(
+            PowerUpDefinition mysteryDropDefinition,
+            BreakoutPowerUpDropCandidate[] dropTable,
+            RunSettings activeRunSettings,
+            BreakoutRunState activeRunState,
+            System.Func<float, float, float> nextGameplayRandomFloat,
+            bool ignoreDropAllowed,
+            out PowerUpDefinition helpfulDefinition,
+            out PowerUpDefinition harmfulDefinition)
+        {
+            helpfulDefinition = null;
+            harmfulDefinition = null;
+
+            if (nextGameplayRandomFloat == null)
+            {
+                return false;
+            }
+
+            var helpfulCandidates = new List<BreakoutPowerUpDropCandidate>();
+            var harmfulCandidates = new List<BreakoutPowerUpDropCandidate>();
+
+            for (var index = 0; index < dropTable.Length; index++)
+            {
+                var candidate = dropTable[index];
+                var definition = candidate.Definition;
+
+                if (!ignoreDropAllowed && !IsDropAllowed(activeRunSettings, activeRunState, definition))
+                {
+                    continue;
+                }
+
+                if (definition == mysteryDropDefinition
+                    || definition == null
+                    || definition.EffectType == PowerUpEffectType.RandomMixedDrop
+                    || definition.EffectType == PowerUpEffectType.RandomHarmfulDrop)
+                {
+                    continue;
+                }
+
+                if (definition.IsBeneficial)
+                {
+                    helpfulCandidates.Add(candidate);
+                }
+                else
+                {
+                    harmfulCandidates.Add(candidate);
+                }
+            }
+
+            if (helpfulCandidates.Count == 0 || harmfulCandidates.Count == 0)
+            {
+                return false;
+            }
+
+            helpfulDefinition = PickWeightedDefinition(helpfulCandidates, nextGameplayRandomFloat);
+            harmfulDefinition = PickWeightedDefinition(harmfulCandidates, nextGameplayRandomFloat);
+            return helpfulDefinition != null && harmfulDefinition != null;
         }
 
         private static BreakoutPowerUpDropCandidate[] BuildForcedDropCandidateTable(

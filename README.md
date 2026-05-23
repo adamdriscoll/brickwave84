@@ -166,7 +166,7 @@ Difficulty presets already change more than labels:
 
 ### Unlock Progression
 
-Permanent run upgrades are always available in the between-stage draft pool. Drop and glitch unlocks enter the Neon Ladder ecosystem through a front-loaded one-unlock-per-Heat ladder: implemented content runs from Heat `01` through Heat `31`, with additional live drops at Heat `33`, Heat `34`, and Heat `36`, plus live glitches at Heat `37`, Heat `40`, Heat `41`, and Heat `42`, among the placeholder backlog. Default drops and default glitches start unlocked for Neon Ladder runs. Rarity still tunes odds and draft weighting, but it no longer bundles multiple new unlocks onto the same Heat. Implementation status tracks whether the item has live runtime gameplay behavior or is currently only a progression-screen placeholder.
+Permanent run upgrades are always available in the between-stage draft pool. Drop and glitch unlocks enter the Neon Ladder ecosystem through a front-loaded one-unlock-per-Heat ladder: implemented content runs from Heat `01` through Heat `31`, with additional live drops at Heat `33`, Heat `34`, Heat `36`, and Heat `43`, plus live glitches at Heat `37`, Heat `40`, Heat `41`, and Heat `42`, among the placeholder backlog. Default drops and default glitches start unlocked for Neon Ladder runs. Rarity still tunes odds and draft weighting, but it no longer bundles multiple new unlocks onto the same Heat. Implementation status tracks whether the item has live runtime gameplay behavior or is currently only a progression-screen placeholder.
 
 | Name | Description | Default / unlock level | Rarity | Polarity | Type | Implementation |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -217,6 +217,7 @@ Permanent run upgrades are always available in the between-stage draft pool. Dro
 | `Token Storm` | More capsules spawn, but fall at mixed speeds. | Heat 40 | Epic | Glitch | Pickup glitch | Implemented |
 | `Gravity Pocket` | A slow drifting pocket bends nearby ball paths. | Heat 41 | Epic | Glitch | Speed glitch | Implemented |
 | `Static Wall` | One side wall flickers between normal and weak bounce. | Heat 42 | Epic | Glitch | Paddle glitch | Implemented |
+| `Mystery Tape` | Rolls one random unlocked helpful drop and one random unlocked hazard from a mystery capsule. | Heat 43 | Epic | Mixed | Mystery drop | Implemented |
 | `Afterburn Coil` | The cabinet overclocks every serve, keeping the ball hotter for all remaining levels. | Draft pool | N/A | Build | Run upgrade | Implemented |
 | `Flux Line` | The paddle develops a gentle permanent drift pattern that trades chaos for wider coverage arcs. | Draft pool | N/A | Build | Run upgrade | Implemented |
 | `Lucky Circuit` | Pickup routing stays juiced, raising permanent drop odds for the rest of the cabinet run. | Draft pool | N/A | Build | Run upgrade | Implemented |
