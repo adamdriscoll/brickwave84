@@ -20,6 +20,17 @@ jobs:
         with:
           lfs: true
 
+      - name: Free disk space
+        uses: jlumbroso/free-disk-space@v1.3.1
+        with:
+          tool-cache: false
+          android: true
+          dotnet: true
+          haskell: true
+          large-packages: true
+          docker-images: true
+          swap-storage: true
+
       - name: Cache Unity Library
         uses: actions/cache@v4
         with:
