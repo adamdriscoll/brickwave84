@@ -265,7 +265,7 @@ namespace GetBricked.Gameplay
 
             if (!powerUpSpriteCache.TryGetValue(resourcePath, out var cachedSprite))
             {
-                cachedSprite = Resources.Load<Sprite>(resourcePath);
+                cachedSprite = BreakoutRuntimeVisualFactory.LoadSpriteResource(resourcePath);
                 powerUpSpriteCache[resourcePath] = cachedSprite;
             }
 

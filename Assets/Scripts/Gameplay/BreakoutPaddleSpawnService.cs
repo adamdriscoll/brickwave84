@@ -59,10 +59,10 @@ namespace GetBricked.Gameplay
 
             var spriteRenderer = paddleVisual.AddComponent<SpriteRenderer>();
             spriteRenderer.sprite = paddleSprite;
-            spriteRenderer.color = paddleColor;
             spriteRenderer.sortingOrder = PaddleSortingOrder;
             spriteRenderer.enabled = true;
             spriteRenderer.sharedMaterial = spriteMaterial;
+            BreakoutSpriteRendererUtility.ApplyTint(spriteRenderer, paddleColor);
             BreakoutSpriteRendererUtility.NormalizeScale(spriteRenderer);
 
             var collider = paddleObject.AddComponent<BoxCollider2D>();

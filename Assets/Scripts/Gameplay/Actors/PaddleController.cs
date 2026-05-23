@@ -428,8 +428,8 @@ namespace GetBricked.Gameplay
             if (sourceRenderer != null)
             {
                 clonePaddleRenderer.sprite = sourceRenderer.sprite;
-                clonePaddleRenderer.color = sourceRenderer.color;
                 clonePaddleRenderer.sharedMaterial = sourceRenderer.sharedMaterial;
+                BreakoutSpriteRendererUtility.ApplyTint(clonePaddleRenderer, BreakoutSpriteRendererUtility.ResolveTint(sourceRenderer));
             }
 
             clonePaddleRenderer.sortingOrder = ClonePaddleSortingOrder;
@@ -457,8 +457,8 @@ namespace GetBricked.Gameplay
             if (sourceRenderer != null)
             {
                 mirrorRenderer.sprite = sourceRenderer.sprite;
-                mirrorRenderer.color = sourceRenderer.color;
                 mirrorRenderer.sharedMaterial = sourceRenderer.sharedMaterial;
+                BreakoutSpriteRendererUtility.ApplyTint(mirrorRenderer, BreakoutSpriteRendererUtility.ResolveTint(sourceRenderer));
                 BreakoutSpriteRendererUtility.NormalizeScale(mirrorRenderer);
             }
 

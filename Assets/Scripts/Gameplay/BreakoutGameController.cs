@@ -4284,6 +4284,7 @@ namespace GetBricked.Gameplay
                         ? $"Run Upgrade | Stacks {currentStacks}/{upgrade.MaxStacks} | {BuildUpgradeMechanicalSummary(upgrade)}"
                         : BuildDropUnlockDetail(dropUnlock),
                     Icon = ResolveDraftOfferIcon(offer),
+                    IconLabel = ResolveDraftOfferIconLabel(offer),
                     Accent = ResolveDraftOfferAccentColor(offer),
                 };
             }
@@ -6493,23 +6494,23 @@ namespace GetBricked.Gameplay
         {
             if (upgrade == null)
             {
-                return squareSprite;
+                return null;
             }
 
             var resourcePath = upgrade.ResolveIconSpriteResourcePath();
 
             if (string.IsNullOrWhiteSpace(resourcePath))
             {
-                return squareSprite;
+                return null;
             }
 
             if (!runUpgradeSpriteCache.TryGetValue(resourcePath, out var cachedSprite))
             {
-                cachedSprite = Resources.Load<Sprite>(resourcePath);
+                cachedSprite = BreakoutRuntimeVisualFactory.LoadSpriteResource(resourcePath);
                 runUpgradeSpriteCache[resourcePath] = cachedSprite;
             }
 
-            return cachedSprite != null ? cachedSprite : squareSprite;
+            return cachedSprite;
         }
 
         private Color ResolvePowerUpAccentColor(PowerUpDefinition definition)
@@ -6537,7 +6538,7 @@ namespace GetBricked.Gameplay
             {
                 if (!powerUpIconSpriteCache.TryGetValue(resourcePath, out var cachedSprite))
                 {
-                    cachedSprite = Resources.Load<Sprite>(resourcePath);
+                    cachedSprite = BreakoutRuntimeVisualFactory.LoadSpriteResource(resourcePath);
                     powerUpIconSpriteCache[resourcePath] = cachedSprite;
                 }
 
@@ -6575,12 +6576,75 @@ namespace GetBricked.Gameplay
         {
             if (offer == null)
             {
-                return squareSprite;
+                return null;
             }
 
-            return offer.Kind == BreakoutRunDraftOfferKind.DropUnlock
+            var icon = offer.Kind == BreakoutRunDraftOfferKind.DropUnlock
                 ? ResolvePowerUpIcon(offer.DropUnlockDefinition)
                 : ResolveRunUpgradeIcon(offer.UpgradeDefinition);
+            return icon == squareSprite ? null : icon;
+        }
+
+        private static string ResolveDraftOfferIconLabel(BreakoutRunDraftOffer offer)
+        {
+            if (offer == null)
+            {
+                return string.Empty;
+            }
+
+            var label = offer.Kind == BreakoutRunDraftOfferKind.DropUnlock
+                ? offer.DropUnlockDefinition?.HudLabel
+                : offer.UpgradeDefinition?.HudLabel;
+
+            if (string.IsNullOrWhiteSpace(label))
+            {
+                label = offer.DisplayName;
+            }
+
+            return BuildIconFallbackLabel(label);
+        }
+
+        private static string BuildIconFallbackLabel(string label)
+        {
+            if (string.IsNullOrWhiteSpace(label))
+            {
+                return string.Empty;
+            }
+
+            var normalized = label.Trim().ToUpperInvariant();
+
+            if (normalized.Length <= 5)
+            {
+                return normalized;
+            }
+
+            var builder = new System.Text.StringBuilder(5);
+            var takeNext = true;
+
+            for (var index = 0; index < normalized.Length && builder.Length < 5; index++)
+            {
+                var current = normalized[index];
+
+                if (char.IsLetterOrDigit(current))
+                {
+                    if (takeNext)
+                    {
+                        builder.Append(current);
+                    }
+
+                    takeNext = false;
+                    continue;
+                }
+
+                takeNext = true;
+            }
+
+            if (builder.Length > 0)
+            {
+                return builder.ToString();
+            }
+
+            return normalized.Substring(0, Mathf.Min(5, normalized.Length));
         }
 
         private void ShowRunDraftRewardBanner(BreakoutRunDraftOffer offer)

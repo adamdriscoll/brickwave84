@@ -83,7 +83,9 @@ python .codex/skills/unity-tests/scripts/run_unity_tests.py --platform editmode
 ```
 
 - Use Play Mode validation for scene lifecycle, collisions, physics timing, spawned runtime objects, input flow, and visual integration.
+- Before marking a user-facing task complete, create a production/player build and launch the built game so the user can inspect the result. Use the enabled build scene and a disposable ignored output path such as `Builds/Codex/`. If a dedicated build helper exists, use it; otherwise use Unity's build pipeline or editor build UI. Keep the built player running when handing off unless the user asks otherwise.
 - If Unity cannot run in the environment, report that clearly and include the closest completed validation.
+- If the production build or launch fails, do not call the task complete; report the build/run blocker, include the closest completed validation, and suggest the next concrete fix.
 - Let Unity regenerate project files after adding or renaming scripts instead of hand-maintaining generated solution files.
 
 ## Local Skills

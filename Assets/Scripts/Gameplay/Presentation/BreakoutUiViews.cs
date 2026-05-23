@@ -183,6 +183,7 @@ namespace GetBricked.Gameplay
         public string Description = string.Empty;
         public string Detail = string.Empty;
         public Sprite Icon;
+        public string IconLabel = string.Empty;
         public Color Accent = Color.white;
     }
 

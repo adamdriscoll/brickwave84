@@ -62,9 +62,9 @@ namespace GetBricked.Gameplay
             var ballStyle = styleResolver();
             var spriteRenderer = ballObject.AddComponent<SpriteRenderer>();
             spriteRenderer.sprite = ballStyle.Sprite;
-            spriteRenderer.color = ballStyle.PrimaryColor;
             spriteRenderer.sortingOrder = BallSortingOrder;
             spriteRenderer.sharedMaterial = spriteMaterial;
+            BreakoutSpriteRendererUtility.ApplyTint(spriteRenderer, ballStyle.PrimaryColor);
 
             var collider = ballObject.AddComponent<CircleCollider2D>();
             collider.sharedMaterial = physicsMaterial;

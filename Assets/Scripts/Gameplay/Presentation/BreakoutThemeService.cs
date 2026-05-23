@@ -175,7 +175,7 @@ namespace GetBricked.Gameplay
             var paddleStyle = ResolveThemeStyle(ThemeVisualSlot.Paddle, paddleFallback, paddleFallback, paddleFallbackSprite);
             paddleSpriteRenderer.sprite = paddleStyle.Sprite;
             BreakoutSpriteRendererUtility.NormalizeScale(paddleSpriteRenderer);
-            paddleSpriteRenderer.color = paddleStyle.PrimaryColor;
+            BreakoutSpriteRendererUtility.ApplyTint(paddleSpriteRenderer, paddleStyle.PrimaryColor);
 
             if (paddleSpriteRenderer.TryGetComponent<BreakoutGlowRenderer>(out var glowRenderer))
             {
@@ -216,7 +216,7 @@ namespace GetBricked.Gameplay
 
             if (spriteRenderer.TryGetComponent<BreakoutGlowRenderer>(out var glowRenderer))
             {
-                glowRenderer.ApplyColor(spriteRenderer.color);
+                glowRenderer.ApplyColor(BreakoutSpriteRendererUtility.ResolveTint(spriteRenderer));
             }
         }
 
@@ -289,7 +289,7 @@ namespace GetBricked.Gameplay
 
             if (!powerUpSpriteCache.TryGetValue(resourcePath, out var cachedSprite))
             {
-                cachedSprite = Resources.Load<Sprite>(resourcePath);
+                cachedSprite = BreakoutRuntimeVisualFactory.LoadSpriteResource(resourcePath);
                 powerUpSpriteCache[resourcePath] = cachedSprite;
             }
 
@@ -312,7 +312,7 @@ namespace GetBricked.Gameplay
 
             if (!brickSpriteCache.TryGetValue(resourcePath, out var cachedSprite))
             {
-                cachedSprite = Resources.Load<Sprite>(resourcePath);
+                cachedSprite = BreakoutRuntimeVisualFactory.LoadSpriteResource(resourcePath);
                 brickSpriteCache[resourcePath] = cachedSprite;
             }
 

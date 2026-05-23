@@ -737,7 +737,7 @@ namespace GetBricked.Gameplay
             var resolvedColor = IsExplosiveBall
                 ? Color.Lerp(baseVisualStyle.PrimaryColor, new Color(1f, 0.34f, 0.1f, 1f), 0.78f)
                 : baseVisualStyle.PrimaryColor;
-            spriteRenderer.color = resolvedColor;
+            BreakoutSpriteRendererUtility.ApplyTint(spriteRenderer, resolvedColor);
             glowRenderer?.ApplyColor(resolvedColor);
         }
 

@@ -105,8 +105,8 @@ namespace GetBricked.Gameplay
 
             glowRenderer.sprite = sprite;
             haloRenderer.sprite = sprite;
-            glowRenderer.color = new Color(color.r, color.g, color.b, glowAlpha * color.a);
-            haloRenderer.color = new Color(color.r, color.g, color.b, haloAlpha * color.a);
+            BreakoutSpriteRendererUtility.ApplyTint(glowRenderer, new Color(color.r, color.g, color.b, glowAlpha * color.a));
+            BreakoutSpriteRendererUtility.ApplyTint(haloRenderer, new Color(color.r, color.g, color.b, haloAlpha * color.a));
         }
     }
 }

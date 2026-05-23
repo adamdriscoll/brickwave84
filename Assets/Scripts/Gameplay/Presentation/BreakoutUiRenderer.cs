@@ -923,7 +923,7 @@ namespace GetBricked.Gameplay
 
                 var iconRect = new Rect(optionRect.x + 20f, optionRect.y + 48f, 68f, 68f);
                 DrawSectionLabel(new Rect(optionRect.x + 18f, optionRect.y + 16f, optionRect.width - 36f, 20f), $"PICK {index + 1}", accent);
-                DrawIconTile(iconRect, option.Icon, accent, isSelected);
+                DrawIconTile(iconRect, option.Icon, accent, isSelected, option.IconLabel);
                 DrawTextWithShadow(new Rect(optionRect.x + 104f, optionRect.y + 42f, optionRect.width - 124f, 78f), option.Title, draftOptionTitleStyle, palette.TextPrimary, 0.3f);
                 DrawTextWithShadow(new Rect(optionRect.x + 20f, optionRect.y + 132f, optionRect.width - 40f, Mathf.Max(96f, optionRect.height - 254f)), option.Description, draftOptionBodyStyle, palette.TextMuted, 0.22f);
                 DrawHorizontalGradient(new Rect(optionRect.x + 20f, optionRect.yMax - 110f, optionRect.width - 40f, 2f), WithAlpha(accent, 0.55f), WithAlpha(palette.AccentPrimary, 0.18f), 12);
@@ -1167,7 +1167,7 @@ namespace GetBricked.Gameplay
                 var iconRect = new Rect(iconX + index * (iconSize + iconSpacing), iconY, iconSize, iconSize);
                 var isHovered = iconRect.Contains(Event.current.mousePosition);
 
-                DrawIconTile(iconRect, item.Icon, item.Accent, isHovered);
+                DrawIconTile(iconRect, item.Icon, item.Accent, isHovered, item.Label);
                 DrawTextWithShadow(new Rect(iconRect.x, iconRect.yMax - 13f, iconRect.width, 12f), item.Label, modifierPanelLabelStyle, palette.TextPrimary, 0.2f);
 
                 if (item.StackCount > 1)
@@ -2485,7 +2485,7 @@ namespace GetBricked.Gameplay
             return GUI.Button(rect, GUIContent.none, GUIStyle.none);
         }
 
-        private void DrawIconTile(Rect rect, Sprite icon, Color accent, bool emphasize)
+        private void DrawIconTile(Rect rect, Sprite icon, Color accent, bool emphasize, string fallbackLabel = null)
         {
             DrawSolidRect(Inflate(rect, emphasize ? 5f : 3f), WithAlpha(accent, emphasize ? 0.16f : 0.07f));
             DrawSolidRect(rect, WithAlpha(palette.BezelDark, 0.72f));
@@ -2495,7 +2495,7 @@ namespace GetBricked.Gameplay
 
             if (iconTexture == null)
             {
-                DrawFallbackIconGlyph(new Rect(rect.x + 11f, rect.y + 11f, rect.width - 22f, rect.height - 22f), accent, emphasize);
+                DrawFallbackIconGlyph(new Rect(rect.x + 11f, rect.y + 11f, rect.width - 22f, rect.height - 22f), accent, emphasize, fallbackLabel);
                 return;
             }
 
@@ -3029,15 +3029,31 @@ namespace GetBricked.Gameplay
             return false;
         }
 
-        private void DrawFallbackIconGlyph(Rect rect, Color accent, bool emphasize)
+        private void DrawFallbackIconGlyph(Rect rect, Color accent, bool emphasize, string label = null)
         {
             var center = rect.center;
-            var coreSize = Mathf.Min(rect.width, rect.height) * (emphasize ? 0.56f : 0.5f);
+            var hasLabel = !string.IsNullOrWhiteSpace(label);
+            var coreSize = Mathf.Min(rect.width, rect.height) * (emphasize ? 0.64f : 0.58f);
             var coreRect = new Rect(center.x - (coreSize * 0.5f), center.y - (coreSize * 0.5f), coreSize, coreSize);
-            DrawSolidRect(coreRect, WithAlpha(accent, 0.86f));
-            DrawOutline(coreRect, WithAlpha(palette.TextPrimary, 0.18f), 1f);
-            DrawSolidRect(new Rect(center.x - 1.5f, rect.y + 3f, 3f, rect.height - 6f), WithAlpha(palette.TextPrimary, 0.2f));
-            DrawSolidRect(new Rect(rect.x + 3f, center.y - 1.5f, rect.width - 6f, 3f), WithAlpha(palette.TextPrimary, 0.2f));
+            DrawSolidRect(coreRect, WithAlpha(accent, hasLabel ? 0.24f : 0.86f));
+            DrawOutline(coreRect, WithAlpha(accent, hasLabel ? 0.92f : 0.45f), emphasize ? 2f : 1f);
+
+            if (!hasLabel)
+            {
+                DrawOutline(coreRect, WithAlpha(palette.TextPrimary, 0.18f), 1f);
+                DrawSolidRect(new Rect(center.x - 1.5f, rect.y + 3f, 3f, rect.height - 6f), WithAlpha(palette.TextPrimary, 0.2f));
+                DrawSolidRect(new Rect(rect.x + 3f, center.y - 1.5f, rect.width - 6f, 3f), WithAlpha(palette.TextPrimary, 0.2f));
+                return;
+            }
+
+            var iconText = label.Trim().ToUpperInvariant();
+            var previousFontSize = speedMeterValueStyle.fontSize;
+            var previousAlignment = speedMeterValueStyle.alignment;
+            speedMeterValueStyle.fontSize = Mathf.Clamp(Mathf.FloorToInt(coreRect.width / Mathf.Max(1.7f, iconText.Length * 0.62f)), 11, 19);
+            speedMeterValueStyle.alignment = TextAnchor.MiddleCenter;
+            DrawTextWithShadow(coreRect, iconText, speedMeterValueStyle, palette.TextPrimary, 0.25f);
+            speedMeterValueStyle.fontSize = previousFontSize;
+            speedMeterValueStyle.alignment = previousAlignment;
         }
 
         private static void DestroyRuntimeObject(UnityEngine.Object target)

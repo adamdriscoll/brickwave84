@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace GetBricked.Gameplay
@@ -7,6 +9,9 @@ namespace GetBricked.Gameplay
         private const string SpriteUnlitMaterialResourcePath = "Materials/RuntimeSpriteUnlit";
         private const string AdditiveSpriteMaterialResourcePath = "Materials/RuntimeSpriteAdditive";
         private const string AdditiveLineMaterialResourcePath = "Materials/RuntimeLineAdditive";
+        private static readonly Dictionary<string, Sprite> spriteResourceCache = new Dictionary<string, Sprite>(StringComparer.OrdinalIgnoreCase);
+        private static readonly Dictionary<string, Sprite> spriteNameCache = new Dictionary<string, Sprite>(StringComparer.OrdinalIgnoreCase);
+        private static readonly HashSet<string> indexedSpriteDirectories = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
         public static Sprite LoadSpriteResource(string resourcePath, Sprite fallbackSprite)
         {
@@ -15,8 +20,33 @@ namespace GetBricked.Gameplay
                 return fallbackSprite;
             }
 
-            var loadedSprite = Resources.Load<Sprite>(resourcePath);
+            var loadedSprite = LoadSpriteResource(resourcePath);
             return loadedSprite != null ? loadedSprite : fallbackSprite;
+        }
+
+        public static Sprite LoadSpriteResource(string resourcePath)
+        {
+            var normalizedPath = NormalizeResourcePath(resourcePath);
+
+            if (string.IsNullOrWhiteSpace(normalizedPath))
+            {
+                return null;
+            }
+
+            if (spriteResourceCache.TryGetValue(normalizedPath, out var cachedSprite))
+            {
+                return cachedSprite;
+            }
+
+            var loadedSprite = Resources.Load<Sprite>(normalizedPath);
+
+            if (loadedSprite == null)
+            {
+                loadedSprite = ResolveSpriteFromDirectoryIndex(normalizedPath);
+            }
+
+            spriteResourceCache[normalizedPath] = loadedSprite;
+            return loadedSprite;
         }
 
         public static Material CreateSpriteUnlitMaterial()
@@ -142,6 +172,71 @@ namespace GetBricked.Gameplay
                 name = materialName,
                 hideFlags = HideFlags.DontSave,
             };
+        }
+
+        private static Sprite ResolveSpriteFromDirectoryIndex(string normalizedPath)
+        {
+            var slashIndex = normalizedPath.LastIndexOf('/');
+            var directory = slashIndex >= 0 ? normalizedPath.Substring(0, slashIndex) : string.Empty;
+            var spriteName = slashIndex >= 0 ? normalizedPath.Substring(slashIndex + 1) : normalizedPath;
+
+            IndexSpriteDirectory(directory);
+
+            if (spriteNameCache.TryGetValue(normalizedPath, out var pathMatchedSprite))
+            {
+                return pathMatchedSprite;
+            }
+
+            return spriteNameCache.TryGetValue(spriteName, out var nameMatchedSprite)
+                ? nameMatchedSprite
+                : null;
+        }
+
+        private static void IndexSpriteDirectory(string directory)
+        {
+            var normalizedDirectory = NormalizeResourcePath(directory);
+
+            if (!indexedSpriteDirectories.Add(normalizedDirectory))
+            {
+                return;
+            }
+
+            var sprites = Resources.LoadAll<Sprite>(normalizedDirectory);
+
+            for (var index = 0; index < sprites.Length; index++)
+            {
+                var sprite = sprites[index];
+
+                if (sprite == null || string.IsNullOrWhiteSpace(sprite.name))
+                {
+                    continue;
+                }
+
+                var pathKey = string.IsNullOrWhiteSpace(normalizedDirectory)
+                    ? sprite.name
+                    : $"{normalizedDirectory}/{sprite.name}";
+                spriteNameCache[pathKey] = sprite;
+                spriteNameCache[sprite.name] = sprite;
+            }
+        }
+
+        private static string NormalizeResourcePath(string resourcePath)
+        {
+            var normalizedPath = resourcePath.Trim().Replace('\\', '/');
+
+            if (normalizedPath.StartsWith("Assets/Resources/", StringComparison.OrdinalIgnoreCase))
+            {
+                normalizedPath = normalizedPath.Substring("Assets/Resources/".Length);
+            }
+
+            var extensionIndex = normalizedPath.LastIndexOf('.');
+
+            if (extensionIndex > normalizedPath.LastIndexOf('/'))
+            {
+                normalizedPath = normalizedPath.Substring(0, extensionIndex);
+            }
+
+            return normalizedPath.Trim('/');
         }
 
         public static Sprite CreateSquareSprite()

@@ -4,6 +4,38 @@ namespace GetBricked.Gameplay
 {
     internal static class BreakoutSpriteRendererUtility
     {
+        private static readonly int ColorPropertyId = Shader.PropertyToID("_Color");
+        private static readonly int BaseColorPropertyId = Shader.PropertyToID("_BaseColor");
+        private static MaterialPropertyBlock propertyBlock;
+
+        public static void ApplyTint(SpriteRenderer spriteRenderer, Color color)
+        {
+            if (spriteRenderer == null)
+            {
+                return;
+            }
+
+            spriteRenderer.color = Color.white;
+            propertyBlock ??= new MaterialPropertyBlock();
+            spriteRenderer.GetPropertyBlock(propertyBlock);
+            propertyBlock.SetColor(ColorPropertyId, color);
+            propertyBlock.SetColor(BaseColorPropertyId, color);
+            spriteRenderer.SetPropertyBlock(propertyBlock);
+        }
+
+        public static Color ResolveTint(SpriteRenderer spriteRenderer)
+        {
+            if (spriteRenderer == null)
+            {
+                return Color.white;
+            }
+
+            propertyBlock ??= new MaterialPropertyBlock();
+            spriteRenderer.GetPropertyBlock(propertyBlock);
+            var color = propertyBlock.GetColor(ColorPropertyId);
+            return color.a > 0.0001f ? color : spriteRenderer.color;
+        }
+
         public static void NormalizeScale(SpriteRenderer spriteRenderer)
         {
             if (spriteRenderer == null)
