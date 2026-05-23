@@ -45,6 +45,19 @@ public sealed class BreakoutProgressionPageTests
         Assert.That(actions[0], Is.EqualTo(BreakoutMainMenuAction.Rogue));
         Assert.That(Array.IndexOf(actions, BreakoutMainMenuAction.Progression), Is.EqualTo(-1));
         Assert.That(actions[1], Is.EqualTo(BreakoutMainMenuAction.SoloMarathon));
+        Assert.That(actions[actions.Length - 1], Is.EqualTo(BreakoutMainMenuAction.QuitGame));
+    }
+
+    [Test]
+    public void MainMenuShowsPowerDownQuitAction()
+    {
+        var view = new BreakoutMainMenuService().BuildView(new BreakoutMainMenuContext());
+        var powerDownIndex = Array.IndexOf(view.ActionLabels, "Power Down");
+
+        Assert.That(view.ActionLabels, Has.Some.EqualTo("Power Down"));
+        Assert.That(view.ActionGroupLabels[powerDownIndex], Is.EqualTo("Cabinet"));
+        Assert.That(view.ActionTones[powerDownIndex], Is.EqualTo(BreakoutUiMenuActionTone.Danger));
+        Assert.That(view.ActionIcons[powerDownIndex], Is.EqualTo(BreakoutUiMenuActionIcon.Power));
     }
 
     [Test]

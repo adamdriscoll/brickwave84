@@ -16,6 +16,7 @@ namespace GetBricked.Gameplay
         SoundSettings,
         GraphicsSettings,
         DeveloperMode,
+        QuitGame,
     }
 
     internal sealed class BreakoutMainMenuContext
@@ -50,6 +51,7 @@ namespace GetBricked.Gameplay
             BreakoutMainMenuAction.SoundSettings,
             BreakoutMainMenuAction.GraphicsSettings,
             BreakoutMainMenuAction.DeveloperMode,
+            BreakoutMainMenuAction.QuitGame,
         };
 
         public BreakoutMainMenuAction[] BuildActions()
@@ -71,6 +73,8 @@ namespace GetBricked.Gameplay
                 SectionTitle = string.Empty,
                 ActionLabels = BuildActionLabels(actions),
                 ActionGroupLabels = BuildActionGroupLabels(actions),
+                ActionTones = BuildActionTones(actions),
+                ActionIcons = BuildActionIcons(actions),
                 SelectedActionIndex = context.SelectedActionIndex,
                 PreviewTitle = BuildPreviewTitle(selectedAction),
                 PreviewLines = BuildPreviewLines(selectedAction, context),
@@ -99,6 +103,7 @@ namespace GetBricked.Gameplay
                 BreakoutMainMenuAction.LifetimeStats => "Stats shows the cabinet-wide totals from finished and abandoned runs.",
                 BreakoutMainMenuAction.SoundSettings => "Cabinet sound is staged for master, music, and SFX volume controls.",
                 BreakoutMainMenuAction.GraphicsSettings => "Cabinet graphics are staged for future display, glow, scanline, and readability controls.",
+                BreakoutMainMenuAction.QuitGame => "Power Down closes the cabinet.",
                 _ => string.Empty,
             };
         }
@@ -121,11 +126,40 @@ namespace GetBricked.Gameplay
                     BreakoutMainMenuAction.SoundSettings => "Sound",
                     BreakoutMainMenuAction.GraphicsSettings => "Graphics",
                     BreakoutMainMenuAction.DeveloperMode => "Dev",
+                    BreakoutMainMenuAction.QuitGame => "Power Down",
                     _ => actions[index].ToString(),
                 };
             }
 
             return labels;
+        }
+
+        private static BreakoutUiMenuActionTone[] BuildActionTones(BreakoutMainMenuAction[] actions)
+        {
+            var tones = new BreakoutUiMenuActionTone[actions.Length];
+
+            for (var index = 0; index < actions.Length; index++)
+            {
+                tones[index] = actions[index] == BreakoutMainMenuAction.QuitGame
+                    ? BreakoutUiMenuActionTone.Danger
+                    : BreakoutUiMenuActionTone.Standard;
+            }
+
+            return tones;
+        }
+
+        private static BreakoutUiMenuActionIcon[] BuildActionIcons(BreakoutMainMenuAction[] actions)
+        {
+            var icons = new BreakoutUiMenuActionIcon[actions.Length];
+
+            for (var index = 0; index < actions.Length; index++)
+            {
+                icons[index] = actions[index] == BreakoutMainMenuAction.QuitGame
+                    ? BreakoutUiMenuActionIcon.Power
+                    : BreakoutUiMenuActionIcon.None;
+            }
+
+            return icons;
         }
 
         private static string[] BuildActionGroupLabels(BreakoutMainMenuAction[] actions)
@@ -146,6 +180,7 @@ namespace GetBricked.Gameplay
                     BreakoutMainMenuAction.SoundSettings => "Cabinet",
                     BreakoutMainMenuAction.GraphicsSettings => "Cabinet",
                     BreakoutMainMenuAction.DeveloperMode => "Cabinet",
+                    BreakoutMainMenuAction.QuitGame => "Cabinet",
                     _ => string.Empty,
                 };
             }
@@ -168,6 +203,7 @@ namespace GetBricked.Gameplay
                 BreakoutMainMenuAction.SoundSettings => "Cabinet Sound",
                 BreakoutMainMenuAction.GraphicsSettings => "Cabinet Graphics",
                 BreakoutMainMenuAction.DeveloperMode => "Developer Jump",
+                BreakoutMainMenuAction.QuitGame => "Power Down",
                 _ => "Cabinet Readout",
             };
         }
@@ -276,6 +312,13 @@ namespace GetBricked.Gameplay
                         "For local tuning only. No progression result is protected here yet.",
                         "Status: active debug bench.",
                     };
+                case BreakoutMainMenuAction.QuitGame:
+                    return new[]
+                    {
+                        "Close Brickwave '84 and return to the desktop.",
+                        "Current setup choices are already saved by the cabinet.",
+                        "Runs only record stats when they end, restart, or return to the menu.",
+                    };
                 default:
                     return Array.Empty<string>();
             }
@@ -306,6 +349,7 @@ namespace GetBricked.Gameplay
                 BreakoutMainMenuAction.GraphicsSettings => "Display and glow controls staged for later.",
                 BreakoutMainMenuAction.TurnBased => "Set players, match mode, and heat.",
                 BreakoutMainMenuAction.DeveloperMode => "Local stage and tuning jump bench.",
+                BreakoutMainMenuAction.QuitGame => "Close the cabinet.",
                 _ => "Cabinet channel staged for later.",
             };
         }

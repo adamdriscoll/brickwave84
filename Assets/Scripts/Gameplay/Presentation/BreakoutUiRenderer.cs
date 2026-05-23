@@ -68,6 +68,7 @@ namespace GetBricked.Gameplay
         private Material vectorIconMaterial;
         private Material spriteIconMaterial;
         private Texture2D fallbackLifeIconTexture;
+        private Texture2D powerIconTexture;
         private BreakoutUiThemePalette palette = new BreakoutUiThemePalette();
 
         private readonly struct ActionGroupRange
@@ -116,6 +117,12 @@ namespace GetBricked.Gameplay
             {
                 DestroyRuntimeObject(fallbackLifeIconTexture);
                 fallbackLifeIconTexture = null;
+            }
+
+            if (powerIconTexture != null)
+            {
+                DestroyRuntimeObject(powerIconTexture);
+                powerIconTexture = null;
             }
         }
 
@@ -194,6 +201,8 @@ namespace GetBricked.Gameplay
             DrawActionGroupRows(
                 view.ActionLabels,
                 view.ActionGroupLabels,
+                view.ActionTones,
+                view.ActionIcons,
                 view.SelectedActionIndex,
                 contentRect,
                 onActionClicked);
@@ -2317,6 +2326,8 @@ namespace GetBricked.Gameplay
         private void DrawActionGroupRows(
             string[] labels,
             string[] groupLabels,
+            BreakoutUiMenuActionTone[] actionTones,
+            BreakoutUiMenuActionIcon[] actionIcons,
             int selectedIndex,
             Rect rect,
             Action<int> onActionClicked)
@@ -2343,7 +2354,7 @@ namespace GetBricked.Gameplay
                         ? multiplayerHeight
                         : settingsHeight;
                 var rowRect = new Rect(rect.x, currentY, rect.width, Mathf.Max(94f, rowHeight));
-                DrawActionGroupRow(labels, groupLabels, selectedIndex, group.StartIndex, group.Count, rowRect, onActionClicked);
+                DrawActionGroupRow(labels, groupLabels, actionTones, actionIcons, selectedIndex, group.StartIndex, group.Count, rowRect, onActionClicked);
                 currentY = rowRect.yMax + groupGap;
             }
         }
@@ -2351,6 +2362,8 @@ namespace GetBricked.Gameplay
         private void DrawActionGroupRow(
             string[] labels,
             string[] groupLabels,
+            BreakoutUiMenuActionTone[] actionTones,
+            BreakoutUiMenuActionIcon[] actionIcons,
             int selectedIndex,
             int startIndex,
             int count,
@@ -2372,8 +2385,8 @@ namespace GetBricked.Gameplay
             var buttonGap = 14f;
             var buttonY = rect.y + 48f;
             var usesCabinetGrid = string.Equals(group, "Cabinet", StringComparison.Ordinal) && count > 2;
-            var columnCount = usesCabinetGrid ? 2 : count;
-            var rowCount = usesCabinetGrid ? Mathf.CeilToInt(count / 2f) : 1;
+            var columnCount = usesCabinetGrid ? (count >= 5 ? 3 : 2) : count;
+            var rowCount = usesCabinetGrid ? Mathf.CeilToInt((float)count / columnCount) : 1;
             var availableButtonHeight = Mathf.Max(38f, rect.yMax - buttonY - 18f);
             var buttonHeight = usesCabinetGrid
                 ? Mathf.Max(34f, (availableButtonHeight - (buttonGap * (rowCount - 1))) / rowCount)
@@ -2387,15 +2400,24 @@ namespace GetBricked.Gameplay
             {
                 var index = startIndex + offset;
                 var isSelected = index == Mathf.Clamp(selectedIndex, 0, Math.Max(0, labels.Length - 1));
+                var tone = ResolveActionTone(actionTones, index);
+                var icon = ResolveActionIcon(actionIcons, index);
                 var column = usesCabinetGrid ? offset % columnCount : offset;
                 var row = usesCabinetGrid ? offset / columnCount : 0;
+                var spansRemainingRow = usesCabinetGrid
+                    && tone == BreakoutUiMenuActionTone.Danger
+                    && offset == count - 1
+                    && column < columnCount - 1;
+                var actionWidth = spansRemainingRow
+                    ? (buttonWidth * (columnCount - column)) + (buttonGap * (columnCount - column - 1))
+                    : buttonWidth;
                 var actionRect = new Rect(
                     rect.x + 20f + (column * (buttonWidth + buttonGap)),
                     buttonY + (row * (buttonHeight + buttonGap)),
-                    buttonWidth,
+                    actionWidth,
                     buttonHeight);
 
-                if (DrawArcadeButton(actionRect, labels[index], isSelected))
+                if (DrawArcadeButton(actionRect, labels[index], isSelected, tone, icon))
                 {
                     onActionClicked?.Invoke(index);
                 }
@@ -2465,24 +2487,93 @@ namespace GetBricked.Gameplay
             }
         }
 
-        private bool DrawArcadeButton(Rect rect, string label, bool isSelected)
+        private bool DrawArcadeButton(
+            Rect rect,
+            string label,
+            bool isSelected,
+            BreakoutUiMenuActionTone tone = BreakoutUiMenuActionTone.Standard,
+            BreakoutUiMenuActionIcon icon = BreakoutUiMenuActionIcon.None)
         {
-            var leftAccent = isSelected ? palette.AccentSecondary : WithAlpha(palette.AccentSecondary, 0.45f);
-            var rightAccent = isSelected ? palette.AccentPrimary : WithAlpha(palette.AccentPrimary, 0.45f);
-            DrawPanel(rect, leftAccent, rightAccent, isSelected, 1.5f);
+            var isDanger = tone == BreakoutUiMenuActionTone.Danger;
+            var baseLeftAccent = isDanger ? palette.Danger : palette.AccentSecondary;
+            var baseRightAccent = isDanger ? palette.AccentWarm : palette.AccentPrimary;
+            var leftAccent = isSelected ? baseLeftAccent : WithAlpha(baseLeftAccent, isDanger ? 0.72f : 0.45f);
+            var rightAccent = isSelected ? baseRightAccent : WithAlpha(baseRightAccent, isDanger ? 0.68f : 0.45f);
+
+            if (isDanger)
+            {
+                DrawSolidRect(Inflate(rect, isSelected ? 14f : 9f), WithAlpha(palette.Danger, isSelected ? 0.14f : 0.08f));
+            }
+
+            DrawPanel(rect, leftAccent, rightAccent, isSelected || isDanger, isDanger ? 2.4f : 1.5f);
+
+            if (isDanger)
+            {
+                DrawSolidRect(new Rect(rect.x + 9f, rect.y + 8f, 4f, rect.height - 16f), isSelected ? palette.Danger : WithAlpha(palette.Danger, 0.72f));
+            }
 
             if (isSelected)
             {
-                DrawSolidRect(new Rect(rect.x + 8f, rect.y + rect.height - 7f, rect.width - 16f, 3f), palette.AccentWarm);
+                DrawSolidRect(new Rect(rect.x + 8f, rect.y + rect.height - 7f, rect.width - 16f, isDanger ? 4f : 3f), palette.AccentWarm);
+            }
+
+            var textRect = rect;
+            var textColor = isSelected
+                ? palette.TextPrimary
+                : isDanger
+                    ? Color.Lerp(palette.TextPrimary, palette.AccentWarm, 0.24f)
+                    : palette.TextMuted;
+            var textStyle = isSelected || isDanger ? overlaySelectedActionStyle : overlayActionStyle;
+            var previousAlignment = textStyle.alignment;
+
+            if (icon != BreakoutUiMenuActionIcon.None)
+            {
+                var iconSize = Mathf.Min(rect.height - 14f, 36f);
+                var iconRect = new Rect(rect.x + 24f, rect.y + ((rect.height - iconSize) * 0.5f), iconSize, iconSize);
+                DrawMenuActionIcon(iconRect, icon, isDanger ? palette.Danger : baseRightAccent, isSelected || isDanger);
+                textRect = new Rect(iconRect.xMax + 12f, rect.y, rect.xMax - iconRect.xMax - 24f, rect.height);
+                textStyle.alignment = TextAnchor.MiddleLeft;
             }
 
             DrawTextWithShadow(
-                rect,
+                textRect,
                 ToArcadeLabel(label),
-                isSelected ? overlaySelectedActionStyle : overlayActionStyle,
-                isSelected ? palette.TextPrimary : palette.TextMuted,
-                0.25f);
+                textStyle,
+                textColor,
+                isDanger ? 0.36f : 0.25f);
+            textStyle.alignment = previousAlignment;
             return GUI.Button(rect, GUIContent.none, GUIStyle.none);
+        }
+
+        private static BreakoutUiMenuActionTone ResolveActionTone(BreakoutUiMenuActionTone[] actionTones, int index)
+        {
+            return actionTones != null && index >= 0 && index < actionTones.Length
+                ? actionTones[index]
+                : BreakoutUiMenuActionTone.Standard;
+        }
+
+        private static BreakoutUiMenuActionIcon ResolveActionIcon(BreakoutUiMenuActionIcon[] actionIcons, int index)
+        {
+            return actionIcons != null && index >= 0 && index < actionIcons.Length
+                ? actionIcons[index]
+                : BreakoutUiMenuActionIcon.None;
+        }
+
+        private void DrawMenuActionIcon(Rect rect, BreakoutUiMenuActionIcon icon, Color accent, bool emphasize)
+        {
+            if (icon == BreakoutUiMenuActionIcon.None)
+            {
+                return;
+            }
+
+            DrawSolidRect(Inflate(rect, emphasize ? 6f : 4f), WithAlpha(accent, emphasize ? 0.16f : 0.08f));
+            DrawSolidRect(Inflate(rect, 2f), WithAlpha(palette.BezelDark, 0.64f));
+            DrawOutline(Inflate(rect, 2f), WithAlpha(accent, emphasize ? 0.78f : 0.44f), emphasize ? 2f : 1f);
+
+            var previousGuiColor = GUI.color;
+            GUI.color = emphasize ? palette.TextPrimary : WithAlpha(palette.TextMuted, 0.9f);
+            GUI.DrawTexture(rect, GetPowerIconTexture(), ScaleMode.ScaleToFit, true);
+            GUI.color = previousGuiColor;
         }
 
         private void DrawIconTile(Rect rect, Sprite icon, Color accent, bool emphasize, string fallbackLabel = null)
@@ -2971,6 +3062,51 @@ namespace GetBricked.Gameplay
             fallbackLifeIconTexture.SetPixels32(pixels);
             fallbackLifeIconTexture.Apply(false, false);
             return fallbackLifeIconTexture;
+        }
+
+        private Texture2D GetPowerIconTexture()
+        {
+            if (powerIconTexture != null)
+            {
+                return powerIconTexture;
+            }
+
+            const int size = 64;
+            var pixels = new Color32[size * size];
+            var center = new Vector2((size - 1) * 0.5f, size * 0.55f);
+            var radius = size * 0.28f;
+            var thickness = size * 0.055f;
+
+            for (var y = 0; y < size; y++)
+            {
+                for (var x = 0; x < size; x++)
+                {
+                    var position = new Vector2(x, y);
+                    var dx = position.x - center.x;
+                    var dy = position.y - center.y;
+                    var distance = Mathf.Sqrt((dx * dx) + (dy * dy));
+                    var ring = 1f - Mathf.Clamp01(Mathf.Abs(distance - radius) / thickness);
+                    var topGap = Mathf.Abs(dx) < size * 0.12f && dy < -radius * 0.48f;
+                    var lineX = Mathf.Abs(dx) < size * 0.04f;
+                    var lineY = position.y >= size * 0.12f && position.y <= center.y - (radius * 0.08f);
+                    var line = lineX && lineY ? 1f : 0f;
+                    var capDistance = Vector2.Distance(position, new Vector2(center.x, size * 0.12f));
+                    var cap = capDistance <= size * 0.04f ? 1f : 0f;
+                    var alpha = Mathf.Clamp01((topGap ? 0f : ring) + line + cap);
+                    pixels[(y * size) + x] = new Color32(255, 255, 255, (byte)Mathf.RoundToInt(255f * alpha));
+                }
+            }
+
+            powerIconTexture = new Texture2D(size, size, TextureFormat.RGBA32, false)
+            {
+                name = "RuntimePowerIcon",
+                filterMode = FilterMode.Bilinear,
+                wrapMode = TextureWrapMode.Clamp,
+                hideFlags = HideFlags.DontSave,
+            };
+            powerIconTexture.SetPixels32(pixels);
+            powerIconTexture.Apply(false, false);
+            return powerIconTexture;
         }
 
         private static bool HasVisiblePixels(Texture2D texture)

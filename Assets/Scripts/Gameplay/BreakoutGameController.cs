@@ -2099,6 +2099,12 @@ namespace GetBricked.Gameplay
                 return;
             }
 
+            if (action == BreakoutMainMenuAction.QuitGame)
+            {
+                QuitGame();
+                return;
+            }
+
             pendingValidationMessage = mainMenuService?.BuildPlaceholderMessage(action) ?? string.Empty;
         }
 
@@ -5473,7 +5479,7 @@ namespace GetBricked.Gameplay
 
         private void QuitGame()
         {
-            Debug.Log("Quit requested from the in-game menu.");
+            Debug.Log("Quit requested from the cabinet menu.");
 
 #if UNITY_EDITOR
             UnityEditor.EditorApplication.isPlaying = false;

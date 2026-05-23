@@ -42,12 +42,26 @@ namespace GetBricked.Gameplay
         public string SectionTitle = string.Empty;
         public string[] ActionLabels = Array.Empty<string>();
         public string[] ActionGroupLabels = Array.Empty<string>();
+        public BreakoutUiMenuActionTone[] ActionTones = Array.Empty<BreakoutUiMenuActionTone>();
+        public BreakoutUiMenuActionIcon[] ActionIcons = Array.Empty<BreakoutUiMenuActionIcon>();
         public int SelectedActionIndex;
         public string PreviewTitle = string.Empty;
         public string[] PreviewLines = Array.Empty<string>();
         public string ValidationText = string.Empty;
         public string FooterText = string.Empty;
         public string HintText = string.Empty;
+    }
+
+    internal enum BreakoutUiMenuActionTone
+    {
+        Standard,
+        Danger,
+    }
+
+    internal enum BreakoutUiMenuActionIcon
+    {
+        None,
+        Power,
     }
 
     internal enum BreakoutUiProgressionUnlockState
