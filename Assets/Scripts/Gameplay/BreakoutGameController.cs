@@ -673,6 +673,29 @@ namespace GetBricked.Gameplay
             EvaluateLevelCompletion();
         }
 
+        public bool TryHandleSolarShot(BallController scoringBall, Brick brick)
+        {
+            if (scoringBall == null
+                || brick == null
+                || brick.IsPendingRemoval
+                || powerUpService == null
+                || powerUpService.SolarShotCharges <= 0
+                || !IsSolarShotVulnerable(brick))
+            {
+                return false;
+            }
+
+            if (!powerUpService.TryConsumeSolarShotCharge())
+            {
+                return false;
+            }
+
+            scoringBall.ContinueThroughBrickImpact();
+            brick.ApplyEffectHit(scoringBall, BrickDestructionCause.Impact, Mathf.Max(1, brick.HitPointsRemaining));
+            powerUpService.ShowStatusBanner("SOLAR SHOT!", ResolveSolarShotColor(), 1.25f);
+            return true;
+        }
+
         public void HandleBallLost(BallController lostBall)
         {
             if (!IsGameplaySimulationActive() || lostBall == null)
@@ -6945,11 +6968,25 @@ namespace GetBricked.Gameplay
                 PowerUpEffectType.CapsuleMagnet => $"Helpful capsules drift for {definition.DurationSeconds:0.#}s",
                 PowerUpEffectType.BankBonus => $"+{Mathf.Max(1, Mathf.RoundToInt(definition.Scalar))}/wall bank for {definition.DurationSeconds:0.#}s",
                 PowerUpEffectType.PrismPop => $"Next brick hit splits a {definition.Scalar:0.#}s copy ball",
+                PowerUpEffectType.SolarShot => "Next weak brick burns through",
                 PowerUpEffectType.MissileStock => $"+{Mathf.Max(1, definition.ExtraBallCount > 0 ? definition.ExtraBallCount : Mathf.RoundToInt(definition.Scalar))} missile stock",
                 PowerUpEffectType.RandomHarmfulDrop => "Disguised random hazard",
                 PowerUpEffectType.RandomMixedDrop => "Random helpful drop and hazard",
                 _ => $"{definition.HudLabel} for {definition.DurationSeconds:0.#}s",
             };
+        }
+
+        private static bool IsSolarShotVulnerable(Brick brick)
+        {
+            return brick != null
+                && brick.Definition != null
+                && brick.Definition.IsBreakable
+                && brick.HitPointsRemaining <= 1;
+        }
+
+        private Color ResolveSolarShotColor()
+        {
+            return new Color(1f, 0.84f, 0.28f, 1f);
         }
 
         private static float ResolveExplosiveBallExplosionRadius(float strength)

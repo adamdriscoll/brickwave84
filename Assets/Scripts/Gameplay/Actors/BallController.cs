@@ -533,6 +533,13 @@ namespace GetBricked.Gameplay
                 return;
             }
 
+            if (collision.collider.TryGetComponent<Brick>(out var solarShotBrick)
+                && gameController != null
+                && gameController.TryHandleSolarShot(this, solarShotBrick))
+            {
+                return;
+            }
+
             if (phaseThroughBricks
                 && collision.collider.TryGetComponent<Brick>(out var hitBrick)
                 && hitBrick.Definition != null
@@ -648,7 +655,7 @@ namespace GetBricked.Gameplay
             return paddleFollowOffset + (baseRadius * (sizeMultiplier - 1f));
         }
 
-        private void ContinueThroughBrickImpact()
+        public void ContinueThroughBrickImpact()
         {
             if (ballBody == null)
             {

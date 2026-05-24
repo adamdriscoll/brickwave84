@@ -316,6 +316,57 @@ public sealed class BreakoutGameControllerPowerUpTests
     }
 
     [Test]
+    public void SolarShotBurnsThroughWeakBrickAndConsumesOneCharge()
+    {
+        var controller = CreateControllerHarness(out var paddle);
+        var scoringBall = CreateBallHarness(controller, paddle);
+        var brick = CreateBrickHarness(controller, "Solar Brick", 100, new Vector2(0f, 2f));
+        var solarShot = CreatePowerUp(
+            "Solar Shot",
+            PowerUpEffectType.SolarShot,
+            beneficial: true,
+            durationSeconds: 0f,
+            scalar: 1f);
+
+        SetPrivateField(brick, "maxHitPoints", 1);
+        SetPrivateField(brick, "hitPointsRemaining", 1);
+        GetPrivateField<List<Brick>>(controller, "bricks").Add(brick);
+        GetPrivateField<List<BallController>>(controller, "activeBalls").Add(scoringBall);
+        InvokePrivateMethod(controller, "ApplyPowerUp", solarShot);
+
+        Assert.That(controller.TryHandleSolarShot(scoringBall, brick), Is.True);
+
+        var powerUpService = GetPrivateField<object>(controller, "powerUpService");
+        Assert.That(GetPropertyValue<int>(powerUpService, "SolarShotCharges"), Is.Zero);
+        Assert.That(GetPrivateField<int>(controller, "score"), Is.GreaterThan(0));
+        Assert.That(GetPrivateField<List<Brick>>(controller, "bricks"), Is.Empty);
+    }
+
+    [Test]
+    public void SolarShotIgnoresBricksThatStillNeedMultipleHits()
+    {
+        var controller = CreateControllerHarness(out var paddle);
+        var scoringBall = CreateBallHarness(controller, paddle);
+        var brick = CreateBrickHarness(controller, "Fortified Solar Brick", 100, new Vector2(0f, 2f));
+        var solarShot = CreatePowerUp(
+            "Solar Shot",
+            PowerUpEffectType.SolarShot,
+            beneficial: true,
+            durationSeconds: 0f,
+            scalar: 1f);
+
+        SetPrivateField(brick, "maxHitPoints", 2);
+        SetPrivateField(brick, "hitPointsRemaining", 2);
+        InvokePrivateMethod(controller, "ApplyPowerUp", solarShot);
+
+        Assert.That(controller.TryHandleSolarShot(scoringBall, brick), Is.False);
+
+        var powerUpService = GetPrivateField<object>(controller, "powerUpService");
+        Assert.That(GetPropertyValue<int>(powerUpService, "SolarShotCharges"), Is.EqualTo(1));
+        Assert.That(GetPrivateField<int>(controller, "score"), Is.Zero);
+    }
+
+    [Test]
     public void RewardMissilePurchaseRequiresFiveThousandPoints()
     {
         Assert.That(BreakoutGameController.CanPurchaseMissile(4999), Is.False);

@@ -426,6 +426,8 @@ namespace GetBricked.Gameplay
 
         public int BankBonusChargePoints { get; private set; }
 
+        public int SolarShotCharges { get; private set; }
+
         public void UpdateTimedEffects(bool isPlaying, float deltaTime, System.Action modifiersChanged)
         {
             if (!isPlaying)
@@ -654,6 +656,14 @@ namespace GetBricked.Gameplay
                 return default;
             }
 
+            if (powerUpDefinition.EffectType == PowerUpEffectType.SolarShot)
+            {
+                SolarShotCharges += Mathf.Max(1, powerUpDefinition.ExtraBallCount > 0 ? powerUpDefinition.ExtraBallCount : Mathf.RoundToInt(powerUpDefinition.Scalar));
+                ShowPickupBanner(powerUpDefinition, themeService, SolarShotCharges);
+
+                return default;
+            }
+
             ShowPickupBanner(powerUpDefinition, themeService, 1);
 
             return powerUpDefinition.EffectType switch
@@ -767,6 +777,7 @@ namespace GetBricked.Gameplay
         public void ClearTimedEffects()
         {
             ActiveTimedEffects.Clear();
+            SolarShotCharges = 0;
             ClearBankBonusCharge();
         }
 
@@ -824,6 +835,17 @@ namespace GetBricked.Gameplay
             }
 
             return false;
+        }
+
+        public bool TryConsumeSolarShotCharge()
+        {
+            if (SolarShotCharges <= 0)
+            {
+                return false;
+            }
+
+            SolarShotCharges--;
+            return true;
         }
 
         public bool TryConsumeCleanCatchCharge(out PowerUpDefinition definition, out float aimMultiplier)
@@ -917,12 +939,23 @@ namespace GetBricked.Gameplay
         {
             var summaries = BuildTimedEffectStackSummaries();
 
-            if (summaries.Count == 0)
+            if (summaries.Count == 0 && SolarShotCharges <= 0)
             {
                 return "Active Effects: none";
             }
 
             var builder = new StringBuilder("Active Effects: ");
+
+            if (SolarShotCharges > 0)
+            {
+                builder.Append("SOLAR");
+
+                if (SolarShotCharges > 1)
+                {
+                    builder.Append(" x");
+                    builder.Append(SolarShotCharges);
+                }
+            }
 
             for (var index = 0; index < summaries.Count; index++)
             {

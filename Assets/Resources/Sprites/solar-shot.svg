@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
+  <title id="title">Solar Shot</title>
+  <desc id="desc">A monochrome neon icon showing a bright ball burning through a weak brick.</desc>
+  <defs>
+    <filter id="softGlow" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="2.25" result="blur"/>
+      <feColorMatrix in="blur" type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 .8 0" result="glow"/>
+      <feMerge>
+        <feMergeNode in="glow"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <style><![CDATA[
+      .icon { fill: none; stroke: #fff; stroke-linecap: round; stroke-linejoin: round; filter: url(#softGlow); }
+      .main { stroke-width: 10; opacity: .96; }
+      .mid { stroke-width: 6; opacity: .82; }
+      .thin { stroke-width: 3.5; opacity: .5; }
+      .fill { fill: #fff; stroke: none; opacity: .9; filter: url(#softGlow); }
+      .soft { fill: #fff; stroke: none; opacity: .18; filter: url(#softGlow); }
+    ]]></style>
+  </defs>
+  <g class="icon">
+    <path class="soft" d="M70 127 124 68 108 111 183 78 132 133 149 117 93 189 111 143z"/>
+    <path class="main" d="M41 112h58v34H41z"/>
+    <path class="mid" d="M52 129h34"/>
+    <path class="main" d="M158 112h58v34h-58z"/>
+    <path class="mid" d="M170 129h34"/>
+    <path class="mid" d="M111 103 92 64M132 104l11-44M151 116l38-31M151 141l42 24M128 155l20 39M105 151l-9 43"/>
+    <circle class="main" cx="128" cy="128" r="28"/>
+    <circle class="thin" cx="128" cy="128" r="45"/>
+    <path class="fill" d="M128 91l8 22 23-9-10 22 22 9-23 7 8 23-21-12-8 23-8-23-21 12 8-23-23-7 22-9-10-22 23 9z"/>
+    <path class="thin" d="M89 86 C107 69, 137 62, 163 72"/>
+    <path class="thin" d="M81 174 C102 193, 138 198, 170 179"/>
+  </g>
+</svg>

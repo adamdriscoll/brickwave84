@@ -52,6 +52,8 @@ namespace GetBricked.Gameplay
 
         public int HitPointsRemaining => hitPointsRemaining;
 
+        public bool IsPendingRemoval => isPendingRemoval;
+
         public void Initialize(
             BreakoutGameController controller,
             BrickDefinition brickDefinition,
@@ -266,6 +268,11 @@ namespace GetBricked.Gameplay
             if (!definition.IsBreakable)
             {
                 gameController?.HandleBrickHit(this, scoringBall);
+                return;
+            }
+
+            if (gameController != null && gameController.TryHandleSolarShot(scoringBall, this))
+            {
                 return;
             }
 

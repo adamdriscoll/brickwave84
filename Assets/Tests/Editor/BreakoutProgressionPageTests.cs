@@ -107,11 +107,11 @@ public sealed class BreakoutProgressionPageTests
             .Select(definition => definition.LadderUnlockIntensity)
             .OrderBy(heat => heat)
             .ToArray();
-        var expectedDropHeats = Enumerable.Range(1, 35).ToArray();
+        var expectedDropHeats = Enumerable.Range(1, 36).ToArray();
 
         Assert.That(unlockHeats, Is.EqualTo(expectedDropHeats));
 
-        var view = new BreakoutProgressionPageService().BuildView(Array.Empty<PowerUpDefinition>());
+        var view = new BreakoutProgressionPageService().BuildView(drops);
         var turboRail = view.Cards.First(card => card.Title == "Turbo Rail");
         var mirrorGrid = view.Cards.First(card => card.Title == "Mirror Grid");
         var tokenStorm = view.Cards.First(card => card.Title == "Token Storm");
@@ -128,6 +128,7 @@ public sealed class BreakoutProgressionPageTests
         Assert.That(tokenStorm.UnlockHint, Does.Not.Contain("preview"));
         Assert.That(tokenStorm.Family, Does.Contain("Epic"));
         Assert.That(solarShot.UnlockHint, Does.Contain("Heat 36"));
+        Assert.That(solarShot.Description, Does.Contain("burns away"));
     }
 
     [Test]
@@ -206,6 +207,22 @@ public sealed class BreakoutProgressionPageTests
         Assert.That(card.Family, Does.Contain("Epic Helpful"));
         Assert.That(card.StateLabel, Is.EqualTo("Locked"));
         Assert.That(view.Cards.Count(item => item.Title == "Mystery Tape"), Is.EqualTo(1));
+    }
+
+    [Test]
+    public void ProgressionPageShowsSolarShotAsLiveHeatThirtySixDrop()
+    {
+        var solarShot = Resources.Load<PowerUpDefinition>("PowerUps/SolarShot");
+        Assert.That(solarShot, Is.Not.Null);
+
+        var view = new BreakoutProgressionPageService().BuildView(new[] { solarShot });
+        var card = view.Cards.First(item => item.Title == "Solar Shot");
+
+        Assert.That(card.UnlockHint, Does.Contain("Heat 36"));
+        Assert.That(card.Description, Does.Contain("weak brick"));
+        Assert.That(card.Family, Does.Contain("Epic Helpful"));
+        Assert.That(card.StateLabel, Is.EqualTo("Locked"));
+        Assert.That(view.Cards.Count(item => item.Title == "Solar Shot"), Is.EqualTo(1));
     }
 
     [Test]

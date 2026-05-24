@@ -103,6 +103,7 @@ namespace GetBricked.Gameplay.Data
         RandomMixedDrop = 29,
         PaddleHitTilt = 30,
         MissileStock = 31,
+        SolarShot = 32,
     }
 
     [CreateAssetMenu(menuName = "Get Bricked/Power-Up Definition", fileName = "PowerUpDefinition")]
@@ -155,6 +156,7 @@ namespace GetBricked.Gameplay.Data
             && effectType != PowerUpEffectType.RandomHarmfulDrop
             && effectType != PowerUpEffectType.RandomMixedDrop
             && effectType != PowerUpEffectType.MissileStock
+            && effectType != PowerUpEffectType.SolarShot
             && DurationSeconds > 0f;
 
         public bool IsUnlockedForLadderIntensity(int intensity)
@@ -199,6 +201,7 @@ namespace GetBricked.Gameplay.Data
                 || effectType == PowerUpEffectType.BankBonus
                 || effectType == PowerUpEffectType.PrismPop
                 || effectType == PowerUpEffectType.MissileStock
+                || effectType == PowerUpEffectType.SolarShot
                 || effectType == PowerUpEffectType.RandomMixedDrop)
             {
                 return ThemeVisualSlot.PickupBurst;

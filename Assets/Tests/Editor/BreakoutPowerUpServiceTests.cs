@@ -288,6 +288,24 @@ public sealed class BreakoutPowerUpServiceTests
     }
 
     [Test]
+    public void SolarShotStacksAndConsumesOneChargeAtATime()
+    {
+        var service = CreateService();
+        var solarShot = CreatePowerUp("Solar Shot", PowerUpEffectType.SolarShot, true, 0f, 1f, BreakoutContentRarity.Epic);
+
+        service.ApplyPowerUp(solarShot, null);
+        service.ApplyPowerUp(solarShot, null);
+
+        Assert.That(service.ActiveTimedEffects, Is.Empty);
+        Assert.That(service.SolarShotCharges, Is.EqualTo(2));
+        Assert.That(service.BuildActiveEffectsLabel(), Does.Contain("SOLAR x2"));
+        Assert.That(service.TryConsumeSolarShotCharge(), Is.True);
+        Assert.That(service.SolarShotCharges, Is.EqualTo(1));
+        Assert.That(service.TryConsumeSolarShotCharge(), Is.True);
+        Assert.That(service.TryConsumeSolarShotCharge(), Is.False);
+    }
+
+    [Test]
     public void CleanCatchConsumesOneArmedChargeAtATime()
     {
         var service = CreateService();

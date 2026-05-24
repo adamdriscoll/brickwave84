@@ -217,7 +217,7 @@ Late drop proposals should keep using mechanics the game already teaches: paddle
 | `Prism Pop` | First brick hit within 10s splits a short-lived copy ball. | Heat 33 | Epic | Helpful | Split drop | Implemented |
 | `Mystery Tape` | Rolls one random unlocked helpful drop and one random unlocked hazard from a mystery capsule. | Heat 34 | Epic | Mixed | Mystery drop | Implemented |
 | `Tilt Rail` | Each paddle hit tilts the rail 9 degrees for 12s. | Heat 35 | Epic | Hazard | Paddle tilt | Implemented |
-| `Solar Shot` | Ball burns through the next weak brick it touches. | Heat 36 | Epic | Helpful | Damage drop | Not implemented (UI placeholder) |
+| `Solar Shot` | Ball burns through the next weak brick it touches. | Heat 36 | Epic | Helpful | Damage drop | Implemented |
 | `Wrap Rail` | Paddle wraps from one side wall to the other for 10s. | Heat 37 | Epic | Helpful | Paddle control | Not implemented (proposal) |
 | `Static Shoes` | Paddle movement x0.60 for 8s. | Heat 38 | Epic | Hazard | Paddle speed | Not implemented (proposal) |
 | `Jackpot Jam` | Score x3.00, but ball speed x1.35 for 8s. | Heat 39 | Epic | Mixed | Score/speed risk | Not implemented (proposal) |
