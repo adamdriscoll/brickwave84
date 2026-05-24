@@ -108,6 +108,7 @@ namespace GetBricked.Gameplay.Data
         PaddleSpeedMultiplier = 34,
         JackpotJam = 35,
         RewindCatch = 36,
+        MicroSpark = 37,
     }
 
     [CreateAssetMenu(menuName = "Get Bricked/Power-Up Definition", fileName = "PowerUpDefinition")]
@@ -123,6 +124,7 @@ namespace GetBricked.Gameplay.Data
         [SerializeField, Min(0)] private int ladderUnlockIntensityOverride;
         [SerializeField, Min(0f)] private float durationSeconds = 10f;
         [SerializeField, Min(0.1f)] private float scalar = 1.25f;
+        [SerializeField, Min(0.1f)] private float secondaryScalar = 1f;
         [SerializeField, Min(0)] private int extraBallCount = 2;
         [SerializeField] private Color pickupColor = Color.white;
         [SerializeField] private ThemeVisualSlot themeSlot = ThemeVisualSlot.Auto;
@@ -148,6 +150,8 @@ namespace GetBricked.Gameplay.Data
         public float DurationSeconds => Mathf.Max(0f, durationSeconds);
 
         public float Scalar => Mathf.Max(0.1f, scalar);
+
+        public float SecondaryScalar => Mathf.Max(0.1f, secondaryScalar);
 
         public float VisibilityScalar => Mathf.Clamp01(scalar);
 
@@ -207,7 +211,8 @@ namespace GetBricked.Gameplay.Data
                 || effectType == PowerUpEffectType.MissileStock
                 || effectType == PowerUpEffectType.SolarShot
                 || effectType == PowerUpEffectType.RandomMixedDrop
-                || effectType == PowerUpEffectType.JackpotJam)
+                || effectType == PowerUpEffectType.JackpotJam
+                || effectType == PowerUpEffectType.MicroSpark)
             {
                 return ThemeVisualSlot.PickupBurst;
             }

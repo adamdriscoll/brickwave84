@@ -107,7 +107,7 @@ public sealed class BreakoutProgressionPageTests
             .Select(definition => definition.LadderUnlockIntensity)
             .OrderBy(heat => heat)
             .ToArray();
-        var expectedDropHeats = Enumerable.Range(1, 40).ToArray();
+        var expectedDropHeats = Enumerable.Range(1, 41).ToArray();
 
         Assert.That(unlockHeats, Is.EqualTo(expectedDropHeats));
 
@@ -121,6 +121,7 @@ public sealed class BreakoutProgressionPageTests
         var staticShoes = view.Cards.First(card => card.Title == "Static Shoes");
         var jackpotJam = view.Cards.First(card => card.Title == "Jackpot Jam");
         var rewindCatch = view.Cards.First(card => card.Title == "Rewind Catch");
+        var microSpark = view.Cards.First(card => card.Title == "Micro Spark");
 
         Assert.That(turboRail.UnlockHint, Does.Contain("Heat 01"));
         Assert.That(mirrorGrid.UnlockHint, Does.Contain("Heat 02"));
@@ -141,6 +142,9 @@ public sealed class BreakoutProgressionPageTests
         Assert.That(jackpotJam.Description, Does.Contain("Score x3.00"));
         Assert.That(rewindCatch.UnlockHint, Does.Contain("Heat 40"));
         Assert.That(rewindCatch.Description, Does.Contain("rewinds to its last paddle hit"));
+        Assert.That(microSpark.UnlockHint, Does.Contain("Heat 41"));
+        Assert.That(microSpark.Description, Does.Contain("Ball size x0.55"));
+        Assert.That(microSpark.Description, Does.Contain("score x1.75"));
     }
 
     [Test]
@@ -252,6 +256,23 @@ public sealed class BreakoutProgressionPageTests
         Assert.That(card.Family, Does.Contain("Epic Helpful"));
         Assert.That(card.StateLabel, Is.EqualTo("Locked"));
         Assert.That(view.Cards.Count(item => item.Title == "Rewind Catch"), Is.EqualTo(1));
+    }
+
+    [Test]
+    public void ProgressionPageShowsMicroSparkAsLiveHeatFortyOneDrop()
+    {
+        var microSpark = Resources.Load<PowerUpDefinition>("PowerUps/MicroSpark");
+        Assert.That(microSpark, Is.Not.Null);
+
+        var view = new BreakoutProgressionPageService().BuildView(new[] { microSpark });
+        var card = view.Cards.First(item => item.Title == "Micro Spark");
+
+        Assert.That(card.UnlockHint, Does.Contain("Heat 41"));
+        Assert.That(card.Description, Does.Contain("Ball size x0.55"));
+        Assert.That(card.Description, Does.Contain("score x1.75"));
+        Assert.That(card.Family, Does.Contain("Epic Helpful"));
+        Assert.That(card.StateLabel, Is.EqualTo("Locked"));
+        Assert.That(view.Cards.Count(item => item.Title == "Micro Spark"), Is.EqualTo(1));
     }
 
     [Test]

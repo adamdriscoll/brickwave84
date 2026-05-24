@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
+  <title id="title">Micro Spark</title>
+  <desc id="desc">A monochrome neon icon showing a tiny bright ball focused inside score rays.</desc>
+  <defs>
+    <filter id="softGlow" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="2.25" result="blur"/>
+      <feColorMatrix in="blur" type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 .8 0" result="glow"/>
+      <feMerge><feMergeNode in="glow"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <style><![CDATA[
+      .icon{fill:none;stroke:#fff;stroke-linecap:round;stroke-linejoin:round;filter:url(#softGlow)}
+      .main{stroke-width:12;opacity:.96}
+      .mid{stroke-width:7;opacity:.78}
+      .thin{stroke-width:4;opacity:.42}
+      .core{fill:#fff;stroke:none;opacity:.95;filter:url(#softGlow)}
+    ]]></style>
+  </defs>
+  <g class="icon">
+    <circle class="thin" cx="128" cy="128" r="84"/>
+    <circle class="mid" cx="128" cy="128" r="39"/>
+    <circle class="core" cx="128" cy="128" r="16"/>
+    <path class="main" d="M59 93 L91 128 L59 163"/>
+    <path class="main" d="M197 93 L165 128 L197 163"/>
+    <path class="mid" d="M128 40v38M128 178v38M40 128h38M178 128h38"/>
+    <path class="thin" d="M74 58l27 27M182 58l-27 27M74 198l27-27M182 198l-27-27"/>
+    <path class="thin" d="M99 116c8-9 22-13 34-9M104 145c13 10 34 9 48-2"/>
+  </g>
+</svg>

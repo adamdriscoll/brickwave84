@@ -39,6 +39,7 @@ namespace GetBricked.Gameplay
         private const float PrismPopFallbackCopyLifetimeSeconds = 4f;
         private const float PrismPopLaunchOffsetMultiplier = 1.15f;
         private const float PrismPopMinimumHorizontalDirection = 0.22f;
+        private const float MicroSparkPopStackThreshold = 4f;
         private const float TurboRailSpeedBurstMultiplier = 1.35f;
         private const float TurboRailSpeedBurstDuration = 4f;
         private const float TurboRailSpeedBurstStackMultiplier = 0.12f;
@@ -5900,6 +5901,13 @@ namespace GetBricked.Gameplay
                 return;
             }
 
+            if (TryPopOverstackedMicroSpark())
+            {
+                ApplyActiveEffects();
+                TriggerMicroSparkPopFeedback();
+                return;
+            }
+
             paddle.SetWavyStrength(activeEffectModifiers.WavyPaddleStrength);
             paddle.SetControlsReversed(activeEffectModifiers.ReverseControlsEnabled);
             paddle.SetSplitGapWidthNormalized(activeEffectModifiers.SplitPaddleGapNormalized);
@@ -6110,6 +6118,12 @@ namespace GetBricked.Gameplay
             return powerUpService != null && powerUpService.RemoveBeneficialBallSizeEffects() > 0;
         }
 
+        private bool TryPopOverstackedMicroSpark()
+        {
+            return powerUpService != null
+                && powerUpService.RemoveMicroSparkEffectsAtStackThreshold(MicroSparkPopStackThreshold) > 0;
+        }
+
         private void TriggerWidePaddleBreakFeedback()
         {
             paddle?.StartBreakWiggle();
@@ -6121,6 +6135,12 @@ namespace GetBricked.Gameplay
         {
             audioService?.PlayMegaBallPop();
             powerUpService?.ShowStatusBanner("MEGA POP!", new Color(1f, 0.88f, 0.28f, 1f), 1.4f);
+        }
+
+        private void TriggerMicroSparkPopFeedback()
+        {
+            audioService?.PlayMegaBallPop();
+            powerUpService?.ShowStatusBanner("MICRO POP!", new Color(1f, 0.87f, 0.36f, 1f), 1.4f);
         }
 
         private void SpawnMultiBall(PowerUpDefinition powerUpDefinition)
@@ -7028,6 +7048,7 @@ namespace GetBricked.Gameplay
                 PowerUpEffectType.BrickJammer => $"Brick jam for {definition.DurationSeconds:0.#}s",
                 PowerUpEffectType.HotPotatoBall => $"Ball x{definition.Scalar:0.00}, score x{definition.Scalar:0.00}",
                 PowerUpEffectType.JackpotJam => $"Score x{definition.Scalar:0.00}, ball x{BreakoutPowerUpService.JackpotJamBallSpeedMultiplier:0.00} for {definition.DurationSeconds:0.#}s",
+                PowerUpEffectType.MicroSpark => $"Ball size x{definition.Scalar:0.00}, score x{definition.SecondaryScalar:0.00} for {definition.DurationSeconds:0.#}s",
                 PowerUpEffectType.ExplosiveBall => $"Explodes bricks for {definition.DurationSeconds:0.#}s",
                 PowerUpEffectType.VectorSight => $"Aim preview for {definition.DurationSeconds:0.#}s",
                 PowerUpEffectType.CapsuleMagnet => $"Helpful capsules drift for {definition.DurationSeconds:0.#}s",

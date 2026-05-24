@@ -121,6 +121,59 @@ public sealed class BreakoutPowerUpServiceTests
     }
 
     [Test]
+    public void MicroSparkShrinksBallAndBoostsScore()
+    {
+        var service = CreateService();
+        var microSpark = CreatePowerUp(
+            "Micro Spark",
+            PowerUpEffectType.MicroSpark,
+            true,
+            10f,
+            0.55f,
+            BreakoutContentRarity.Epic,
+            secondaryScalar: 1.75f);
+
+        service.ApplyPowerUp(microSpark, null);
+
+        var modifiers = service.CalculateEffectModifiers(1f, 0f);
+
+        Assert.That(modifiers.BallSizeMultiplier, Is.EqualTo(0.55f).Within(0.0001f));
+        Assert.That(modifiers.ScoreMultiplier, Is.EqualTo(1.75f).Within(0.0001f));
+        Assert.That(service.BuildActiveEffectsLabel(), Does.Contain("MICRO SPARK 10.0s"));
+    }
+
+    [Test]
+    public void RemoveMicroSparkEffectsAtStackThresholdCancelsOnlyOverstackedMicroSpark()
+    {
+        var service = CreateService();
+        var microSpark = CreatePowerUp(
+            "Micro Spark",
+            PowerUpEffectType.MicroSpark,
+            true,
+            10f,
+            0.55f,
+            BreakoutContentRarity.Epic,
+            secondaryScalar: 1.75f);
+        var scoreSurge = CreatePowerUp("Score Surge", PowerUpEffectType.ScoreMultiplier, true, 10f, 2f);
+
+        for (var index = 0; index < 4; index++)
+        {
+            service.ApplyPowerUp(microSpark, null);
+        }
+
+        service.ApplyPowerUp(scoreSurge, null);
+
+        var removedCount = service.RemoveMicroSparkEffectsAtStackThreshold(4f);
+        var modifiers = service.CalculateEffectModifiers(1f, 0f);
+
+        Assert.That(removedCount, Is.EqualTo(1));
+        Assert.That(service.ActiveTimedEffects, Has.Count.EqualTo(1));
+        Assert.That(service.ActiveTimedEffects[0].Definition, Is.SameAs(scoreSurge));
+        Assert.That(modifiers.BallSizeMultiplier, Is.EqualTo(1f).Within(0.0001f));
+        Assert.That(modifiers.ScoreMultiplier, Is.EqualTo(2f).Within(0.0001f));
+    }
+
+    [Test]
     public void RemoveBeneficialBallSizeEffectsCancelsMegaDropsOnly()
     {
         var service = CreateService();
@@ -941,7 +994,8 @@ public sealed class BreakoutPowerUpServiceTests
         bool beneficial,
         float durationSeconds,
         float scalar,
-        BreakoutContentRarity rarity = BreakoutContentRarity.Common)
+        BreakoutContentRarity rarity = BreakoutContentRarity.Common,
+        float secondaryScalar = 1f)
     {
         var powerUp = ScriptableObject.CreateInstance<PowerUpDefinition>();
         runtimeObjects.Add(powerUp);
@@ -952,6 +1006,7 @@ public sealed class BreakoutPowerUpServiceTests
         SetPrivateField(powerUp, "rarity", rarity);
         SetPrivateField(powerUp, "durationSeconds", durationSeconds);
         SetPrivateField(powerUp, "scalar", scalar);
+        SetPrivateField(powerUp, "secondaryScalar", secondaryScalar);
         SetPrivateField(powerUp, "extraBallCount", 0);
         return powerUp;
     }

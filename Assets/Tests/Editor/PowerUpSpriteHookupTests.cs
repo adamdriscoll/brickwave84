@@ -37,6 +37,7 @@ public sealed class PowerUpSpriteHookupTests
     [TestCase("PowerUps/WrapRail", "Sprites/wrap-rail")]
     [TestCase("PowerUps/StaticShoes", "Sprites/static-shoes")]
     [TestCase("PowerUps/JackpotJam", "Sprites/jackpot-jam")]
+    [TestCase("PowerUps/MicroSpark", "Sprites/micro-spark")]
     public void PickupAssetResolvesImportedSprite(string powerUpAssetPath, string spriteResourcePath)
     {
         var definition = Resources.Load<PowerUpDefinition>(powerUpAssetPath);

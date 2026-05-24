@@ -386,6 +386,43 @@ public sealed class BreakoutGameControllerPowerUpTests
     }
 
     [Test]
+    public void ApplyingFourMicroSparkPowerUpsPopsBallBackToRegularSize()
+    {
+        var controller = CreateControllerHarness(out var paddle);
+        var serveBall = CreateBallHarness(controller, paddle);
+        SetPrivateField(controller, "serveBall", serveBall);
+        GetPrivateField<List<BallController>>(controller, "activeBalls").Add(serveBall);
+        var microSparkPowerUp = CreatePowerUp(
+            "Micro Spark",
+            PowerUpEffectType.MicroSpark,
+            beneficial: true,
+            durationSeconds: 10f,
+            scalar: 0.55f,
+            secondaryScalar: 1.75f);
+
+        for (var index = 0; index < 3; index++)
+        {
+            InvokePrivateMethod(controller, "ApplyPowerUp", microSparkPowerUp);
+        }
+
+        Assert.That(serveBall.transform.localScale.x, Is.LessThan(0.2f));
+
+        InvokePrivateMethod(controller, "ApplyPowerUp", microSparkPowerUp);
+
+        var powerUpService = GetPrivateField<object>(controller, "powerUpService");
+        var activeTimedEffects = GetPropertyValue<System.Collections.IList>(powerUpService, "ActiveTimedEffects");
+        var activeEffectModifiers = GetPrivateField<object>(controller, "activeEffectModifiers");
+        var pickupBannerView = InvokePrivateMethodWithResult(controller, "BuildPickupBannerView");
+
+        Assert.That(activeTimedEffects.Count, Is.Zero);
+        Assert.That(GetPropertyValue<float>(activeEffectModifiers, "BallSizeMultiplier"), Is.EqualTo(1f).Within(0.0001f));
+        Assert.That(GetPropertyValue<float>(activeEffectModifiers, "ScoreMultiplier"), Is.EqualTo(1f).Within(0.0001f));
+        Assert.That(serveBall.transform.localScale.x, Is.EqualTo(1f).Within(0.0001f));
+        Assert.That(serveBall.transform.localScale.y, Is.EqualTo(1f).Within(0.0001f));
+        Assert.That(GetFieldValue<string>(pickupBannerView, "Text"), Is.EqualTo("MICRO POP!"));
+    }
+
+    [Test]
     public void ApplyingMissileDropAddsOneMissile()
     {
         var controller = CreateControllerHarness(out _);
@@ -1363,7 +1400,8 @@ public sealed class BreakoutGameControllerPowerUpTests
         PowerUpEffectType effectType,
         bool beneficial,
         float durationSeconds,
-        float scalar)
+        float scalar,
+        float secondaryScalar = 1f)
     {
         var powerUp = ScriptableObject.CreateInstance<PowerUpDefinition>();
         SetPrivateField(powerUp, "displayName", displayName);
@@ -1372,6 +1410,7 @@ public sealed class BreakoutGameControllerPowerUpTests
         SetPrivateField(powerUp, "beneficial", beneficial);
         SetPrivateField(powerUp, "durationSeconds", durationSeconds);
         SetPrivateField(powerUp, "scalar", scalar);
+        SetPrivateField(powerUp, "secondaryScalar", secondaryScalar);
         SetPrivateField(powerUp, "extraBallCount", 0);
         return powerUp;
     }

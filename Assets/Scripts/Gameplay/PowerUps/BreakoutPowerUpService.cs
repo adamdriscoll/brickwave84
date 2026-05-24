@@ -339,6 +339,10 @@ namespace GetBricked.Gameplay
                     timedBallSpeedMultiplier *= Mathf.Pow(BreakoutPowerUpService.JackpotJamBallSpeedMultiplier, effectStrength);
                     scoreMultiplier *= Mathf.Pow(Mathf.Max(1f, powerUpDefinition.Scalar), effectStrength);
                     break;
+                case PowerUpEffectType.MicroSpark:
+                    ballSizeMultiplier *= Mathf.Pow(powerUpDefinition.Scalar, effectStrength);
+                    scoreMultiplier *= Mathf.Pow(Mathf.Max(1f, powerUpDefinition.SecondaryScalar), effectStrength);
+                    break;
                 case PowerUpEffectType.ExplosiveBall:
                     explosiveBallStrength = Mathf.Max(explosiveBallStrength, Mathf.Max(0.1f, powerUpDefinition.Scalar * effectStrength));
                     break;
@@ -976,6 +980,30 @@ namespace GetBricked.Gameplay
                     || definition.EffectType != PowerUpEffectType.BallSizeMultiplier
                     || !definition.IsBeneficial
                     || definition.Scalar <= 1f)
+                {
+                    continue;
+                }
+
+                ActiveTimedEffects.RemoveAt(index);
+                removedCount++;
+            }
+
+            return removedCount;
+        }
+
+        public int RemoveMicroSparkEffectsAtStackThreshold(float stackThreshold)
+        {
+            var removedCount = 0;
+            var resolvedThreshold = Mathf.Max(1f, stackThreshold);
+
+            for (var index = ActiveTimedEffects.Count - 1; index >= 0; index--)
+            {
+                var activeEffect = ActiveTimedEffects[index];
+                var definition = activeEffect?.Definition;
+
+                if (definition == null
+                    || definition.EffectType != PowerUpEffectType.MicroSpark
+                    || activeEffect.EffectStrength < resolvedThreshold)
                 {
                     continue;
                 }
