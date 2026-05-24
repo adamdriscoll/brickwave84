@@ -17,6 +17,9 @@ namespace GetBricked.Gameplay
         private const float BrickCounterPulseDuration = 0.55f;
         internal const float LifeLossAnimationDuration = 1.05f;
         private const float ScorePopDuration = 0.34f;
+        private const float HudScorePopScaleReserve = 1.18f;
+        private const float HudScoreExtraWidth = 8f;
+        private const float HudScoreMinimumAvailableWidth = 64f;
         private const int SpeedGaugeTickCount = 48;
         private const float SpeedGaugeStartAngle = -142f;
         private const float SpeedGaugeSweepAngle = 284f;
@@ -1689,7 +1692,7 @@ namespace GetBricked.Gameplay
             var dividerTotalWidth = (dividerGap * (hasLadder ? 4f : 2f)) + (dividerWidth * (hasLadder ? 2f : 1f));
             var measuredScoreWidth = hudStyle.CalcSize(new GUIContent(scoreText)).x;
             var availableScoreWidth = rect.width - minLifeWidth - dividerTotalWidth;
-            var scoreWidth = Mathf.Min(measuredScoreWidth, Mathf.Max(64f, availableScoreWidth));
+            var scoreWidth = CalculateHudScoreReadoutWidth(measuredScoreWidth, availableScoreWidth);
             var x = rect.x;
             var scoreRect = new Rect(x, rect.y, scoreWidth, rect.height);
 
@@ -1766,6 +1769,12 @@ namespace GetBricked.Gameplay
             GUIUtility.ScaleAroundPivot(new Vector2(scale, scale), rect.center);
             DrawTextWithShadow(rect, scoreText, hudStyle, WithAlpha(palette.AccentWarm, 0.72f * wave), 0.2f * wave);
             GUI.matrix = previousMatrix;
+        }
+
+        internal static float CalculateHudScoreReadoutWidth(float measuredTextWidth, float availableWidth)
+        {
+            var reservedTextWidth = Mathf.Ceil(Mathf.Max(0f, measuredTextWidth) * HudScorePopScaleReserve) + HudScoreExtraWidth;
+            return Mathf.Min(reservedTextWidth, Mathf.Max(HudScoreMinimumAvailableWidth, availableWidth));
         }
 
         private void DrawLifeIndicators(Rect rect, BreakoutUiHudView view, float iconSize, float iconGap)
