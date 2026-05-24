@@ -15,6 +15,13 @@ namespace GetBricked.Gameplay
         private const string BrickSpriteResourcePath = "Sprites/brick";
         private const string PaddleSpriteResourcePath = "Sprites/paddle";
         private const string PowerUpSpriteResourcePath = "Sprites/powerup";
+        private const string MissileSpriteResourcePath = "Sprites/brick-missile";
+        private const int StartingMissileCount = 3;
+        private const int MissileRewardPurchaseScoreCost = 5000;
+        private const float MissileShotCooldownSeconds = 0.45f;
+        private const float MissileSpeed = 10.5f;
+        private const float MissileRadius = 0.045f;
+        private const float MissileExplosionRadius = 1.45f;
         private const float LaserShotCooldownSeconds = 0.3f;
         private const float LaserBeamLifetimeSeconds = 0.16f;
         private const float ShieldWallYOffset = 0.38f;
@@ -185,6 +192,7 @@ namespace GetBricked.Gameplay
         private readonly List<PowerUpDefinition> loadedPowerUpDefinitions = new List<PowerUpDefinition>();
         private readonly List<BallController> activeBalls = new List<BallController>();
         private readonly List<TemporaryBallLifetime> temporaryBallLifetimes = new List<TemporaryBallLifetime>();
+        private readonly List<BreakoutMissileProjectile> activeMissiles = new List<BreakoutMissileProjectile>();
         private readonly List<SpriteRenderer> wallRenderers = new List<SpriteRenderer>();
         private readonly Dictionary<string, Sprite> runUpgradeSpriteCache = new Dictionary<string, Sprite>(StringComparer.OrdinalIgnoreCase);
         private readonly Dictionary<string, Sprite> powerUpIconSpriteCache = new Dictionary<string, Sprite>(StringComparer.OrdinalIgnoreCase);
@@ -212,6 +220,7 @@ namespace GetBricked.Gameplay
         private Sprite brickSprite;
         private Sprite paddleSprite;
         private Sprite powerUpSprite;
+        private Sprite missileSprite;
         private Sprite warpGateRingSprite;
         private Sprite warpGateVortexSprite;
         private PhysicsMaterial2D bounceMaterial;
@@ -289,6 +298,8 @@ namespace GetBricked.Gameplay
         private BreakoutVectorSightVisual vectorSightVisual;
         private int shieldWallCharges;
         private float laserShotCooldownTimer;
+        private int availableMissiles;
+        private float missileShotCooldownTimer;
         private BreakoutLevelGlitchPlan activeLevelGlitchPlan = BreakoutLevelGlitchPlan.None;
         private BreakoutWarpGateController activeWarpGateController;
         private BreakoutTurboRailSection activeTurboRailSection;
@@ -437,6 +448,7 @@ namespace GetBricked.Gameplay
             audioService?.Update(Time.unscaledDeltaTime);
             scoreService?.UpdateFloatingScorePopups(Time.unscaledDeltaTime);
             laserShotCooldownTimer = Mathf.Max(0f, laserShotCooldownTimer - Time.deltaTime);
+            missileShotCooldownTimer = Mathf.Max(0f, missileShotCooldownTimer - Time.deltaTime);
             UpdateServeBallRevealDelay();
             UpdateMenuAttractMode();
             UpdateGravityPocketInfluence();
@@ -497,26 +509,32 @@ namespace GetBricked.Gameplay
             HandleManualBallSpeedInput(keyboard);
 
             var actionPressed = keyboard.spaceKey.wasPressedThisFrame || keyboard.enterKey.wasPressedThisFrame || keyboard.numpadEnterKey.wasPressedThisFrame;
+            var missilePressed = keyboard.mKey.wasPressedThisFrame;
 
-            if (!actionPressed)
+            if (!actionPressed && !missilePressed)
             {
                 return;
             }
 
             if (roundState == RoundState.Playing)
             {
-                if (ReleaseStickyCaughtBall())
+                if (actionPressed && ReleaseStickyCaughtBall())
                 {
                     return;
                 }
 
-                if (FireLaserVolley())
+                if (actionPressed && FireLaserVolley())
+                {
+                    return;
+                }
+
+                if (FireMissile())
                 {
                     return;
                 }
             }
 
-            if (roundState == RoundState.ReadyToServe || roundState == RoundState.LifeLost)
+            if (actionPressed && (roundState == RoundState.ReadyToServe || roundState == RoundState.LifeLost))
             {
                 LaunchServe();
             }
@@ -531,6 +549,7 @@ namespace GetBricked.Gameplay
 
             var brickDefinition = brick.Definition;
             var shouldExplode = brickDefinition != null && brickDefinition.IsExplosive;
+            var shouldTriggerMissileExplosion = destructionCause == BrickDestructionCause.Missile;
             var shouldTriggerExplosiveBall = scoringBall != null
                 && scoringBall.IsExplosiveBall
                 && destructionCause == BrickDestructionCause.Impact;
@@ -544,14 +563,9 @@ namespace GetBricked.Gameplay
             runStatsService?.RegisterBrickDestroyed();
             audioService?.PlayBrickDestroyed(brickDefinition);
 
-            if (shouldExplode && destructionCause == BrickDestructionCause.Impact && scoringBall != null)
+            if (shouldTriggerMissileExplosion)
             {
-                var specialBrickEffectMultiplier = GetEffectiveSpecialBrickEffectMultiplier();
-                SplitBallFromExplosiveBrick(
-                    scoringBall,
-                    explosionCenter,
-                    ResolveSpecialBrickSpeedBurstMultiplier(brickDefinition.ExplosionSpeedMultiplier, specialBrickEffectMultiplier),
-                    brickDefinition.ExplosionSpeedDuration);
+                audioService?.PlayExplosion();
             }
 
             var scoreAward = scoreService != null
@@ -590,18 +604,55 @@ namespace GetBricked.Gameplay
 
             if (shouldExplode)
             {
+                var explosionRadius = brickDefinition.ExplosionRadius * GetEffectiveSpecialBrickEffectMultiplier();
+                SpawnExplosionVisual(explosionCenter, explosionRadius);
+                SplitBallsCaughtInExplosion(
+                    explosionCenter,
+                    explosionRadius,
+                    scoringBall,
+                    ResolveSpecialBrickSpeedBurstMultiplier(brickDefinition.ExplosionSpeedMultiplier, GetEffectiveSpecialBrickEffectMultiplier()),
+                    brickDefinition.ExplosionSpeedDuration);
+
+                if (destructionCause == BrickDestructionCause.Impact && scoringBall != null)
+                {
+                    var specialBrickEffectMultiplier = GetEffectiveSpecialBrickEffectMultiplier();
+                    SplitBallFromExplosiveBrick(
+                        scoringBall,
+                        explosionCenter,
+                        ResolveSpecialBrickSpeedBurstMultiplier(brickDefinition.ExplosionSpeedMultiplier, specialBrickEffectMultiplier),
+                        brickDefinition.ExplosionSpeedDuration);
+                }
+
                 explosionHitCount += brickService.DestroyBricksInExplosionRadius(
                     explosionCenter,
-                    brickDefinition.ExplosionRadius * GetEffectiveSpecialBrickEffectMultiplier(),
+                    explosionRadius,
                     brick,
                     scoringBall);
             }
 
-            if (shouldTriggerExplosiveBall)
+            if (shouldTriggerMissileExplosion)
             {
+                SpawnExplosionVisual(explosionCenter, MissileExplosionRadius);
+                SplitBallsCaughtInExplosion(
+                    explosionCenter,
+                    MissileExplosionRadius,
+                    null,
+                    ResolveSpecialBrickSpeedBurstMultiplier(brickDefinition != null ? brickDefinition.ExplosionSpeedMultiplier : 1.16f, GetEffectiveSpecialBrickEffectMultiplier()),
+                    brickDefinition != null ? brickDefinition.ExplosionSpeedDuration : 1.4f);
                 explosionHitCount += brickService.DestroyBricksInExplosionRadius(
                     explosionCenter,
-                    ResolveExplosiveBallExplosionRadius(scoringBall.ExplosiveBallStrength),
+                    MissileExplosionRadius,
+                    brick,
+                    null);
+            }
+
+            if (shouldTriggerExplosiveBall)
+            {
+                var explosionRadius = ResolveExplosiveBallExplosionRadius(scoringBall.ExplosiveBallStrength);
+                SpawnExplosionVisual(explosionCenter, explosionRadius);
+                explosionHitCount += brickService.DestroyBricksInExplosionRadius(
+                    explosionCenter,
+                    explosionRadius,
                     brick,
                     scoringBall);
 
@@ -1004,6 +1055,7 @@ namespace GetBricked.Gameplay
                 : activeRunSettings.StartingLives;
             lifeLossCount = 0;
             score = 0;
+            availableMissiles = StartingMissileCount;
             autoSaveBurstTimer = 0f;
             lastLifeLossUsedAutoSave = false;
             tiltWarningSavesRemaining = 0;
@@ -1028,6 +1080,7 @@ namespace GetBricked.Gameplay
             currentLevelVariationLabel = "Stage mix: pending";
             shieldWallCharges = 0;
             laserShotCooldownTimer = 0f;
+            missileShotCooldownTimer = 0f;
             stickyCaughtBall = null;
             scoreService?.ResetComboTracking(clearPopups: true);
             activeRunState?.Reset();
@@ -1048,6 +1101,7 @@ namespace GetBricked.Gameplay
 
             ClearTimedEffects();
             ClearPickups();
+            ClearMissiles();
             UpdateShieldWallVisual();
 
             LoadLevel(currentLevelIndex, RoundState.ReadyToServe);
@@ -1188,12 +1242,14 @@ namespace GetBricked.Gameplay
             DestroyAdditionalBalls();
             temporaryBallLifetimes.Clear();
             activeBalls.Clear();
+            ClearMissiles();
             activeRunState?.ClearPendingDraftOffers();
             selectedUpgradeDraftIndex = 0;
             stickyCaughtBall = null;
             shieldWallCharges = 0;
             tiltWarningSavesRemaining = 0;
             laserShotCooldownTimer = 0f;
+            missileShotCooldownTimer = 0f;
             scoreService?.ResetComboTracking(clearPopups: true);
             UpdateShieldWallVisual();
 
@@ -1703,6 +1759,12 @@ namespace GetBricked.Gameplay
             if (keyboard.rightArrowKey.wasPressedThisFrame || keyboard.dKey.wasPressedThisFrame)
             {
                 selectedUpgradeDraftIndex = (selectedUpgradeDraftIndex + 1) % offers.Count;
+            }
+
+            if (keyboard.mKey.wasPressedThisFrame || keyboard.bKey.wasPressedThisFrame)
+            {
+                TryPurchaseRewardMissile();
+                return;
             }
 
             if (keyboard.spaceKey.wasPressedThisFrame || keyboard.enterKey.wasPressedThisFrame || keyboard.numpadEnterKey.wasPressedThisFrame)
@@ -3000,6 +3062,7 @@ namespace GetBricked.Gameplay
             brickSprite = BreakoutRuntimeVisualFactory.LoadSpriteResource(BrickSpriteResourcePath, squareSprite);
             paddleSprite = BreakoutRuntimeVisualFactory.LoadSpriteResource(PaddleSpriteResourcePath, squareSprite);
             powerUpSprite = BreakoutRuntimeVisualFactory.LoadSpriteResource(PowerUpSpriteResourcePath, squareSprite);
+            missileSprite = BreakoutRuntimeVisualFactory.LoadSpriteResource(MissileSpriteResourcePath, triangleSprite);
             spriteUnlitMaterial = BreakoutRuntimeVisualFactory.CreateSpriteUnlitMaterial();
             additiveSpriteMaterial = BreakoutRuntimeVisualFactory.CreateAdditiveSpriteMaterial();
             additiveLineMaterial = BreakoutRuntimeVisualFactory.CreateAdditiveLineMaterial();
@@ -4200,7 +4263,7 @@ namespace GetBricked.Gameplay
             if (roundState == RoundState.UpgradeDraft)
             {
                 uiRenderer.DrawCabinetBackdrop(BuildChromeView("Reward Draft", "Choose one run reward", true));
-                uiRenderer.DrawUpgradeDraft(BuildUpgradeDraftView(), HandleUpgradeDraftChoice);
+                uiRenderer.DrawUpgradeDraft(BuildUpgradeDraftView(), HandleUpgradeDraftChoice, TryPurchaseRewardMissile);
                 uiRenderer.DrawPickupBanner(BuildPickupBannerView());
                 return;
             }
@@ -4550,6 +4613,9 @@ namespace GetBricked.Gameplay
                 LifeCount = Mathf.Max(0, GetLifeCounterValue()),
                 LifeIcon = ballStyle.Sprite != null ? ballStyle.Sprite : ballSprite,
                 LifeIconColor = ballStyle.PrimaryColor,
+                MissileCount = Mathf.Max(0, availableMissiles),
+                MissileIcon = missileSprite != null ? missileSprite : triangleSprite,
+                MissileIconColor = ResolveMissileColor(),
                 HasPaddleScreenTarget = hasPaddleScreenTarget,
                 PaddleScreenTarget = paddleScreenTarget,
                 BottomLine = BuildGameplayStatusLine().ToUpperInvariant(),
@@ -4624,7 +4690,7 @@ namespace GetBricked.Gameplay
                 SelectedActionIndex = selectedOverlayActionIndex,
                 FooterLines = new[]
                 {
-                    "A/D or Left/Right moves. Space launches/fires. Up/Down tunes speed.",
+                    "A/D or Left/Right moves. Space launches/fires. M fires missiles. Up/Down tunes speed.",
                     "Up/Down selects. Space confirms. Esc/P resumes. R setup.",
                 },
                 IsCompact = true,
@@ -4674,7 +4740,12 @@ namespace GetBricked.Gameplay
                 BuildLine = BuildUpgradeSummaryLabel(4),
                 Options = optionViews,
                 SelectedOptionIndex = Mathf.Clamp(selectedUpgradeDraftIndex, 0, optionViews.Length - 1),
-                HintText = "Left/Right selects. Space confirms. Click chooses. R returns to setup.",
+                MissilePurchaseLabel = "BUY MISSILE",
+                MissilePurchaseDetail = $"{FormatScoreValue(MissileRewardPurchaseScoreCost)} pts | Stock {Mathf.Max(0, availableMissiles):00}",
+                CanPurchaseMissile = CanPurchaseMissile(score),
+                MissilePurchaseIcon = missileSprite != null ? missileSprite : triangleSprite,
+                MissilePurchaseColor = ResolveMissileColor(),
+                HintText = "Left/Right selects. Space confirms. Click chooses. M buys missile. R returns to setup.",
             };
         }
 
@@ -5657,6 +5728,11 @@ namespace GetBricked.Gameplay
                 UpdateShieldWallVisual();
             }
 
+            if (applicationResult.MissileChargesGranted > 0)
+            {
+                availableMissiles += applicationResult.MissileChargesGranted;
+            }
+
             ApplyActiveEffects();
 
             if (applicationResult.ShouldSpawnMultiBall)
@@ -6267,6 +6343,24 @@ namespace GetBricked.Gameplay
             powerUpService?.ClearPickups();
         }
 
+        private void ClearMissiles()
+        {
+            for (var index = activeMissiles.Count - 1; index >= 0; index--)
+            {
+                var missile = activeMissiles[index];
+
+                if (missile == null)
+                {
+                    continue;
+                }
+
+                missile.gameObject.SetActive(false);
+                DestroyRuntimeObject(missile.gameObject);
+            }
+
+            activeMissiles.Clear();
+        }
+
         private void ClearTimedEffects()
         {
             powerUpService?.ClearTimedEffects();
@@ -6686,6 +6780,25 @@ namespace GetBricked.Gameplay
             }
         }
 
+        private void TryPurchaseRewardMissile()
+        {
+            if (!CanPurchaseMissile(score))
+            {
+                powerUpService?.ShowStatusBanner("MISSILE NEEDS 5000", ResolveMissileColor(), 1.6f);
+                return;
+            }
+
+            score -= MissileRewardPurchaseScoreCost;
+            availableMissiles += 1;
+            powerUpService?.ShowStatusBanner("+ MISSILE", ResolveMissileColor(), 1.6f);
+            audioService?.PlayPickupCollected(null);
+        }
+
+        internal static bool CanPurchaseMissile(int currentScore)
+        {
+            return currentScore >= MissileRewardPurchaseScoreCost;
+        }
+
         private BreakoutRunUpgradeModifiers GetPersistentRunUpgradeModifiers()
         {
             return activeRunState != null
@@ -6832,6 +6945,7 @@ namespace GetBricked.Gameplay
                 PowerUpEffectType.CapsuleMagnet => $"Helpful capsules drift for {definition.DurationSeconds:0.#}s",
                 PowerUpEffectType.BankBonus => $"+{Mathf.Max(1, Mathf.RoundToInt(definition.Scalar))}/wall bank for {definition.DurationSeconds:0.#}s",
                 PowerUpEffectType.PrismPop => $"Next brick hit splits a {definition.Scalar:0.#}s copy ball",
+                PowerUpEffectType.MissileStock => $"+{Mathf.Max(1, definition.ExtraBallCount > 0 ? definition.ExtraBallCount : Mathf.RoundToInt(definition.Scalar))} missile stock",
                 PowerUpEffectType.RandomHarmfulDrop => "Disguised random hazard",
                 PowerUpEffectType.RandomMixedDrop => "Random helpful drop and hazard",
                 _ => $"{definition.HudLabel} for {definition.DurationSeconds:0.#}s",
@@ -7178,6 +7292,173 @@ namespace GetBricked.Gameplay
 
             laserShotCooldownTimer = LaserShotCooldownSeconds;
             return true;
+        }
+
+        private bool FireMissile()
+        {
+            if (!IsGameplaySimulationActive()
+                || paddle == null
+                || availableMissiles <= 0
+                || missileShotCooldownTimer > 0f)
+            {
+                return false;
+            }
+
+            var missileObject = new GameObject("Brick Missile");
+            missileObject.transform.SetParent(effectsRoot != null ? effectsRoot : runtimeRoot, false);
+            var launchPosition = paddleCollider != null
+                ? new Vector2(paddleCollider.bounds.center.x, paddleCollider.bounds.max.y + 0.16f)
+                : (Vector2)paddle.transform.position + (Vector2.up * 0.52f);
+            missileObject.transform.position = launchPosition;
+            missileObject.transform.localScale = new Vector3(0.12f, 0.2f, 1f);
+            missileObject.AddComponent<SpriteRenderer>();
+            missileObject.AddComponent<CircleCollider2D>();
+            missileObject.AddComponent<Rigidbody2D>();
+
+            var projectile = missileObject.AddComponent<BreakoutMissileProjectile>();
+            projectile.Configure(
+                this,
+                missileSprite != null ? missileSprite : triangleSprite,
+                additiveSpriteMaterial,
+                ResolveMissileColor(),
+                MissileSpeed,
+                MissileRadius,
+                arenaTop + 0.75f);
+            activeMissiles.Add(projectile);
+            availableMissiles = Mathf.Max(0, availableMissiles - 1);
+            missileShotCooldownTimer = MissileShotCooldownSeconds;
+            return true;
+        }
+
+        internal void HandleMissileHitBrick(BreakoutMissileProjectile projectile, Brick brick)
+        {
+            RemoveMissile(projectile);
+
+            if (brick == null || brick.Definition == null || !brick.Definition.IsBreakable)
+            {
+                var explosionPosition = projectile != null
+                    ? (Vector2)projectile.transform.position
+                    : brick != null
+                        ? (Vector2)brick.transform.position
+                        : Vector2.zero;
+                audioService?.PlayExplosion();
+                SpawnExplosionVisual(explosionPosition, MissileExplosionRadius * 0.72f);
+                DestroyMissile(projectile);
+                return;
+            }
+
+            brick.DestroyByMissile();
+            DestroyMissile(projectile);
+        }
+
+        internal void HandleMissileExpired(BreakoutMissileProjectile projectile)
+        {
+            RemoveMissile(projectile);
+            DestroyMissile(projectile);
+        }
+
+        private void RemoveMissile(BreakoutMissileProjectile projectile)
+        {
+            if (projectile != null)
+            {
+                activeMissiles.Remove(projectile);
+            }
+        }
+
+        private void DestroyMissile(BreakoutMissileProjectile projectile)
+        {
+            if (projectile == null)
+            {
+                return;
+            }
+
+            projectile.gameObject.SetActive(false);
+            DestroyRuntimeObject(projectile.gameObject);
+        }
+
+        private Color ResolveMissileColor()
+        {
+            return themeService != null
+                ? themeService.ResolveThemeStyle(
+                    ThemeVisualSlot.PickupBurst,
+                    new Color(1f, 0.87f, 0.36f, 1f),
+                    new Color(1f, 0.28f, 0.66f, 1f),
+                    missileSprite != null ? missileSprite : triangleSprite).PrimaryColor
+                : new Color(1f, 0.87f, 0.36f, 1f);
+        }
+
+        private void SpawnExplosionVisual(Vector2 worldPosition, float radius)
+        {
+            if (effectsRoot == null)
+            {
+                return;
+            }
+
+            var explosionObject = new GameObject("Neon Explosion");
+            explosionObject.transform.SetParent(effectsRoot, false);
+            explosionObject.transform.position = worldPosition;
+            var visual = explosionObject.AddComponent<BreakoutExplosionPulseVisual>();
+            var coreColor = themeService != null
+                ? themeService.ResolveThemeStyle(ThemeVisualSlot.PickupBurst, new Color(1f, 0.87f, 0.36f, 1f), new Color(1f, 0.28f, 0.66f, 1f), circleSprite).PrimaryColor
+                : new Color(1f, 0.87f, 0.36f, 1f);
+            var ringColor = themeService != null
+                ? themeService.ResolveThemeStyle(ThemeVisualSlot.BrickPrimary, new Color(1f, 0.28f, 0.66f, 1f), new Color(0.01f, 0.93f, 0.98f, 1f), circleSprite).PrimaryColor
+                : new Color(1f, 0.28f, 0.66f, 1f);
+            visual.Configure(warpGateRingSprite != null ? warpGateRingSprite : circleSprite, circleSprite, additiveSpriteMaterial, coreColor, ringColor, radius);
+        }
+
+        private void SplitBallsCaughtInExplosion(
+            Vector2 explosionCenter,
+            float explosionRadius,
+            BallController excludedBall,
+            float speedBurstMultiplier,
+            float speedBurstDuration)
+        {
+            if (explosionRadius <= 0.01f)
+            {
+                return;
+            }
+
+            var candidates = new List<BallController>();
+            AddExplosionBallCandidate(candidates, serveBall, excludedBall, explosionCenter, explosionRadius);
+
+            for (var index = activeBalls.Count - 1; index >= 0; index--)
+            {
+                var activeBall = activeBalls[index];
+
+                if (activeBall == null)
+                {
+                    activeBalls.RemoveAt(index);
+                    continue;
+                }
+
+                AddExplosionBallCandidate(candidates, activeBall, excludedBall, explosionCenter, explosionRadius);
+            }
+
+            for (var index = 0; index < candidates.Count; index++)
+            {
+                SplitBallFromExplosiveBrick(candidates[index], explosionCenter, speedBurstMultiplier, speedBurstDuration);
+            }
+        }
+
+        private static void AddExplosionBallCandidate(
+            List<BallController> candidates,
+            BallController ball,
+            BallController excludedBall,
+            Vector2 explosionCenter,
+            float explosionRadius)
+        {
+            if (ball == null || ball == excludedBall || !ball.HasLaunched || candidates.Contains(ball))
+            {
+                return;
+            }
+
+            if (((Vector2)ball.transform.position - explosionCenter).sqrMagnitude > explosionRadius * explosionRadius)
+            {
+                return;
+            }
+
+            candidates.Add(ball);
         }
 
         private void SpawnLaserBeamVisual(Brick target, bool leftEmitter)

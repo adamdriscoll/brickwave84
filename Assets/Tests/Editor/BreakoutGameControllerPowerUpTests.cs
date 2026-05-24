@@ -299,6 +299,30 @@ public sealed class BreakoutGameControllerPowerUpTests
     }
 
     [Test]
+    public void ApplyingMissileDropAddsOneMissile()
+    {
+        var controller = CreateControllerHarness(out _);
+        SetPrivateField(controller, "availableMissiles", 3);
+        var missileDrop = CreatePowerUp(
+            "Brick Missile",
+            PowerUpEffectType.MissileStock,
+            beneficial: true,
+            durationSeconds: 0f,
+            scalar: 1f);
+
+        InvokePrivateMethod(controller, "ApplyPowerUp", missileDrop);
+
+        Assert.That(GetPrivateField<int>(controller, "availableMissiles"), Is.EqualTo(4));
+    }
+
+    [Test]
+    public void RewardMissilePurchaseRequiresFiveThousandPoints()
+    {
+        Assert.That(BreakoutGameController.CanPurchaseMissile(4999), Is.False);
+        Assert.That(BreakoutGameController.CanPurchaseMissile(5000), Is.True);
+    }
+
+    [Test]
     public void ApplyingSameTimedPowerUpTwiceShowsStackCountInUiLabels()
     {
         var controller = CreateControllerHarness(out _);

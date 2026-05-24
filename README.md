@@ -108,6 +108,7 @@ Difficulty presets already change more than labels:
 - Ball speed is not only feel tuning; brick score payout scales with current ball speed.
 - Combo score hooks now reward `Slam Chain` rapid breaks, `Bank Shot` ricochet finishes, and `Party Split` back-to-back multi-ball kills, with bonus point popups floating up from the broken brick.
 - Manual speed tuning exists during gameplay through `Up/Down`, and the HUD includes a speed meter.
+- Runs start with 3 Brick Missiles. Press `M` during play, or `Space` when no sticky/laser action consumes it first, to fire one from the paddle into stubborn bricks. Between-stage reward drafts can buy +1 missile for 5000 points.
 
 ### Drop And Effect Rules
 
@@ -176,6 +177,7 @@ Permanent run upgrades are always available in the between-stage draft pool. Dro
 | `Shield Wall` | Adds 1 bottom-edge rescue charge. | Default | Common | Helpful | Shield | Implemented |
 | `Slow Ball` | Ball speed x0.78 for 10s. | Default | Common | Helpful | Ball speed | Implemented |
 | `Wide Paddle` | Paddle width x1.45 for 12s. | Default | Common | Helpful | Paddle width | Implemented |
+| `Brick Missile` | Adds 1 available paddle-fired missile. | Default | Uncommon | Helpful | Missile stock | Implemented |
 | `Fast Ball` | Ball speed x1.28 for 10s. | Heat 01 | Common | Hazard | Ball speed | Implemented |
 | `Narrow Paddle` | Paddle width x0.72 for 10s. | Heat 02 | Common | Hazard | Paddle width | Implemented |
 | `Wavy Paddle` | Adds paddle sway for 12s. | Heat 03 | Common | Hazard | Paddle drift | Implemented |

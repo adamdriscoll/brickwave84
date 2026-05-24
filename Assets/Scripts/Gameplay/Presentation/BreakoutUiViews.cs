@@ -162,6 +162,9 @@ namespace GetBricked.Gameplay
         public int LifeCount;
         public Sprite LifeIcon;
         public Color LifeIconColor = Color.white;
+        public int MissileCount;
+        public Sprite MissileIcon;
+        public Color MissileIconColor = Color.white;
         public bool HasPaddleScreenTarget;
         public Vector2 PaddleScreenTarget;
         public string BottomLine = string.Empty;
@@ -208,6 +211,11 @@ namespace GetBricked.Gameplay
         public string BuildLine = string.Empty;
         public BreakoutUiUpgradeDraftOptionView[] Options = Array.Empty<BreakoutUiUpgradeDraftOptionView>();
         public int SelectedOptionIndex;
+        public string MissilePurchaseLabel = string.Empty;
+        public string MissilePurchaseDetail = string.Empty;
+        public bool CanPurchaseMissile;
+        public Sprite MissilePurchaseIcon;
+        public Color MissilePurchaseColor = Color.white;
         public string HintText = string.Empty;
     }
 

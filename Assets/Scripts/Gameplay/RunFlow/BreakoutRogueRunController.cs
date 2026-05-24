@@ -16,6 +16,7 @@ namespace GetBricked.Gameplay
             "multi_ball",
             "slow_ball",
             "shield_wall",
+            "brick_missile",
         };
 
         private readonly List<PowerUpDefinition> loadedPowerUpDefinitions;

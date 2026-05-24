@@ -9,6 +9,7 @@ namespace GetBricked.Gameplay
         Explosion = 1,
         Laser = 2,
         ChainLightning = 3,
+        Missile = 4,
     }
 
     [RequireComponent(typeof(BoxCollider2D))]
@@ -281,6 +282,18 @@ namespace GetBricked.Gameplay
             isPendingRemoval = true;
             hitPointsRemaining = 0;
             gameController.HandleBrickDestroyed(this, scoringBall, BrickDestructionCause.Explosion);
+        }
+
+        public void DestroyByMissile()
+        {
+            if (isPendingRemoval || definition == null || !definition.IsBreakable)
+            {
+                return;
+            }
+
+            isPendingRemoval = true;
+            hitPointsRemaining = 0;
+            gameController.HandleBrickDestroyed(this, null, BrickDestructionCause.Missile);
         }
 
         public void ApplyEffectHit(BallController scoringBall, BrickDestructionCause destructionCause, int damage = 1)

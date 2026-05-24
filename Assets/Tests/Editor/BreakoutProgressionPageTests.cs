@@ -16,6 +16,7 @@ public sealed class BreakoutProgressionPageTests
         "multi_ball",
         "slow_ball",
         "shield_wall",
+        "brick_missile",
     };
 
     [SetUp]

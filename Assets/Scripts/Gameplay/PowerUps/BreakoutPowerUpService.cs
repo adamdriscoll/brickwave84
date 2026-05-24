@@ -182,15 +182,18 @@ namespace GetBricked.Gameplay
 
     internal readonly struct BreakoutPowerUpApplicationResult
     {
-        public BreakoutPowerUpApplicationResult(bool shouldSpawnMultiBall, int shieldWallChargesGranted)
+        public BreakoutPowerUpApplicationResult(bool shouldSpawnMultiBall, int shieldWallChargesGranted, int missileChargesGranted = 0)
         {
             ShouldSpawnMultiBall = shouldSpawnMultiBall;
             ShieldWallChargesGranted = Mathf.Max(0, shieldWallChargesGranted);
+            MissileChargesGranted = Mathf.Max(0, missileChargesGranted);
         }
 
         public bool ShouldSpawnMultiBall { get; }
 
         public int ShieldWallChargesGranted { get; }
+
+        public int MissileChargesGranted { get; }
     }
 
     internal struct BreakoutEffectModifierAccumulator
@@ -657,6 +660,7 @@ namespace GetBricked.Gameplay
             {
                 PowerUpEffectType.MultiBallBurst => new BreakoutPowerUpApplicationResult(true, 0),
                 PowerUpEffectType.ShieldWall => new BreakoutPowerUpApplicationResult(false, Mathf.Max(1, powerUpDefinition.ExtraBallCount > 0 ? powerUpDefinition.ExtraBallCount : Mathf.RoundToInt(powerUpDefinition.Scalar))),
+                PowerUpEffectType.MissileStock => new BreakoutPowerUpApplicationResult(false, 0, Mathf.Max(1, powerUpDefinition.ExtraBallCount > 0 ? powerUpDefinition.ExtraBallCount : Mathf.RoundToInt(powerUpDefinition.Scalar))),
                 _ => default,
             };
         }

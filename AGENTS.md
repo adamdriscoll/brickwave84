@@ -17,13 +17,14 @@
 - Runs support seeded procedural levels, lives, high-score mode, one or more balls per serve, power-up drops, timed effects, permanent run upgrades, theme selection, and persisted setup choices through `PlayerPrefs`.
 - Bricks, levels, power-ups, run upgrades, and themes are data-driven ScriptableObjects under `Assets/Resources/`.
 - Gameplay art uses SVG sprites from `Assets/Resources/Sprites/`, theme palettes from `Assets/Resources/Themes/`, and level-rotated backgrounds from `Assets/Resources/Backgrounds/`.
+- Paddle-fired Brick Missiles use `Assets/Resources/Sprites/brick-missile.svg`; the matching missile stock drop uses `Assets/Resources/Sprites/brick-missile-drop.svg`.
 - The runtime presentation path uses URP bloom plus additive sprites for the ball and pickups; paddle, bricks, walls, and backdrop stay on unlit sprite materials for readability.
 - Input currently reads directly from `UnityEngine.InputSystem.Keyboard`; `Assets/InputSystem_Actions.inputactions` exists but is not yet the runtime input layer.
 
 ## Architecture Map
 
 - `Assets/Scripts/Gameplay/BreakoutGameController.cs` is the orchestration root for run flow, serve/life transitions, scene wiring, and cross-system coordination. Keep shrinking it when a responsibility becomes coherent enough to extract.
-- `Assets/Scripts/Gameplay/Actors/` contains MonoBehaviours for paddle, balls, bricks, and pickups.
+- `Assets/Scripts/Gameplay/Actors/` contains MonoBehaviours for paddle, balls, bricks, pickups, and paddle-fired missiles.
 - `Assets/Scripts/Gameplay/Data/` contains ScriptableObject definitions and runtime settings models.
 - `Assets/Scripts/Gameplay/Levels/BreakoutLevelPlanner.cs` owns deterministic procedural layout planning.
 - `Assets/Scripts/Gameplay/PowerUps/` owns pickup spawning, timed effects, direct-damage targeting, and power-up modifier calculations.

@@ -378,8 +378,11 @@ namespace GetBricked.Gameplay
             var topLineY = statusRect.y + (hasBottomLine ? 14f : 11f);
             var topLineRect = new Rect(statusRect.x + 20f, topLineY, statusRect.width - 40f, 24f);
             var ladderMinWidth = view.StageLadder != null && view.StageLadder.IsVisible ? 116f : 0f;
+            var missileWidth = 74f;
             var ladderGap = ladderMinWidth > 0f ? 18f : 0f;
-            var readoutRect = new Rect(topLineRect.x, topLineRect.y, Mathf.Max(120f, topLineRect.width - ladderMinWidth - ladderGap), topLineRect.height);
+            var missileGap = 14f;
+            var readoutReserveWidth = ladderMinWidth + ladderGap + missileWidth + missileGap;
+            var readoutRect = new Rect(topLineRect.x, topLineRect.y, Mathf.Max(120f, topLineRect.width - readoutReserveWidth), topLineRect.height);
 
             DrawPanel(statusRect, palette.AccentPrimary, palette.AccentSecondary, false);
             var readoutEndX = DrawHudReadout(readoutRect, view);
@@ -392,7 +395,7 @@ namespace GetBricked.Gameplay
             if (view.StageLadder != null && view.StageLadder.IsVisible)
             {
                 var ladderX = readoutEndX + 18f;
-                var ladderWidth = Mathf.Clamp(topLineRect.xMax - ladderX, ladderMinWidth, 288f);
+                var ladderWidth = Mathf.Clamp(topLineRect.xMax - ladderX - missileWidth - missileGap, ladderMinWidth, 288f);
 
                 if (ladderX + ladderWidth > topLineRect.xMax)
                 {
@@ -400,6 +403,11 @@ namespace GetBricked.Gameplay
                 }
 
                 DrawStageLadder(new Rect(ladderX, topLineY + 5f, ladderWidth, 14f), view.StageLadder);
+                DrawMissileReadout(new Rect(ladderX + ladderWidth + missileGap, topLineY - 1f, missileWidth, topLineRect.height + 2f), view);
+            }
+            else
+            {
+                DrawMissileReadout(new Rect(readoutEndX + missileGap, topLineY - 1f, missileWidth, topLineRect.height + 2f), view);
             }
 
             DrawBallSpeedMeter(view.SpeedMeter);
@@ -886,7 +894,7 @@ namespace GetBricked.Gameplay
                 : score.ToString("0000", System.Globalization.CultureInfo.InvariantCulture);
         }
 
-        public void DrawUpgradeDraft(BreakoutUiUpgradeDraftView view, Action<int> onOptionClicked)
+        public void DrawUpgradeDraft(BreakoutUiUpgradeDraftView view, Action<int> onOptionClicked, Action onMissilePurchaseClicked)
         {
             EnsureStyles();
 
@@ -911,7 +919,14 @@ namespace GetBricked.Gameplay
             var optionY = boxRect.y + 148f;
             var hintHeight = 78f;
             var hintY = boxRect.yMax - hintHeight - 34f;
-            var optionHeight = Mathf.Max(268f, hintY - optionY - 26f);
+            var missilePurchaseHeight = 38f;
+            var missilePurchaseGap = 18f;
+            var missilePurchaseHintGap = 14f;
+            var optionHeight = Mathf.Clamp(
+                hintY - optionY - missilePurchaseHeight - missilePurchaseGap - missilePurchaseHintGap,
+                230f,
+                360f);
+            var missilePurchaseY = optionY + optionHeight + missilePurchaseGap;
 
             for (var index = 0; index < optionCount; index++)
             {
@@ -937,12 +952,43 @@ namespace GetBricked.Gameplay
                 DrawSectionLabel(new Rect(optionRect.x + 18f, optionRect.y + 16f, optionRect.width - 36f, 20f), $"PICK {index + 1}", accent);
                 DrawIconTile(iconRect, option.Icon, accent, isSelected, option.IconLabel);
                 DrawTextWithShadow(new Rect(optionRect.x + 104f, optionRect.y + 42f, optionRect.width - 124f, 78f), option.Title, draftOptionTitleStyle, palette.TextPrimary, 0.3f);
-                DrawTextWithShadow(new Rect(optionRect.x + 20f, optionRect.y + 132f, optionRect.width - 40f, Mathf.Max(96f, optionRect.height - 254f)), option.Description, draftOptionBodyStyle, palette.TextMuted, 0.22f);
-                DrawHorizontalGradient(new Rect(optionRect.x + 20f, optionRect.yMax - 110f, optionRect.width - 40f, 2f), WithAlpha(accent, 0.55f), WithAlpha(palette.AccentPrimary, 0.18f), 12);
-                DrawTextWithShadow(new Rect(optionRect.x + 20f, optionRect.yMax - 98f, optionRect.width - 40f, 84f), FormatDraftCardDetail(option.Detail), draftOptionDetailStyle, palette.TextPrimary, 0.25f);
+                var detailHeight = 76f;
+                var detailY = optionRect.yMax - detailHeight - 14f;
+                var descriptionHeight = Mathf.Max(62f, detailY - (optionRect.y + 132f) - 12f);
+                DrawTextWithShadow(new Rect(optionRect.x + 20f, optionRect.y + 132f, optionRect.width - 40f, descriptionHeight), option.Description, draftOptionBodyStyle, palette.TextMuted, 0.22f);
+                DrawHorizontalGradient(new Rect(optionRect.x + 20f, detailY - 12f, optionRect.width - 40f, 2f), WithAlpha(accent, 0.55f), WithAlpha(palette.AccentPrimary, 0.18f), 12);
+                DrawTextWithShadow(new Rect(optionRect.x + 20f, detailY, optionRect.width - 40f, detailHeight), FormatDraftCardDetail(option.Detail), draftOptionDetailStyle, palette.TextPrimary, 0.25f);
             }
 
+            DrawMissilePurchaseControl(
+                new Rect(boxRect.x + 36f, missilePurchaseY, boxRect.width - 72f, missilePurchaseHeight),
+                view,
+                onMissilePurchaseClicked);
             DrawHintBand(new Rect(boxRect.x + 36f, hintY, boxRect.width - 72f, hintHeight), view.HintText, draftHintStyle);
+        }
+
+        private void DrawMissilePurchaseControl(Rect rect, BreakoutUiUpgradeDraftView view, Action onMissilePurchaseClicked)
+        {
+            if (view == null || string.IsNullOrWhiteSpace(view.MissilePurchaseLabel))
+            {
+                return;
+            }
+
+            var accent = view.CanPurchaseMissile ? view.MissilePurchaseColor : WithAlpha(palette.TextMuted, 0.52f);
+            DrawSolidRect(rect, WithAlpha(palette.PanelFillSecondary, 0.62f));
+            DrawOutline(rect, WithAlpha(accent, view.CanPurchaseMissile ? 0.78f : 0.28f), 1.5f);
+
+            var iconRect = new Rect(rect.x + 12f, rect.y + 6f, 26f, 26f);
+            DrawLifeIndicator(iconRect, view.MissilePurchaseIcon, accent, -22f);
+            DrawTextWithShadow(new Rect(iconRect.xMax + 10f, rect.y + 4f, 220f, rect.height - 8f), view.MissilePurchaseLabel, hudStyle, palette.TextPrimary, 0.24f);
+            DrawTextWithShadow(new Rect(rect.x + 260f, rect.y + 6f, rect.width - 420f, rect.height - 12f), view.MissilePurchaseDetail, setupHintStyle, view.CanPurchaseMissile ? palette.TextMuted : WithAlpha(palette.TextMuted, 0.58f), 0.18f);
+
+            var buttonRect = new Rect(rect.xMax - 138f, rect.y + 4f, 126f, rect.height - 8f);
+
+            if (DrawArcadeButton(buttonRect, view.CanPurchaseMissile ? "BUY" : "LOCKED", false) && view.CanPurchaseMissile)
+            {
+                onMissilePurchaseClicked?.Invoke();
+            }
         }
 
         public void DrawMessageOverlay(string message)
@@ -1790,6 +1836,16 @@ namespace GetBricked.Gameplay
                     iconSize);
                 DrawLifeIndicator(iconRect, view.LifeIcon, view.LifeIconColor);
             }
+        }
+
+        private void DrawMissileReadout(Rect rect, BreakoutUiHudView view)
+        {
+            var iconSize = Mathf.Min(20f, rect.height - 4f);
+            var iconRect = new Rect(rect.x, rect.y + ((rect.height - iconSize) * 0.5f), iconSize, iconSize);
+            DrawLifeIndicator(iconRect, view.MissileIcon, view.MissileIconColor, -22f);
+
+            var countRect = new Rect(iconRect.xMax + 6f, rect.y, rect.width - iconSize - 6f, rect.height);
+            DrawTextWithShadow(countRect, $"x{Mathf.Clamp(view.MissileCount, 0, 99):00}", hudStyle, palette.TextPrimary, 0.28f);
         }
 
         private void BeginLifeLossAnimation(Rect startRect, BreakoutUiHudView view, float iconSize)
@@ -2800,17 +2856,17 @@ namespace GetBricked.Gameplay
                 return null;
             }
 
-            if (sprite.texture != null && HasVisiblePixels(sprite.texture, sprite.textureRect))
-            {
-                textureCoords = GetSpriteTexCoords(sprite);
-                return sprite.texture;
-            }
-
             var rasterizedTexture = ResolveRasterizedIconTexture(sprite);
 
             if (rasterizedTexture != null)
             {
                 return rasterizedTexture;
+            }
+
+            if (sprite.texture != null && HasVisiblePixels(sprite.texture, sprite.textureRect))
+            {
+                textureCoords = GetSpriteTexCoords(sprite);
+                return sprite.texture;
             }
 
             return null;

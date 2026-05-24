@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+  <defs>
+    <filter id="softGlow" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="2.25" result="blur"/>
+      <feColorMatrix in="blur" type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 .8 0" result="glow"/>
+      <feMerge>
+        <feMergeNode in="glow"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <style><![CDATA[
+      .icon { fill: none; stroke: #fff; stroke-linecap: round; stroke-linejoin: round; filter: url(#softGlow); }
+      .main { stroke-width: 12; opacity: .96; }
+      .echo { stroke-width: 5; opacity: .32; }
+      .fill { fill: #fff; opacity: .88; filter: url(#softGlow); }
+    ]]></style>
+  </defs>
+  <g class="icon">
+    <path class="echo" d="M51 127c18-44 52-66 77-66s59 22 77 66"/>
+    <path class="main" d="M128 45c25 24 38 55 38 88v33c0 7-5 12-12 12h-52c-7 0-12-5-12-12v-33c0-33 13-64 38-88z"/>
+    <path class="main" d="M91 142 55 186h39l16-31m55-13 36 44h-39l-16-31"/>
+    <path class="main" d="M111 99h34m-30 23h26"/>
+    <path class="echo" d="M92 207h72"/>
+  </g>
+  <path class="fill" d="M112 181h32l-16 40z"/>
+</svg>

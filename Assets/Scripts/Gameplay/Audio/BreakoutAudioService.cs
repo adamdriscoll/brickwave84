@@ -189,6 +189,11 @@ namespace GetBricked.Gameplay
             PlaySfx(brickBreak, 0.85f, 0.96f, 1.04f);
         }
 
+        public void PlayExplosion()
+        {
+            PlaySfx(brickExplosive, 0.82f, 0.95f, 1.03f);
+        }
+
         public void PlayPickupDropped()
         {
             PlaySfx(pickupDrop, 0.42f, 0.98f, 1.04f);

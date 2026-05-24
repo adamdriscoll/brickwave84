@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+  <defs>
+    <style><![CDATA[
+      .core { fill: #fff; }
+      .line { fill: none; stroke: #fff; stroke-linecap: round; stroke-linejoin: round; }
+      .thin { stroke-width: 8; opacity: .72; }
+      .hot { fill: #fff; opacity: .58; }
+    ]]></style>
+  </defs>
+  <path class="core" d="M128 18c28 26 45 62 45 100v62c0 9-7 16-16 16h-58c-9 0-16-7-16-16v-62c0-38 17-74 45-100z"/>
+  <path class="hot" d="M107 118h42v54h-42z"/>
+  <path class="core" d="M83 151 45 203h44l18-37zm90 0 38 52h-44l-18-37z"/>
+  <path class="line thin" d="M111 79h34M108 101h40M128 35v33"/>
+  <path class="hot" d="M108 197h40l-20 43z"/>
+</svg>
