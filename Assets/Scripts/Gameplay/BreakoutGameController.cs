@@ -693,6 +693,7 @@ namespace GetBricked.Gameplay
             scoringBall.ContinueThroughBrickImpact();
             brick.ApplyEffectHit(scoringBall, BrickDestructionCause.Impact, Mathf.Max(1, brick.HitPointsRemaining));
             powerUpService.ShowStatusBanner("SOLAR SHOT!", ResolveSolarShotColor(), 1.25f);
+            ApplySolarShotVisualState();
             return true;
         }
 
@@ -5883,6 +5884,7 @@ namespace GetBricked.Gameplay
 
             var currentBallSpeed = GetCurrentBallSpeed();
             var gravityWellCenter = new Vector2(0f, (arenaTop + arenaBottom) * 0.5f);
+            var solarShotCharged = powerUpService != null && powerUpService.SolarShotCharges > 0;
 
             if (serveBall != null)
             {
@@ -5893,6 +5895,7 @@ namespace GetBricked.Gameplay
                 ApplyGravityPocketToBall(serveBall);
                 serveBall.SetHotPotatoStrength(activeEffectModifiers.HotPotatoStrength);
                 serveBall.SetExplosiveBallStrength(activeEffectModifiers.ExplosiveBallStrength);
+                serveBall.SetSolarShotCharged(solarShotCharged);
             }
 
             for (var index = activeBalls.Count - 1; index >= 0; index--)
@@ -5912,6 +5915,7 @@ namespace GetBricked.Gameplay
                 ApplyGravityPocketToBall(activeBall);
                 activeBall.SetHotPotatoStrength(activeEffectModifiers.HotPotatoStrength);
                 activeBall.SetExplosiveBallStrength(activeEffectModifiers.ExplosiveBallStrength);
+                activeBall.SetSolarShotCharged(solarShotCharged);
             }
 
             ApplyVisualEffectState();
@@ -6364,6 +6368,29 @@ namespace GetBricked.Gameplay
         private void ClearPickups()
         {
             powerUpService?.ClearPickups();
+        }
+
+        private void ApplySolarShotVisualState()
+        {
+            var solarShotCharged = powerUpService != null && powerUpService.SolarShotCharges > 0;
+
+            if (serveBall != null)
+            {
+                serveBall.SetSolarShotCharged(solarShotCharged);
+            }
+
+            for (var index = activeBalls.Count - 1; index >= 0; index--)
+            {
+                var activeBall = activeBalls[index];
+
+                if (activeBall == null)
+                {
+                    activeBalls.RemoveAt(index);
+                    continue;
+                }
+
+                activeBall.SetSolarShotCharged(solarShotCharged);
+            }
         }
 
         private void ClearMissiles()

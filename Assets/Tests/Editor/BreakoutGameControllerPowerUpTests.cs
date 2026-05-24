@@ -334,10 +334,16 @@ public sealed class BreakoutGameControllerPowerUpTests
         GetPrivateField<List<BallController>>(controller, "activeBalls").Add(scoringBall);
         InvokePrivateMethod(controller, "ApplyPowerUp", solarShot);
 
+        var chargedColor = ResolveSpriteTint(scoringBall.GetComponent<SpriteRenderer>());
+        Assert.That(chargedColor.g, Is.LessThan(0.85f));
+        Assert.That(chargedColor.b, Is.GreaterThan(0.04f));
         Assert.That(controller.TryHandleSolarShot(scoringBall, brick), Is.True);
 
         var powerUpService = GetPrivateField<object>(controller, "powerUpService");
+        var dischargedColor = ResolveSpriteTint(scoringBall.GetComponent<SpriteRenderer>());
         Assert.That(GetPropertyValue<int>(powerUpService, "SolarShotCharges"), Is.Zero);
+        Assert.That(dischargedColor.g, Is.GreaterThan(0.9f));
+        Assert.That(dischargedColor.b, Is.LessThan(0.02f));
         Assert.That(GetPrivateField<int>(controller, "score"), Is.GreaterThan(0));
         Assert.That(GetPrivateField<List<Brick>>(controller, "bricks"), Is.Empty);
     }
@@ -1322,6 +1328,14 @@ public sealed class BreakoutGameControllerPowerUpTests
     {
         var scoreService = GetPrivateField<object>(controller, "scoreService");
         return GetPrivateField<System.Collections.IList>(scoreService, "floatingScorePopups");
+    }
+
+    private static Color ResolveSpriteTint(SpriteRenderer spriteRenderer)
+    {
+        var propertyBlock = new MaterialPropertyBlock();
+        spriteRenderer.GetPropertyBlock(propertyBlock);
+        var color = propertyBlock.GetColor(Shader.PropertyToID("_Color"));
+        return color.a > 0.0001f ? color : spriteRenderer.color;
     }
 
     private static T GetPropertyValue<T>(object instance, string propertyName)

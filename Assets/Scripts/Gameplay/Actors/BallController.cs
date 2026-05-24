@@ -8,6 +8,7 @@ namespace GetBricked.Gameplay
     public sealed class BallController : MonoBehaviour
     {
         public const float MaximumSizeMultiplier = 1.8f;
+        private static readonly Color SolarShotColor = new Color(1f, 0.72f, 0.08f, 1f);
 
         [SerializeField] private float maxPaddleBounceAngle = 70f;
 
@@ -39,6 +40,7 @@ namespace GetBricked.Gameplay
         private float hotPotatoStrength;
         private float hotPotatoSpeedMultiplier = 1f;
         private float explosiveBallStrength;
+        private bool solarShotCharged;
         private SpriteRenderer spriteRenderer;
         private BreakoutGlowRenderer glowRenderer;
         private ThemeVisualStyle baseVisualStyle = new ThemeVisualStyle(Color.white, Color.white, null);
@@ -188,6 +190,17 @@ namespace GetBricked.Gameplay
         public void SetExplosiveBallStrength(float strength)
         {
             explosiveBallStrength = Mathf.Max(0f, strength);
+            RefreshVisualStyle();
+        }
+
+        public void SetSolarShotCharged(bool charged)
+        {
+            if (solarShotCharged == charged)
+            {
+                return;
+            }
+
+            solarShotCharged = charged;
             RefreshVisualStyle();
         }
 
@@ -803,9 +816,18 @@ namespace GetBricked.Gameplay
             }
 
             spriteRenderer.sprite = baseVisualStyle.Sprite;
-            var resolvedColor = IsExplosiveBall
-                ? Color.Lerp(baseVisualStyle.PrimaryColor, new Color(1f, 0.34f, 0.1f, 1f), 0.78f)
-                : baseVisualStyle.PrimaryColor;
+            var resolvedColor = baseVisualStyle.PrimaryColor;
+
+            if (IsExplosiveBall)
+            {
+                resolvedColor = Color.Lerp(resolvedColor, new Color(1f, 0.34f, 0.1f, 1f), 0.78f);
+            }
+
+            if (solarShotCharged)
+            {
+                resolvedColor = Color.Lerp(resolvedColor, SolarShotColor, 0.86f);
+            }
+
             BreakoutSpriteRendererUtility.ApplyTint(spriteRenderer, resolvedColor);
             glowRenderer?.ApplyColor(resolvedColor);
         }
