@@ -82,6 +82,7 @@ namespace GetBricked.Gameplay
             ballBody = GetComponent<Rigidbody2D>();
             spriteRenderer = GetComponent<SpriteRenderer>();
             glowRenderer = GetComponent<BreakoutGlowRenderer>();
+            CaptureCurrentVisualStyleAsFallback();
         }
 
         public void ResetToPaddle()
@@ -183,7 +184,10 @@ namespace GetBricked.Gameplay
 
         public void ApplyVisualStyle(ThemeVisualStyle visualStyle)
         {
-            baseVisualStyle = visualStyle;
+            var visualSprite = visualStyle.Sprite != null || spriteRenderer == null
+                ? visualStyle.Sprite
+                : spriteRenderer.sprite;
+            baseVisualStyle = new ThemeVisualStyle(visualStyle.PrimaryColor, visualStyle.SecondaryColor, visualSprite);
             RefreshVisualStyle();
         }
 
@@ -815,7 +819,10 @@ namespace GetBricked.Gameplay
                 return;
             }
 
-            spriteRenderer.sprite = baseVisualStyle.Sprite;
+            var resolvedSprite = baseVisualStyle.Sprite != null
+                ? baseVisualStyle.Sprite
+                : spriteRenderer.sprite;
+            spriteRenderer.sprite = resolvedSprite;
             var resolvedColor = baseVisualStyle.PrimaryColor;
 
             if (IsExplosiveBall)
@@ -830,6 +837,17 @@ namespace GetBricked.Gameplay
 
             BreakoutSpriteRendererUtility.ApplyTint(spriteRenderer, resolvedColor);
             glowRenderer?.ApplyColor(resolvedColor);
+        }
+
+        private void CaptureCurrentVisualStyleAsFallback()
+        {
+            if (spriteRenderer == null)
+            {
+                return;
+            }
+
+            var currentColor = BreakoutSpriteRendererUtility.ResolveTint(spriteRenderer);
+            baseVisualStyle = new ThemeVisualStyle(currentColor, currentColor, spriteRenderer.sprite);
         }
 
         private void RegisterHotPotatoHit()

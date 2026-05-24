@@ -2897,6 +2897,7 @@ namespace GetBricked.Gameplay
             temporaryBallLifetimes.Clear();
             activeBalls.Clear();
             serveBall.SetMovementSpeed(GetCurrentBallSpeed());
+            RefreshServeBallVisualStyle();
             serveBall.ResetToPaddle();
             activeBalls.Add(serveBall);
             BeginServeBallRevealDelayIfNeeded(nextState);
@@ -6431,6 +6432,12 @@ namespace GetBricked.Gameplay
 
             serveBall.gameObject.SetActive(true);
             serveBall.SetMovementSpeed(GetCurrentBallSpeed());
+            RefreshServeBallVisualStyle();
+        }
+
+        private void RefreshServeBallVisualStyle()
+        {
+            serveBall?.ApplyVisualStyle(ResolveBallVisualStyle());
         }
 
         private void UpdateServeBallRevealDelay()
@@ -6460,6 +6467,7 @@ namespace GetBricked.Gameplay
             serveBallRevealDelayTimer = 0f;
             serveBall.gameObject.SetActive(true);
             serveBall.SetMovementSpeed(GetCurrentBallSpeed());
+            RefreshServeBallVisualStyle();
             serveBall.ResetToPaddle();
         }
 
