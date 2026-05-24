@@ -5833,6 +5833,7 @@ namespace GetBricked.Gameplay
                     persistentModifiers.WavyPaddleStrength)
                 : new BreakoutEffectModifiers(
                     (activeRunSettings?.PaddleWidthMultiplier ?? 1f) * persistentModifiers.PaddleWidthMultiplier,
+                    1f,
                     persistentModifiers.WavyPaddleStrength,
                     1f,
                     1f,
@@ -5857,7 +5858,9 @@ namespace GetBricked.Gameplay
                     1f,
                     0f,
                     false);
-            paddle.SetMoveSpeed(currentLevelPaddleSpeed * (activeRunSettings?.PaddleSpeedMultiplier ?? 1f));
+            paddle.SetMoveSpeed(currentLevelPaddleSpeed
+                * (activeRunSettings?.PaddleSpeedMultiplier ?? 1f)
+                * activeEffectModifiers.PaddleSpeedMultiplier);
             var paddleHitMaximumWidth = paddle.SetWidthMultiplier(activeEffectModifiers.PaddleWidthMultiplier);
 
             if (paddleHitMaximumWidth && TryBreakWidePaddle())
@@ -6974,6 +6977,7 @@ namespace GetBricked.Gameplay
             return definition.EffectType switch
             {
                 PowerUpEffectType.PaddleWidthMultiplier => $"Paddle x{definition.Scalar:0.00} for {definition.DurationSeconds:0.#}s",
+                PowerUpEffectType.PaddleSpeedMultiplier => $"Paddle speed x{definition.Scalar:0.00} for {definition.DurationSeconds:0.#}s",
                 PowerUpEffectType.BallSpeedMultiplier => $"Ball x{definition.Scalar:0.00} for {definition.DurationSeconds:0.#}s",
                 PowerUpEffectType.BallSizeMultiplier => $"Ball size x{definition.Scalar:0.00} for {definition.DurationSeconds:0.#}s",
                 PowerUpEffectType.MultiBallBurst => $"+{Mathf.Max(1, definition.ExtraBallCount)} balls",

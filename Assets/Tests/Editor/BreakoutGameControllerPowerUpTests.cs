@@ -72,6 +72,22 @@ public sealed class BreakoutGameControllerPowerUpTests
     }
 
     [Test]
+    public void ApplyingStaticShoesSlowsPaddleMovementImmediately()
+    {
+        var controller = CreateControllerHarness(out var paddle);
+        var staticShoes = CreatePowerUp(
+            "Static Shoes",
+            PowerUpEffectType.PaddleSpeedMultiplier,
+            beneficial: false,
+            durationSeconds: 8f,
+            scalar: 0.6f);
+
+        InvokePrivateMethod(controller, "ApplyPowerUp", staticShoes);
+
+        Assert.That(GetPrivateField<float>(paddle, "moveSpeed"), Is.EqualTo(12f * 0.6f).Within(0.0001f));
+    }
+
+    [Test]
     public void ApplyingWrapRailMovesPaddleAcrossSideBounds()
     {
         var controller = CreateControllerHarness(out var paddle);
@@ -571,6 +587,7 @@ public sealed class BreakoutGameControllerPowerUpTests
         var timedPowerUps = new[]
         {
             CreateTimedPowerUpCase("Narrow Paddle", PowerUpEffectType.PaddleWidthMultiplier, false, 10f, 0.72f),
+            CreateTimedPowerUpCase("Static Shoes", PowerUpEffectType.PaddleSpeedMultiplier, false, 8f, 0.6f),
             CreateTimedPowerUpCase("Slow Ball", PowerUpEffectType.BallSpeedMultiplier, true, 10f, 0.78f),
             CreateTimedPowerUpCase("Wavy Paddle", PowerUpEffectType.WavyPaddle, false, 12f, 1f),
             CreateTimedPowerUpCase("Sticky Paddle", PowerUpEffectType.StickyPaddle, true, 15f, 1f),

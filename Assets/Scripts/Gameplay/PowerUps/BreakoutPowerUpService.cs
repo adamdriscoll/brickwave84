@@ -81,6 +81,7 @@ namespace GetBricked.Gameplay
     {
         public BreakoutEffectModifiers(
             float paddleWidthMultiplier,
+            float paddleSpeedMultiplier,
             float wavyPaddleStrength,
             float timedBallSpeedMultiplier,
             float ballSizeMultiplier,
@@ -107,6 +108,7 @@ namespace GetBricked.Gameplay
             bool paddleWrapEnabled)
         {
             PaddleWidthMultiplier = paddleWidthMultiplier;
+            PaddleSpeedMultiplier = Mathf.Max(0.1f, paddleSpeedMultiplier);
             WavyPaddleStrength = wavyPaddleStrength;
             TimedBallSpeedMultiplier = timedBallSpeedMultiplier;
             BallSizeMultiplier = ballSizeMultiplier;
@@ -134,6 +136,8 @@ namespace GetBricked.Gameplay
         }
 
         public float PaddleWidthMultiplier { get; }
+
+        public float PaddleSpeedMultiplier { get; }
 
         public float WavyPaddleStrength { get; }
 
@@ -203,6 +207,7 @@ namespace GetBricked.Gameplay
     internal struct BreakoutEffectModifierAccumulator
     {
         private float paddleWidthMultiplier;
+        private float paddleSpeedMultiplier;
         private float wavyPaddleStrength;
         private float timedBallSpeedMultiplier;
         private float ballSizeMultiplier;
@@ -231,6 +236,7 @@ namespace GetBricked.Gameplay
         public BreakoutEffectModifierAccumulator(float basePaddleWidthMultiplier, float baseWavyPaddleStrength)
         {
             paddleWidthMultiplier = Mathf.Max(0.1f, basePaddleWidthMultiplier);
+            paddleSpeedMultiplier = 1f;
             wavyPaddleStrength = Mathf.Clamp01(baseWavyPaddleStrength);
             timedBallSpeedMultiplier = 1f;
             ballSizeMultiplier = 1f;
@@ -272,6 +278,9 @@ namespace GetBricked.Gameplay
             {
                 case PowerUpEffectType.PaddleWidthMultiplier:
                     paddleWidthMultiplier *= Mathf.Pow(powerUpDefinition.Scalar, effectStrength);
+                    break;
+                case PowerUpEffectType.PaddleSpeedMultiplier:
+                    paddleSpeedMultiplier *= Mathf.Pow(powerUpDefinition.Scalar, effectStrength);
                     break;
                 case PowerUpEffectType.BallSpeedMultiplier:
                     timedBallSpeedMultiplier *= Mathf.Pow(powerUpDefinition.Scalar, effectStrength);
@@ -358,6 +367,7 @@ namespace GetBricked.Gameplay
         {
             return new BreakoutEffectModifiers(
                 paddleWidthMultiplier,
+                paddleSpeedMultiplier,
                 wavyPaddleStrength,
                 timedBallSpeedMultiplier,
                 Mathf.Max(0.1f, ballSizeMultiplier),

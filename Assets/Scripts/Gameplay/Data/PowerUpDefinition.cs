@@ -105,6 +105,7 @@ namespace GetBricked.Gameplay.Data
         MissileStock = 31,
         SolarShot = 32,
         PaddleWrap = 33,
+        PaddleSpeedMultiplier = 34,
     }
 
     [CreateAssetMenu(menuName = "Get Bricked/Power-Up Definition", fileName = "PowerUpDefinition")]

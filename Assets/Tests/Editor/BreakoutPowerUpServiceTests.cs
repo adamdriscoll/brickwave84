@@ -31,12 +31,14 @@ public sealed class BreakoutPowerUpServiceTests
     {
         var service = CreateService();
         var wide = CreatePowerUp("Wide Paddle", PowerUpEffectType.PaddleWidthMultiplier, true, 10f, 1.2f);
+        var staticShoes = CreatePowerUp("Static Shoes", PowerUpEffectType.PaddleSpeedMultiplier, false, 8f, 0.6f);
         var slowBall = CreatePowerUp("Slow Ball", PowerUpEffectType.BallSpeedMultiplier, true, 10f, 0.8f);
         var wave = CreatePowerUp("Wave", PowerUpEffectType.WavyPaddle, false, 10f, 0.55f);
         var fog = CreatePowerUp("Fog", PowerUpEffectType.FogOfWar, false, 10f, 0.45f);
 
         service.ApplyPowerUp(wide, null);
         service.ApplyPowerUp(wide, null);
+        service.ApplyPowerUp(staticShoes, null);
         service.ApplyPowerUp(slowBall, null);
         service.ApplyPowerUp(wave, null);
         service.ApplyPowerUp(fog, null);
@@ -44,6 +46,7 @@ public sealed class BreakoutPowerUpServiceTests
         var modifiers = service.CalculateEffectModifiers(1.1f, 0.25f);
 
         Assert.That(modifiers.PaddleWidthMultiplier, Is.EqualTo(1.1f * 1.2f * 1.2f).Within(0.0001f));
+        Assert.That(modifiers.PaddleSpeedMultiplier, Is.EqualTo(0.6f).Within(0.0001f));
         Assert.That(modifiers.TimedBallSpeedMultiplier, Is.EqualTo(0.8f).Within(0.0001f));
         Assert.That(modifiers.WavyPaddleStrength, Is.EqualTo(0.55f).Within(0.0001f));
         Assert.That(modifiers.FogVisibilityMultiplier, Is.EqualTo(0.45f).Within(0.0001f));

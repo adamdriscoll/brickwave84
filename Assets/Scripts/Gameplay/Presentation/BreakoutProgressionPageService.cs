@@ -238,6 +238,7 @@ namespace GetBricked.Gameplay
             return definition.EffectType switch
             {
                 PowerUpEffectType.PaddleWidthMultiplier => $"Paddle width x{definition.Scalar:0.00} for {definition.DurationSeconds:0.#}s.",
+                PowerUpEffectType.PaddleSpeedMultiplier => $"Paddle movement x{definition.Scalar:0.00} for {definition.DurationSeconds:0.#}s.",
                 PowerUpEffectType.BallSpeedMultiplier => $"Ball speed x{definition.Scalar:0.00} for {definition.DurationSeconds:0.#}s.",
                 PowerUpEffectType.BallSizeMultiplier => $"Ball size x{definition.Scalar:0.00} for {definition.DurationSeconds:0.#}s.",
                 PowerUpEffectType.MultiBallBurst => $"+{Mathf.Max(1, definition.ExtraBallCount)} balls from an active ball.",

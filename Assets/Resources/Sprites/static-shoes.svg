@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
+  <title id="title">Static Shoes</title>
+  <desc id="desc">A monochrome neon icon showing sticky shoes dragging a paddle through static.</desc>
+
+  <defs>
+    <filter id="softGlow" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="2.25" result="blur"/>
+      <feColorMatrix in="blur" type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 .8 0" result="glow"/>
+      <feMerge>
+        <feMergeNode in="glow"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <style><![CDATA[
+      .icon { fill: none; stroke: #fff; stroke-linecap: round; stroke-linejoin: round; filter: url(#softGlow); }
+      .sole { stroke-width: 12; opacity: .96; }
+      .upper { stroke-width: 9; opacity: .88; }
+      .drag { stroke-width: 5; opacity: .52; }
+      .static { stroke-width: 6; opacity: .72; }
+      .fill { fill: #fff; stroke: none; opacity: .9; filter: url(#softGlow); }
+      .soft { fill: #fff; stroke: none; opacity: .16; filter: url(#softGlow); }
+    ]]></style>
+  </defs>
+
+  <g class="icon">
+    <path class="drag" d="M 43 94 H 94"/>
+    <path class="drag" d="M 35 128 H 82"/>
+    <path class="drag" d="M 48 162 H 103"/>
+
+    <path class="sole" d="M 88 154 C 113 164 151 165 181 154 C 194 149 205 154 212 166 C 193 184 128 188 76 171 C 77 160 80 154 88 154 Z"/>
+    <path class="upper" d="M 97 147 C 106 126 125 111 149 107 C 160 119 174 129 193 135 C 195 145 191 151 181 154"/>
+    <path class="upper" d="M 117 135 L 151 143"/>
+    <path class="upper" d="M 132 122 L 166 132"/>
+    <path class="soft" d="M 91 158 C 122 176 178 170 202 160 C 181 184 118 185 76 171 C 78 162 82 157 91 158 Z"/>
+
+    <path class="static" d="M 91 75 L 113 75 L 99 98 L 120 98 L 90 132 L 101 105 L 80 105 Z"/>
+    <path class="static" d="M 178 60 L 198 60 L 187 78 L 205 78 L 177 110 L 187 86 L 169 86 Z"/>
+    <path class="static" d="M 54 54 L 69 67 L 54 80"/>
+    <path class="static" d="M 225 116 L 209 128 L 225 140"/>
+
+    <circle class="fill" cx="75" cy="169" r="5"/>
+    <circle class="fill" cx="211" cy="166" r="5"/>
+  </g>
+</svg>
