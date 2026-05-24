@@ -15,6 +15,7 @@ MonoBehaviour:
   upgradeId: repair-stock
   displayName: Repair Stock
   hudLabel: LIFE
+  iconResourcePath: Sprites/repair-stock
   description: A stocked service bay grants an immediate extra life and keeps the cabinet run alive longer.
   draftWeight: 0.6
   maxStacks: 2

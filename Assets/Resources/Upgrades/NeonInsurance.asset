@@ -15,6 +15,7 @@ MonoBehaviour:
   upgradeId: neon-insurance
   displayName: Neon Insurance
   hudLabel: INS
+  iconResourcePath: Sprites/neon-insurance
   description: Dropped pickups linger longer before fading, giving you more time to route for them.
   draftWeight: 0.95
   maxStacks: 3

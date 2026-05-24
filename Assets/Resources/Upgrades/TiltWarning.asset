@@ -15,6 +15,7 @@ MonoBehaviour:
   upgradeId: tilt-warning
   displayName: Tilt Warning
   hudLabel: TILT
+  iconResourcePath: Sprites/tilt-warning
   description: Once per stage, a close miss below the paddle bumps the ball back upward instead of costing a life.
   draftWeight: 0.75
   maxStacks: 1

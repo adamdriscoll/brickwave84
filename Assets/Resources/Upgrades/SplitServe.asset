@@ -15,6 +15,7 @@ MonoBehaviour:
   upgradeId: split-serve
   displayName: Split Serve
   hudLabel: SPLIT
+  iconResourcePath: Sprites/split-serve
   description: Every new serve launches an extra ball, letting the run snowball faster between resets.
   draftWeight: 0.72
   maxStacks: 2

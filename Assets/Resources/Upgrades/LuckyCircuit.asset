@@ -15,6 +15,7 @@ MonoBehaviour:
   upgradeId: lucky-circuit
   displayName: Lucky Circuit
   hudLabel: LUCK
+  iconResourcePath: Sprites/lucky-circuit
   description: Pickup routing stays juiced, raising permanent drop odds for the rest of the cabinet run.
   draftWeight: 1.1
   maxStacks: 3

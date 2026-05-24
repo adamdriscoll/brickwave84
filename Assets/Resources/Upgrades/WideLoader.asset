@@ -15,6 +15,7 @@ MonoBehaviour:
   upgradeId: wide-loader
   displayName: Wide Loader
   hudLabel: WIDE
+  iconResourcePath: Sprites/wide-loader
   description: Your paddle chassis expands for the rest of the run, opening more forgiving save angles.
   draftWeight: 1.25
   maxStacks: 3

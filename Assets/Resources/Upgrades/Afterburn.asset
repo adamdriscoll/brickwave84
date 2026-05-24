@@ -15,6 +15,7 @@ MonoBehaviour:
   upgradeId: afterburn
   displayName: Afterburn Coil
   hudLabel: BURN
+  iconResourcePath: Sprites/afterburn
   description: The cabinet overclocks every serve, keeping the ball hotter for all remaining levels.
   draftWeight: 1.05
   maxStacks: 4

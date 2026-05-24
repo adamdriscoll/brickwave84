@@ -2791,6 +2791,12 @@ namespace GetBricked.Gameplay
                 return null;
             }
 
+            if (sprite.texture != null && HasVisiblePixels(sprite.texture, sprite.textureRect))
+            {
+                textureCoords = GetSpriteTexCoords(sprite);
+                return sprite.texture;
+            }
+
             var rasterizedTexture = ResolveRasterizedIconTexture(sprite);
 
             if (rasterizedTexture != null)
@@ -2798,13 +2804,7 @@ namespace GetBricked.Gameplay
                 return rasterizedTexture;
             }
 
-            if (sprite.texture == null || !HasVisiblePixels(sprite.texture, sprite.textureRect))
-            {
-                return null;
-            }
-
-            textureCoords = GetSpriteTexCoords(sprite);
-            return sprite.texture;
+            return null;
         }
 
         private Texture2D ResolveRasterizedIconTexture(Sprite sprite)
@@ -2832,17 +2832,6 @@ namespace GetBricked.Gameplay
                 {
                     Debug.LogWarning($"Could not rasterize UI icon sprite '{sprite.name}': {exception.Message}");
                 }
-            }
-
-            if (renderedTexture != null && !HasVisiblePixels(renderedTexture))
-            {
-                DestroyRuntimeObject(renderedTexture);
-                renderedTexture = null;
-            }
-
-            if (renderedTexture == null)
-            {
-                renderedTexture = RenderSpriteIconWithCamera(sprite);
             }
 
             if (renderedTexture != null && !HasVisiblePixels(renderedTexture))

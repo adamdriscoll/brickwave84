@@ -15,6 +15,7 @@ MonoBehaviour:
   upgradeId: flux-line
   displayName: Flux Line
   hudLabel: FLUX
+  iconResourcePath: Sprites/flux-line
   description: The paddle develops a gentle permanent drift pattern that trades chaos for wider coverage arcs.
   draftWeight: 0.55
   maxStacks: 1
