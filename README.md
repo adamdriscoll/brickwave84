@@ -168,7 +168,9 @@ Difficulty presets already change more than labels:
 
 Permanent run upgrades are always available in the between-stage draft pool. Drop and glitch unlocks now advance on parallel 50-Heat tracks: clearing a Heat can award one drop signal and one glitch signal. Implemented live drops currently fill Heat `01` through Heat `35`, with a placeholder drop at Heat `36`. Implemented live glitches currently fill Heat `01` through Heat `05`, with placeholder glitches at Heat `06` and Heat `07`. Default drops and default glitches start unlocked for Neon Ladder runs. Rarity still tunes odds and draft weighting, but it no longer controls unlock Heat. Implementation status tracks whether the item has live runtime gameplay behavior or is currently only a progression-screen placeholder.
 
-| Name | Description | Default / unlock level | Rarity | Polarity | Type | Implementation |
+#### Drops
+
+| Name | Description | Default / unlock Heat | Rarity | Polarity | Type | Implementation |
 | --- | --- | --- | --- | --- | --- | --- |
 | `Multi-Ball` | +2 balls from an active ball. | Default | Common | Helpful | Multi-ball | Implemented |
 | `Shield Wall` | Adds 1 bottom-edge rescue charge. | Default | Common | Helpful | Shield | Implemented |
@@ -210,30 +212,40 @@ Permanent run upgrades are always available in the between-stage draft pool. Dro
 | `Mystery Tape` | Rolls one random unlocked helpful drop and one random unlocked hazard from a mystery capsule. | Heat 34 | Epic | Mixed | Mystery drop | Implemented |
 | `Tilt Rail` | Each paddle hit tilts the rail 9 degrees for 12s. | Heat 35 | Epic | Hazard | Paddle tilt | Implemented |
 | `Solar Shot` | Ball burns through the next weak brick it touches. | Heat 36 | N/A | Helpful | Damage drop | Not implemented (UI placeholder) |
-| `Warp Gates` | Linked portals reroute ball paths. | Default | Common | Glitch | Level glitch | Implemented |
-| `Turbo Rail` | A hot wall rail accelerates rebounds. | Heat 01 | Rare | Glitch | Level glitch | Implemented |
-| `Mirror Grid` | Brick layout mirrors horizontally halfway through the stage. | Heat 02 | Rare | Glitch | Layout glitch | Implemented |
-| `Token Storm` | More capsules spawn, but fall at mixed speeds. | Heat 03 | Epic | Glitch | Pickup glitch | Implemented |
-| `Gravity Pocket` | A slow drifting pocket bends nearby ball paths. | Heat 04 | Epic | Glitch | Speed glitch | Implemented |
-| `Static Wall` | One side wall flickers between normal and weak bounce. | Heat 05 | Epic | Glitch | Paddle glitch | Implemented |
-| `Row Rewrite` | One row rerolls into a new brick pattern after a timer. | Heat 06 | N/A | Glitch | Layout glitch | Not implemented (UI placeholder) |
-| `Prism Lanes` | Marked lanes refract the ball into sharper angles. | Heat 07 | N/A | Glitch | Precision glitch | Not implemented (UI placeholder) |
-| `Afterburn Coil` | The cabinet overclocks every serve, keeping the ball hotter for all remaining levels. | Draft pool | N/A | Build | Run upgrade | Implemented |
-| `Flux Line` | The paddle develops a gentle permanent drift pattern that trades chaos for wider coverage arcs. | Draft pool | N/A | Build | Run upgrade | Implemented |
-| `Lucky Circuit` | Pickup routing stays juiced, raising permanent drop odds for the rest of the cabinet run. | Draft pool | N/A | Build | Run upgrade | Implemented |
-| `Repair Stock` | A stocked service bay grants an immediate extra life and keeps the cabinet run alive longer. | Draft pool | N/A | Build | Run upgrade | Implemented |
-| `Split Serve` | Every new serve launches an extra ball, letting the run snowball faster between resets. | Draft pool | N/A | Build | Run upgrade | Implemented |
-| `Wide Loader` | Your paddle chassis expands for the rest of the run, opening more forgiving save angles. | Draft pool | N/A | Build | Run upgrade | Implemented |
-| `Brick Magnet` | Balls tug slightly toward uncleared brick clusters, helping dead runs find action faster. | Draft pool | N/A | Build | Run upgrade | Implemented |
-| `Spare Fuse` | The first time you would lose your last life, the cabinet pops a fuse and saves the run once. | Draft pool | N/A | Build | Run upgrade | Proposed |
-| `Combo Cassette` | Consecutive brick breaks build a louder score streak before cooling off between slow moments. | Draft pool | N/A | Build | Run upgrade | Proposed |
-| `Punch Card` | Every few bricks broken stamps the card and triggers a small bonus payout. | Draft pool | N/A | Build | Run upgrade | Proposed |
-| `Hot Shrapnel` | Explosive and split brick effects hit a little harder for the rest of the run. | Draft pool | N/A | Build | Run upgrade | Implemented |
-| `Neon Insurance` | Dropped pickups linger longer before fading, giving you more time to route for them. | Draft pool | N/A | Build | Run upgrade | Implemented |
-| `Gremlin Filter` | The next glitch each level is softened, delayed, or reduced in strength. | Draft pool | N/A | Build | Run upgrade | Proposed |
-| `Tilt Warning` | Once per level, a near-miss below the paddle bumps the ball slightly upward instead of losing it. | Draft pool | N/A | Build | Run upgrade | Implemented |
-| `Arcade Grease` | Paddle movement gets smoother and slightly more responsive for the rest of the run. | Draft pool | N/A | Build | Run upgrade | Proposed |
-| `Prize Hopper` | The first pickup collected each level has a chance to duplicate itself. | Draft pool | N/A | Build | Run upgrade | Proposed |
+
+#### Glitches
+
+| Name | Description | Default / unlock Heat | Rarity | Type | Implementation |
+| --- | --- | --- | --- | --- | --- |
+| `Warp Gates` | Linked portals reroute ball paths. | Default | Common | Level glitch | Implemented |
+| `Turbo Rail` | A hot wall rail accelerates rebounds. | Heat 01 | Rare | Level glitch | Implemented |
+| `Mirror Grid` | Brick layout mirrors horizontally halfway through the stage. | Heat 02 | Rare | Layout glitch | Implemented |
+| `Token Storm` | More capsules spawn, but fall at mixed speeds. | Heat 03 | Epic | Pickup glitch | Implemented |
+| `Gravity Pocket` | A slow drifting pocket bends nearby ball paths. | Heat 04 | Epic | Speed glitch | Implemented |
+| `Static Wall` | One side wall flickers between normal and weak bounce. | Heat 05 | Epic | Paddle glitch | Implemented |
+| `Row Rewrite` | One row rerolls into a new brick pattern after a timer. | Heat 06 | N/A | Layout glitch | Not implemented (UI placeholder) |
+| `Prism Lanes` | Marked lanes refract the ball into sharper angles. | Heat 07 | N/A | Precision glitch | Not implemented (UI placeholder) |
+
+#### Draft Pool
+
+| Name | Description | Type | Implementation |
+| --- | --- | --- | --- |
+| `Afterburn Coil` | The cabinet overclocks every serve, keeping the ball hotter for all remaining levels. | Run upgrade | Implemented |
+| `Flux Line` | The paddle develops a gentle permanent drift pattern that trades chaos for wider coverage arcs. | Run upgrade | Implemented |
+| `Lucky Circuit` | Pickup routing stays juiced, raising permanent drop odds for the rest of the cabinet run. | Run upgrade | Implemented |
+| `Repair Stock` | A stocked service bay grants an immediate extra life and keeps the cabinet run alive longer. | Run upgrade | Implemented |
+| `Split Serve` | Every new serve launches an extra ball, letting the run snowball faster between resets. | Run upgrade | Implemented |
+| `Wide Loader` | Your paddle chassis expands for the rest of the run, opening more forgiving save angles. | Run upgrade | Implemented |
+| `Brick Magnet` | Balls tug slightly toward uncleared brick clusters, helping dead runs find action faster. | Run upgrade | Implemented |
+| `Spare Fuse` | The first time you would lose your last life, the cabinet pops a fuse and saves the run once. | Run upgrade | Proposed |
+| `Combo Cassette` | Consecutive brick breaks build a louder score streak before cooling off between slow moments. | Run upgrade | Proposed |
+| `Punch Card` | Every few bricks broken stamps the card and triggers a small bonus payout. | Run upgrade | Proposed |
+| `Hot Shrapnel` | Explosive and split brick effects hit a little harder for the rest of the run. | Run upgrade | Implemented |
+| `Neon Insurance` | Dropped pickups linger longer before fading, giving you more time to route for them. | Run upgrade | Implemented |
+| `Gremlin Filter` | The next glitch each level is softened, delayed, or reduced in strength. | Run upgrade | Proposed |
+| `Tilt Warning` | Once per level, a near-miss below the paddle bumps the ball slightly upward instead of losing it. | Run upgrade | Implemented |
+| `Arcade Grease` | Paddle movement gets smoother and slightly more responsive for the rest of the run. | Run upgrade | Proposed |
+| `Prize Hopper` | The first pickup collected each level has a chance to duplicate itself. | Run upgrade | Proposed |
 
 ### Themes
 
