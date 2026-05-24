@@ -335,6 +335,10 @@ namespace GetBricked.Gameplay
                     scoreMultiplier *= Mathf.Pow(Mathf.Max(1f, powerUpDefinition.Scalar), effectStrength);
                     hotPotatoStrength = Mathf.Max(hotPotatoStrength, Mathf.Clamp01((powerUpDefinition.Scalar - 1f) * effectStrength));
                     break;
+                case PowerUpEffectType.JackpotJam:
+                    timedBallSpeedMultiplier *= Mathf.Pow(BreakoutPowerUpService.JackpotJamBallSpeedMultiplier, effectStrength);
+                    scoreMultiplier *= Mathf.Pow(Mathf.Max(1f, powerUpDefinition.Scalar), effectStrength);
+                    break;
                 case PowerUpEffectType.ExplosiveBall:
                     explosiveBallStrength = Mathf.Max(explosiveBallStrength, Mathf.Max(0.1f, powerUpDefinition.Scalar * effectStrength));
                     break;
@@ -415,6 +419,7 @@ namespace GetBricked.Gameplay
         public const int CapsuleMadnessPickupBonusPoints = 250;
         public const float CapsuleMagnetRange = 4.25f;
         public const int BankBonusMaximumChargePoints = 300;
+        public const float JackpotJamBallSpeedMultiplier = 1.35f;
 
         private readonly Vector2 pickupSize;
         private readonly float pickupFallSpeed;

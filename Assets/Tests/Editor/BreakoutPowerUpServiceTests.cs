@@ -85,6 +85,7 @@ public sealed class BreakoutPowerUpServiceTests
         var cleanCatch = CreatePowerUp("Clean Catch", PowerUpEffectType.CleanCatch, true, 10f, 1.35f);
         var tiltRail = CreatePowerUp("Tilt Rail", PowerUpEffectType.PaddleHitTilt, false, 12f, 9f);
         var wrapRail = CreatePowerUp("Wrap Rail", PowerUpEffectType.PaddleWrap, true, 10f, 1f);
+        var jackpotJam = CreatePowerUp("Jackpot Jam", PowerUpEffectType.JackpotJam, true, 8f, 3f, BreakoutContentRarity.Epic);
 
         service.ApplyPowerUp(magnet, null);
         service.ApplyPowerUp(scoreSurge, null);
@@ -99,14 +100,15 @@ public sealed class BreakoutPowerUpServiceTests
         service.ApplyPowerUp(cleanCatch, null);
         service.ApplyPowerUp(tiltRail, null);
         service.ApplyPowerUp(wrapRail, null);
+        service.ApplyPowerUp(jackpotJam, null);
 
         var modifiers = service.CalculateEffectModifiers(1f, 0f);
 
         Assert.That(modifiers.BrickMagnetStrength, Is.EqualTo(0.38f).Within(0.0001f));
-        Assert.That(modifiers.ScoreMultiplier, Is.EqualTo(2f * 1.28f).Within(0.0001f));
+        Assert.That(modifiers.ScoreMultiplier, Is.EqualTo(2f * 1.28f * 3f).Within(0.0001f));
         Assert.That(modifiers.PaddleCloneEnabled, Is.True);
         Assert.That(modifiers.BrickJammerStrength, Is.EqualTo(0.75f).Within(0.0001f));
-        Assert.That(modifiers.TimedBallSpeedMultiplier, Is.EqualTo(1.28f).Within(0.0001f));
+        Assert.That(modifiers.TimedBallSpeedMultiplier, Is.EqualTo(1.28f * BreakoutPowerUpService.JackpotJamBallSpeedMultiplier).Within(0.0001f));
         Assert.That(modifiers.BallSizeMultiplier, Is.EqualTo(1.8f).Within(0.0001f));
         Assert.That(modifiers.HotPotatoStrength, Is.GreaterThan(0f));
         Assert.That(modifiers.ExplosiveBallStrength, Is.EqualTo(1f).Within(0.0001f));

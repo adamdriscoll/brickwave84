@@ -265,6 +265,7 @@ namespace GetBricked.Gameplay
                 PowerUpEffectType.MirrorImagePaddle => $"Adds an opposite-moving mirror paddle for {definition.DurationSeconds:0.#}s.",
                 PowerUpEffectType.BrickJammer => $"Jams brick response for {definition.DurationSeconds:0.#}s.",
                 PowerUpEffectType.HotPotatoBall => $"Ball speed and score x{definition.Scalar:0.00} for {definition.DurationSeconds:0.#}s.",
+                PowerUpEffectType.JackpotJam => $"Score x{definition.Scalar:0.00}, but ball speed x{BreakoutPowerUpService.JackpotJamBallSpeedMultiplier:0.00} for {definition.DurationSeconds:0.#}s.",
                 PowerUpEffectType.ExplosiveBall => $"Ball explosions damage nearby bricks for {definition.DurationSeconds:0.#}s.",
                 PowerUpEffectType.VectorSight => $"Shows a short paddle aim preview for {definition.DurationSeconds:0.#}s.",
                 PowerUpEffectType.RandomHarmfulDrop => "Looks helpful, then rolls a random hazard.",

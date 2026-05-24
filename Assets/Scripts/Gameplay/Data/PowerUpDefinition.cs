@@ -106,6 +106,7 @@ namespace GetBricked.Gameplay.Data
         SolarShot = 32,
         PaddleWrap = 33,
         PaddleSpeedMultiplier = 34,
+        JackpotJam = 35,
     }
 
     [CreateAssetMenu(menuName = "Get Bricked/Power-Up Definition", fileName = "PowerUpDefinition")]
@@ -204,7 +205,8 @@ namespace GetBricked.Gameplay.Data
                 || effectType == PowerUpEffectType.PrismPop
                 || effectType == PowerUpEffectType.MissileStock
                 || effectType == PowerUpEffectType.SolarShot
-                || effectType == PowerUpEffectType.RandomMixedDrop)
+                || effectType == PowerUpEffectType.RandomMixedDrop
+                || effectType == PowerUpEffectType.JackpotJam)
             {
                 return ThemeVisualSlot.PickupBurst;
             }

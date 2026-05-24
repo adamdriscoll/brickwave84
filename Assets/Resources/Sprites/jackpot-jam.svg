@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+  <defs>
+    <filter id="softGlow" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="2.25" result="blur"/>
+      <feColorMatrix in="blur" type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 .8 0" result="glow"/>
+      <feMerge>
+        <feMergeNode in="glow"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <style><![CDATA[
+      .icon { fill: none; stroke: #fff; stroke-linecap: round; stroke-linejoin: round; filter: url(#softGlow); }
+      .main { stroke-width: 12; opacity: .94; }
+      .ring { stroke-width: 8; opacity: .82; }
+      .echo { stroke-width: 5; opacity: .35; }
+      .chip { fill: #fff; opacity: .9; filter: url(#softGlow); }
+    ]]></style>
+  </defs>
+  <g class="icon">
+    <circle class="ring" cx="128" cy="128" r="78"/>
+    <path class="echo" d="M61 96c18-29 43-44 75-44 24 0 44 8 61 24"/>
+    <path class="echo" d="M195 160c-18 29-43 44-75 44-24 0-44-8-61-24"/>
+    <path class="main" d="M91 103h74l-19 35 23 15H94l18-34-21-16z"/>
+    <path class="main" d="M108 86l20-24 20 24"/>
+    <path class="main" d="M108 170l20 24 20-24"/>
+    <path class="echo" d="M73 134h-28"/>
+    <path class="echo" d="M211 122h-28"/>
+  </g>
+  <g class="chip">
+    <circle cx="77" cy="83" r="8"/>
+    <circle cx="179" cy="173" r="8"/>
+    <circle cx="185" cy="88" r="5"/>
+    <circle cx="71" cy="168" r="5"/>
+  </g>
+</svg>

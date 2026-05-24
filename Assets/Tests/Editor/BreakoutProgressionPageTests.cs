@@ -107,7 +107,7 @@ public sealed class BreakoutProgressionPageTests
             .Select(definition => definition.LadderUnlockIntensity)
             .OrderBy(heat => heat)
             .ToArray();
-        var expectedDropHeats = Enumerable.Range(1, 38).ToArray();
+        var expectedDropHeats = Enumerable.Range(1, 39).ToArray();
 
         Assert.That(unlockHeats, Is.EqualTo(expectedDropHeats));
 
@@ -119,6 +119,7 @@ public sealed class BreakoutProgressionPageTests
         var solarShot = view.Cards.First(card => card.Title == "Solar Shot");
         var wrapRail = view.Cards.First(card => card.Title == "Wrap Rail");
         var staticShoes = view.Cards.First(card => card.Title == "Static Shoes");
+        var jackpotJam = view.Cards.First(card => card.Title == "Jackpot Jam");
 
         Assert.That(turboRail.UnlockHint, Does.Contain("Heat 01"));
         Assert.That(mirrorGrid.UnlockHint, Does.Contain("Heat 02"));
@@ -135,6 +136,25 @@ public sealed class BreakoutProgressionPageTests
         Assert.That(wrapRail.Description, Does.Contain("exits one side wall"));
         Assert.That(staticShoes.UnlockHint, Does.Contain("Heat 38"));
         Assert.That(staticShoes.Description, Does.Contain("Paddle movement x0.60"));
+        Assert.That(jackpotJam.UnlockHint, Does.Contain("Heat 39"));
+        Assert.That(jackpotJam.Description, Does.Contain("Score x3.00"));
+    }
+
+    [Test]
+    public void ProgressionPageShowsJackpotJamAsLiveHeatThirtyNineDrop()
+    {
+        var jackpotJam = Resources.Load<PowerUpDefinition>("PowerUps/JackpotJam");
+        Assert.That(jackpotJam, Is.Not.Null);
+
+        var view = new BreakoutProgressionPageService().BuildView(new[] { jackpotJam });
+        var card = view.Cards.First(item => item.Title == "Jackpot Jam");
+
+        Assert.That(card.UnlockHint, Does.Contain("Heat 39"));
+        Assert.That(card.Description, Does.Contain("Score x3.00"));
+        Assert.That(card.Description, Does.Contain("ball speed x1.35"));
+        Assert.That(card.Family, Does.Contain("Epic Helpful"));
+        Assert.That(card.StateLabel, Is.EqualTo("Locked"));
+        Assert.That(view.Cards.Count(item => item.Title == "Jackpot Jam"), Is.EqualTo(1));
     }
 
     [Test]
