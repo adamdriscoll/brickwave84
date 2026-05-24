@@ -81,6 +81,7 @@ public sealed class BreakoutPowerUpServiceTests
         var mirrorImage = CreatePowerUp("Mirror Image", PowerUpEffectType.MirrorImagePaddle, true, 12f, 1f);
         var cleanCatch = CreatePowerUp("Clean Catch", PowerUpEffectType.CleanCatch, true, 10f, 1.35f);
         var tiltRail = CreatePowerUp("Tilt Rail", PowerUpEffectType.PaddleHitTilt, false, 12f, 9f);
+        var wrapRail = CreatePowerUp("Wrap Rail", PowerUpEffectType.PaddleWrap, true, 10f, 1f);
 
         service.ApplyPowerUp(magnet, null);
         service.ApplyPowerUp(scoreSurge, null);
@@ -94,6 +95,7 @@ public sealed class BreakoutPowerUpServiceTests
         service.ApplyPowerUp(mirrorImage, null);
         service.ApplyPowerUp(cleanCatch, null);
         service.ApplyPowerUp(tiltRail, null);
+        service.ApplyPowerUp(wrapRail, null);
 
         var modifiers = service.CalculateEffectModifiers(1f, 0f);
 
@@ -110,6 +112,7 @@ public sealed class BreakoutPowerUpServiceTests
         Assert.That(modifiers.MirrorImagePaddleEnabled, Is.True);
         Assert.That(modifiers.CleanCatchAimMultiplier, Is.EqualTo(1.35f).Within(0.0001f));
         Assert.That(modifiers.PaddleHitTiltDegrees, Is.EqualTo(9f).Within(0.0001f));
+        Assert.That(modifiers.PaddleWrapEnabled, Is.True);
     }
 
     [Test]

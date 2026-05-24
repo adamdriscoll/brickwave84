@@ -72,6 +72,77 @@ public sealed class BreakoutGameControllerPowerUpTests
     }
 
     [Test]
+    public void ApplyingWrapRailMovesPaddleAcrossSideBounds()
+    {
+        var controller = CreateControllerHarness(out var paddle);
+        var wrapPowerUp = CreatePowerUp(
+            "Wrap Rail",
+            PowerUpEffectType.PaddleWrap,
+            beneficial: true,
+            durationSeconds: 10f,
+            scalar: 1f);
+
+        InvokePrivateMethod(controller, "ApplyPowerUp", wrapPowerUp);
+
+        var minX = -10f + paddle.HalfWidthWorld;
+        var maxX = 10f - paddle.HalfWidthWorld;
+
+        Assert.That(GetPrivateField<bool>(paddle, "wrapRailEnabled"), Is.True);
+        Assert.That((float)InvokePrivateMethodWithResult(paddle, "ResolveNextHorizontalPosition", maxX + 0.01f), Is.EqualTo(maxX + 0.01f).Within(0.0001f));
+        Assert.That((float)InvokePrivateMethodWithResult(paddle, "ResolveNextHorizontalPosition", 10.01f), Is.EqualTo(-9.99f).Within(0.0001f));
+        Assert.That((bool)InvokePrivateMethodWithResult(paddle, "DidWrapRailPosition", 10.01f, -9.99f), Is.True);
+        Assert.That((float)InvokePrivateMethodWithResult(paddle, "ResolveNextHorizontalPosition", minX - 0.01f), Is.EqualTo(minX - 0.01f).Within(0.0001f));
+        Assert.That((float)InvokePrivateMethodWithResult(paddle, "ResolveNextHorizontalPosition", -10.01f), Is.EqualTo(9.99f).Within(0.0001f));
+        Assert.That((bool)InvokePrivateMethodWithResult(paddle, "DidWrapRailPosition", -10.01f, 9.99f), Is.True);
+
+        paddle.SetWrapRailEnabled(false);
+
+        Assert.That((float)InvokePrivateMethodWithResult(paddle, "ResolveNextHorizontalPosition", maxX + 0.01f), Is.EqualTo(maxX).Within(0.0001f));
+        Assert.That((bool)InvokePrivateMethodWithResult(paddle, "DidWrapRailPosition", 10.01f, -9.99f), Is.False);
+    }
+
+    [Test]
+    public void WrapRailShowsOppositeSideEchoWhilePaddleEntersWall()
+    {
+        var controller = CreateControllerHarness(out var paddle);
+        var visualObject = new GameObject("Visual");
+        visualObject.transform.SetParent(paddle.transform, false);
+        var sourceRenderer = visualObject.AddComponent<SpriteRenderer>();
+        sourceRenderer.sortingOrder = 40;
+        BreakoutSpriteRendererUtility.ApplyTint(sourceRenderer, Color.white);
+        var wrapPowerUp = CreatePowerUp(
+            "Wrap Rail",
+            PowerUpEffectType.PaddleWrap,
+            beneficial: true,
+            durationSeconds: 10f,
+            scalar: 1f);
+
+        InvokePrivateMethod(controller, "ApplyPowerUp", wrapPowerUp);
+        var rightCrossingX = Mathf.Lerp(10f - paddle.HalfWidthWorld, 10f, 0.5f);
+        var leftCrossingX = Mathf.Lerp(-10f, -10f + paddle.HalfWidthWorld, 0.5f);
+
+        InvokePrivateMethod(paddle, "UpdateWrapRailEcho", rightCrossingX, -3.5f, 0f);
+
+        var echoObject = GetPrivateField<GameObject>(paddle, "wrapRailEchoObject");
+        var sourceTint = BreakoutSpriteRendererUtility.ResolveTint(sourceRenderer);
+
+        Assert.That(echoObject, Is.Not.Null);
+        Assert.That(echoObject.activeSelf, Is.True);
+        Assert.That(echoObject.transform.position.x, Is.EqualTo(rightCrossingX - 20f).Within(0.0001f));
+        Assert.That(sourceTint.a, Is.EqualTo(0.75f).Within(0.0001f));
+
+        InvokePrivateMethod(paddle, "UpdateWrapRailEcho", leftCrossingX, -3.5f, 0f);
+
+        Assert.That(echoObject.activeSelf, Is.True);
+        Assert.That(echoObject.transform.position.x, Is.EqualTo(leftCrossingX + 20f).Within(0.0001f));
+
+        paddle.SetWrapRailEnabled(false);
+
+        Assert.That(echoObject.activeSelf, Is.False);
+        Assert.That(BreakoutSpriteRendererUtility.ResolveTint(sourceRenderer).a, Is.EqualTo(1f).Within(0.0001f));
+    }
+
+    [Test]
     public void ApplyingTiltRailRotatesPaddleOnBallHitsAndAnimatesBackAfterExpiry()
     {
         var controller = CreateControllerHarness(out var paddle);
@@ -565,6 +636,7 @@ public sealed class BreakoutGameControllerPowerUpTests
         InvokePrivateMethod(controller, "ApplyPowerUp", CreatePowerUp("Boom Ball", PowerUpEffectType.ExplosiveBall, true, 10f, 1f));
         InvokePrivateMethod(controller, "ApplyPowerUp", CreatePowerUp("Vector Sight", PowerUpEffectType.VectorSight, true, 14f, 1f));
         InvokePrivateMethod(controller, "ApplyPowerUp", CreatePowerUp("Mirror Image", PowerUpEffectType.MirrorImagePaddle, true, 12f, 1f));
+        InvokePrivateMethod(controller, "ApplyPowerUp", CreatePowerUp("Wrap Rail", PowerUpEffectType.PaddleWrap, true, 10f, 1f));
 
         var activeEffectModifiers = GetPrivateField<object>(controller, "activeEffectModifiers");
         var ballRenderer = serveBall.GetComponent<SpriteRenderer>();
@@ -577,7 +649,9 @@ public sealed class BreakoutGameControllerPowerUpTests
         Assert.That(GetPropertyValue<float>(activeEffectModifiers, "ExplosiveBallStrength"), Is.EqualTo(1f).Within(0.0001f));
         Assert.That(GetPropertyValue<float>(activeEffectModifiers, "VectorSightStrength"), Is.EqualTo(1f).Within(0.0001f));
         Assert.That(GetPropertyValue<bool>(activeEffectModifiers, "MirrorImagePaddleEnabled"), Is.True);
+        Assert.That(GetPropertyValue<bool>(activeEffectModifiers, "PaddleWrapEnabled"), Is.True);
         Assert.That(GetPrivateField<bool>(paddle, "controlsReversed"), Is.True);
+        Assert.That(GetPrivateField<bool>(paddle, "wrapRailEnabled"), Is.True);
         Assert.That(GetPrivateField<float>(paddle, "splitGapWidthNormalized"), Is.GreaterThan(0.2f));
         Assert.That(GetPrivateField<float>(paddle, "lagSpikeStrength"), Is.EqualTo(0.5f).Within(0.0001f));
         Assert.That(GetPrivateField<bool>(serveBall, "phaseThroughBricks"), Is.True);

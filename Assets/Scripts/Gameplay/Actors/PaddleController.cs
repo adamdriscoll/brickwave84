@@ -34,6 +34,8 @@ namespace GetBricked.Gameplay
         private const float AutopilotSlowRadius = 1.15f;
         private const float AutopilotInputBlendSpeed = 5.5f;
         private const float AutopilotMaximumInput = 0.85f;
+        private const float WrapRailBoundaryAlpha = 0.5f;
+        private const float WrapRailAlphaEpsilon = 0.01f;
 
         private BreakoutGameController gameController;
         private Rigidbody2D paddleBody;
@@ -62,6 +64,13 @@ namespace GetBricked.Gameplay
         private float currentHitTiltRotation;
         private float lastHitTiltDirection = 1f;
         private bool isHitTiltReturning;
+        private bool wrapRailEnabled;
+        private GameObject wrapRailEchoObject;
+        private SpriteRenderer wrapRailEchoRenderer;
+        private SpriteRenderer sourcePaddleRenderer;
+        private Color sourcePaddleTint = Color.white;
+        private bool hasSourcePaddleTint;
+        private bool wrapRailSourceTintOverridden;
         private bool isAutopilotEnabled;
         private float autopilotTargetX;
         private float autopilotInput;
@@ -121,6 +130,7 @@ namespace GetBricked.Gameplay
             var width = Mathf.Min(requestedWidth, maxWidth);
             transform.localScale = new Vector3(width, baseScale.y, baseScale.z);
             HalfWidthWorld = width * 0.5f;
+            SyncWrapRailEchoScale();
             ClampToBounds();
             mirrorImagePaddle?.SetWidthMultiplier(currentWidthMultiplier);
             return maxWidth < float.PositiveInfinity && requestedWidth >= maxWidth - 0.0001f;
@@ -189,6 +199,19 @@ namespace GetBricked.Gameplay
             }
 
             mirrorImagePaddle?.SetHitTiltDegrees(hitTiltDegrees);
+        }
+
+        public void SetWrapRailEnabled(bool enabled)
+        {
+            wrapRailEnabled = enabled;
+
+            if (!wrapRailEnabled)
+            {
+                HideWrapRailEcho();
+                RestoreWrapRailSourceTint();
+            }
+
+            mirrorImagePaddle?.SetWrapRailEnabled(wrapRailEnabled);
         }
 
         public void ApplyHitTilt(float contactWorldX, Vector2 incomingVelocity)
@@ -276,23 +299,37 @@ namespace GetBricked.Gameplay
             paddleBody.position = resetPosition;
             paddleBody.rotation = 0f;
             paddleBody.linearVelocity = Vector2.zero;
+            HideWrapRailEcho();
+            RestoreWrapRailSourceTint();
             mirrorImagePaddle?.ResetToStart();
         }
 
         private void OnDestroy()
         {
-            if (isAuxiliaryPaddle || mirrorImagePaddleObject == null)
+            if (!isAuxiliaryPaddle && mirrorImagePaddleObject != null)
+            {
+                if (Application.isPlaying)
+                {
+                    Destroy(mirrorImagePaddleObject);
+                }
+                else
+                {
+                    DestroyImmediate(mirrorImagePaddleObject);
+                }
+            }
+
+            if (wrapRailEchoObject == null)
             {
                 return;
             }
 
             if (Application.isPlaying)
             {
-                Destroy(mirrorImagePaddleObject);
+                Destroy(wrapRailEchoObject);
             }
             else
             {
-                DestroyImmediate(mirrorImagePaddleObject);
+                DestroyImmediate(wrapRailEchoObject);
             }
         }
 
@@ -320,18 +357,76 @@ namespace GetBricked.Gameplay
                 return;
             }
 
-            var nextX = Mathf.Clamp(
-                paddleBody.position.x + (horizontalInput * moveSpeed * Time.fixedDeltaTime),
-                leftBoundaryX + HalfWidthWorld,
-                rightBoundaryX - HalfWidthWorld);
+            var requestedX = paddleBody.position.x + (horizontalInput * moveSpeed * Time.fixedDeltaTime);
+            var nextX = ResolveNextHorizontalPosition(requestedX);
 
             if (IsLagPauseWindow())
             {
                 nextX = paddleBody.position.x;
             }
 
-            paddleBody.MovePosition(new Vector2(nextX, startingY + GetCurrentVerticalOffset()));
-            paddleBody.MoveRotation(GetCurrentRotation());
+            var currentRotation = GetCurrentRotation();
+            var nextPosition = new Vector2(nextX, startingY + GetCurrentVerticalOffset());
+
+            if (DidWrapRailPosition(requestedX, nextX))
+            {
+                transform.SetPositionAndRotation(nextPosition, Quaternion.Euler(0f, 0f, currentRotation));
+                paddleBody.position = nextPosition;
+                paddleBody.rotation = currentRotation;
+            }
+            else
+            {
+                paddleBody.MovePosition(nextPosition);
+                paddleBody.MoveRotation(currentRotation);
+            }
+
+            UpdateWrapRailEcho(nextPosition.x, nextPosition.y, currentRotation);
+        }
+
+        private float ResolveNextHorizontalPosition(float requestedX)
+        {
+            var minX = leftBoundaryX + HalfWidthWorld;
+            var maxX = rightBoundaryX - HalfWidthWorld;
+
+            if (minX > maxX)
+            {
+                return (leftBoundaryX + rightBoundaryX) * 0.5f;
+            }
+
+            if (!wrapRailEnabled)
+            {
+                return Mathf.Clamp(requestedX, minX, maxX);
+            }
+
+            var arenaWidth = rightBoundaryX - leftBoundaryX;
+
+            if (arenaWidth <= 0.001f)
+            {
+                return Mathf.Clamp(requestedX, minX, maxX);
+            }
+
+            if (requestedX > rightBoundaryX)
+            {
+                return requestedX - arenaWidth;
+            }
+
+            if (requestedX < leftBoundaryX)
+            {
+                return requestedX + arenaWidth;
+            }
+
+            return requestedX;
+        }
+
+        private bool DidWrapRailPosition(float requestedX, float resolvedX)
+        {
+            if (!wrapRailEnabled)
+            {
+                return false;
+            }
+
+            var arenaWidth = rightBoundaryX - leftBoundaryX;
+            return arenaWidth > 0.001f && Mathf.Abs(requestedX - resolvedX) > arenaWidth * 0.5f;
         }
 
         private void ClampToBounds()
@@ -351,6 +446,174 @@ namespace GetBricked.Gameplay
             transform.SetPositionAndRotation(clampedPosition, Quaternion.Euler(0f, 0f, currentRotation));
             paddleBody.position = clampedPosition;
             paddleBody.rotation = currentRotation;
+            UpdateWrapRailEcho(clampedPosition.x, clampedPosition.y, currentRotation);
+        }
+
+        private void UpdateWrapRailEcho(float currentX, float currentY, float currentRotation)
+        {
+            if (!wrapRailEnabled || HalfWidthWorld <= 0.001f)
+            {
+                HideWrapRailEcho();
+                RestoreWrapRailSourceTint();
+                return;
+            }
+
+            var minX = leftBoundaryX + HalfWidthWorld;
+            var maxX = rightBoundaryX - HalfWidthWorld;
+            var arenaWidth = rightBoundaryX - leftBoundaryX;
+
+            if (minX > maxX || arenaWidth <= 0.001f)
+            {
+                HideWrapRailEcho();
+                RestoreWrapRailSourceTint();
+                return;
+            }
+
+            if (currentX > maxX)
+            {
+                var ratio = Mathf.InverseLerp(maxX, rightBoundaryX, currentX);
+                ApplyWrapRailVisuals(
+                    currentX,
+                    currentY,
+                    currentRotation,
+                    currentX - arenaWidth,
+                    Mathf.Lerp(1f, WrapRailBoundaryAlpha, ratio),
+                    Mathf.Lerp(0f, WrapRailBoundaryAlpha, ratio));
+                return;
+            }
+
+            if (currentX < minX)
+            {
+                var ratio = Mathf.InverseLerp(leftBoundaryX, minX, currentX);
+                ApplyWrapRailVisuals(
+                    currentX,
+                    currentY,
+                    currentRotation,
+                    currentX + arenaWidth,
+                    Mathf.Lerp(WrapRailBoundaryAlpha, 1f, ratio),
+                    Mathf.Lerp(WrapRailBoundaryAlpha, 0f, ratio));
+                return;
+            }
+
+            HideWrapRailEcho();
+            RestoreWrapRailSourceTint();
+        }
+
+        private void ApplyWrapRailVisuals(
+            float currentX,
+            float currentY,
+            float currentRotation,
+            float echoX,
+            float sourceAlpha,
+            float echoAlpha)
+        {
+            ApplyWrapRailSourceAlpha(sourceAlpha);
+
+            if (echoAlpha <= WrapRailAlphaEpsilon || !EnsureWrapRailEcho())
+            {
+                HideWrapRailEcho();
+                return;
+            }
+
+            wrapRailEchoObject.SetActive(true);
+            wrapRailEchoObject.transform.SetPositionAndRotation(
+                new Vector3(echoX, currentY, transform.position.z),
+                Quaternion.Euler(0f, 0f, currentRotation));
+            SyncWrapRailEchoScale();
+            ApplyTintAlpha(wrapRailEchoRenderer, sourcePaddleTint, echoAlpha);
+        }
+
+        private bool EnsureWrapRailEcho()
+        {
+            if (wrapRailEchoObject != null)
+            {
+                return wrapRailEchoRenderer != null;
+            }
+
+            CacheSourcePaddleRenderer();
+
+            if (sourcePaddleRenderer == null)
+            {
+                return false;
+            }
+
+            wrapRailEchoObject = new GameObject("Wrap Rail Echo");
+            wrapRailEchoObject.transform.SetParent(transform.parent, false);
+            SyncWrapRailEchoScale();
+
+            var echoVisual = new GameObject("Visual");
+            echoVisual.transform.SetParent(wrapRailEchoObject.transform, false);
+
+            wrapRailEchoRenderer = echoVisual.AddComponent<SpriteRenderer>();
+            wrapRailEchoRenderer.sprite = sourcePaddleRenderer.sprite;
+            wrapRailEchoRenderer.sharedMaterial = sourcePaddleRenderer.sharedMaterial;
+            wrapRailEchoRenderer.sortingOrder = sourcePaddleRenderer.sortingOrder;
+            BreakoutSpriteRendererUtility.NormalizeScale(wrapRailEchoRenderer);
+            wrapRailEchoObject.SetActive(false);
+            return true;
+        }
+
+        private void SyncWrapRailEchoScale()
+        {
+            if (wrapRailEchoObject != null)
+            {
+                wrapRailEchoObject.transform.localScale = transform.localScale;
+            }
+        }
+
+        private void ApplyWrapRailSourceAlpha(float alpha)
+        {
+            CacheSourcePaddleRenderer();
+
+            if (sourcePaddleRenderer == null)
+            {
+                return;
+            }
+
+            ApplyTintAlpha(sourcePaddleRenderer, sourcePaddleTint, alpha);
+            wrapRailSourceTintOverridden = true;
+        }
+
+        private void RestoreWrapRailSourceTint()
+        {
+            if (!wrapRailSourceTintOverridden || sourcePaddleRenderer == null || !hasSourcePaddleTint)
+            {
+                return;
+            }
+
+            BreakoutSpriteRendererUtility.ApplyTint(sourcePaddleRenderer, sourcePaddleTint);
+            wrapRailSourceTintOverridden = false;
+        }
+
+        private void HideWrapRailEcho()
+        {
+            if (wrapRailEchoObject != null)
+            {
+                wrapRailEchoObject.SetActive(false);
+            }
+        }
+
+        private void CacheSourcePaddleRenderer()
+        {
+            if (sourcePaddleRenderer == null)
+            {
+                sourcePaddleRenderer = GetComponentInChildren<SpriteRenderer>();
+            }
+
+            if (sourcePaddleRenderer == null || wrapRailSourceTintOverridden)
+            {
+                return;
+            }
+
+            sourcePaddleTint = BreakoutSpriteRendererUtility.ResolveTint(sourcePaddleRenderer);
+            hasSourcePaddleTint = true;
+        }
+
+        private static void ApplyTintAlpha(SpriteRenderer spriteRenderer, Color baseTint, float alpha)
+        {
+            var tint = baseTint;
+            tint.a *= Mathf.Clamp01(alpha);
+            BreakoutSpriteRendererUtility.ApplyTint(spriteRenderer, tint);
         }
 
         private void UpdateWavyMotion(float deltaTime)
@@ -573,6 +836,7 @@ namespace GetBricked.Gameplay
             mirrorImagePaddle.SetSplitGapWidthNormalized(splitGapWidthNormalized);
             mirrorImagePaddle.SetLagSpikeStrength(lagSpikeStrength);
             mirrorImagePaddle.SetHitTiltDegrees(hitTiltDegrees);
+            mirrorImagePaddle.SetWrapRailEnabled(wrapRailEnabled);
             mirrorImagePaddleObject.SetActive(false);
         }
 

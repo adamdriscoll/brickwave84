@@ -5855,7 +5855,8 @@ namespace GetBricked.Gameplay
                     0f,
                     false,
                     1f,
-                    0f);
+                    0f,
+                    false);
             paddle.SetMoveSpeed(currentLevelPaddleSpeed * (activeRunSettings?.PaddleSpeedMultiplier ?? 1f));
             var paddleHitMaximumWidth = paddle.SetWidthMultiplier(activeEffectModifiers.PaddleWidthMultiplier);
 
@@ -5879,6 +5880,7 @@ namespace GetBricked.Gameplay
             paddle.SetSplitGapWidthNormalized(activeEffectModifiers.SplitPaddleGapNormalized);
             paddle.SetLagSpikeStrength(activeEffectModifiers.LagSpikeStrength);
             paddle.SetHitTiltDegrees(activeEffectModifiers.PaddleHitTiltDegrees);
+            paddle.SetWrapRailEnabled(activeEffectModifiers.PaddleWrapEnabled);
             paddle.SetClonePaddleEnabled(activeEffectModifiers.PaddleCloneEnabled);
             paddle.SetMirrorImagePaddleEnabled(activeEffectModifiers.MirrorImagePaddleEnabled);
 
@@ -6977,6 +6979,7 @@ namespace GetBricked.Gameplay
                 PowerUpEffectType.MultiBallBurst => $"+{Mathf.Max(1, definition.ExtraBallCount)} balls",
                 PowerUpEffectType.WavyPaddle => $"Wave {definition.Scalar:0.00} for {definition.DurationSeconds:0.#}s",
                 PowerUpEffectType.PaddleHitTilt => $"Paddle tilts {definition.Scalar:0.#}deg per hit for {definition.DurationSeconds:0.#}s",
+                PowerUpEffectType.PaddleWrap => $"Paddle wraps sides for {definition.DurationSeconds:0.#}s",
                 PowerUpEffectType.StickyPaddle => $"Catch ball for {definition.DurationSeconds:0.#}s",
                 PowerUpEffectType.CleanCatch => $"Catch next paddle hit, aim x{definition.Scalar:0.00}",
                 PowerUpEffectType.LaserPaddle => $"Laser paddle for {definition.DurationSeconds:0.#}s",

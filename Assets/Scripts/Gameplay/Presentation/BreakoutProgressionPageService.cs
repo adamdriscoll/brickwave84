@@ -243,6 +243,7 @@ namespace GetBricked.Gameplay
                 PowerUpEffectType.MultiBallBurst => $"+{Mathf.Max(1, definition.ExtraBallCount)} balls from an active ball.",
                 PowerUpEffectType.WavyPaddle => $"Adds paddle sway for {definition.DurationSeconds:0.#}s.",
                 PowerUpEffectType.PaddleHitTilt => $"Each paddle hit tilts the rail {definition.Scalar:0.#}deg for {definition.DurationSeconds:0.#}s.",
+                PowerUpEffectType.PaddleWrap => $"Paddle exits one side wall and enters the other for {definition.DurationSeconds:0.#}s.",
                 PowerUpEffectType.StickyPaddle => $"Catch and relaunch the next paddle ball for {definition.DurationSeconds:0.#}s.",
                 PowerUpEffectType.CleanCatch => $"Next paddle hit catches, then releases with aim x{definition.Scalar:0.00}.",
                 PowerUpEffectType.LaserPaddle => $"Paddle fires lasers for {definition.DurationSeconds:0.#}s.",

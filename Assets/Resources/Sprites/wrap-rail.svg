@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
+  <title id="title">Wrap Rail</title>
+  <desc id="desc">A monochrome neon icon showing a paddle rail wrapping between the side walls.</desc>
+
+  <defs>
+    <filter id="softGlow" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="2.25" result="blur"/>
+      <feColorMatrix in="blur" type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 .8 0" result="glow"/>
+      <feMerge>
+        <feMergeNode in="glow"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <style><![CDATA[
+      .icon { fill: none; stroke: #fff; stroke-linecap: round; stroke-linejoin: round; filter: url(#softGlow); }
+      .wall { stroke-width: 10; opacity: .86; }
+      .rail { stroke-width: 12; opacity: .96; }
+      .mid { stroke-width: 7; opacity: .82; }
+      .thin { stroke-width: 4; opacity: .48; }
+      .dash { stroke-dasharray: 10 11; }
+      .fill { fill: #fff; stroke: none; opacity: .92; filter: url(#softGlow); }
+      .soft { fill: #fff; stroke: none; opacity: .18; filter: url(#softGlow); }
+    ]]></style>
+  </defs>
+
+  <g class="icon">
+    <path class="wall" d="M 44 58 V 198"/>
+    <path class="wall" d="M 212 58 V 198"/>
+    <path class="thin dash" d="M 60 63 C 98 38 158 38 196 63"/>
+    <path class="thin dash" d="M 196 193 C 158 218 98 218 60 193"/>
+
+    <rect class="rail" x="70" y="111" width="116" height="34" rx="12"/>
+    <path class="mid" d="M 92 128 H 164"/>
+    <path class="soft" d="M 82 118 H 174 C 166 140 150 153 128 153 C 106 153 90 140 82 118 Z"/>
+
+    <path class="mid" d="M 76 83 C 41 83 35 116 62 128"/>
+    <path class="mid" d="M 180 173 C 215 173 221 140 194 128"/>
+    <path class="fill" d="M 66 112 L 42 128 L 66 144 L 60 132 H 86 V 124 H 60 Z"/>
+    <path class="fill" d="M 190 112 L 214 128 L 190 144 L 196 132 H 170 V 124 H 196 Z"/>
+
+    <circle class="fill" cx="44" cy="128" r="6"/>
+    <circle class="fill" cx="212" cy="128" r="6"/>
+    <path class="fill" d="M 128 52 L 132 62 L 143 66 L 132 70 L 128 80 L 124 70 L 113 66 L 124 62 Z"/>
+  </g>
+</svg>

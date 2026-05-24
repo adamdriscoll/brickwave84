@@ -167,11 +167,11 @@ Difficulty presets already change more than labels:
 
 ### Unlock Progression
 
-Permanent run upgrades are always available in the between-stage draft pool. Drop and glitch unlocks now advance on parallel 50-Heat tracks: clearing a Heat can award one drop signal and one glitch signal. Implemented live drops currently fill Heat `01` through Heat `35`, with planned drop placeholders filling Heat `36` through Heat `50`. Implemented live glitches currently fill Heat `01` through Heat `05`, with planned glitch placeholders filling Heat `06` through Heat `50`. Default drops and default glitches start unlocked for Neon Ladder runs. Rarity still tunes odds and draft weighting, but it no longer controls unlock Heat. Implementation status tracks whether the item has live runtime gameplay behavior or is currently only a progression-screen placeholder.
+Permanent run upgrades are always available in the between-stage draft pool. Drop and glitch unlocks now advance on parallel 50-Heat tracks: clearing a Heat can award one drop signal and one glitch signal. Implemented live drops currently fill Heat `01` through Heat `37`, with planned drop placeholders filling Heat `38` through Heat `50`. Implemented live glitches currently fill Heat `01` through Heat `05`, with planned glitch placeholders filling Heat `06` through Heat `50`. Default drops and default glitches start unlocked for Neon Ladder runs. Rarity still tunes odds and draft weighting, but it no longer controls unlock Heat. Implementation status tracks whether the item has live runtime gameplay behavior or is currently only a progression-screen placeholder.
 
 Current balance shape: drops already have a healthy spread of classic brick-breaker tools, hazards, and mixed-risk capsules, but the late ladder needs more capstone capsules that answer or amplify stage chaos. Glitches are the bigger content gap: the implemented set proves the format with portals, layout flips, pickup storms, gravity, and wall behavior, so the rest of the ladder should lean into readable stage-wide rule changes rather than simple stat debuffs. New draft upgrades should help players build around that mayhem without erasing it.
 
-Late drop proposals should keep using mechanics the game already teaches: paddle routing, ball speed, visibility, catch/relaunch timing, rescue charges, missile pressure, split balls, score greed, and timed-effect stacking. Heat `36` through Heat `50` intentionally alternate relief, hazard, and mixed greed so the ladder keeps adding new decisions instead of becoming a pure punishment track.
+Late drop proposals should keep using mechanics the game already teaches: paddle routing, ball speed, visibility, catch/relaunch timing, rescue charges, missile pressure, split balls, score greed, and timed-effect stacking. Heat `38` through Heat `50` intentionally alternate relief, hazard, and mixed greed so the ladder keeps adding new decisions instead of becoming a pure punishment track.
 
 #### Drops
 
@@ -218,7 +218,7 @@ Late drop proposals should keep using mechanics the game already teaches: paddle
 | `Mystery Tape` | Rolls one random unlocked helpful drop and one random unlocked hazard from a mystery capsule. | Heat 34 | Epic | Mixed | Mystery drop | Implemented |
 | `Tilt Rail` | Each paddle hit tilts the rail 9 degrees for 12s. | Heat 35 | Epic | Hazard | Paddle tilt | Implemented |
 | `Solar Shot` | Ball burns through the next weak brick it touches. | Heat 36 | Epic | Helpful | Damage drop | Implemented |
-| `Wrap Rail` | Paddle wraps from one side wall to the other for 10s. | Heat 37 | Epic | Helpful | Paddle control | Not implemented (proposal) |
+| `Wrap Rail` | Paddle wraps from one side wall to the other for 10s. | Heat 37 | Epic | Helpful | Paddle control | Implemented |
 | `Static Shoes` | Paddle movement x0.60 for 8s. | Heat 38 | Epic | Hazard | Paddle speed | Not implemented (proposal) |
 | `Jackpot Jam` | Score x3.00, but ball speed x1.35 for 8s. | Heat 39 | Epic | Mixed | Score/speed risk | Not implemented (proposal) |
 | `Rewind Catch` | Next missed ball rewinds to its last paddle hit instead of costing a life. | Heat 40 | Epic | Helpful | Rescue drop | Not implemented (proposal) |
