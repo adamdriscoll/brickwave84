@@ -314,6 +314,26 @@ public sealed class BreakoutPowerUpServiceTests
     }
 
     [Test]
+    public void RewindCatchStacksAndConsumesOneChargeAtATime()
+    {
+        var service = CreateService();
+        var rewindCatch = CreatePowerUp("Rewind Catch", PowerUpEffectType.RewindCatch, true, 0f, 1f, BreakoutContentRarity.Epic);
+
+        service.ApplyPowerUp(rewindCatch, null);
+        service.ApplyPowerUp(rewindCatch, null);
+
+        Assert.That(service.ActiveTimedEffects, Is.Empty);
+        Assert.That(service.RewindCatchCharges, Is.EqualTo(2));
+        Assert.That(service.BuildActiveEffectsLabel(), Does.Contain("REWIND x2"));
+        Assert.That(service.TryConsumeRewindCatchCharge(out var firstDefinition), Is.True);
+        Assert.That(firstDefinition, Is.SameAs(rewindCatch));
+        Assert.That(service.RewindCatchCharges, Is.EqualTo(1));
+        Assert.That(service.TryConsumeRewindCatchCharge(out var secondDefinition), Is.True);
+        Assert.That(secondDefinition, Is.SameAs(rewindCatch));
+        Assert.That(service.TryConsumeRewindCatchCharge(out _), Is.False);
+    }
+
+    [Test]
     public void CleanCatchConsumesOneArmedChargeAtATime()
     {
         var service = CreateService();

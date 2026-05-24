@@ -107,6 +107,7 @@ namespace GetBricked.Gameplay.Data
         PaddleWrap = 33,
         PaddleSpeedMultiplier = 34,
         JackpotJam = 35,
+        RewindCatch = 36,
     }
 
     [CreateAssetMenu(menuName = "Get Bricked/Power-Up Definition", fileName = "PowerUpDefinition")]

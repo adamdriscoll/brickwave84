@@ -45,7 +45,10 @@ namespace GetBricked.Gameplay
         private BreakoutGlowRenderer glowRenderer;
         private ThemeVisualStyle baseVisualStyle = new ThemeVisualStyle(Color.white, Color.white, null);
         private Vector2 lastTravelDirection = Vector2.up;
+        private Vector2 lastPaddleHitRewindPosition;
+        private Vector2 lastPaddleHitRewindDirection = Vector2.up;
         private int ricochetCountSinceLastBrick;
+        private bool hasLastPaddleHitRewindAnchor;
 
         public float CurrentSpeed => ballBody != null ? ballBody.linearVelocity.magnitude : 0f;
 
@@ -93,6 +96,7 @@ namespace GetBricked.Gameplay
             ClearJellySlow();
             ResetHotPotato();
             ricochetCountSinceLastBrick = 0;
+            ClearPaddleHitRewindAnchor();
             SetBaseSizeMultiplier(1f);
 
             if (ballBody == null)
@@ -309,6 +313,37 @@ namespace GetBricked.Gameplay
             ballBody.linearVelocity = lastTravelDirection * GetTargetSpeed();
         }
 
+        public void RecordPaddleHitRewindAnchor(PaddleController hitPaddle, float contactWorldX)
+        {
+            if (hitPaddle == null)
+            {
+                return;
+            }
+
+            lastPaddleHitRewindPosition = transform.position;
+            lastPaddleHitRewindDirection = ResolvePaddleBounceDirection(hitPaddle, contactWorldX);
+            hasLastPaddleHitRewindAnchor = true;
+        }
+
+        public bool TryRewindToLastPaddleHit()
+        {
+            if (!hasLastPaddleHitRewindAnchor || ballBody == null)
+            {
+                return false;
+            }
+
+            var rewindDirection = lastPaddleHitRewindDirection.sqrMagnitude > 0.001f
+                ? lastPaddleHitRewindDirection.normalized
+                : Vector2.up;
+
+            attachedToPaddle = false;
+            hasLaunched = true;
+            SetWorldPosition(lastPaddleHitRewindPosition);
+            lastTravelDirection = rewindDirection;
+            ballBody.linearVelocity = rewindDirection * GetTargetSpeed();
+            return true;
+        }
+
         public void ApplySpeedBurst(float multiplier, float durationSeconds)
         {
             if (ballBody == null || !hasLaunched)
@@ -393,6 +428,7 @@ namespace GetBricked.Gameplay
             ClearJellySlow();
             ResetHotPotato();
             ricochetCountSinceLastBrick = 0;
+            ClearPaddleHitRewindAnchor();
 
             if (ballBody != null)
             {
@@ -479,6 +515,11 @@ namespace GetBricked.Gameplay
                 }
 
                 if (gameController != null && gameController.TryRescueBallWithShield(this))
+                {
+                    return;
+                }
+
+                if (gameController != null && gameController.TryRescueBallWithRewindCatch(this))
                 {
                     return;
                 }
@@ -600,7 +641,11 @@ namespace GetBricked.Gameplay
                 : (Vector2)transform.position;
 
             gameController?.ApplyPaddleHitTilt(hitPaddle, contactPoint.x, ballBody.linearVelocity);
-            ApplyCollisionResponse(ResolvePaddleBounceDirection(hitPaddle, contactPoint.x));
+            var bounceDirection = ResolvePaddleBounceDirection(hitPaddle, contactPoint.x);
+            lastPaddleHitRewindPosition = transform.position;
+            lastPaddleHitRewindDirection = bounceDirection;
+            hasLastPaddleHitRewindAnchor = true;
+            ApplyCollisionResponse(bounceDirection);
         }
 
         private Vector2 ResolvePaddleBounceDirection(float normalizedOffset)
@@ -807,6 +852,13 @@ namespace GetBricked.Gameplay
         private void ResetHotPotato()
         {
             hotPotatoSpeedMultiplier = 1f;
+        }
+
+        private void ClearPaddleHitRewindAnchor()
+        {
+            hasLastPaddleHitRewindAnchor = false;
+            lastPaddleHitRewindPosition = Vector2.zero;
+            lastPaddleHitRewindDirection = Vector2.up;
         }
 
         private void RefreshVisualStyle()

@@ -107,7 +107,7 @@ public sealed class BreakoutProgressionPageTests
             .Select(definition => definition.LadderUnlockIntensity)
             .OrderBy(heat => heat)
             .ToArray();
-        var expectedDropHeats = Enumerable.Range(1, 39).ToArray();
+        var expectedDropHeats = Enumerable.Range(1, 40).ToArray();
 
         Assert.That(unlockHeats, Is.EqualTo(expectedDropHeats));
 
@@ -120,6 +120,7 @@ public sealed class BreakoutProgressionPageTests
         var wrapRail = view.Cards.First(card => card.Title == "Wrap Rail");
         var staticShoes = view.Cards.First(card => card.Title == "Static Shoes");
         var jackpotJam = view.Cards.First(card => card.Title == "Jackpot Jam");
+        var rewindCatch = view.Cards.First(card => card.Title == "Rewind Catch");
 
         Assert.That(turboRail.UnlockHint, Does.Contain("Heat 01"));
         Assert.That(mirrorGrid.UnlockHint, Does.Contain("Heat 02"));
@@ -138,6 +139,8 @@ public sealed class BreakoutProgressionPageTests
         Assert.That(staticShoes.Description, Does.Contain("Paddle movement x0.60"));
         Assert.That(jackpotJam.UnlockHint, Does.Contain("Heat 39"));
         Assert.That(jackpotJam.Description, Does.Contain("Score x3.00"));
+        Assert.That(rewindCatch.UnlockHint, Does.Contain("Heat 40"));
+        Assert.That(rewindCatch.Description, Does.Contain("rewinds to its last paddle hit"));
     }
 
     [Test]
@@ -233,6 +236,22 @@ public sealed class BreakoutProgressionPageTests
         Assert.That(card.Family, Does.Contain("Epic Helpful"));
         Assert.That(card.StateLabel, Is.EqualTo("Locked"));
         Assert.That(view.Cards.Count(item => item.Title == "Clean Catch"), Is.EqualTo(1));
+    }
+
+    [Test]
+    public void ProgressionPageShowsRewindCatchAsLiveHeatFortyDrop()
+    {
+        var rewindCatch = Resources.Load<PowerUpDefinition>("PowerUps/RewindCatch");
+        Assert.That(rewindCatch, Is.Not.Null);
+
+        var view = new BreakoutProgressionPageService().BuildView(new[] { rewindCatch });
+        var card = view.Cards.First(item => item.Title == "Rewind Catch");
+
+        Assert.That(card.UnlockHint, Does.Contain("Heat 40"));
+        Assert.That(card.Description, Does.Contain("rewinds to its last paddle hit"));
+        Assert.That(card.Family, Does.Contain("Epic Helpful"));
+        Assert.That(card.StateLabel, Is.EqualTo("Locked"));
+        Assert.That(view.Cards.Count(item => item.Title == "Rewind Catch"), Is.EqualTo(1));
     }
 
     [Test]

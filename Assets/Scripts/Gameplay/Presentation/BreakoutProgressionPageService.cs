@@ -249,6 +249,7 @@ namespace GetBricked.Gameplay
                 PowerUpEffectType.CleanCatch => $"Next paddle hit catches, then releases with aim x{definition.Scalar:0.00}.",
                 PowerUpEffectType.LaserPaddle => $"Paddle fires lasers for {definition.DurationSeconds:0.#}s.",
                 PowerUpEffectType.ShieldWall => $"Adds {Mathf.Max(1, definition.ExtraBallCount > 0 ? definition.ExtraBallCount : Mathf.RoundToInt(definition.Scalar))} bottom rescue charge.",
+                PowerUpEffectType.RewindCatch => "Next missed ball rewinds to its last paddle hit.",
                 PowerUpEffectType.PhaseBall => $"Ball phases through breakable bricks for {definition.DurationSeconds:0.#}s.",
                 PowerUpEffectType.ChainLightning => $"Broken bricks chain damage nearby bricks for {definition.DurationSeconds:0.#}s.",
                 PowerUpEffectType.ReverseControls => $"Reverses paddle controls for {definition.DurationSeconds:0.#}s.",

@@ -221,7 +221,7 @@ Late drop proposals should keep using mechanics the game already teaches: paddle
 | `Wrap Rail` | Paddle wraps from one side wall to the other for 10s. | Heat 37 | Epic | Helpful | Paddle control | Implemented |
 | `Static Shoes` | Paddle movement x0.60 for 8s. | Heat 38 | Epic | Hazard | Paddle speed | Implemented |
 | `Jackpot Jam` | Score x3.00, but ball speed x1.35 for 8s. | Heat 39 | Epic | Mixed | Score/speed risk | Implemented |
-| `Rewind Catch` | Next missed ball rewinds to its last paddle hit instead of costing a life. | Heat 40 | Epic | Helpful | Rescue drop | Not implemented (proposal) |
+| `Rewind Catch` | Next missed ball rewinds to its last paddle hit instead of costing a life. | Heat 40 | Epic | Helpful | Rescue drop | Implemented |
 | `Micro Spark` | Ball size x0.55 and score x1.75 for 10s. | Heat 41 | Epic | Mixed | Precision score | Not implemented (proposal) |
 | `Brick Bloom` | First broken brick spawns two tiny bonus bricks that pay score and can drop capsules. | Heat 42 | Epic | Mixed | Brick spawn | Not implemented (proposal) |
 | `Magnet Flip` | Balls are pushed away from nearby bricks for 8s. | Heat 43 | Epic | Hazard | Ball repulsion | Not implemented (proposal) |

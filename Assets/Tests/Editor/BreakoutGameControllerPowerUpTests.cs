@@ -904,6 +904,37 @@ public sealed class BreakoutGameControllerPowerUpTests
     }
 
     [Test]
+    public void RewindCatchReturnsMissedBallToLastPaddleHitAndConsumesCharge()
+    {
+        var controller = CreateControllerHarness(out var paddle);
+        var serveBall = CreateBallHarness(controller, paddle);
+        var hitX = paddle.transform.position.x + (paddle.HalfWidthWorld * 0.45f);
+        var hitPosition = new Vector2(hitX, paddle.transform.position.y + 0.7f);
+        SetPrivateEnumField(controller, "roundState", "Playing");
+        GetPrivateField<List<BallController>>(controller, "activeBalls").Add(serveBall);
+        serveBall.SetWorldPosition(hitPosition);
+        serveBall.RecordPaddleHitRewindAnchor(paddle, hitX);
+        SetPrivateField(serveBall, "hasLaunched", true);
+        serveBall.SetWorldPosition(new Vector2(hitX, -6.25f));
+        serveBall.GetComponent<Rigidbody2D>().linearVelocity = Vector2.down * 8f;
+
+        InvokePrivateMethod(
+            controller,
+            "ApplyPowerUp",
+            CreatePowerUp("Rewind Catch", PowerUpEffectType.RewindCatch, true, 0f, 1f));
+
+        Assert.That(controller.TryRescueBallWithRewindCatch(serveBall), Is.True);
+
+        var powerUpService = GetPrivateField<object>(controller, "powerUpService");
+        Assert.That(GetPropertyValue<int>(powerUpService, "RewindCatchCharges"), Is.Zero);
+        Assert.That(serveBall.transform.position.x, Is.EqualTo(hitPosition.x).Within(0.0001f));
+        Assert.That(serveBall.transform.position.y, Is.EqualTo(hitPosition.y).Within(0.0001f));
+        Assert.That(serveBall.CurrentVelocity.y, Is.GreaterThan(0f));
+        Assert.That(serveBall.HasLaunched, Is.True);
+        Assert.That(GetPrivateField<List<BallController>>(controller, "activeBalls"), Does.Contain(serveBall));
+    }
+
+    [Test]
     public void LosingALifeInHighScoreModeSubtractsPenaltyFromScoreAndKeepsRunAlive()
     {
         var controller = CreateControllerHarness(out var paddle);

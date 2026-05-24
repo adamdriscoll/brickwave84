@@ -426,6 +426,7 @@ namespace GetBricked.Gameplay
         private readonly float multiBallSpreadAngle;
         private readonly Material pickupMaterial;
         private bool capsuleMadnessThresholdArmed = true;
+        private PowerUpDefinition rewindCatchDefinition;
 
         public BreakoutPowerUpService(Vector2 pickupSize, float pickupFallSpeed, float multiBallSpreadAngle, Material pickupMaterial)
         {
@@ -452,6 +453,8 @@ namespace GetBricked.Gameplay
         public int BankBonusChargePoints { get; private set; }
 
         public int SolarShotCharges { get; private set; }
+
+        public int RewindCatchCharges { get; private set; }
 
         public void UpdateTimedEffects(bool isPlaying, float deltaTime, System.Action modifiersChanged)
         {
@@ -689,6 +692,15 @@ namespace GetBricked.Gameplay
                 return default;
             }
 
+            if (powerUpDefinition.EffectType == PowerUpEffectType.RewindCatch)
+            {
+                RewindCatchCharges += Mathf.Max(1, powerUpDefinition.ExtraBallCount > 0 ? powerUpDefinition.ExtraBallCount : Mathf.RoundToInt(powerUpDefinition.Scalar));
+                rewindCatchDefinition = powerUpDefinition;
+                ShowPickupBanner(powerUpDefinition, themeService, RewindCatchCharges);
+
+                return default;
+            }
+
             ShowPickupBanner(powerUpDefinition, themeService, 1);
 
             return powerUpDefinition.EffectType switch
@@ -803,6 +815,8 @@ namespace GetBricked.Gameplay
         {
             ActiveTimedEffects.Clear();
             SolarShotCharges = 0;
+            RewindCatchCharges = 0;
+            rewindCatchDefinition = null;
             ClearBankBonusCharge();
         }
 
@@ -870,6 +884,26 @@ namespace GetBricked.Gameplay
             }
 
             SolarShotCharges--;
+            return true;
+        }
+
+        public bool TryConsumeRewindCatchCharge(out PowerUpDefinition definition)
+        {
+            definition = null;
+
+            if (RewindCatchCharges <= 0)
+            {
+                return false;
+            }
+
+            RewindCatchCharges--;
+            definition = rewindCatchDefinition;
+
+            if (RewindCatchCharges <= 0)
+            {
+                rewindCatchDefinition = null;
+            }
+
             return true;
         }
 
@@ -964,7 +998,7 @@ namespace GetBricked.Gameplay
         {
             var summaries = BuildTimedEffectStackSummaries();
 
-            if (summaries.Count == 0 && SolarShotCharges <= 0)
+            if (summaries.Count == 0 && SolarShotCharges <= 0 && RewindCatchCharges <= 0)
             {
                 return "Active Effects: none";
             }
@@ -979,6 +1013,22 @@ namespace GetBricked.Gameplay
                 {
                     builder.Append(" x");
                     builder.Append(SolarShotCharges);
+                }
+            }
+
+            if (RewindCatchCharges > 0)
+            {
+                if (builder.Length > 16)
+                {
+                    builder.Append(" | ");
+                }
+
+                builder.Append("REWIND");
+
+                if (RewindCatchCharges > 1)
+                {
+                    builder.Append(" x");
+                    builder.Append(RewindCatchCharges);
                 }
             }
 

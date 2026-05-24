@@ -924,6 +924,7 @@ namespace GetBricked.Gameplay
                 && powerUpService.TryConsumeCleanCatchCharge(out var cleanCatchDefinition, out var aimMultiplier))
             {
                 ApplyPaddleHitTilt(hitPaddle, contactPoint.x, ball.CurrentVelocity);
+                ball.RecordPaddleHitRewindAnchor(hitPaddle, contactPoint.x);
                 stickyCaughtBall = ball;
                 stickyCaughtBallUsesCleanCatch = true;
                 cleanCatchReleaseOffsetNormalized = ResolvePaddleHitOffset(hitPaddle, contactPoint.x);
@@ -937,6 +938,7 @@ namespace GetBricked.Gameplay
             if (activeEffectModifiers.StickyPaddleEnabled && stickyCaughtBall == null)
             {
                 ApplyPaddleHitTilt(hitPaddle, contactPoint.x, ball.CurrentVelocity);
+                ball.RecordPaddleHitRewindAnchor(hitPaddle, contactPoint.x);
                 stickyCaughtBall = ball;
                 stickyCaughtBallUsesCleanCatch = false;
                 cleanCatchReleaseOffsetNormalized = 0f;
@@ -946,6 +948,25 @@ namespace GetBricked.Gameplay
             }
 
             return false;
+        }
+
+        public bool TryRescueBallWithRewindCatch(BallController ball)
+        {
+            if (!IsGameplaySimulationActive()
+                || ball == null
+                || powerUpService == null
+                || powerUpService.RewindCatchCharges <= 0
+                || !ball.TryRewindToLastPaddleHit())
+            {
+                return false;
+            }
+
+            if (powerUpService.TryConsumeRewindCatchCharge(out var rewindCatchDefinition))
+            {
+                powerUpService.ShowStatusBanner("REWIND CATCH!", ResolvePowerUpAccentColor(rewindCatchDefinition), 1.35f);
+            }
+
+            return true;
         }
 
         public void ApplyPaddleHitTilt(PaddleController hitPaddle, float contactWorldX)
@@ -6996,6 +7017,7 @@ namespace GetBricked.Gameplay
                 PowerUpEffectType.CleanCatch => $"Catch next paddle hit, aim x{definition.Scalar:0.00}",
                 PowerUpEffectType.LaserPaddle => $"Laser paddle for {definition.DurationSeconds:0.#}s",
                 PowerUpEffectType.ShieldWall => "Shield save",
+                PowerUpEffectType.RewindCatch => "Rewind next missed ball",
                 PowerUpEffectType.PhaseBall => $"Phase ball for {definition.DurationSeconds:0.#}s",
                 PowerUpEffectType.ChainLightning => $"Chain hits for {definition.DurationSeconds:0.#}s",
                 PowerUpEffectType.ActiveDropMultiplier => $"Active effects x{definition.Scalar:0.00}",

@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
+  <title id="title">Rewind Catch</title>
+  <desc id="desc">A monochrome neon icon showing a missed ball rewinding back to a paddle hit.</desc>
+  <defs>
+    <filter id="softGlow" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="2.25" result="blur"/>
+      <feColorMatrix in="blur" type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 .8 0" result="glow"/>
+      <feMerge>
+        <feMergeNode in="glow"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <style><![CDATA[
+      .icon { fill: none; stroke: #fff; stroke-linecap: round; stroke-linejoin: round; filter: url(#softGlow); }
+      .main { stroke-width: 10; opacity: .96; }
+      .mid { stroke-width: 6; opacity: .82; }
+      .thin { stroke-width: 3.5; opacity: .5; }
+      .dash { stroke-dasharray: 11 9; }
+      .fill { fill: #fff; stroke: none; opacity: .92; filter: url(#softGlow); }
+      .soft { fill: #fff; stroke: none; opacity: .16; filter: url(#softGlow); }
+    ]]></style>
+  </defs>
+  <g class="icon">
+    <path class="main" d="M48 194 H208"/>
+    <path class="mid" d="M74 181 H182"/>
+    <circle class="main" cx="122" cy="132" r="22"/>
+    <path class="mid" d="M84 154 C101 174, 143 174, 160 154"/>
+    <path class="thin dash" d="M122 132 C153 113, 175 88, 178 55"/>
+    <path class="main" d="M178 55 C148 39, 111 42, 84 63"/>
+    <path class="main" d="M84 63 L89 35"/>
+    <path class="main" d="M84 63 L112 69"/>
+    <path class="thin dash" d="M93 171 C75 151, 66 122, 71 94"/>
+    <path class="mid" d="M73 96 L52 116"/>
+    <path class="mid" d="M73 96 L96 113"/>
+    <path class="soft" d="M116 126 C151 107, 167 86, 169 62 C151 56, 124 59, 103 75 C91 84, 83 98, 79 114 C88 121, 101 126, 116 126z"/>
+    <circle class="fill" cx="178" cy="55" r="6"/>
+    <path class="thin" d="M64 211 H192"/>
+    <path class="thin" d="M55 82 C67 60, 90 45, 119 39"/>
+    <path class="thin" d="M145 40 C171 46, 193 62, 205 86"/>
+  </g>
+</svg>
