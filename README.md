@@ -167,7 +167,11 @@ Difficulty presets already change more than labels:
 
 ### Unlock Progression
 
-Permanent run upgrades are always available in the between-stage draft pool. Drop and glitch unlocks now advance on parallel 50-Heat tracks: clearing a Heat can award one drop signal and one glitch signal. Implemented live drops currently fill Heat `01` through Heat `35`, with a placeholder drop at Heat `36`. Implemented live glitches currently fill Heat `01` through Heat `05`, with placeholder glitches at Heat `06` and Heat `07`. Default drops and default glitches start unlocked for Neon Ladder runs. Rarity still tunes odds and draft weighting, but it no longer controls unlock Heat. Implementation status tracks whether the item has live runtime gameplay behavior or is currently only a progression-screen placeholder.
+Permanent run upgrades are always available in the between-stage draft pool. Drop and glitch unlocks now advance on parallel 50-Heat tracks: clearing a Heat can award one drop signal and one glitch signal. Implemented live drops currently fill Heat `01` through Heat `35`, with planned drop placeholders filling Heat `36` through Heat `50`. Implemented live glitches currently fill Heat `01` through Heat `05`, with planned glitch placeholders filling Heat `06` through Heat `50`. Default drops and default glitches start unlocked for Neon Ladder runs. Rarity still tunes odds and draft weighting, but it no longer controls unlock Heat. Implementation status tracks whether the item has live runtime gameplay behavior or is currently only a progression-screen placeholder.
+
+Current balance shape: drops already have a healthy spread of classic brick-breaker tools, hazards, and mixed-risk capsules, but the late ladder needs more capstone capsules that answer or amplify stage chaos. Glitches are the bigger content gap: the implemented set proves the format with portals, layout flips, pickup storms, gravity, and wall behavior, so the rest of the ladder should lean into readable stage-wide rule changes rather than simple stat debuffs. New draft upgrades should help players build around that mayhem without erasing it.
+
+Late drop proposals should keep using mechanics the game already teaches: paddle routing, ball speed, visibility, catch/relaunch timing, rescue charges, missile pressure, split balls, score greed, and timed-effect stacking. Heat `36` through Heat `50` intentionally alternate relief, hazard, and mixed greed so the ladder keeps adding new decisions instead of becoming a pure punishment track.
 
 #### Drops
 
@@ -213,7 +217,21 @@ Permanent run upgrades are always available in the between-stage draft pool. Dro
 | `Prism Pop` | First brick hit within 10s splits a short-lived copy ball. | Heat 33 | Epic | Helpful | Split drop | Implemented |
 | `Mystery Tape` | Rolls one random unlocked helpful drop and one random unlocked hazard from a mystery capsule. | Heat 34 | Epic | Mixed | Mystery drop | Implemented |
 | `Tilt Rail` | Each paddle hit tilts the rail 9 degrees for 12s. | Heat 35 | Epic | Hazard | Paddle tilt | Implemented |
-| `Solar Shot` | Ball burns through the next weak brick it touches. | Heat 36 | N/A | Helpful | Damage drop | Not implemented (UI placeholder) |
+| `Solar Shot` | Ball burns through the next weak brick it touches. | Heat 36 | Epic | Helpful | Damage drop | Not implemented (UI placeholder) |
+| `Wrap Rail` | Paddle wraps from one side wall to the other for 10s. | Heat 37 | Epic | Helpful | Paddle control | Not implemented (proposal) |
+| `Static Shoes` | Paddle movement x0.60 for 8s. | Heat 38 | Epic | Hazard | Paddle speed | Not implemented (proposal) |
+| `Jackpot Jam` | Score x3.00, but ball speed x1.35 for 8s. | Heat 39 | Epic | Mixed | Score/speed risk | Not implemented (proposal) |
+| `Rewind Catch` | Next missed ball rewinds to its last paddle hit instead of costing a life. | Heat 40 | Epic | Helpful | Rescue drop | Not implemented (proposal) |
+| `Micro Spark` | Ball size x0.55 and score x1.75 for 10s. | Heat 41 | Epic | Mixed | Precision score | Not implemented (proposal) |
+| `Brick Bloom` | First broken brick spawns two tiny bonus bricks that pay score and can drop capsules. | Heat 42 | Epic | Mixed | Brick spawn | Not implemented (proposal) |
+| `Magnet Flip` | Balls are pushed away from nearby bricks for 8s. | Heat 43 | Epic | Hazard | Ball repulsion | Not implemented (proposal) |
+| `Double Tap` | Next paddle hit launches two angled copy balls and shrinks the rail briefly. | Heat 44 | Epic | Mixed | Split/control | Not implemented (proposal) |
+| `Fuse Burst` | Clears one damaged brick and triggers a short blackout. | Heat 45 | Epic | Mixed | Damage/visibility | Not implemented (proposal) |
+| `Overdrive Tape` | Ball, paddle, and capsules all move x1.25 for 9s. | Heat 46 | Epic | Mixed | Speed chaos | Not implemented (proposal) |
+| `Chrome Catch` | Every paddle hit catches for 4s, then relaunches hotter. | Heat 47 | Epic | Mixed | Sticky speed | Not implemented (proposal) |
+| `Bogus Bounce` | Next three wall bounces leave at wild angles. | Heat 48 | Epic | Hazard | Ricochet | Not implemented (proposal) |
+| `Cabinet Jackpot` | Refreshes every active timed effect, helpful or harmful. | Heat 49 | Epic | Mixed | Effect refresh | Not implemented (proposal) |
+| `Final Breakthru` | Ball pierces weak bricks, explodes on hit, and scores x2.00 for 6s. | Heat 50 | Epic | Helpful | Capstone drop | Not implemented (proposal) |
 
 #### Glitches
 
@@ -225,8 +243,51 @@ Permanent run upgrades are always available in the between-stage draft pool. Dro
 | `Token Storm` | More capsules spawn, but fall at mixed speeds. | Heat 03 | Epic | Pickup glitch | Implemented |
 | `Gravity Pocket` | A slow drifting pocket bends nearby ball paths. | Heat 04 | Epic | Speed glitch | Implemented |
 | `Static Wall` | One side wall flickers between normal and weak bounce. | Heat 05 | Epic | Paddle glitch | Implemented |
-| `Row Rewrite` | One row rerolls into a new brick pattern after a timer. | Heat 06 | N/A | Layout glitch | Not implemented (UI placeholder) |
-| `Prism Lanes` | Marked lanes refract the ball into sharper angles. | Heat 07 | N/A | Precision glitch | Not implemented (UI placeholder) |
+| `Row Rewrite` | One row rerolls into a new brick pattern after a timer. | Heat 06 | Rare | Layout glitch | Not implemented (UI placeholder) |
+| `Prism Lanes` | Marked lanes refract the ball into sharper angles. | Heat 07 | Rare | Precision glitch | Not implemented (UI placeholder) |
+| `Switchback Rails` | Side rails swap rebound angles every few seconds. | Heat 08 | Rare | Wall glitch | Not implemented (proposal) |
+| `Capsule Roulette` | Falling capsules rotate polarity until caught or missed. | Heat 09 | Rare | Pickup glitch | Not implemented (proposal) |
+| `Drift Rows` | Brick rows slide slowly in opposite directions. | Heat 10 | Rare | Layout glitch | Not implemented (proposal) |
+| `Hot Corners` | Corner bumpers kick balls back toward center at higher speed. | Heat 11 | Rare | Wall glitch | Not implemented (proposal) |
+| `Flicker Bricks` | Some bricks only collide while visible. | Heat 12 | Rare | Visibility glitch | Not implemented (proposal) |
+| `Cassette Skip` | Every few paddle hits, the ball skips forward along its current path. | Heat 13 | Rare | Ball glitch | Not implemented (proposal) |
+| `Ghost Row` | One row phases out after hits, then snaps back later. | Heat 14 | Rare | Layout glitch | Not implemented (proposal) |
+| `Split Horizon` | Crossing the arena midpoint bends the ball angle slightly. | Heat 15 | Rare | Trajectory glitch | Not implemented (proposal) |
+| `Tilt Alarm` | Paddle hits tilt the whole rebound field until the next brick break. | Heat 16 | Epic | Paddle glitch | Not implemented (proposal) |
+| `Brick Conveyor` | Brick bands crawl sideways while gaps stay dangerous. | Heat 17 | Epic | Layout glitch | Not implemented (proposal) |
+| `Rogue Gate` | A single moving portal relocates after each use. | Heat 18 | Epic | Warp glitch | Not implemented (proposal) |
+| `Pickup Pinball` | Capsules bounce off walls and bricks before falling again. | Heat 19 | Epic | Pickup glitch | Not implemented (proposal) |
+| `Magnet Storm` | Pull pockets drift across the board and tug balls plus capsules. | Heat 20 | Epic | Gravity glitch | Not implemented (proposal) |
+| `Blacklight Bricks` | Brick health and special types hide until first contact. | Heat 21 | Epic | Visibility glitch | Not implemented (proposal) |
+| `Rewind Wall` | A broken non-objective row can rebuild once mid-stage. | Heat 22 | Epic | Layout glitch | Not implemented (proposal) |
+| `Score Leak` | Score trickles down until the next brick break. | Heat 23 | Epic | Score glitch | Not implemented (proposal) |
+| `Laser Rain` | Warning lanes fire brief vertical beams that can crack bricks or bounce balls. | Heat 24 | Epic | Hazard glitch | Not implemented (proposal) |
+| `Thin Air` | One side wall opens and closes on a timer. | Heat 25 | Epic | Wall glitch | Not implemented (proposal) |
+| `Prism Shuffle` | Rebounds from marked bricks rotate into sharper angles. | Heat 26 | Epic | Precision glitch | Not implemented (proposal) |
+| `Clone Static` | A ghost paddle copies your last movement with a delay. | Heat 27 | Epic | Paddle glitch | Not implemented (proposal) |
+| `Drop Tide` | Capsules fall in waves instead of one at a time. | Heat 28 | Epic | Pickup glitch | Not implemented (proposal) |
+| `Brick Lock` | A random brick cluster shields itself until another cluster breaks. | Heat 29 | Epic | Objective glitch | Not implemented (proposal) |
+| `Speed Steps` | Ball speed climbs with each brick hit and resets on paddle contact. | Heat 30 | Epic | Speed glitch | Not implemented (proposal) |
+| `Mirror Serve` | Fresh serves launch a mirror ball that vanishes after one brick hit. | Heat 31 | Epic | Serve glitch | Not implemented (proposal) |
+| `Static Jackpot` | Bonus score zones appear, but missing them speeds the ball. | Heat 32 | Epic | Score glitch | Not implemented (proposal) |
+| `Jammed Rails` | Paddle width pulses between wide and narrow during the stage. | Heat 33 | Epic | Paddle glitch | Not implemented (proposal) |
+| `Gravity Swap` | The gravity pocket flips pull direction after each wall bounce. | Heat 34 | Epic | Gravity glitch | Not implemented (proposal) |
+| `VHS Tear` | A horizontal tear line deflects balls crossing it. | Heat 35 | Epic | Trajectory glitch | Not implemented (proposal) |
+| `Capsule Blackout` | Catching any capsule briefly hides the next wave of drops. | Heat 36 | Epic | Pickup glitch | Not implemented (proposal) |
+| `Brickquake` | Brick clusters nudge out of alignment after heavy hits. | Heat 37 | Epic | Layout glitch | Not implemented (proposal) |
+| `Turbo Tax` | High-speed brick breaks pay more, but slow hits add hazard drops. | Heat 38 | Epic | Score glitch | Not implemented (proposal) |
+| `Warp Jam` | Gates sometimes spit the ball out of the wrong linked exit. | Heat 39 | Epic | Warp glitch | Not implemented (proposal) |
+| `Neon Flood` | Helpful and harmful capsules spawn together after combo spikes. | Heat 40 | Epic | Pickup glitch | Not implemented (proposal) |
+| `Lockstep Rows` | Rows move only when the paddle moves, punishing over-correction. | Heat 41 | Epic | Layout glitch | Not implemented (proposal) |
+| `Static Serve` | Each serve starts with a different rail rule until first brick break. | Heat 42 | Epic | Serve glitch | Not implemented (proposal) |
+| `Blind Bank` | Wall-bounce aim previews vanish, but bank shots score extra. | Heat 43 | Epic | Precision glitch | Not implemented (proposal) |
+| `Meltdown Core` | One glowing core brick overclocks every remaining brick until destroyed. | Heat 44 | Epic | Objective glitch | Not implemented (proposal) |
+| `Phase Storm` | Balls and select bricks phase on alternating beats. | Heat 45 | Epic | Phase glitch | Not implemented (proposal) |
+| `Score Switch` | Score target and clear-all objective swap after a warning timer. | Heat 46 | Epic | Objective glitch | Not implemented (proposal) |
+| `Token Overload` | Every drop splits into a helpful and harmful capsule with different fall speeds. | Heat 47 | Epic | Pickup glitch | Not implemented (proposal) |
+| `Rail Riot` | Paddle hits can spawn short temporary side bumpers. | Heat 48 | Epic | Paddle glitch | Not implemented (proposal) |
+| `Cabinet Tilt` | The whole arena rebound bias drifts left and right. | Heat 49 | Epic | Trajectory glitch | Not implemented (proposal) |
+| `Final Static` | Multiple unlocked glitches stack with boosted score payout. | Heat 50 | Epic | Glitch stack | Not implemented (proposal) |
 
 #### Draft Pool
 
@@ -244,10 +305,31 @@ Permanent run upgrades are always available in the between-stage draft pool. Dro
 | `Punch Card` | Every few bricks broken stamps the card and triggers a small bonus payout. | Run upgrade | Proposed |
 | `Hot Shrapnel` | Explosive and split brick effects hit a little harder for the rest of the run. | Run upgrade | Implemented |
 | `Neon Insurance` | Dropped pickups linger longer before fading, giving you more time to route for them. | Run upgrade | Implemented |
-| `Gremlin Filter` | The next glitch each level is softened, delayed, or reduced in strength. | Run upgrade | Proposed |
+| `Static Filter` | The next glitch each level is softened, delayed, or reduced in strength. | Run upgrade | Proposed |
 | `Tilt Warning` | Once per level, a near-miss below the paddle bumps the ball slightly upward instead of losing it. | Run upgrade | Implemented |
 | `Arcade Grease` | Paddle movement gets smoother and slightly more responsive for the rest of the run. | Run upgrade | Proposed |
 | `Prize Hopper` | The first pickup collected each level has a chance to duplicate itself. | Run upgrade | Proposed |
+| `Glitch Dividend` | Glitched stages pay a higher clear bonus and slightly favor relief drops in the next draft. | Run upgrade | Proposed |
+| `Drop Decoder` | Mystery and Bogus capsules reveal their polarity one beat before collection. | Run upgrade | Proposed |
+| `Warp Handle` | The first portal or wall-glitch exit each level trims ball speed back toward baseline. | Run upgrade | Proposed |
+| `Missile Rack` | Between-stage missile purchases add +2 stock instead of +1 once per draft. | Run upgrade | Proposed |
+| `Prism Warranty` | First sharp-angle brick hit after a glitch grants a short aim preview. | Run upgrade | Proposed |
+| `Crowd Control` | New hazards trim the oldest active hazard when too many hazard stacks are running. | Run upgrade | Proposed |
+| `Heat Sink` | Breaking bricks while the ball is over baseline speed cools active hazards slightly faster. | Run upgrade | Proposed |
+| `Score Buffer` | The first life-loss penalty each level is reduced by the score earned since the last serve. | Run upgrade | Proposed |
+| `Safety Glass` | Shield saves also crack the nearest damaged brick when they trigger. | Run upgrade | Proposed |
+| `Capsule Reader` | Helpful capsules fall slightly slower, while harmful capsules keep their normal speed. | Run upgrade | Proposed |
+| `Static Refund` | Catching a hazard grants a small score kick and brief resistance to the same hazard. | Run upgrade | Proposed |
+| `Rail Wrap Kit` | Once per level, a near-miss lets the paddle wrap across one side wall for a short burst. | Run upgrade | Proposed |
+| `Free Token` | The first missile fired each level does not spend missile stock. | Run upgrade | Proposed |
+| `Prism Ledger` | Phase, split, explosive, and sharp-angle breaks earn a small bonus payout. | Run upgrade | Proposed |
+| `Blackout Map` | Visibility hazards leave faint outlines on required bricks. | Run upgrade | Proposed |
+| `Overclock Brake` | High ball speed pays extra score while nudging paddle width slightly wider. | Run upgrade | Proposed |
+| `Drop Sifter` | The first harmful capsule rolled each level has a chance to become a mixed capsule. | Run upgrade | Proposed |
+| `Sticky Servo` | Sticky and clean catches show a stronger aim preview before relaunch. | Run upgrade | Proposed |
+| `Brick Scanner` | Hitting a fortified, spinner, split, or explosive brick briefly marks nearby special bricks. | Run upgrade | Proposed |
+| `Risk Rebate` | Catching a mixed or hazard capsule extends the next helpful timed effect. | Run upgrade | Proposed |
+| `Last Call` | Final required bricks in a stage pay bonus score and have higher capsule odds. | Run upgrade | Proposed |
 
 ### Themes
 
