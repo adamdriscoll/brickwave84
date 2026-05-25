@@ -569,6 +569,16 @@ namespace GetBricked.Gameplay
                 }
             }
 
+            if (collision.collider.TryGetComponent<BreakoutSwitchbackRailSection>(out var switchbackRail))
+            {
+                RegisterRicochet();
+
+                if (switchbackRail.TryHandleBallCollision(this))
+                {
+                    return;
+                }
+            }
+
             if (collision.collider.TryGetComponent<BreakoutStaticWallSection>(out var staticWall))
             {
                 RegisterRicochet();

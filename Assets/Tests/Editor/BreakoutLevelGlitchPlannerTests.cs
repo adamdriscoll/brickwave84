@@ -194,6 +194,30 @@ public sealed class BreakoutLevelGlitchPlannerTests
         Assert.That(unlockedPlan.PrismLanes[0].NormalizedX, Is.InRange(0.1f, 0.9f));
     }
 
+    [Test]
+    public void RogueGlitchHeatControlsWhenSwitchbackRailsCanUnlock()
+    {
+        var lockedSettings = CreateRogueSettings(
+            rogueIntensity: BreakoutLevelGlitchPlanner.SwitchbackRailsLadderUnlockIntensity,
+            levelGlitchSelection: LevelGlitchSelection.SwitchbackRails);
+        var unlockedSettings = CreateRogueSettings(
+            rogueIntensity: BreakoutLevelGlitchPlanner.SwitchbackRailsLadderUnlockIntensity + 1,
+            levelGlitchSelection: LevelGlitchSelection.SwitchbackRails);
+
+        var lockedPlan = BreakoutLevelGlitchPlanner.BuildPlan(new DeterministicRandomService(7), lockedSettings, levelIndex: 9);
+        var unlockedPlan = BreakoutLevelGlitchPlanner.BuildPlan(new DeterministicRandomService(7), unlockedSettings, levelIndex: 9);
+
+        Assert.That(lockedPlan.IsActive, Is.False);
+        Assert.That(unlockedPlan.IsActive, Is.True);
+        Assert.That(unlockedPlan.GlitchType, Is.EqualTo(BreakoutLevelGlitchType.SwitchbackRails));
+        Assert.That(unlockedPlan.DisplayName, Is.EqualTo("Switchback Rails"));
+        Assert.That(unlockedPlan.Rarity, Is.EqualTo(BreakoutContentRarity.Rare));
+        Assert.That(unlockedPlan.ScoreMultiplier, Is.EqualTo(1.29f).Within(0.0001f));
+        Assert.That(unlockedPlan.SwitchbackRails.NormalizedPosition, Is.InRange(0.42f, 0.72f));
+        Assert.That(unlockedPlan.SwitchbackRails.NormalizedLength, Is.InRange(0.34f, 0.48f));
+        Assert.That(unlockedPlan.SwitchbackRails.SwitchCycleSeconds, Is.InRange(2.35f, 3.15f));
+    }
+
 
     [Test]
     public void ForcedWarpGatePlanBuildsSmallPortalSetAndScoreBonus()
@@ -344,6 +368,21 @@ public sealed class BreakoutLevelGlitchPlannerTests
     }
 
     [Test]
+    public void SelectedSwitchbackRailsAlwaysBuildsSwitchbackRailsEvenWhenChanceIsDisabled()
+    {
+        var settings = CreateSettings(
+            levelGlitchesEnabled: true,
+            chanceMultiplier: 0f,
+            levelGlitchSelection: LevelGlitchSelection.SwitchbackRails);
+
+        var plan = BreakoutLevelGlitchPlanner.BuildPlan(new DeterministicRandomService(3), settings, levelIndex: 9);
+
+        Assert.That(plan.IsActive, Is.True);
+        Assert.That(plan.GlitchType, Is.EqualTo(BreakoutLevelGlitchType.SwitchbackRails));
+        Assert.That(plan.SwitchbackRails.SwitchCycleSeconds, Is.GreaterThan(0f));
+    }
+
+    [Test]
     public void PrismLaneRefractionBuildsSharperHorizontalDirection()
     {
         var refracted = BreakoutPrismLaneSection.BuildRefractedDirection(new UnityEngine.Vector2(0.12f, 1f), -1f);
@@ -351,6 +390,20 @@ public sealed class BreakoutLevelGlitchPlannerTests
         Assert.That(refracted.x, Is.LessThan(-0.4f));
         Assert.That(refracted.y, Is.GreaterThan(0f));
         Assert.That(refracted.magnitude, Is.EqualTo(1f).Within(0.0001f));
+    }
+
+    [Test]
+    public void SwitchbackRailDirectionsAlternateVerticalAngle()
+    {
+        var upward = BreakoutSwitchbackRailSection.BuildSwitchbackDirection(new UnityEngine.Vector2(-0.3f, 0.2f), BreakoutWarpGateWall.Left, 1f);
+        var downward = BreakoutSwitchbackRailSection.BuildSwitchbackDirection(new UnityEngine.Vector2(-0.3f, 0.2f), BreakoutWarpGateWall.Left, -1f);
+
+        Assert.That(upward.x, Is.GreaterThan(0f));
+        Assert.That(upward.y, Is.GreaterThan(0f));
+        Assert.That(downward.x, Is.GreaterThan(0f));
+        Assert.That(downward.y, Is.LessThan(0f));
+        Assert.That(upward.magnitude, Is.EqualTo(1f).Within(0.0001f));
+        Assert.That(downward.magnitude, Is.EqualTo(1f).Within(0.0001f));
     }
 
 

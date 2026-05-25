@@ -245,7 +245,7 @@ Late drop proposals should keep using mechanics the game already teaches: paddle
 | `Static Wall` | One side wall flickers between normal and weak bounce. | Heat 05 | Epic | Paddle glitch | Implemented |
 | `Row Rewrite` | One row rerolls into a new brick pattern after a timer. | Heat 06 | Rare | Layout glitch | Implemented |
 | `Prism Lanes` | Marked lanes refract the ball into sharper angles. | Heat 07 | Rare | Precision glitch | Implemented |
-| `Switchback Rails` | Side rails swap rebound angles every few seconds. | Heat 08 | Rare | Wall glitch | Not implemented (proposal) |
+| `Switchback Rails` | Side rails swap rebound angles every few seconds. | Heat 08 | Rare | Wall glitch | Implemented |
 | `Capsule Roulette` | Falling capsules rotate polarity until caught or missed. | Heat 09 | Rare | Pickup glitch | Not implemented (proposal) |
 | `Drift Rows` | Brick rows slide slowly in opposite directions. | Heat 10 | Rare | Layout glitch | Not implemented (proposal) |
 | `Hot Corners` | Corner bumpers kick balls back toward center at higher speed. | Heat 11 | Rare | Wall glitch | Not implemented (proposal) |

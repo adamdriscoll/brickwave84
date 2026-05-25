@@ -59,6 +59,9 @@ namespace GetBricked.Gameplay
         private const float GravityPocketArenaTopPadding = 1.2f;
         private const float PrismLaneBottomInset = 1.25f;
         private const float PrismLaneTopInset = 1.05f;
+        private const float SwitchbackRailThickness = 0.22f;
+        private const float SwitchbackRailBottomInset = 1.55f;
+        private const float SwitchbackRailTopInset = 0.95f;
         private const int AutoSaveBaseScoreCost = 10000;
         private const int AutoSaveBaseCostMaximumRogueHeat = 10;
         private const int AutoSaveScoreCostIncreasePerHeat = 1000;
@@ -315,6 +318,7 @@ namespace GetBricked.Gameplay
         private BreakoutStaticWallSection activeStaticWallSection;
         private BreakoutGravityPocketVisual activeGravityPocketVisual;
         private GameObject activePrismLaneField;
+        private GameObject activeSwitchbackRailField;
         private BreakoutMirrorGridVisual activeMirrorGridVisual;
         private bool isMirrorGridArmed;
         private bool hasMirrorGridTriggered;
@@ -3605,6 +3609,12 @@ namespace GetBricked.Gameplay
                 CreatePrismLanes(activeLevelGlitchPlan);
                 powerUpService?.ShowStatusBanner("PRISM LANES!", new Color(1f, 0.87f, 0.36f, 1f), 2.2f);
             }
+
+            if (activeLevelGlitchPlan.HasGlitch(BreakoutLevelGlitchType.SwitchbackRails))
+            {
+                CreateSwitchbackRails(activeLevelGlitchPlan);
+                powerUpService?.ShowStatusBanner("SWITCHBACK!", new Color(0.03f, 0.93f, 0.98f, 1f), 2.2f);
+            }
         }
 
         private void ClearLevelGlitches()
@@ -3647,6 +3657,12 @@ namespace GetBricked.Gameplay
             {
                 DestroyRuntimeObject(activePrismLaneField);
                 activePrismLaneField = null;
+            }
+
+            if (activeSwitchbackRailField != null)
+            {
+                DestroyRuntimeObject(activeSwitchbackRailField);
+                activeSwitchbackRailField = null;
             }
 
             if (activeMirrorGridVisual != null)
@@ -4017,6 +4033,76 @@ namespace GetBricked.Gameplay
             var width = Mathf.Lerp(0.22f, 0.52f, spec.NormalizedWidth / 0.14f);
             var height = Mathf.Max(1f, (arenaTop - PrismLaneTopInset) - (arenaBottom + PrismLaneBottomInset));
             return new Vector2(width, height);
+        }
+
+        private void CreateSwitchbackRails(BreakoutLevelGlitchPlan glitchPlan)
+        {
+            if (glitchPlan == null || squareSprite == null)
+            {
+                return;
+            }
+
+            activeSwitchbackRailField = new GameObject("Switchback Rails");
+            activeSwitchbackRailField.transform.SetParent(glitchesRoot != null ? glitchesRoot : runtimeRoot, false);
+
+            CreateSwitchbackRail(activeSwitchbackRailField.transform, 0, BreakoutWarpGateWall.Left, glitchPlan.SwitchbackRails);
+            CreateSwitchbackRail(activeSwitchbackRailField.transform, 1, BreakoutWarpGateWall.Right, glitchPlan.SwitchbackRails);
+        }
+
+        private void CreateSwitchbackRail(Transform railRoot, int railIndex, BreakoutWarpGateWall wall, BreakoutSwitchbackRailSpec spec)
+        {
+            var railObject = new GameObject($"Switchback Rail {railIndex + 1:00}");
+            railObject.transform.SetParent(railRoot, false);
+            railObject.transform.position = ResolveSwitchbackRailPosition(wall, spec);
+
+            var size = ResolveSwitchbackRailSize(spec);
+            var collider = railObject.AddComponent<BoxCollider2D>();
+            collider.size = size;
+            collider.sharedMaterial = bounceMaterial;
+
+            var visual = railObject.AddComponent<BreakoutSwitchbackRailVisual>();
+            visual.Configure(
+                squareSprite,
+                spriteUnlitMaterial,
+                additiveSpriteMaterial,
+                wall,
+                size,
+                railIndex,
+                spec.SwitchCycleSeconds,
+                spec.PhaseOffsetSeconds + (railIndex * spec.SwitchCycleSeconds * 0.5f));
+
+            var rail = railObject.AddComponent<BreakoutSwitchbackRailSection>();
+            rail.Configure(
+                this,
+                wall,
+                spec.SwitchCycleSeconds,
+                spec.PhaseOffsetSeconds + (railIndex * spec.SwitchCycleSeconds * 0.5f),
+                visual);
+        }
+
+        private Vector2 ResolveSwitchbackRailPosition(BreakoutWarpGateWall wall, BreakoutSwitchbackRailSpec spec)
+        {
+            var x = wall == BreakoutWarpGateWall.Right
+                ? arenaRight - (SwitchbackRailThickness * 0.5f)
+                : arenaLeft + (SwitchbackRailThickness * 0.5f);
+            var minY = arenaBottom + SwitchbackRailBottomInset;
+            var maxY = arenaTop - SwitchbackRailTopInset;
+
+            if (maxY <= minY)
+            {
+                minY = arenaBottom;
+                maxY = arenaTop;
+            }
+
+            return new Vector2(x, Mathf.Lerp(minY, maxY, spec.NormalizedPosition));
+        }
+
+        private Vector2 ResolveSwitchbackRailSize(BreakoutSwitchbackRailSpec spec)
+        {
+            var minY = arenaBottom + SwitchbackRailBottomInset;
+            var maxY = arenaTop - SwitchbackRailTopInset;
+            var usableHeight = Mathf.Max(1f, maxY - minY);
+            return new Vector2(SwitchbackRailThickness, Mathf.Clamp(usableHeight * spec.NormalizedLength, 1.35f, 3.6f));
         }
 
         private void CreateGravityPocket(BreakoutLevelGlitchPlan glitchPlan)
@@ -5840,6 +5926,7 @@ namespace GetBricked.Gameplay
                 LevelGlitchSelection.StaticWall => "Static Wall",
                 LevelGlitchSelection.RowRewrite => "Row Rewrite",
                 LevelGlitchSelection.PrismLanes => "Prism Lanes",
+                LevelGlitchSelection.SwitchbackRails => "Switchback Rails",
                 _ => "Off",
             };
         }

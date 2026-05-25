@@ -169,6 +169,13 @@ namespace GetBricked.Gameplay
                 BreakoutLevelGlitchPlanner.PrismLanesLadderUnlockIntensity,
                 highestCompletedIntensity,
                 PrecisionAccent));
+            cards.Add(BuildUnlockableGlitchCard(
+                "Switchback Rails",
+                "Wall Rare Glitch",
+                "Side rails swap rebound angles every few seconds.",
+                BreakoutLevelGlitchPlanner.SwitchbackRailsLadderUnlockIntensity,
+                highestCompletedIntensity,
+                SplitAccent));
             AppendPlaceholderCards(cards, PlaceholderDrops, highestCompletedIntensity);
             AppendPlaceholderCards(cards, PlaceholderGlitches, highestCompletedIntensity);
             cards.Add(BuildHiddenSlotCard("Future Drop Slot", "Drop", "Hidden", "Future drop signal pending."));
@@ -517,6 +524,11 @@ namespace GetBricked.Gameplay
             }
 
             if (completedIntensity >= BreakoutLevelGlitchPlanner.PrismLanesLadderUnlockIntensity)
+            {
+                count++;
+            }
+
+            if (completedIntensity >= BreakoutLevelGlitchPlanner.SwitchbackRailsLadderUnlockIntensity)
             {
                 count++;
             }

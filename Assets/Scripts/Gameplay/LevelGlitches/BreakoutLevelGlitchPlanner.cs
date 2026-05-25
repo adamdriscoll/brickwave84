@@ -16,6 +16,7 @@ namespace GetBricked.Gameplay
         StaticWall = 6,
         RowRewrite = 7,
         PrismLanes = 8,
+        SwitchbackRails = 9,
     }
 
     internal readonly struct BreakoutLevelGlitchDefinition
@@ -188,6 +189,25 @@ namespace GetBricked.Gameplay
         public float RefractionSign { get; }
     }
 
+    internal readonly struct BreakoutSwitchbackRailSpec
+    {
+        public BreakoutSwitchbackRailSpec(float normalizedPosition, float normalizedLength, float switchCycleSeconds, float phaseOffsetSeconds)
+        {
+            NormalizedPosition = Mathf.Clamp01(normalizedPosition);
+            NormalizedLength = Mathf.Clamp(normalizedLength, 0.22f, 0.56f);
+            SwitchCycleSeconds = Mathf.Max(1.2f, switchCycleSeconds);
+            PhaseOffsetSeconds = Mathf.Max(0f, phaseOffsetSeconds);
+        }
+
+        public float NormalizedPosition { get; }
+
+        public float NormalizedLength { get; }
+
+        public float SwitchCycleSeconds { get; }
+
+        public float PhaseOffsetSeconds { get; }
+    }
+
     internal sealed class BreakoutLevelGlitchPlan
     {
         public static readonly BreakoutLevelGlitchPlan None = new BreakoutLevelGlitchPlan(
@@ -214,7 +234,8 @@ namespace GetBricked.Gameplay
             BreakoutStaticWallSpec staticWall = default,
             BreakoutLevelGlitchType[] activeGlitchTypes = null,
             BreakoutRowRewriteSpec rowRewrite = default,
-            BreakoutPrismLaneSpec[] prismLanes = null)
+            BreakoutPrismLaneSpec[] prismLanes = null,
+            BreakoutSwitchbackRailSpec switchbackRails = default)
         {
             GlitchType = glitchType;
             Rarity = BreakoutRarityRules.Clamp(rarity);
@@ -228,6 +249,7 @@ namespace GetBricked.Gameplay
             StaticWall = staticWall;
             RowRewrite = rowRewrite;
             PrismLanes = prismLanes ?? Array.Empty<BreakoutPrismLaneSpec>();
+            SwitchbackRails = switchbackRails;
             ActiveGlitchTypes = activeGlitchTypes != null && activeGlitchTypes.Length > 0
                 ? activeGlitchTypes
                 : glitchType != BreakoutLevelGlitchType.None
@@ -259,6 +281,8 @@ namespace GetBricked.Gameplay
 
         public BreakoutPrismLaneSpec[] PrismLanes { get; }
 
+        public BreakoutSwitchbackRailSpec SwitchbackRails { get; }
+
         public BreakoutLevelGlitchType[] ActiveGlitchTypes { get; }
 
         public bool IsActive => ActiveGlitchTypes.Length > 0;
@@ -286,6 +310,7 @@ namespace GetBricked.Gameplay
         public const int StaticWallLadderUnlockIntensity = 5;
         public const int RowRewriteLadderUnlockIntensity = 6;
         public const int PrismLanesLadderUnlockIntensity = 7;
+        public const int SwitchbackRailsLadderUnlockIntensity = 8;
 
         private const float WarpGateScoreMultiplier = 1.35f;
         private const float TurboRailScoreMultiplier = 1.25f;
@@ -295,6 +320,7 @@ namespace GetBricked.Gameplay
         private const float StaticWallScoreMultiplier = 1.34f;
         private const float RowRewriteScoreMultiplier = 1.28f;
         private const float PrismLanesScoreMultiplier = 1.31f;
+        private const float SwitchbackRailsScoreMultiplier = 1.29f;
 
         private static readonly BreakoutLevelGlitchDefinition[] GlitchDefinitions =
         {
@@ -338,6 +364,11 @@ namespace GetBricked.Gameplay
                 LevelGlitchSelection.PrismLanes,
                 BreakoutContentRarity.Rare,
                 PrismLanesLadderUnlockIntensity),
+            new BreakoutLevelGlitchDefinition(
+                BreakoutLevelGlitchType.SwitchbackRails,
+                LevelGlitchSelection.SwitchbackRails,
+                BreakoutContentRarity.Rare,
+                SwitchbackRailsLadderUnlockIntensity),
         };
 
         public static BreakoutLevelGlitchPlan BuildPlan(
@@ -422,6 +453,11 @@ namespace GetBricked.Gameplay
             if (definition.GlitchType == BreakoutLevelGlitchType.PrismLanes)
             {
                 return BuildPrismLanesPlan(random, definition.Rarity);
+            }
+
+            if (definition.GlitchType == BreakoutLevelGlitchType.SwitchbackRails)
+            {
+                return BuildSwitchbackRailsPlan(random, definition.Rarity);
             }
 
             return BuildWarpGatePlan(random, definition.Rarity);
@@ -528,6 +564,7 @@ namespace GetBricked.Gameplay
             var staticWall = default(BreakoutStaticWallSpec);
             var rowRewrite = default(BreakoutRowRewriteSpec);
             var prismLanes = Array.Empty<BreakoutPrismLaneSpec>();
+            var switchbackRails = default(BreakoutSwitchbackRailSpec);
 
             for (var index = 0; index < definitions.Count; index++)
             {
@@ -573,6 +610,11 @@ namespace GetBricked.Gameplay
                 {
                     prismLanes = plan.PrismLanes;
                 }
+
+                if (plan.HasGlitch(BreakoutLevelGlitchType.SwitchbackRails))
+                {
+                    switchbackRails = plan.SwitchbackRails;
+                }
             }
 
             return new BreakoutLevelGlitchPlan(
@@ -588,7 +630,8 @@ namespace GetBricked.Gameplay
                 staticWall,
                 activeTypes,
                 rowRewrite,
-                prismLanes);
+                prismLanes,
+                switchbackRails);
         }
 
         private static BreakoutLevelGlitchPlan BuildWarpGatePlan(DeterministicRandomService random, BreakoutContentRarity rarity)
@@ -701,6 +744,24 @@ namespace GetBricked.Gameplay
                 default,
                 rowRewrite: default,
                 prismLanes: BuildPrismLanes(random));
+        }
+
+        private static BreakoutLevelGlitchPlan BuildSwitchbackRailsPlan(DeterministicRandomService random, BreakoutContentRarity rarity)
+        {
+            return new BreakoutLevelGlitchPlan(
+                BreakoutLevelGlitchType.SwitchbackRails,
+                rarity,
+                "Switchback Rails",
+                $"Switchback Rails x{SwitchbackRailsScoreMultiplier:0.00}",
+                SwitchbackRailsScoreMultiplier,
+                Array.Empty<BreakoutWarpGateSpec>(),
+                default,
+                default,
+                default,
+                default,
+                rowRewrite: default,
+                prismLanes: null,
+                switchbackRails: BuildSwitchbackRails(random));
         }
 
         public static float GetGlitchChance(RunSettings settings, int levelIndex)
@@ -837,6 +898,15 @@ namespace GetBricked.Gameplay
             return lanes;
         }
 
+        private static BreakoutSwitchbackRailSpec BuildSwitchbackRails(DeterministicRandomService random)
+        {
+            return new BreakoutSwitchbackRailSpec(
+                random.Range(0.42f, 0.72f),
+                random.Range(0.34f, 0.48f),
+                random.Range(2.35f, 3.15f),
+                random.Range(0f, 3.15f));
+        }
+
         private static BreakoutLevelGlitchDefinition ResolveGlitchDefinition(
             DeterministicRandomService random,
             RunSettings settings,
@@ -968,7 +1038,8 @@ namespace GetBricked.Gameplay
                 || selection == LevelGlitchSelection.TokenStorm
                 || selection == LevelGlitchSelection.StaticWall
                 || selection == LevelGlitchSelection.RowRewrite
-                || selection == LevelGlitchSelection.PrismLanes;
+                || selection == LevelGlitchSelection.PrismLanes
+                || selection == LevelGlitchSelection.SwitchbackRails;
         }
 
         private static BreakoutWarpGateWall ResolveGateWall(DeterministicRandomService random, int index)
