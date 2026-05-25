@@ -291,6 +291,7 @@ namespace GetBricked.Gameplay
                 PowerUpEffectType.OverdriveTape => $"Ball, paddle, and capsules all move x{definition.Scalar:0.00} for {definition.DurationSeconds:0.#}s.",
                 PowerUpEffectType.DoubleTap => $"Next paddle hit launches {Mathf.Max(1, definition.ExtraBallCount)} angled copy balls, then paddle width x{definition.Scalar:0.00} for {definition.DurationSeconds:0.#}s.",
                 PowerUpEffectType.ExplosiveBall => $"Ball explosions damage nearby bricks for {definition.DurationSeconds:0.#}s.",
+                PowerUpEffectType.FinalBreakthru => $"Ball pierces weak bricks, explodes on hit, and scores x{definition.Scalar:0.00} for {definition.DurationSeconds:0.#}s.",
                 PowerUpEffectType.VectorSight => $"Shows a short paddle aim preview for {definition.DurationSeconds:0.#}s.",
                 PowerUpEffectType.RandomHarmfulDrop => "Looks helpful, then rolls a random hazard.",
                 PowerUpEffectType.CapsuleMagnet => $"Nearby helpful capsules drift toward the paddle for {definition.DurationSeconds:0.#}s.",

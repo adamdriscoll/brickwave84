@@ -108,7 +108,7 @@ public sealed class BreakoutProgressionPageTests
             .OrderBy(heat => heat)
             .ToArray();
         var expectedDropHeats = Enumerable.Range(1, 46)
-            .Concat(new[] { 48, 49 })
+            .Concat(new[] { 48, 49, 50 })
             .ToArray();
 
         Assert.That(unlockHeats, Is.EqualTo(expectedDropHeats));
@@ -130,6 +130,7 @@ public sealed class BreakoutProgressionPageTests
         var overdriveTape = view.Cards.First(card => card.Title == "Overdrive Tape");
         var bogusBounce = view.Cards.First(card => card.Title == "Bogus Bounce");
         var cabinetJackpot = view.Cards.First(card => card.Title == "Cabinet Jackpot");
+        var finalBreakthru = view.Cards.First(card => card.Title == "Final Breakthru");
 
         Assert.That(turboRail.UnlockHint, Does.Contain("Heat 01"));
         Assert.That(mirrorGrid.UnlockHint, Does.Contain("Heat 02"));
@@ -165,6 +166,8 @@ public sealed class BreakoutProgressionPageTests
         Assert.That(bogusBounce.Description, Does.Contain("3 wall bounces"));
         Assert.That(cabinetJackpot.UnlockHint, Does.Contain("Heat 49"));
         Assert.That(cabinetJackpot.Description, Does.Contain("Refreshes every active timed effect"));
+        Assert.That(finalBreakthru.UnlockHint, Does.Contain("Heat 50"));
+        Assert.That(finalBreakthru.Description, Does.Contain("pierces weak bricks"));
     }
 
     [Test]
@@ -502,6 +505,23 @@ public sealed class BreakoutProgressionPageTests
         Assert.That(card.Family, Does.Contain("Epic Mixed"));
         Assert.That(card.StateLabel, Is.EqualTo("Locked"));
         Assert.That(view.Cards.Count(item => item.Title == "Cabinet Jackpot"), Is.EqualTo(1));
+    }
+
+    [Test]
+    public void ProgressionPageShowsFinalBreakthruAsLiveHeatFiftyDrop()
+    {
+        var finalBreakthru = Resources.Load<PowerUpDefinition>("PowerUps/FinalBreakthru");
+        Assert.That(finalBreakthru, Is.Not.Null);
+
+        var view = new BreakoutProgressionPageService().BuildView(new[] { finalBreakthru });
+        var card = view.Cards.First(item => item.Title == "Final Breakthru");
+
+        Assert.That(card.UnlockHint, Does.Contain("Heat 50"));
+        Assert.That(card.Description, Does.Contain("pierces weak bricks"));
+        Assert.That(card.Description, Does.Contain("x2.00"));
+        Assert.That(card.Family, Does.Contain("Epic Helpful"));
+        Assert.That(card.StateLabel, Is.EqualTo("Locked"));
+        Assert.That(view.Cards.Count(item => item.Title == "Final Breakthru"), Is.EqualTo(1));
     }
 
     [Test]

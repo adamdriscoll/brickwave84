@@ -120,6 +120,7 @@ public sealed class BreakoutPowerUpServiceTests
         var wrapRail = CreatePowerUp("Wrap Rail", PowerUpEffectType.PaddleWrap, true, 10f, 1f);
         var jackpotJam = CreatePowerUp("Jackpot Jam", PowerUpEffectType.JackpotJam, true, 8f, 3f, BreakoutContentRarity.Epic);
         var overdriveTape = CreatePowerUp("Overdrive Tape", PowerUpEffectType.OverdriveTape, true, 9f, 1.25f, BreakoutContentRarity.Epic);
+        var finalBreakthru = CreatePowerUp("Final Breakthru", PowerUpEffectType.FinalBreakthru, true, 6f, 2f, BreakoutContentRarity.Epic, secondaryScalar: 1.15f);
 
         service.ApplyPowerUp(magnet, null);
         service.ApplyPowerUp(scoreSurge, null);
@@ -137,19 +138,21 @@ public sealed class BreakoutPowerUpServiceTests
         service.ApplyPowerUp(wrapRail, null);
         service.ApplyPowerUp(jackpotJam, null);
         service.ApplyPowerUp(overdriveTape, null);
+        service.ApplyPowerUp(finalBreakthru, null);
 
         var modifiers = service.CalculateEffectModifiers(1f, 0f);
 
         Assert.That(modifiers.PaddleSpeedMultiplier, Is.EqualTo(1.25f).Within(0.0001f));
         Assert.That(modifiers.BrickMagnetStrength, Is.EqualTo(0.38f).Within(0.0001f));
-        Assert.That(modifiers.ScoreMultiplier, Is.EqualTo(2f * 1.28f * 3f).Within(0.0001f));
+        Assert.That(modifiers.ScoreMultiplier, Is.EqualTo(2f * 1.28f * 3f * 2f).Within(0.0001f));
         Assert.That(modifiers.PaddleCloneEnabled, Is.True);
         Assert.That(modifiers.BrickJammerStrength, Is.EqualTo(0.75f).Within(0.0001f));
         Assert.That(modifiers.TimedBallSpeedMultiplier, Is.EqualTo(1.28f * BreakoutPowerUpService.JackpotJamBallSpeedMultiplier * 1.25f).Within(0.0001f));
         Assert.That(modifiers.PickupFallSpeedMultiplier, Is.EqualTo(1.25f).Within(0.0001f));
         Assert.That(modifiers.BallSizeMultiplier, Is.EqualTo(1.8f).Within(0.0001f));
         Assert.That(modifiers.HotPotatoStrength, Is.GreaterThan(0f));
-        Assert.That(modifiers.ExplosiveBallStrength, Is.EqualTo(1f).Within(0.0001f));
+        Assert.That(modifiers.ExplosiveBallStrength, Is.EqualTo(1.15f).Within(0.0001f));
+        Assert.That(modifiers.WeakBrickPierceEnabled, Is.True);
         Assert.That(modifiers.VectorSightStrength, Is.EqualTo(1f).Within(0.0001f));
         Assert.That(modifiers.CapsuleMagnetStrength, Is.EqualTo(1f).Within(0.0001f));
         Assert.That(modifiers.BrickRepulsionStrength, Is.EqualTo(0.2f).Within(0.0001f));

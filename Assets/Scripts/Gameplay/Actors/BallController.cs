@@ -30,6 +30,7 @@ namespace GetBricked.Gameplay
         private bool followsPaddleWhenIdle;
         private bool hasLaunched;
         private bool phaseThroughBricks;
+        private bool weakBrickPierceThroughBricks;
         private float gravityWellStrength;
         private Vector2 gravityWellPoint;
         private float gravityPocketStrength;
@@ -170,6 +171,11 @@ namespace GetBricked.Gameplay
         public void SetPhaseThroughBricks(bool enabled)
         {
             phaseThroughBricks = enabled;
+        }
+
+        public void SetWeakBrickPierceThroughBricks(bool enabled)
+        {
+            weakBrickPierceThroughBricks = enabled;
         }
 
         public void SetSizeMultiplier(float multiplier)
@@ -596,6 +602,16 @@ namespace GetBricked.Gameplay
                 && gameController != null
                 && gameController.TryHandleSolarShot(this, solarShotBrick))
             {
+                return;
+            }
+
+            if (weakBrickPierceThroughBricks
+                && collision.collider.TryGetComponent<Brick>(out var weakBrick)
+                && weakBrick.Definition != null
+                && weakBrick.Definition.IsBreakable
+                && weakBrick.HitPointsRemaining <= 1)
+            {
+                ContinueThroughBrickImpact();
                 return;
             }
 

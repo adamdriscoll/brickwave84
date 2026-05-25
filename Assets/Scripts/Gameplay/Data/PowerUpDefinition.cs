@@ -116,6 +116,7 @@ namespace GetBricked.Gameplay.Data
         OverdriveTape = 42,
         BogusBounce = 43,
         CabinetJackpot = 44,
+        FinalBreakthru = 45,
     }
 
     [CreateAssetMenu(menuName = "Get Bricked/Power-Up Definition", fileName = "PowerUpDefinition")]
@@ -228,7 +229,8 @@ namespace GetBricked.Gameplay.Data
                 || effectType == PowerUpEffectType.DoubleTap
                 || effectType == PowerUpEffectType.FuseBurst
                 || effectType == PowerUpEffectType.OverdriveTape
-                || effectType == PowerUpEffectType.CabinetJackpot)
+                || effectType == PowerUpEffectType.CabinetJackpot
+                || effectType == PowerUpEffectType.FinalBreakthru)
             {
                 return ThemeVisualSlot.PickupBurst;
             }

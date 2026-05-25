@@ -5976,6 +5976,7 @@ namespace GetBricked.Gameplay
                     false,
                     false,
                     false,
+                    false,
                     0f,
                     false,
                     0f,
@@ -6042,6 +6043,7 @@ namespace GetBricked.Gameplay
             {
                 serveBall.SetMovementSpeed(currentBallSpeed);
                 serveBall.SetPhaseThroughBricks(activeEffectModifiers.PhaseBallEnabled);
+                serveBall.SetWeakBrickPierceThroughBricks(activeEffectModifiers.WeakBrickPierceEnabled);
                 serveBall.SetSizeMultiplier(activeEffectModifiers.BallSizeMultiplier);
                 serveBall.SetGravityWell(gravityWellCenter, activeEffectModifiers.GravityWellStrength);
                 ApplyGravityPocketToBall(serveBall);
@@ -6062,6 +6064,7 @@ namespace GetBricked.Gameplay
 
                 activeBall.SetMovementSpeed(currentBallSpeed);
                 activeBall.SetPhaseThroughBricks(activeEffectModifiers.PhaseBallEnabled);
+                activeBall.SetWeakBrickPierceThroughBricks(activeEffectModifiers.WeakBrickPierceEnabled);
                 activeBall.SetSizeMultiplier(activeEffectModifiers.BallSizeMultiplier);
                 activeBall.SetGravityWell(gravityWellCenter, activeEffectModifiers.GravityWellStrength);
                 ApplyGravityPocketToBall(activeBall);
@@ -7226,6 +7229,7 @@ namespace GetBricked.Gameplay
                 PowerUpEffectType.OverdriveTape => $"Ball, paddle, and capsules x{definition.Scalar:0.00} for {definition.DurationSeconds:0.#}s",
                 PowerUpEffectType.DoubleTap => $"Next paddle hit adds {Mathf.Max(1, definition.ExtraBallCount)} copy balls; paddle x{definition.Scalar:0.00} for {definition.DurationSeconds:0.#}s",
                 PowerUpEffectType.ExplosiveBall => $"Explodes bricks for {definition.DurationSeconds:0.#}s",
+                PowerUpEffectType.FinalBreakthru => $"Weak pierce, explosions, score x{definition.Scalar:0.00} for {definition.DurationSeconds:0.#}s",
                 PowerUpEffectType.VectorSight => $"Aim preview for {definition.DurationSeconds:0.#}s",
                 PowerUpEffectType.CapsuleMagnet => $"Helpful capsules drift for {definition.DurationSeconds:0.#}s",
                 PowerUpEffectType.BankBonus => $"+{Mathf.Max(1, Mathf.RoundToInt(definition.Scalar))}/wall bank for {definition.DurationSeconds:0.#}s",

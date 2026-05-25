@@ -88,6 +88,7 @@ namespace GetBricked.Gameplay
             bool stickyPaddleEnabled,
             bool laserPaddleEnabled,
             bool phaseBallEnabled,
+            bool weakBrickPierceEnabled,
             float chainLightningStrength,
             bool reverseControlsEnabled,
             float splitPaddleGapNormalized,
@@ -117,6 +118,7 @@ namespace GetBricked.Gameplay
             StickyPaddleEnabled = stickyPaddleEnabled;
             LaserPaddleEnabled = laserPaddleEnabled;
             PhaseBallEnabled = phaseBallEnabled;
+            WeakBrickPierceEnabled = weakBrickPierceEnabled;
             ChainLightningStrength = chainLightningStrength;
             ReverseControlsEnabled = reverseControlsEnabled;
             SplitPaddleGapNormalized = splitPaddleGapNormalized;
@@ -154,6 +156,8 @@ namespace GetBricked.Gameplay
         public bool LaserPaddleEnabled { get; }
 
         public bool PhaseBallEnabled { get; }
+
+        public bool WeakBrickPierceEnabled { get; }
 
         public float ChainLightningStrength { get; }
 
@@ -229,6 +233,7 @@ namespace GetBricked.Gameplay
         private bool stickyPaddleEnabled;
         private bool laserPaddleEnabled;
         private bool phaseBallEnabled;
+        private bool weakBrickPierceEnabled;
         private float chainLightningStrength;
         private bool reverseControlsEnabled;
         private float splitPaddleGapNormalized;
@@ -260,6 +265,7 @@ namespace GetBricked.Gameplay
             stickyPaddleEnabled = false;
             laserPaddleEnabled = false;
             phaseBallEnabled = false;
+            weakBrickPierceEnabled = false;
             chainLightningStrength = 0f;
             reverseControlsEnabled = false;
             splitPaddleGapNormalized = 0f;
@@ -379,6 +385,13 @@ namespace GetBricked.Gameplay
                 case PowerUpEffectType.ExplosiveBall:
                     explosiveBallStrength = Mathf.Max(explosiveBallStrength, Mathf.Max(0.1f, powerUpDefinition.Scalar * effectStrength));
                     break;
+                case PowerUpEffectType.FinalBreakthru:
+                    weakBrickPierceEnabled = true;
+                    scoreMultiplier *= Mathf.Pow(Mathf.Max(1f, powerUpDefinition.Scalar), effectStrength);
+                    explosiveBallStrength = Mathf.Max(
+                        explosiveBallStrength,
+                        Mathf.Max(0.1f, powerUpDefinition.SecondaryScalar * effectStrength));
+                    break;
                 case PowerUpEffectType.VectorSight:
                     vectorSightStrength = Mathf.Max(vectorSightStrength, Mathf.Clamp01(powerUpDefinition.Scalar * effectStrength));
                     break;
@@ -415,6 +428,7 @@ namespace GetBricked.Gameplay
                 stickyPaddleEnabled,
                 laserPaddleEnabled,
                 phaseBallEnabled,
+                weakBrickPierceEnabled,
                 chainLightningStrength,
                 reverseControlsEnabled,
                 splitPaddleGapNormalized,

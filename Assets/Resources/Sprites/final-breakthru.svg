@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
+  <title id="title">Final Breakthru</title>
+  <desc id="desc">A monochrome neon icon showing an energized ball piercing weak bricks and detonating through the wall.</desc>
+  <defs>
+    <filter id="softGlow" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="2.25" result="blur"/>
+      <feColorMatrix in="blur" type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 .8 0" result="glow"/>
+      <feMerge><feMergeNode in="glow"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <style><![CDATA[
+      .icon{fill:none;stroke:#fff;stroke-linecap:round;stroke-linejoin:round;filter:url(#softGlow)}
+      .main{stroke-width:10;opacity:.96}
+      .mid{stroke-width:6;opacity:.84}
+      .thin{stroke-width:4;opacity:.48}
+      .faint{stroke-width:3;opacity:.28}
+      .fill{fill:#fff;stroke:none;opacity:.22;filter:url(#softGlow)}
+      .spark{fill:#fff;stroke:none;opacity:.88;filter:url(#softGlow)}
+    ]]></style>
+  </defs>
+  <g class="icon">
+    <path class="thin" d="M47 82h45v24H47zM111 82h34l-9 12 11 12h-36zM165 82h44v24h-44z"/>
+    <path class="thin" d="M39 146h46v24H39zM105 146h35l-8 12 10 12h-37zM162 146h48v24h-48z"/>
+    <path class="faint" d="M53 94h25M174 94h23M49 158h24M175 158h22"/>
+    <path class="mid" d="M44 204C78 164 98 139 126 104c24-31 46-49 76-66"/>
+    <path class="faint" d="M72 212C101 177 122 151 150 116c22-27 39-43 63-56"/>
+    <circle class="main" cx="72" cy="204" r="25"/>
+    <path class="mid" d="M59 197q8-10 22-10"/>
+    <path class="fill" d="M183 79l8 18 19-8-8 19 19 7-19 7 8 19-19-8-8 18-8-18-19 8 8-19-19-7 19-7-8-19 19 8z"/>
+    <path class="mid" d="M183 46v24M183 160v22M126 115h-21M238 115h-22M143 75l-17-17M223 75l17-17M143 155l-17 17M223 155l17 17"/>
+    <rect class="spark" x="96" y="190" width="7" height="7" rx="1.5"/>
+    <rect class="spark" x="128" y="128" width="6" height="6" rx="1.5"/>
+    <rect class="spark" x="204" y="32" width="5" height="5" rx="1"/>
+  </g>
+</svg>

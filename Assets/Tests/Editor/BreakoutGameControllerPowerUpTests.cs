@@ -707,6 +707,7 @@ public sealed class BreakoutGameControllerPowerUpTests
             CreateTimedPowerUpCase("Fog of War", PowerUpEffectType.FogOfWar, false, 10f, 0.55f),
             CreateTimedPowerUpCase("Lag Spike", PowerUpEffectType.LagSpike, false, 8f, 0.5f),
             CreateTimedPowerUpCase("Boom Ball", PowerUpEffectType.ExplosiveBall, true, 10f, 1f),
+            CreateTimedPowerUpCase("Final Breakthru", PowerUpEffectType.FinalBreakthru, true, 6f, 2f),
             CreateTimedPowerUpCase("Vector Sight", PowerUpEffectType.VectorSight, true, 14f, 1f),
             CreateTimedPowerUpCase("Mirror Image", PowerUpEffectType.MirrorImagePaddle, true, 12f, 1f),
         };
@@ -758,6 +759,7 @@ public sealed class BreakoutGameControllerPowerUpTests
         InvokePrivateMethod(controller, "ApplyPowerUp", CreatePowerUp("Fog of War", PowerUpEffectType.FogOfWar, false, 10f, 0.55f));
         InvokePrivateMethod(controller, "ApplyPowerUp", CreatePowerUp("Lag Spike", PowerUpEffectType.LagSpike, false, 8f, 0.5f));
         InvokePrivateMethod(controller, "ApplyPowerUp", CreatePowerUp("Boom Ball", PowerUpEffectType.ExplosiveBall, true, 10f, 1f));
+        InvokePrivateMethod(controller, "ApplyPowerUp", CreatePowerUp("Final Breakthru", PowerUpEffectType.FinalBreakthru, true, 6f, 2f));
         InvokePrivateMethod(controller, "ApplyPowerUp", CreatePowerUp("Vector Sight", PowerUpEffectType.VectorSight, true, 14f, 1f));
         InvokePrivateMethod(controller, "ApplyPowerUp", CreatePowerUp("Mirror Image", PowerUpEffectType.MirrorImagePaddle, true, 12f, 1f));
         InvokePrivateMethod(controller, "ApplyPowerUp", CreatePowerUp("Wrap Rail", PowerUpEffectType.PaddleWrap, true, 10f, 1f));
@@ -768,6 +770,7 @@ public sealed class BreakoutGameControllerPowerUpTests
         Assert.That(GetPropertyValue<bool>(activeEffectModifiers, "StickyPaddleEnabled"), Is.True);
         Assert.That(GetPropertyValue<bool>(activeEffectModifiers, "LaserPaddleEnabled"), Is.True);
         Assert.That(GetPropertyValue<bool>(activeEffectModifiers, "PhaseBallEnabled"), Is.True);
+        Assert.That(GetPropertyValue<bool>(activeEffectModifiers, "WeakBrickPierceEnabled"), Is.True);
         Assert.That(GetPropertyValue<float>(activeEffectModifiers, "ChainLightningStrength"), Is.EqualTo(0.35f).Within(0.0001f));
         Assert.That(GetPropertyValue<float>(activeEffectModifiers, "FogVisibilityMultiplier"), Is.EqualTo(0.55f).Within(0.0001f));
         Assert.That(GetPropertyValue<float>(activeEffectModifiers, "ExplosiveBallStrength"), Is.EqualTo(1f).Within(0.0001f));
@@ -779,6 +782,7 @@ public sealed class BreakoutGameControllerPowerUpTests
         Assert.That(GetPrivateField<float>(paddle, "splitGapWidthNormalized"), Is.GreaterThan(0.2f));
         Assert.That(GetPrivateField<float>(paddle, "lagSpikeStrength"), Is.EqualTo(0.5f).Within(0.0001f));
         Assert.That(GetPrivateField<bool>(serveBall, "phaseThroughBricks"), Is.True);
+        Assert.That(GetPrivateField<bool>(serveBall, "weakBrickPierceThroughBricks"), Is.True);
         Assert.That(GetPrivateField<float>(serveBall, "gravityWellStrength"), Is.EqualTo(0.35f).Within(0.0001f));
         Assert.That(serveBall.IsExplosiveBall, Is.True);
         var ballTintBlock = new MaterialPropertyBlock();
