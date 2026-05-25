@@ -263,6 +263,30 @@ public sealed class BreakoutLevelGlitchPlannerTests
         Assert.That(Mathf.Abs(unlockedPlan.DriftRows.StartingDirectionSign), Is.EqualTo(1f).Within(0.0001f));
     }
 
+    [Test]
+    public void RogueGlitchHeatControlsWhenHotCornersCanUnlock()
+    {
+        var lockedSettings = CreateRogueSettings(
+            rogueIntensity: BreakoutLevelGlitchPlanner.HotCornersLadderUnlockIntensity,
+            levelGlitchSelection: LevelGlitchSelection.HotCorners);
+        var unlockedSettings = CreateRogueSettings(
+            rogueIntensity: BreakoutLevelGlitchPlanner.HotCornersLadderUnlockIntensity + 1,
+            levelGlitchSelection: LevelGlitchSelection.HotCorners);
+
+        var lockedPlan = BreakoutLevelGlitchPlanner.BuildPlan(new DeterministicRandomService(7), lockedSettings, levelIndex: 9);
+        var unlockedPlan = BreakoutLevelGlitchPlanner.BuildPlan(new DeterministicRandomService(7), unlockedSettings, levelIndex: 9);
+
+        Assert.That(lockedPlan.IsActive, Is.False);
+        Assert.That(unlockedPlan.IsActive, Is.True);
+        Assert.That(unlockedPlan.GlitchType, Is.EqualTo(BreakoutLevelGlitchType.HotCorners));
+        Assert.That(unlockedPlan.DisplayName, Is.EqualTo("Hot Corners"));
+        Assert.That(unlockedPlan.Rarity, Is.EqualTo(BreakoutContentRarity.Rare));
+        Assert.That(unlockedPlan.ScoreMultiplier, Is.EqualTo(1.28f).Within(0.0001f));
+        Assert.That(unlockedPlan.HotCorners.BumperSize, Is.InRange(0.72f, 0.94f));
+        Assert.That(unlockedPlan.HotCorners.SpeedBurstMultiplier, Is.InRange(1.16f, 1.28f));
+        Assert.That(unlockedPlan.HotCorners.SpeedBurstDurationSeconds, Is.InRange(2.35f, 3.25f));
+    }
+
 
     [Test]
     public void ForcedWarpGatePlanBuildsSmallPortalSetAndScoreBonus()
@@ -458,6 +482,21 @@ public sealed class BreakoutLevelGlitchPlannerTests
     }
 
     [Test]
+    public void SelectedHotCornersAlwaysBuildsHotCornersEvenWhenChanceIsDisabled()
+    {
+        var settings = CreateSettings(
+            levelGlitchesEnabled: true,
+            chanceMultiplier: 0f,
+            levelGlitchSelection: LevelGlitchSelection.HotCorners);
+
+        var plan = BreakoutLevelGlitchPlanner.BuildPlan(new DeterministicRandomService(3), settings, levelIndex: 9);
+
+        Assert.That(plan.IsActive, Is.True);
+        Assert.That(plan.GlitchType, Is.EqualTo(BreakoutLevelGlitchType.HotCorners));
+        Assert.That(plan.HudLabel, Does.Contain("Hot Corners"));
+    }
+
+    [Test]
     public void PrismLaneRefractionBuildsSharperHorizontalDirection()
     {
         var refracted = BreakoutPrismLaneSection.BuildRefractedDirection(new UnityEngine.Vector2(0.12f, 1f), -1f);
@@ -492,6 +531,19 @@ public sealed class BreakoutLevelGlitchPlannerTests
         Assert.That(secondRow.x, Is.EqualTo(-1f).Within(0.0001f));
         Assert.That(thirdRow.x, Is.EqualTo(-1f).Within(0.0001f));
         Assert.That(firstRow.y, Is.Zero);
+    }
+
+    [Test]
+    public void HotCornerBumperKicksTowardCenter()
+    {
+        var direction = BreakoutHotCornerBumper.BuildKickDirection(
+            new UnityEngine.Vector2(-5f, 5f),
+            new UnityEngine.Vector2(0f, 1.2f),
+            new UnityEngine.Vector2(-0.4f, 0.6f));
+
+        Assert.That(direction.x, Is.GreaterThan(0f));
+        Assert.That(direction.y, Is.LessThan(0f));
+        Assert.That(direction.magnitude, Is.EqualTo(1f).Within(0.0001f));
     }
 
 

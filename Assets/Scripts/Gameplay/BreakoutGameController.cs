@@ -62,6 +62,7 @@ namespace GetBricked.Gameplay
         private const float SwitchbackRailThickness = 0.22f;
         private const float SwitchbackRailBottomInset = 1.55f;
         private const float SwitchbackRailTopInset = 0.95f;
+        private const float HotCornerInset = 0.18f;
         private const int AutoSaveBaseScoreCost = 10000;
         private const int AutoSaveBaseCostMaximumRogueHeat = 10;
         private const int AutoSaveScoreCostIncreasePerHeat = 1000;
@@ -319,6 +320,7 @@ namespace GetBricked.Gameplay
         private BreakoutGravityPocketVisual activeGravityPocketVisual;
         private GameObject activePrismLaneField;
         private GameObject activeSwitchbackRailField;
+        private GameObject activeHotCornerField;
         private BreakoutMirrorGridVisual activeMirrorGridVisual;
         private bool isMirrorGridArmed;
         private bool hasMirrorGridTriggered;
@@ -3627,6 +3629,12 @@ namespace GetBricked.Gameplay
                 CreateSwitchbackRails(activeLevelGlitchPlan);
                 powerUpService?.ShowStatusBanner("SWITCHBACK!", new Color(0.03f, 0.93f, 0.98f, 1f), 2.2f);
             }
+
+            if (activeLevelGlitchPlan.HasGlitch(BreakoutLevelGlitchType.HotCorners))
+            {
+                CreateHotCorners(activeLevelGlitchPlan);
+                powerUpService?.ShowStatusBanner("HOT CORNERS!", new Color(1f, 0.49f, 0.15f, 1f), 2.2f);
+            }
         }
 
         private void ClearLevelGlitches()
@@ -3675,6 +3683,12 @@ namespace GetBricked.Gameplay
             {
                 DestroyRuntimeObject(activeSwitchbackRailField);
                 activeSwitchbackRailField = null;
+            }
+
+            if (activeHotCornerField != null)
+            {
+                DestroyRuntimeObject(activeHotCornerField);
+                activeHotCornerField = null;
             }
 
             if (activeMirrorGridVisual != null)
@@ -4125,6 +4139,59 @@ namespace GetBricked.Gameplay
             var maxY = arenaTop - SwitchbackRailTopInset;
             var usableHeight = Mathf.Max(1f, maxY - minY);
             return new Vector2(SwitchbackRailThickness, Mathf.Clamp(usableHeight * spec.NormalizedLength, 1.35f, 3.6f));
+        }
+
+        private void CreateHotCorners(BreakoutLevelGlitchPlan glitchPlan)
+        {
+            if (glitchPlan == null || squareSprite == null)
+            {
+                return;
+            }
+
+            activeHotCornerField = new GameObject("Hot Corners");
+            activeHotCornerField.transform.SetParent(glitchesRoot != null ? glitchesRoot : runtimeRoot, false);
+
+            CreateHotCorner(activeHotCornerField.transform, true, glitchPlan.HotCorners);
+            CreateHotCorner(activeHotCornerField.transform, false, glitchPlan.HotCorners);
+        }
+
+        private void CreateHotCorner(Transform cornerRoot, bool isLeftCorner, BreakoutHotCornersSpec spec)
+        {
+            var cornerObject = new GameObject(isLeftCorner ? "Hot Corner Left" : "Hot Corner Right");
+            cornerObject.transform.SetParent(cornerRoot, false);
+            cornerObject.transform.position = ResolveHotCornerPosition(isLeftCorner, spec);
+            cornerObject.transform.rotation = Quaternion.Euler(0f, 0f, isLeftCorner ? 45f : -45f);
+
+            var size = Vector2.one * spec.BumperSize;
+            var collider = cornerObject.AddComponent<BoxCollider2D>();
+            collider.size = size;
+            collider.sharedMaterial = bounceMaterial;
+
+            var bumper = cornerObject.AddComponent<BreakoutHotCornerBumper>();
+            bumper.Configure(
+                this,
+                squareSprite,
+                spriteUnlitMaterial,
+                additiveSpriteMaterial,
+                size,
+                ResolveHotCornerTargetPoint(),
+                spec.SpeedBurstMultiplier,
+                spec.SpeedBurstDurationSeconds);
+        }
+
+        private Vector2 ResolveHotCornerPosition(bool isLeftCorner, BreakoutHotCornersSpec spec)
+        {
+            var halfSize = spec.BumperSize * 0.5f;
+            var x = isLeftCorner
+                ? arenaLeft + halfSize + HotCornerInset
+                : arenaRight - halfSize - HotCornerInset;
+            var y = arenaTop - halfSize - HotCornerInset;
+            return new Vector2(x, y);
+        }
+
+        private Vector2 ResolveHotCornerTargetPoint()
+        {
+            return new Vector2(0f, Mathf.Lerp(arenaBottom + 1.4f, arenaTop - 1.8f, 0.52f));
         }
 
         private void CreateGravityPocket(BreakoutLevelGlitchPlan glitchPlan)
@@ -5951,6 +6018,7 @@ namespace GetBricked.Gameplay
                 LevelGlitchSelection.SwitchbackRails => "Switchback Rails",
                 LevelGlitchSelection.CapsuleRoulette => "Capsule Roulette",
                 LevelGlitchSelection.DriftRows => "Drift Rows",
+                LevelGlitchSelection.HotCorners => "Hot Corners",
                 _ => "Off",
             };
         }

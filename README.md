@@ -167,7 +167,7 @@ Difficulty presets already change more than labels:
 
 ### Unlock Progression
 
-Permanent run upgrades are always available in the between-stage draft pool. Drop and glitch unlocks now advance on parallel 50-Heat tracks: clearing a Heat can award one drop signal and one glitch signal. Implemented live drops currently fill Heat `01` through Heat `46` plus Heat `48` through Heat `50`, with a planned drop placeholder at Heat `47`. Implemented live glitches currently fill Heat `01` through Heat `10`, with planned glitch placeholders filling Heat `11` through Heat `50`. Default drops and default glitches start unlocked for Neon Ladder runs. Rarity still tunes odds and draft weighting, but it no longer controls unlock Heat. Implementation status tracks whether the item has live runtime gameplay behavior or is currently only a progression-screen placeholder.
+Permanent run upgrades are always available in the between-stage draft pool. Drop and glitch unlocks now advance on parallel 50-Heat tracks: clearing a Heat can award one drop signal and one glitch signal. Implemented live drops currently fill Heat `01` through Heat `46` plus Heat `48` through Heat `50`, with a planned drop placeholder at Heat `47`. Implemented live glitches currently fill Heat `01` through Heat `11`, with planned glitch placeholders filling Heat `12` through Heat `50`. Default drops and default glitches start unlocked for Neon Ladder runs. Rarity still tunes odds and draft weighting, but it no longer controls unlock Heat. Implementation status tracks whether the item has live runtime gameplay behavior or is currently only a progression-screen placeholder.
 
 Current balance shape: drops already have a healthy spread of classic brick-breaker tools, hazards, and mixed-risk capsules, but the late ladder needs more capstone capsules that answer or amplify stage chaos. Glitches are the bigger content gap: the implemented set proves the format with portals, layout flips, pickup storms, gravity, and wall behavior, so the rest of the ladder should lean into readable stage-wide rule changes rather than simple stat debuffs. New draft upgrades should help players build around that mayhem without erasing it.
 
@@ -248,7 +248,7 @@ Late drop proposals should keep using mechanics the game already teaches: paddle
 | `Switchback Rails` | Side rails swap rebound angles every few seconds. | Heat 08 | Rare | Wall glitch | Implemented |
 | `Capsule Roulette` | Falling capsules rotate polarity until caught or missed. | Heat 09 | Rare | Pickup glitch | Implemented |
 | `Drift Rows` | Brick rows slide slowly in opposite directions. | Heat 10 | Rare | Layout glitch | Implemented |
-| `Hot Corners` | Corner bumpers kick balls back toward center at higher speed. | Heat 11 | Rare | Wall glitch | Not implemented (proposal) |
+| `Hot Corners` | Corner bumpers kick balls back toward center at higher speed. | Heat 11 | Rare | Wall glitch | Implemented |
 | `Flicker Bricks` | Some bricks only collide while visible. | Heat 12 | Rare | Visibility glitch | Not implemented (proposal) |
 | `Cassette Skip` | Every few paddle hits, the ball skips forward along its current path. | Heat 13 | Rare | Ball glitch | Not implemented (proposal) |
 | `Ghost Row` | One row phases out after hits, then snaps back later. | Heat 14 | Rare | Layout glitch | Not implemented (proposal) |

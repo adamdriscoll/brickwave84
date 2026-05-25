@@ -182,10 +182,13 @@ public sealed class BreakoutRogueRunTests
         Assert.That(state.ForcedLevelGlitchSelection, Is.EqualTo(LevelGlitchSelection.DriftRows));
 
         state.AdjustField(BreakoutDeveloperLaunchField.ForcedGlitch, 1, null, null);
+        Assert.That(state.ForcedLevelGlitchSelection, Is.EqualTo(LevelGlitchSelection.HotCorners));
+
+        state.AdjustField(BreakoutDeveloperLaunchField.ForcedGlitch, 1, null, null);
         Assert.That(state.ForcedLevelGlitchSelection, Is.EqualTo(LevelGlitchSelection.Off));
 
         state.AdjustField(BreakoutDeveloperLaunchField.ForcedGlitch, -1, null, null);
-        Assert.That(state.ForcedLevelGlitchSelection, Is.EqualTo(LevelGlitchSelection.DriftRows));
+        Assert.That(state.ForcedLevelGlitchSelection, Is.EqualTo(LevelGlitchSelection.HotCorners));
     }
 
     [Test]

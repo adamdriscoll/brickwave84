@@ -190,6 +190,13 @@ namespace GetBricked.Gameplay
                 BreakoutLevelGlitchPlanner.DriftRowsLadderUnlockIntensity,
                 highestCompletedIntensity,
                 LayoutAccent));
+            cards.Add(BuildUnlockableGlitchCard(
+                "Hot Corners",
+                "Wall Rare Glitch",
+                "Corner bumpers kick balls back toward center at higher speed.",
+                BreakoutLevelGlitchPlanner.HotCornersLadderUnlockIntensity,
+                highestCompletedIntensity,
+                DamageAccent));
             AppendPlaceholderCards(cards, PlaceholderDrops, highestCompletedIntensity);
             AppendPlaceholderCards(cards, PlaceholderGlitches, highestCompletedIntensity);
             cards.Add(BuildHiddenSlotCard("Future Drop Slot", "Drop", "Hidden", "Future drop signal pending."));
@@ -553,6 +560,11 @@ namespace GetBricked.Gameplay
             }
 
             if (completedIntensity >= BreakoutLevelGlitchPlanner.DriftRowsLadderUnlockIntensity)
+            {
+                count++;
+            }
+
+            if (completedIntensity >= BreakoutLevelGlitchPlanner.HotCornersLadderUnlockIntensity)
             {
                 count++;
             }

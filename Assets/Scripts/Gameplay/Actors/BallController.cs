@@ -579,6 +579,16 @@ namespace GetBricked.Gameplay
                 }
             }
 
+            if (collision.collider.TryGetComponent<BreakoutHotCornerBumper>(out var hotCorner))
+            {
+                RegisterRicochet();
+
+                if (hotCorner.TryHandleBallCollision(this))
+                {
+                    return;
+                }
+            }
+
             if (collision.collider.TryGetComponent<BreakoutStaticWallSection>(out var staticWall))
             {
                 RegisterRicochet();
