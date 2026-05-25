@@ -114,6 +114,7 @@ namespace GetBricked.Gameplay.Data
         DoubleTap = 40,
         FuseBurst = 41,
         OverdriveTape = 42,
+        BogusBounce = 43,
     }
 
     [CreateAssetMenu(menuName = "Get Bricked/Power-Up Definition", fileName = "PowerUpDefinition")]
@@ -172,6 +173,7 @@ namespace GetBricked.Gameplay.Data
             && effectType != PowerUpEffectType.SolarShot
             && effectType != PowerUpEffectType.BrickBloom
             && effectType != PowerUpEffectType.DoubleTap
+            && effectType != PowerUpEffectType.BogusBounce
             && DurationSeconds > 0f;
 
         public bool IsUnlockedForLadderIntensity(int intensity)

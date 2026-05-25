@@ -456,6 +456,38 @@ public sealed class BreakoutPowerUpServiceTests
     }
 
     [Test]
+    public void BogusBounceStacksThreeWallBounceCharges()
+    {
+        var service = CreateService();
+        var bogusBounce = CreatePowerUp("Bogus Bounce", PowerUpEffectType.BogusBounce, false, 0f, 52f, BreakoutContentRarity.Epic, extraBallCount: 3);
+
+        service.ApplyPowerUp(bogusBounce, null);
+        service.ApplyPowerUp(bogusBounce, null);
+
+        Assert.That(bogusBounce.IsTimed, Is.False);
+        Assert.That(service.ActiveTimedEffects, Is.Empty);
+        Assert.That(service.BogusBounceCharges, Is.EqualTo(6));
+        Assert.That(service.BuildActiveEffectsLabel(), Does.Contain("BOGUS BOUNCE x6"));
+        Assert.That(service.TryConsumeBogusBounceCharge(out var wildAngleDegrees), Is.True);
+        Assert.That(wildAngleDegrees, Is.EqualTo(52f).Within(0.0001f));
+        Assert.That(service.BogusBounceCharges, Is.EqualTo(5));
+    }
+
+    [Test]
+    public void BogusBounceClearsStoredAngleAfterLastCharge()
+    {
+        var service = CreateService();
+        var bogusBounce = CreatePowerUp("Bogus Bounce", PowerUpEffectType.BogusBounce, false, 0f, 52f, BreakoutContentRarity.Epic, extraBallCount: 1);
+
+        service.ApplyPowerUp(bogusBounce, null);
+
+        Assert.That(service.TryConsumeBogusBounceCharge(out var wildAngleDegrees), Is.True);
+        Assert.That(wildAngleDegrees, Is.EqualTo(52f).Within(0.0001f));
+        Assert.That(service.BogusBounceCharges, Is.Zero);
+        Assert.That(service.TryConsumeBogusBounceCharge(out _), Is.False);
+    }
+
+    [Test]
     public void BrickBloomStacksAndConsumesOneChargeAtATime()
     {
         var service = CreateService();

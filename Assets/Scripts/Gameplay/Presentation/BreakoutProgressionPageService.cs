@@ -299,6 +299,7 @@ namespace GetBricked.Gameplay
                 PowerUpEffectType.RandomMixedDrop => "Rolls one random unlocked helpful drop and one random unlocked hazard.",
                 PowerUpEffectType.BrickBloom => $"Next broken brick spawns {Mathf.Max(1, definition.ExtraBallCount > 0 ? definition.ExtraBallCount : Mathf.RoundToInt(definition.Scalar))} tiny bonus bricks.",
                 PowerUpEffectType.FuseBurst => $"Clears one damaged brick, or one weak brick if none are damaged, then blacks out brick visibility for {definition.DurationSeconds:0.#}s.",
+                PowerUpEffectType.BogusBounce => $"Next {Mathf.Max(1, definition.ExtraBallCount > 0 ? definition.ExtraBallCount : BreakoutPowerUpService.BogusBounceDefaultCharges)} wall bounces leave at wild angles.",
                 _ => $"{definition.HudLabel} for {definition.DurationSeconds:0.#}s.",
             };
         }

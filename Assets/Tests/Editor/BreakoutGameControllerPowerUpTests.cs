@@ -1378,6 +1378,25 @@ public sealed class BreakoutGameControllerPowerUpTests
     }
 
     [Test]
+    public void BogusBounceConsumesChargeAndRedirectsBall()
+    {
+        var controller = CreateControllerHarness(out var paddle);
+        var ball = CreateBallHarness(controller, paddle);
+        var bogusBounce = CreatePowerUp("Bogus Bounce", PowerUpEffectType.BogusBounce, false, 0f, 52f);
+
+        ball.Launch(Vector2.up);
+        var originalDirection = ball.CurrentVelocity.normalized;
+
+        InvokePrivateMethod(controller, "ApplyPowerUp", bogusBounce);
+        var applied = controller.TryApplyBogusBounce(ball);
+        var powerUpService = GetPrivateField<object>(controller, "powerUpService");
+
+        Assert.That(applied, Is.True);
+        Assert.That(Vector2.Angle(originalDirection, ball.CurrentVelocity.normalized), Is.GreaterThan(10f));
+        Assert.That(GetPropertyValue<int>(powerUpService, "BogusBounceCharges"), Is.EqualTo(2));
+    }
+
+    [Test]
     public void DifferentBallsScoringBackToBackAwardPartySplitBonus()
     {
         var controller = CreateControllerHarness(out var paddle);

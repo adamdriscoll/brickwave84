@@ -458,6 +458,7 @@ namespace GetBricked.Gameplay
         public const int CapsuleMadnessPickupBonusPoints = 250;
         public const float CapsuleMagnetRange = 4.25f;
         public const int BankBonusMaximumChargePoints = 300;
+        public const int BogusBounceDefaultCharges = 3;
         public const float JackpotJamBallSpeedMultiplier = 1.35f;
 
         private readonly Vector2 pickupSize;
@@ -468,6 +469,7 @@ namespace GetBricked.Gameplay
         private PowerUpDefinition rewindCatchDefinition;
         private PowerUpDefinition brickBloomDefinition;
         private PowerUpDefinition doubleTapDefinition;
+        private float bogusBounceWildAngleDegrees;
 
         public BreakoutPowerUpService(Vector2 pickupSize, float pickupFallSpeed, float multiBallSpreadAngle, Material pickupMaterial)
         {
@@ -500,6 +502,8 @@ namespace GetBricked.Gameplay
         public int BrickBloomCharges { get; private set; }
 
         public int DoubleTapCharges { get; private set; }
+
+        public int BogusBounceCharges { get; private set; }
 
         public void UpdateTimedEffects(bool isPlaying, float deltaTime, System.Action modifiersChanged)
         {
@@ -771,6 +775,15 @@ namespace GetBricked.Gameplay
                 return default;
             }
 
+            if (powerUpDefinition.EffectType == PowerUpEffectType.BogusBounce)
+            {
+                BogusBounceCharges += ResolveBogusBounceChargeCount(powerUpDefinition);
+                bogusBounceWildAngleDegrees = Mathf.Max(bogusBounceWildAngleDegrees, ResolveBogusBounceWildAngleDegrees(powerUpDefinition));
+                ShowPickupBanner(powerUpDefinition, themeService, BogusBounceCharges);
+
+                return default;
+            }
+
             ShowPickupBanner(powerUpDefinition, themeService, 1);
 
             return powerUpDefinition.EffectType switch
@@ -906,9 +919,11 @@ namespace GetBricked.Gameplay
             RewindCatchCharges = 0;
             BrickBloomCharges = 0;
             DoubleTapCharges = 0;
+            BogusBounceCharges = 0;
             rewindCatchDefinition = null;
             brickBloomDefinition = null;
             doubleTapDefinition = null;
+            bogusBounceWildAngleDegrees = 0f;
             ClearBankBonusCharge();
         }
 
@@ -1051,6 +1066,27 @@ namespace GetBricked.Gameplay
             return true;
         }
 
+        public bool TryConsumeBogusBounceCharge(out float wildAngleDegrees)
+        {
+            wildAngleDegrees = bogusBounceWildAngleDegrees > 0f
+                ? bogusBounceWildAngleDegrees
+                : 48f;
+
+            if (BogusBounceCharges <= 0)
+            {
+                return false;
+            }
+
+            BogusBounceCharges--;
+
+            if (BogusBounceCharges <= 0)
+            {
+                bogusBounceWildAngleDegrees = 0f;
+            }
+
+            return true;
+        }
+
         public bool TryConsumeCleanCatchCharge(out PowerUpDefinition definition, out float aimMultiplier)
         {
             definition = null;
@@ -1170,7 +1206,8 @@ namespace GetBricked.Gameplay
                 && SolarShotCharges <= 0
                 && RewindCatchCharges <= 0
                 && BrickBloomCharges <= 0
-                && DoubleTapCharges <= 0)
+                && DoubleTapCharges <= 0
+                && BogusBounceCharges <= 0)
             {
                 return "Active Effects: none";
             }
@@ -1233,6 +1270,22 @@ namespace GetBricked.Gameplay
                 {
                     builder.Append(" x");
                     builder.Append(DoubleTapCharges);
+                }
+            }
+
+            if (BogusBounceCharges > 0)
+            {
+                if (builder.Length > 16)
+                {
+                    builder.Append(" | ");
+                }
+
+                builder.Append("BOGUS BOUNCE");
+
+                if (BogusBounceCharges > 1)
+                {
+                    builder.Append(" x");
+                    builder.Append(BogusBounceCharges);
                 }
             }
 
@@ -1726,6 +1779,18 @@ namespace GetBricked.Gameplay
             }
 
             return Mathf.Max(0, Mathf.RoundToInt(totalCharge));
+        }
+
+        private static int ResolveBogusBounceChargeCount(PowerUpDefinition definition)
+        {
+            return Mathf.Max(1, definition != null && definition.ExtraBallCount > 0
+                ? definition.ExtraBallCount
+                : BogusBounceDefaultCharges);
+        }
+
+        private static float ResolveBogusBounceWildAngleDegrees(PowerUpDefinition definition)
+        {
+            return Mathf.Clamp(definition != null ? definition.Scalar : 48f, 18f, 76f);
         }
 
         private void ShowPickupBanner(PowerUpDefinition powerUpDefinition, BreakoutThemeService themeService, int stackCount)

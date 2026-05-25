@@ -1102,6 +1102,28 @@ namespace GetBricked.Gameplay
             powerUpService?.ChargeBankBonusFromWallBounce();
         }
 
+        public bool TryApplyBogusBounce(BallController ball)
+        {
+            if (ball == null || powerUpService == null)
+            {
+                return false;
+            }
+
+            var currentVelocity = ball.CurrentVelocity;
+
+            if (currentVelocity.sqrMagnitude <= 0.01f
+                || !powerUpService.TryConsumeBogusBounceCharge(out var wildAngleDegrees))
+            {
+                return false;
+            }
+
+            var angleMagnitude = NextGameplayRandomFloat(wildAngleDegrees * 0.45f, wildAngleDegrees);
+            var angleSign = NextGameplayRandomBool() ? 1f : -1f;
+            var wildDirection = (Vector2)(Quaternion.Euler(0f, 0f, angleMagnitude * angleSign) * currentVelocity.normalized);
+            ball.ApplyCollisionResponse(wildDirection, 0.06f);
+            return true;
+        }
+
         public void HandleBallLaunched()
         {
             runStatsService?.RegisterBallLaunched();
@@ -7211,6 +7233,7 @@ namespace GetBricked.Gameplay
                 PowerUpEffectType.SolarShot => "Next weak brick burns through",
                 PowerUpEffectType.FuseBurst => $"Clears damaged/weak brick; blackout for {definition.DurationSeconds:0.#}s",
                 PowerUpEffectType.MissileStock => $"+{Mathf.Max(1, definition.ExtraBallCount > 0 ? definition.ExtraBallCount : Mathf.RoundToInt(definition.Scalar))} missile stock",
+                PowerUpEffectType.BogusBounce => $"Next {Mathf.Max(1, definition.ExtraBallCount > 0 ? definition.ExtraBallCount : BreakoutPowerUpService.BogusBounceDefaultCharges)} wall bounces go wild",
                 PowerUpEffectType.RandomHarmfulDrop => "Disguised random hazard",
                 PowerUpEffectType.RandomMixedDrop => "Random helpful drop and hazard",
                 _ => $"{definition.HudLabel} for {definition.DurationSeconds:0.#}s",

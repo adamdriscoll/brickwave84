@@ -573,6 +573,7 @@ namespace GetBricked.Gameplay
                 }
 
                 gameController?.HandleBallHitWall();
+                gameController?.TryApplyBogusBounce(this);
                 ClampBallVelocity();
                 return;
             }
@@ -618,6 +619,7 @@ namespace GetBricked.Gameplay
             {
                 RegisterRicochet();
                 gameController?.HandleBallHitWall();
+                gameController?.TryApplyBogusBounce(this);
             }
 
             if (collision.collider.TryGetComponent<Brick>(out var spinningBrick)
