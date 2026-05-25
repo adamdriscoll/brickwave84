@@ -103,6 +103,33 @@ namespace GetBricked.Gameplay
             return candidates;
         }
 
+        public bool TryResolveFuseBurstTarget(IReadOnlyList<Brick> bricks, out Brick target)
+        {
+            target = null;
+
+            if (bricks == null)
+            {
+                return false;
+            }
+
+            for (var index = 0; index < bricks.Count; index++)
+            {
+                var candidate = bricks[index];
+
+                if (!IsFuseBurstCandidate(candidate))
+                {
+                    continue;
+                }
+
+                if (target == null || CompareFuseBurstPriority(candidate, target) < 0)
+                {
+                    target = candidate;
+                }
+            }
+
+            return target != null;
+        }
+
         private static Brick FindBestLaserTarget(IReadOnlyList<Brick> bricks, float beamOriginX, float paddleY, Brick excluded)
         {
             Brick bestCandidate = null;
@@ -139,6 +166,36 @@ namespace GetBricked.Gameplay
             return candidate != null
                 && candidate.Definition != null
                 && candidate.Definition.IsBreakable;
+        }
+
+        private static bool IsFuseBurstCandidate(Brick candidate)
+        {
+            return IsBreakable(candidate)
+                && !candidate.IsPendingRemoval;
+        }
+
+        private static int CompareFuseBurstPriority(Brick left, Brick right)
+        {
+            if (left.IsDamaged != right.IsDamaged)
+            {
+                return left.IsDamaged ? -1 : 1;
+            }
+
+            var hitPointComparison = left.HitPointsRemaining.CompareTo(right.HitPointsRemaining);
+
+            if (hitPointComparison != 0)
+            {
+                return hitPointComparison;
+            }
+
+            var heightComparison = right.transform.position.y.CompareTo(left.transform.position.y);
+
+            if (heightComparison != 0)
+            {
+                return heightComparison;
+            }
+
+            return left.transform.position.x.CompareTo(right.transform.position.x);
         }
     }
 }

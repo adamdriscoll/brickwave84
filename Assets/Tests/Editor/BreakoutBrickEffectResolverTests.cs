@@ -68,6 +68,48 @@ public sealed class BreakoutBrickEffectResolverTests
         Assert.That(targets, Has.No.Member(outOfRange));
     }
 
+    [Test]
+    public void ResolveFuseBurstTargetChoosesMostDamagedBreakableBrick()
+    {
+        var resolver = new BreakoutBrickEffectResolver();
+        var undamaged = CreateBrick("Undamaged", new Vector2(-2f, 2f), breakable: true);
+        var weakestLower = CreateBrick("Weakest Lower", new Vector2(1f, 1f), breakable: true);
+        var weakestHigher = CreateBrick("Weakest Higher", new Vector2(-1f, 3f), breakable: true);
+        var sturdierDamaged = CreateBrick("Sturdier", new Vector2(0f, 4f), breakable: true);
+        var unbreakable = CreateBrick("Unbreakable", new Vector2(0f, 5f), breakable: false);
+        var bricks = new List<Brick> { undamaged, weakestLower, weakestHigher, sturdierDamaged, unbreakable };
+
+        SetHitPoints(undamaged, 3, 3);
+        SetHitPoints(weakestLower, 4, 1);
+        SetHitPoints(weakestHigher, 4, 1);
+        SetHitPoints(sturdierDamaged, 4, 2);
+
+        var resolved = resolver.TryResolveFuseBurstTarget(bricks, out var target);
+
+        Assert.That(resolved, Is.True);
+        Assert.That(target, Is.SameAs(weakestHigher));
+    }
+
+    [Test]
+    public void ResolveFuseBurstTargetFallsBackToWeakestBreakableBrick()
+    {
+        var resolver = new BreakoutBrickEffectResolver();
+        var lower = CreateBrick("Lower", new Vector2(1f, 1f), breakable: true);
+        var higher = CreateBrick("Higher", new Vector2(-1f, 3f), breakable: true);
+        var sturdy = CreateBrick("Sturdy", new Vector2(0f, 4f), breakable: true);
+        var unbreakable = CreateBrick("Unbreakable", new Vector2(0f, 5f), breakable: false);
+        var bricks = new List<Brick> { lower, higher, sturdy, unbreakable };
+
+        SetHitPoints(lower, 1, 1);
+        SetHitPoints(higher, 1, 1);
+        SetHitPoints(sturdy, 2, 2);
+
+        var resolved = resolver.TryResolveFuseBurstTarget(bricks, out var target);
+
+        Assert.That(resolved, Is.True);
+        Assert.That(target, Is.SameAs(higher));
+    }
+
     private Brick CreateBrick(string name, Vector2 position, bool breakable)
     {
         var brickObject = new GameObject(name);
@@ -103,6 +145,12 @@ public sealed class BreakoutBrickEffectResolverTests
         SetPrivateField(definition, "dropChance", 0f);
         SetPrivateField(definition, "dropTable", Array.Empty<BrickPowerUpDropEntry>());
         return definition;
+    }
+
+    private static void SetHitPoints(Brick brick, int maxHitPoints, int hitPointsRemaining)
+    {
+        SetPrivateField(brick, "maxHitPoints", maxHitPoints);
+        SetPrivateField(brick, "hitPointsRemaining", hitPointsRemaining);
     }
 
     private static void SetPrivateField(object instance, string fieldName, object value)

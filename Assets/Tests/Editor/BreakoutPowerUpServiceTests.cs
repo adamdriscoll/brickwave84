@@ -69,6 +69,38 @@ public sealed class BreakoutPowerUpServiceTests
     }
 
     [Test]
+    public void FuseBurstStartsShortBlackoutAndRequestsControllerBurst()
+    {
+        var service = CreateService();
+        var fuseBurst = CreatePowerUp("Fuse Burst", PowerUpEffectType.FuseBurst, true, 4f, 0f, BreakoutContentRarity.Epic);
+
+        var result = service.ApplyPowerUp(fuseBurst, null);
+        var modifiers = service.CalculateEffectModifiers(1f, 0f);
+
+        Assert.That(fuseBurst.IsTimed, Is.True);
+        Assert.That(result.ShouldTriggerFuseBurst, Is.True);
+        Assert.That(service.ActiveTimedEffects, Has.Count.EqualTo(1));
+        Assert.That(service.ActiveTimedEffects[0].Definition, Is.SameAs(fuseBurst));
+        Assert.That(modifiers.FogVisibilityMultiplier, Is.Zero);
+        Assert.That(service.BuildActiveEffectsLabel(), Does.Contain("FUSE BURST 4.0s"));
+    }
+
+    [Test]
+    public void FuseBurstStacksBlackoutDurationLikeTimedEffects()
+    {
+        var service = CreateService();
+        var fuseBurst = CreatePowerUp("Fuse Burst", PowerUpEffectType.FuseBurst, true, 4f, 0f, BreakoutContentRarity.Epic);
+
+        service.ApplyPowerUp(fuseBurst, null);
+        service.UpdateTimedEffects(isPlaying: true, deltaTime: 2f, modifiersChanged: null);
+        service.ApplyPowerUp(fuseBurst, null);
+
+        Assert.That(service.ActiveTimedEffects, Has.Count.EqualTo(1));
+        Assert.That(service.ActiveTimedEffects[0].StackCount, Is.EqualTo(2));
+        Assert.That(service.ActiveTimedEffects[0].RemainingDuration, Is.EqualTo(4f).Within(0.0001f));
+    }
+
+    [Test]
     public void CalculateEffectModifiersIncludesNewArcadeDrops()
     {
         var service = CreateService();

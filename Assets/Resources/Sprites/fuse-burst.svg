@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
+  <title id="title">Fuse Burst</title>
+  <desc id="desc">A monochrome neon icon showing a lit fuse bursting through a cracked brick.</desc>
+  <defs>
+    <filter id="softGlow" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="2.25" result="blur"/>
+      <feColorMatrix in="blur" type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 .8 0" result="glow"/>
+      <feMerge><feMergeNode in="glow"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <style><![CDATA[
+      .icon{fill:none;stroke:#fff;stroke-linecap:round;stroke-linejoin:round;filter:url(#softGlow)}
+      .main{stroke-width:12;opacity:.96}
+      .mid{stroke-width:8;opacity:.8}
+      .thin{stroke-width:4;opacity:.4}
+      .core{fill:#fff;stroke:none;opacity:.95;filter:url(#softGlow)}
+      .spark{fill:#fff;stroke:none;opacity:.7;filter:url(#softGlow)}
+    ]]></style>
+  </defs>
+  <g class="icon">
+    <path class="main" d="M58 163 H198"/>
+    <path class="main" d="M70 111 H186"/>
+    <path class="mid" d="M78 137 H116 M140 137 H178"/>
+    <path class="thin" d="M96 111 L114 135 L101 163"/>
+    <path class="thin" d="M156 111 L139 137 L164 163"/>
+    <path class="main" d="M128 168 C128 139 141 121 160 104"/>
+    <path class="mid" d="M159 104 C177 88 178 72 166 58"/>
+    <circle class="core" cx="165" cy="54" r="13"/>
+    <path class="mid" d="M156 47 L137 31"/>
+    <path class="mid" d="M174 45 L190 26"/>
+    <path class="mid" d="M179 61 L205 65"/>
+    <circle class="spark" cx="129" cy="80" r="7"/>
+    <circle class="spark" cx="202" cy="94" r="6"/>
+    <path class="thin" d="M50 187 H206"/>
+    <path class="thin" d="M64 90 H108 M148 90 H192"/>
+  </g>
+</svg>

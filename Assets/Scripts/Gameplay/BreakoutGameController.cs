@@ -37,6 +37,7 @@ namespace GetBricked.Gameplay
         private const float ExplosiveBrickSplitBallSizeMultiplier = 0.55f;
         private const int BrickBloomBonusBrickCount = 2;
         private const float BrickBloomPulseRadius = 0.85f;
+        private const float FuseBurstPulseRadius = 1.05f;
         private const float PrismPopCopyBallSizeMultiplier = 0.72f;
         private const float PrismPopFallbackCopyLifetimeSeconds = 4f;
         private const float PrismPopLaunchOffsetMultiplier = 1.15f;
@@ -5865,6 +5866,11 @@ namespace GetBricked.Gameplay
                 availableMissiles += applicationResult.MissileChargesGranted;
             }
 
+            if (applicationResult.ShouldTriggerFuseBurst)
+            {
+                TryTriggerFuseBurst();
+            }
+
             ApplyActiveEffects();
 
             if (applicationResult.ShouldSpawnMultiBall)
@@ -7193,6 +7199,7 @@ namespace GetBricked.Gameplay
                 PowerUpEffectType.BankBonus => $"+{Mathf.Max(1, Mathf.RoundToInt(definition.Scalar))}/wall bank for {definition.DurationSeconds:0.#}s",
                 PowerUpEffectType.PrismPop => $"Next brick hit splits a {definition.Scalar:0.#}s copy ball",
                 PowerUpEffectType.SolarShot => "Next weak brick burns through",
+                PowerUpEffectType.FuseBurst => $"Clears damaged/weak brick; blackout for {definition.DurationSeconds:0.#}s",
                 PowerUpEffectType.MissileStock => $"+{Mathf.Max(1, definition.ExtraBallCount > 0 ? definition.ExtraBallCount : Mathf.RoundToInt(definition.Scalar))} missile stock",
                 PowerUpEffectType.RandomHarmfulDrop => "Disguised random hazard",
                 PowerUpEffectType.RandomMixedDrop => "Random helpful drop and hazard",
@@ -7211,6 +7218,33 @@ namespace GetBricked.Gameplay
         private Color ResolveSolarShotColor()
         {
             return new Color(1f, 0.84f, 0.28f, 1f);
+        }
+
+        private bool TryTriggerFuseBurst()
+        {
+            if (brickEffectResolver == null
+                || !brickEffectResolver.TryResolveFuseBurstTarget(bricks, out var target)
+                || target == null)
+            {
+                return false;
+            }
+
+            var burstPosition = (Vector2)target.transform.position;
+            target.ApplyEffectHit(null, BrickDestructionCause.FuseBurst, target.HitPointsRemaining);
+            SpawnExplosionVisual(burstPosition, FuseBurstPulseRadius);
+            powerUpService?.ShowStatusBanner("FUSE BURST!", ResolveFuseBurstColor(), 1.45f);
+            return true;
+        }
+
+        private Color ResolveFuseBurstColor()
+        {
+            return themeService != null
+                ? themeService.ResolveThemeStyle(
+                    ThemeVisualSlot.PickupBurst,
+                    new Color(1f, 0.87f, 0.36f, 1f),
+                    new Color(1f, 0.28f, 0.66f, 1f),
+                    powerUpSprite).PrimaryColor
+                : new Color(1f, 0.87f, 0.36f, 1f);
         }
 
         private static float ResolveExplosiveBallExplosionRadius(float strength)
@@ -7832,9 +7866,7 @@ namespace GetBricked.Gameplay
 
         private void ApplyVisualEffectState()
         {
-            var visibilityMultiplier = activeEffectModifiers.FogVisibilityMultiplier > 0.001f
-                ? activeEffectModifiers.FogVisibilityMultiplier
-                : 1f;
+            var visibilityMultiplier = Mathf.Clamp01(activeEffectModifiers.FogVisibilityMultiplier);
 
             brickService?.ApplyVisibilityMultiplier(visibilityMultiplier);
 

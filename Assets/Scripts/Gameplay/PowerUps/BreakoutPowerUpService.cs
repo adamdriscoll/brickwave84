@@ -194,11 +194,16 @@ namespace GetBricked.Gameplay
 
     internal readonly struct BreakoutPowerUpApplicationResult
     {
-        public BreakoutPowerUpApplicationResult(bool shouldSpawnMultiBall, int shieldWallChargesGranted, int missileChargesGranted = 0)
+        public BreakoutPowerUpApplicationResult(
+            bool shouldSpawnMultiBall,
+            int shieldWallChargesGranted,
+            int missileChargesGranted = 0,
+            bool shouldTriggerFuseBurst = false)
         {
             ShouldSpawnMultiBall = shouldSpawnMultiBall;
             ShieldWallChargesGranted = Mathf.Max(0, shieldWallChargesGranted);
             MissileChargesGranted = Mathf.Max(0, missileChargesGranted);
+            ShouldTriggerFuseBurst = shouldTriggerFuseBurst;
         }
 
         public bool ShouldSpawnMultiBall { get; }
@@ -206,6 +211,8 @@ namespace GetBricked.Gameplay
         public int ShieldWallChargesGranted { get; }
 
         public int MissileChargesGranted { get; }
+
+        public bool ShouldTriggerFuseBurst { get; }
     }
 
     internal struct BreakoutEffectModifierAccumulator
@@ -319,6 +326,9 @@ namespace GetBricked.Gameplay
                     gravityWellStrength = Mathf.Max(gravityWellStrength, Mathf.Clamp01(powerUpDefinition.Scalar * effectStrength));
                     break;
                 case PowerUpEffectType.FogOfWar:
+                    fogVisibilityMultiplier = Mathf.Min(fogVisibilityMultiplier, Mathf.Clamp01(Mathf.Pow(powerUpDefinition.VisibilityScalar, effectStrength)));
+                    break;
+                case PowerUpEffectType.FuseBurst:
                     fogVisibilityMultiplier = Mathf.Min(fogVisibilityMultiplier, Mathf.Clamp01(Mathf.Pow(powerUpDefinition.VisibilityScalar, effectStrength)));
                     break;
                 case PowerUpEffectType.LagSpike:
@@ -690,6 +700,13 @@ namespace GetBricked.Gameplay
             if (powerUpDefinition == null)
             {
                 return default;
+            }
+
+            if (powerUpDefinition.EffectType == PowerUpEffectType.FuseBurst)
+            {
+                var stackCount = AddTimedEffect(powerUpDefinition);
+                ShowPickupBanner(powerUpDefinition, themeService, stackCount);
+                return new BreakoutPowerUpApplicationResult(false, 0, shouldTriggerFuseBurst: true);
             }
 
             if (powerUpDefinition.IsTimed)

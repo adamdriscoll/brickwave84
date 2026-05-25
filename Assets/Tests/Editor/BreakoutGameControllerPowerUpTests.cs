@@ -497,6 +497,76 @@ public sealed class BreakoutGameControllerPowerUpTests
     }
 
     [Test]
+    public void FuseBurstClearsMostDamagedBrickAndStartsBlackout()
+    {
+        var controller = CreateControllerHarness(out _);
+        var undamaged = CreateBrickHarness(controller, "Undamaged Brick", 100, new Vector2(-1f, 2f));
+        var target = CreateBrickHarness(controller, "Fuse Target", 100, new Vector2(0f, 3f));
+        var lessDamaged = CreateBrickHarness(controller, "Less Damaged Brick", 100, new Vector2(1f, 4f));
+        var undamagedRenderer = AttachBrickRenderer(undamaged);
+        var lessDamagedRenderer = AttachBrickRenderer(lessDamaged);
+        var bricks = GetPrivateField<List<Brick>>(controller, "bricks");
+        var fuseBurst = CreatePowerUp(
+            "Fuse Burst",
+            PowerUpEffectType.FuseBurst,
+            beneficial: true,
+            durationSeconds: 4f,
+            scalar: 0f);
+
+        SetPrivateField(undamaged, "maxHitPoints", 3);
+        SetPrivateField(undamaged, "hitPointsRemaining", 3);
+        SetPrivateField(target, "maxHitPoints", 4);
+        SetPrivateField(target, "hitPointsRemaining", 1);
+        SetPrivateField(lessDamaged, "maxHitPoints", 4);
+        SetPrivateField(lessDamaged, "hitPointsRemaining", 2);
+        bricks.Add(undamaged);
+        bricks.Add(target);
+        bricks.Add(lessDamaged);
+        SetPrivateField(controller, "requiredBricksRemaining", 3);
+
+        InvokePrivateMethod(controller, "ApplyPowerUp", fuseBurst);
+
+        var activeEffectModifiers = GetPrivateField<object>(controller, "activeEffectModifiers");
+        Assert.That(bricks, Has.No.Member(target));
+        Assert.That(bricks, Has.Member(undamaged));
+        Assert.That(bricks, Has.Member(lessDamaged));
+        Assert.That(GetPrivateField<int>(controller, "requiredBricksRemaining"), Is.EqualTo(2));
+        Assert.That(GetPrivateField<int>(controller, "score"), Is.GreaterThan(0));
+        Assert.That(GetPropertyValue<float>(activeEffectModifiers, "FogVisibilityMultiplier"), Is.Zero);
+        Assert.That(undamagedRenderer.color.a, Is.Zero);
+        Assert.That(lessDamagedRenderer.color.a, Is.Zero);
+    }
+
+    [Test]
+    public void FuseBurstClearsWeakBrickWhenNoneAreDamaged()
+    {
+        var controller = CreateControllerHarness(out _);
+        var lowerBrick = CreateBrickHarness(controller, "Lower Brick", 100, new Vector2(1f, 1f));
+        var higherBrick = CreateBrickHarness(controller, "Higher Brick", 100, new Vector2(-1f, 3f));
+        var bricks = GetPrivateField<List<Brick>>(controller, "bricks");
+        var fuseBurst = CreatePowerUp(
+            "Fuse Burst",
+            PowerUpEffectType.FuseBurst,
+            beneficial: true,
+            durationSeconds: 4f,
+            scalar: 0f);
+
+        SetPrivateField(lowerBrick, "maxHitPoints", 1);
+        SetPrivateField(lowerBrick, "hitPointsRemaining", 1);
+        SetPrivateField(higherBrick, "maxHitPoints", 1);
+        SetPrivateField(higherBrick, "hitPointsRemaining", 1);
+        bricks.Add(lowerBrick);
+        bricks.Add(higherBrick);
+        SetPrivateField(controller, "requiredBricksRemaining", 2);
+
+        InvokePrivateMethod(controller, "ApplyPowerUp", fuseBurst);
+
+        Assert.That(bricks, Has.Member(lowerBrick));
+        Assert.That(bricks, Has.No.Member(higherBrick));
+        Assert.That(GetPrivateField<int>(controller, "requiredBricksRemaining"), Is.EqualTo(1));
+    }
+
+    [Test]
     public void RewardMissilePurchaseRequiresFiveThousandPoints()
     {
         Assert.That(BreakoutGameController.CanPurchaseMissile(4999), Is.False);
@@ -1395,6 +1465,18 @@ public sealed class BreakoutGameControllerPowerUpTests
         SetPrivateField(brick, "gameController", controller);
         SetPrivateField(brick, "definition", definition);
         return brick;
+    }
+
+    private SpriteRenderer AttachBrickRenderer(Brick brick)
+    {
+        var visualObject = new GameObject($"{brick.name} Visual");
+        runtimeObjects.Add(visualObject);
+        visualObject.transform.SetParent(brick.transform, false);
+        var spriteRenderer = visualObject.AddComponent<SpriteRenderer>();
+        SetPrivateField(brick, "spriteRenderer", spriteRenderer);
+        SetPrivateField(brick, "themedBaseColor", Color.white);
+        SetPrivateField(brick, "themedDamagedColor", Color.white);
+        return spriteRenderer;
     }
 
     private BrickDefinition CreateBrickDefinition(string displayName, int hitPoints, int scoreValue)

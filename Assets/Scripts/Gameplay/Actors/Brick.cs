@@ -10,6 +10,7 @@ namespace GetBricked.Gameplay
         Laser = 2,
         ChainLightning = 3,
         Missile = 4,
+        FuseBurst = 5,
     }
 
     [RequireComponent(typeof(BoxCollider2D))]
@@ -51,6 +52,11 @@ namespace GetBricked.Gameplay
         public bool IsExplosive => definition != null && definition.IsExplosive;
 
         public int HitPointsRemaining => hitPointsRemaining;
+
+        public bool IsDamaged => definition != null
+            && definition.IsBreakable
+            && hitPointsRemaining > 0
+            && hitPointsRemaining < maxHitPoints;
 
         public bool IsPendingRemoval => isPendingRemoval;
 

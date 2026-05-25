@@ -236,7 +236,8 @@ namespace GetBricked.Gameplay
             }
 
             if (definition.EffectType == PowerUpEffectType.BrickBloom
-                || definition.EffectType == PowerUpEffectType.DoubleTap)
+                || definition.EffectType == PowerUpEffectType.DoubleTap
+                || definition.EffectType == PowerUpEffectType.FuseBurst)
             {
                 return $"{definition.RarityLabel} Mixed";
             }
@@ -295,6 +296,7 @@ namespace GetBricked.Gameplay
                 PowerUpEffectType.SolarShot => "Next weak brick touched by the ball burns away without bouncing it.",
                 PowerUpEffectType.RandomMixedDrop => "Rolls one random unlocked helpful drop and one random unlocked hazard.",
                 PowerUpEffectType.BrickBloom => $"Next broken brick spawns {Mathf.Max(1, definition.ExtraBallCount > 0 ? definition.ExtraBallCount : Mathf.RoundToInt(definition.Scalar))} tiny bonus bricks.",
+                PowerUpEffectType.FuseBurst => $"Clears one damaged brick, or one weak brick if none are damaged, then blacks out brick visibility for {definition.DurationSeconds:0.#}s.",
                 _ => $"{definition.HudLabel} for {definition.DurationSeconds:0.#}s.",
             };
         }
