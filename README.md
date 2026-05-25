@@ -230,7 +230,7 @@ Late drop proposals should keep using mechanics the game already teaches: paddle
 | `Overdrive Tape` | Ball, paddle, and capsules all move x1.25 for 9s. | Heat 46 | Epic | Mixed | Speed chaos | Implemented |
 | `Chrome Catch` | Every paddle hit catches for 4s, then relaunches hotter. | Heat 47 | Epic | Mixed | Sticky speed | Not implemented (proposal) |
 | `Bogus Bounce` | Next three wall bounces leave at wild angles. | Heat 48 | Epic | Hazard | Ricochet | Implemented |
-| `Cabinet Jackpot` | Refreshes every active timed effect, helpful or harmful. | Heat 49 | Epic | Mixed | Effect refresh | Not implemented (proposal) |
+| `Cabinet Jackpot` | Refreshes every active timed effect, helpful or harmful. | Heat 49 | Epic | Mixed | Effect refresh | Implemented |
 | `Final Breakthru` | Ball pierces weak bricks, explodes on hit, and scores x2.00 for 6s. | Heat 50 | Epic | Helpful | Capstone drop | Not implemented (proposal) |
 
 #### Glitches

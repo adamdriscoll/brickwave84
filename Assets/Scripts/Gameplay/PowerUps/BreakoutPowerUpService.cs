@@ -784,6 +784,14 @@ namespace GetBricked.Gameplay
                 return default;
             }
 
+            if (powerUpDefinition.EffectType == PowerUpEffectType.CabinetJackpot)
+            {
+                RefreshActiveTimedEffectDurations();
+                ShowPickupBanner(powerUpDefinition, themeService, 1);
+
+                return default;
+            }
+
             ShowPickupBanner(powerUpDefinition, themeService, 1);
 
             return powerUpDefinition.EffectType switch
@@ -1759,6 +1767,33 @@ namespace GetBricked.Gameplay
             }
 
             return multipliedCount;
+        }
+
+        private int RefreshActiveTimedEffectDurations()
+        {
+            if (ActiveTimedEffects.Count == 0)
+            {
+                return 0;
+            }
+
+            var refreshedCount = 0;
+
+            for (var index = ActiveTimedEffects.Count - 1; index >= 0; index--)
+            {
+                var activeEffect = ActiveTimedEffects[index];
+                var definition = activeEffect?.Definition;
+
+                if (definition == null)
+                {
+                    ActiveTimedEffects.RemoveAt(index);
+                    continue;
+                }
+
+                activeEffect.RemainingDuration = definition.DurationSeconds;
+                refreshedCount++;
+            }
+
+            return refreshedCount;
         }
 
         private int ResolveBankBonusChargePerWallBounce()

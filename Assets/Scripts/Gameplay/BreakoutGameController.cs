@@ -7234,6 +7234,7 @@ namespace GetBricked.Gameplay
                 PowerUpEffectType.FuseBurst => $"Clears damaged/weak brick; blackout for {definition.DurationSeconds:0.#}s",
                 PowerUpEffectType.MissileStock => $"+{Mathf.Max(1, definition.ExtraBallCount > 0 ? definition.ExtraBallCount : Mathf.RoundToInt(definition.Scalar))} missile stock",
                 PowerUpEffectType.BogusBounce => $"Next {Mathf.Max(1, definition.ExtraBallCount > 0 ? definition.ExtraBallCount : BreakoutPowerUpService.BogusBounceDefaultCharges)} wall bounces go wild",
+                PowerUpEffectType.CabinetJackpot => "Refresh all active timed effects",
                 PowerUpEffectType.RandomHarmfulDrop => "Disguised random hazard",
                 PowerUpEffectType.RandomMixedDrop => "Random helpful drop and hazard",
                 _ => $"{definition.HudLabel} for {definition.DurationSeconds:0.#}s",

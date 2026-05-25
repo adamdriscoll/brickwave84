@@ -108,7 +108,7 @@ public sealed class BreakoutProgressionPageTests
             .OrderBy(heat => heat)
             .ToArray();
         var expectedDropHeats = Enumerable.Range(1, 46)
-            .Concat(new[] { 48 })
+            .Concat(new[] { 48, 49 })
             .ToArray();
 
         Assert.That(unlockHeats, Is.EqualTo(expectedDropHeats));
@@ -129,6 +129,7 @@ public sealed class BreakoutProgressionPageTests
         var fuseBurst = view.Cards.First(card => card.Title == "Fuse Burst");
         var overdriveTape = view.Cards.First(card => card.Title == "Overdrive Tape");
         var bogusBounce = view.Cards.First(card => card.Title == "Bogus Bounce");
+        var cabinetJackpot = view.Cards.First(card => card.Title == "Cabinet Jackpot");
 
         Assert.That(turboRail.UnlockHint, Does.Contain("Heat 01"));
         Assert.That(mirrorGrid.UnlockHint, Does.Contain("Heat 02"));
@@ -162,6 +163,8 @@ public sealed class BreakoutProgressionPageTests
         Assert.That(overdriveTape.Description, Does.Contain("capsules all move x1.25"));
         Assert.That(bogusBounce.UnlockHint, Does.Contain("Heat 48"));
         Assert.That(bogusBounce.Description, Does.Contain("3 wall bounces"));
+        Assert.That(cabinetJackpot.UnlockHint, Does.Contain("Heat 49"));
+        Assert.That(cabinetJackpot.Description, Does.Contain("Refreshes every active timed effect"));
     }
 
     [Test]
@@ -483,6 +486,22 @@ public sealed class BreakoutProgressionPageTests
         Assert.That(card.Family, Does.Contain("Epic Hazard"));
         Assert.That(card.StateLabel, Is.EqualTo("Locked"));
         Assert.That(view.Cards.Count(item => item.Title == "Bogus Bounce"), Is.EqualTo(1));
+    }
+
+    [Test]
+    public void ProgressionPageShowsCabinetJackpotAsLiveHeatFortyNineDrop()
+    {
+        var cabinetJackpot = Resources.Load<PowerUpDefinition>("PowerUps/CabinetJackpot");
+        Assert.That(cabinetJackpot, Is.Not.Null);
+
+        var view = new BreakoutProgressionPageService().BuildView(new[] { cabinetJackpot });
+        var card = view.Cards.First(item => item.Title == "Cabinet Jackpot");
+
+        Assert.That(card.UnlockHint, Does.Contain("Heat 49"));
+        Assert.That(card.Description, Does.Contain("Refreshes every active timed effect"));
+        Assert.That(card.Family, Does.Contain("Epic Mixed"));
+        Assert.That(card.StateLabel, Is.EqualTo("Locked"));
+        Assert.That(view.Cards.Count(item => item.Title == "Cabinet Jackpot"), Is.EqualTo(1));
     }
 
     [Test]

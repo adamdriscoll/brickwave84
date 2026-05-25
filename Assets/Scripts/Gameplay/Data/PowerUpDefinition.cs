@@ -115,6 +115,7 @@ namespace GetBricked.Gameplay.Data
         FuseBurst = 41,
         OverdriveTape = 42,
         BogusBounce = 43,
+        CabinetJackpot = 44,
     }
 
     [CreateAssetMenu(menuName = "Get Bricked/Power-Up Definition", fileName = "PowerUpDefinition")]
@@ -174,6 +175,7 @@ namespace GetBricked.Gameplay.Data
             && effectType != PowerUpEffectType.BrickBloom
             && effectType != PowerUpEffectType.DoubleTap
             && effectType != PowerUpEffectType.BogusBounce
+            && effectType != PowerUpEffectType.CabinetJackpot
             && DurationSeconds > 0f;
 
         public bool IsUnlockedForLadderIntensity(int intensity)
@@ -225,7 +227,8 @@ namespace GetBricked.Gameplay.Data
                 || effectType == PowerUpEffectType.BrickBloom
                 || effectType == PowerUpEffectType.DoubleTap
                 || effectType == PowerUpEffectType.FuseBurst
-                || effectType == PowerUpEffectType.OverdriveTape)
+                || effectType == PowerUpEffectType.OverdriveTape
+                || effectType == PowerUpEffectType.CabinetJackpot)
             {
                 return ThemeVisualSlot.PickupBurst;
             }

@@ -238,7 +238,8 @@ namespace GetBricked.Gameplay
             if (definition.EffectType == PowerUpEffectType.BrickBloom
                 || definition.EffectType == PowerUpEffectType.DoubleTap
                 || definition.EffectType == PowerUpEffectType.FuseBurst
-                || definition.EffectType == PowerUpEffectType.OverdriveTape)
+                || definition.EffectType == PowerUpEffectType.OverdriveTape
+                || definition.EffectType == PowerUpEffectType.CabinetJackpot)
             {
                 return $"{definition.RarityLabel} Mixed";
             }
@@ -300,6 +301,7 @@ namespace GetBricked.Gameplay
                 PowerUpEffectType.BrickBloom => $"Next broken brick spawns {Mathf.Max(1, definition.ExtraBallCount > 0 ? definition.ExtraBallCount : Mathf.RoundToInt(definition.Scalar))} tiny bonus bricks.",
                 PowerUpEffectType.FuseBurst => $"Clears one damaged brick, or one weak brick if none are damaged, then blacks out brick visibility for {definition.DurationSeconds:0.#}s.",
                 PowerUpEffectType.BogusBounce => $"Next {Mathf.Max(1, definition.ExtraBallCount > 0 ? definition.ExtraBallCount : BreakoutPowerUpService.BogusBounceDefaultCharges)} wall bounces leave at wild angles.",
+                PowerUpEffectType.CabinetJackpot => "Refreshes every active timed effect, helpful or harmful.",
                 _ => $"{definition.HudLabel} for {definition.DurationSeconds:0.#}s.",
             };
         }

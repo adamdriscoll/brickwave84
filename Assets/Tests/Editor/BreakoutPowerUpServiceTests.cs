@@ -488,6 +488,48 @@ public sealed class BreakoutPowerUpServiceTests
     }
 
     [Test]
+    public void CabinetJackpotRefreshesEveryActiveTimedEffect()
+    {
+        var service = CreateService();
+        var wide = CreatePowerUp("Wide Paddle", PowerUpEffectType.PaddleWidthMultiplier, true, 12f, 1.45f);
+        var staticShoes = CreatePowerUp("Static Shoes", PowerUpEffectType.PaddleSpeedMultiplier, false, 8f, 0.6f);
+        var jackpot = CreatePowerUp("Cabinet Jackpot", PowerUpEffectType.CabinetJackpot, true, 0f, 1f, BreakoutContentRarity.Epic);
+
+        service.ApplyPowerUp(wide, null);
+        service.ApplyPowerUp(staticShoes, null);
+        service.UpdateTimedEffects(isPlaying: true, deltaTime: 5f, modifiersChanged: null);
+        service.ApplyPowerUp(jackpot, null);
+
+        Assert.That(jackpot.IsTimed, Is.False);
+        Assert.That(service.ActiveTimedEffects, Has.Count.EqualTo(2));
+        Assert.That(service.ActiveTimedEffects[0].RemainingDuration, Is.EqualTo(12f).Within(0.0001f));
+        Assert.That(service.ActiveTimedEffects[1].RemainingDuration, Is.EqualTo(8f).Within(0.0001f));
+        Assert.That(service.BuildActiveEffectsLabel(), Does.Contain("WIDE PADDLE 12.0s"));
+        Assert.That(service.BuildActiveEffectsLabel(), Does.Contain("STATIC SHOES 8.0s"));
+    }
+
+    [Test]
+    public void CabinetJackpotPreservesStacksAndEffectMultipliers()
+    {
+        var service = CreateService();
+        var wide = CreatePowerUp("Wide Paddle", PowerUpEffectType.PaddleWidthMultiplier, true, 12f, 1.45f);
+        var mondoMulti = CreatePowerUp("Mondo Multi", PowerUpEffectType.ActiveDropMultiplier, true, 0f, 2f);
+        var jackpot = CreatePowerUp("Cabinet Jackpot", PowerUpEffectType.CabinetJackpot, true, 0f, 1f, BreakoutContentRarity.Epic);
+
+        service.ApplyPowerUp(wide, null);
+        service.ApplyPowerUp(wide, null);
+        service.ApplyPowerUp(mondoMulti, null);
+        service.UpdateTimedEffects(isPlaying: true, deltaTime: 6f, modifiersChanged: null);
+        service.ApplyPowerUp(jackpot, null);
+
+        Assert.That(service.ActiveTimedEffects, Has.Count.EqualTo(1));
+        Assert.That(service.ActiveTimedEffects[0].StackCount, Is.EqualTo(2));
+        Assert.That(service.ActiveTimedEffects[0].EffectMultiplier, Is.EqualTo(2f).Within(0.0001f));
+        Assert.That(service.ActiveTimedEffects[0].RemainingDuration, Is.EqualTo(12f).Within(0.0001f));
+        Assert.That(service.CalculateEffectModifiers(1f, 0f).PaddleWidthMultiplier, Is.EqualTo(Mathf.Pow(1.45f, 4f)).Within(0.0001f));
+    }
+
+    [Test]
     public void BrickBloomStacksAndConsumesOneChargeAtATime()
     {
         var service = CreateService();
