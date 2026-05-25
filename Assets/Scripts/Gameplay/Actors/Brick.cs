@@ -199,6 +199,44 @@ namespace GetBricked.Gameplay
             hasMovementBounds = true;
         }
 
+        internal void SetGlitchMotion(float speed, Vector2 direction)
+        {
+            movementSpeed = Mathf.Max(0f, speed);
+            hasMotion = movementSpeed > 0.01f && direction.sqrMagnitude > 0.001f;
+
+            if (hasMotion)
+            {
+                lastMovementDirection = direction.normalized;
+            }
+
+            if (!hasMotion && !canSpin)
+            {
+                if (brickBody != null)
+                {
+                    brickBody.linearVelocity = Vector2.zero;
+                }
+
+                return;
+            }
+
+            EnsureDynamicBody();
+
+            if (brickBody == null)
+            {
+                return;
+            }
+
+            if (spinJoint != null && hasMotion)
+            {
+                spinJoint.enabled = false;
+            }
+
+            brickBody.linearVelocity = hasMotion
+                ? lastMovementDirection * movementSpeed
+                : Vector2.zero;
+            brickBody.WakeUp();
+        }
+
         private void FixedUpdate()
         {
             if (!hasMotion || brickBody == null)

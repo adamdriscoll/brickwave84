@@ -1,6 +1,7 @@
 using GetBricked.Gameplay;
 using GetBricked.Gameplay.Data;
 using NUnit.Framework;
+using UnityEngine;
 
 public sealed class BreakoutLevelGlitchPlannerTests
 {
@@ -239,6 +240,29 @@ public sealed class BreakoutLevelGlitchPlannerTests
         Assert.That(unlockedPlan.ScoreMultiplier, Is.EqualTo(1.27f).Within(0.0001f));
     }
 
+    [Test]
+    public void RogueGlitchHeatControlsWhenDriftRowsCanUnlock()
+    {
+        var lockedSettings = CreateRogueSettings(
+            rogueIntensity: BreakoutLevelGlitchPlanner.DriftRowsLadderUnlockIntensity,
+            levelGlitchSelection: LevelGlitchSelection.DriftRows);
+        var unlockedSettings = CreateRogueSettings(
+            rogueIntensity: BreakoutLevelGlitchPlanner.DriftRowsLadderUnlockIntensity + 1,
+            levelGlitchSelection: LevelGlitchSelection.DriftRows);
+
+        var lockedPlan = BreakoutLevelGlitchPlanner.BuildPlan(new DeterministicRandomService(7), lockedSettings, levelIndex: 9);
+        var unlockedPlan = BreakoutLevelGlitchPlanner.BuildPlan(new DeterministicRandomService(7), unlockedSettings, levelIndex: 9);
+
+        Assert.That(lockedPlan.IsActive, Is.False);
+        Assert.That(unlockedPlan.IsActive, Is.True);
+        Assert.That(unlockedPlan.GlitchType, Is.EqualTo(BreakoutLevelGlitchType.DriftRows));
+        Assert.That(unlockedPlan.DisplayName, Is.EqualTo("Drift Rows"));
+        Assert.That(unlockedPlan.Rarity, Is.EqualTo(BreakoutContentRarity.Rare));
+        Assert.That(unlockedPlan.ScoreMultiplier, Is.EqualTo(1.26f).Within(0.0001f));
+        Assert.That(unlockedPlan.DriftRows.Speed, Is.InRange(0.26f, 0.38f));
+        Assert.That(Mathf.Abs(unlockedPlan.DriftRows.StartingDirectionSign), Is.EqualTo(1f).Within(0.0001f));
+    }
+
 
     [Test]
     public void ForcedWarpGatePlanBuildsSmallPortalSetAndScoreBonus()
@@ -419,6 +443,21 @@ public sealed class BreakoutLevelGlitchPlannerTests
     }
 
     [Test]
+    public void SelectedDriftRowsAlwaysBuildsDriftRowsEvenWhenChanceIsDisabled()
+    {
+        var settings = CreateSettings(
+            levelGlitchesEnabled: true,
+            chanceMultiplier: 0f,
+            levelGlitchSelection: LevelGlitchSelection.DriftRows);
+
+        var plan = BreakoutLevelGlitchPlanner.BuildPlan(new DeterministicRandomService(3), settings, levelIndex: 9);
+
+        Assert.That(plan.IsActive, Is.True);
+        Assert.That(plan.GlitchType, Is.EqualTo(BreakoutLevelGlitchType.DriftRows));
+        Assert.That(plan.HudLabel, Does.Contain("Drift Rows"));
+    }
+
+    [Test]
     public void PrismLaneRefractionBuildsSharperHorizontalDirection()
     {
         var refracted = BreakoutPrismLaneSection.BuildRefractedDirection(new UnityEngine.Vector2(0.12f, 1f), -1f);
@@ -440,6 +479,19 @@ public sealed class BreakoutLevelGlitchPlannerTests
         Assert.That(downward.y, Is.LessThan(0f));
         Assert.That(upward.magnitude, Is.EqualTo(1f).Within(0.0001f));
         Assert.That(downward.magnitude, Is.EqualTo(1f).Within(0.0001f));
+    }
+
+    [Test]
+    public void DriftRowsAlternateHorizontalDirectionByRow()
+    {
+        var firstRow = BreakoutBrickService.ResolveDriftDirectionForRow(0, 1f);
+        var secondRow = BreakoutBrickService.ResolveDriftDirectionForRow(1, 1f);
+        var thirdRow = BreakoutBrickService.ResolveDriftDirectionForRow(2, -1f);
+
+        Assert.That(firstRow.x, Is.EqualTo(1f).Within(0.0001f));
+        Assert.That(secondRow.x, Is.EqualTo(-1f).Within(0.0001f));
+        Assert.That(thirdRow.x, Is.EqualTo(-1f).Within(0.0001f));
+        Assert.That(firstRow.y, Is.Zero);
     }
 
 

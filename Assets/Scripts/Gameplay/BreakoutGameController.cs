@@ -3598,6 +3598,12 @@ namespace GetBricked.Gameplay
                 powerUpService?.ShowStatusBanner("CAPSULE ROULETTE!", new Color(1f, 0.87f, 0.36f, 1f), 2.2f);
             }
 
+            if (activeLevelGlitchPlan.HasGlitch(BreakoutLevelGlitchType.DriftRows))
+            {
+                ApplyDriftRows(activeLevelGlitchPlan.DriftRows);
+                powerUpService?.ShowStatusBanner("DRIFT ROWS!", new Color(0.72f, 0.62f, 1f, 1f), 2.2f);
+            }
+
             if (activeLevelGlitchPlan.HasGlitch(BreakoutLevelGlitchType.StaticWall))
             {
                 CreateStaticWall(activeLevelGlitchPlan);
@@ -3678,6 +3684,11 @@ namespace GetBricked.Gameplay
             }
 
             ClearGravityPocketFromBalls();
+        }
+
+        private void ApplyDriftRows(BreakoutDriftRowsSpec driftRows)
+        {
+            brickService?.ApplyRowDrift(driftRows);
         }
 
         private void ArmMirrorGrid()
@@ -3787,6 +3798,11 @@ namespace GetBricked.Gameplay
             var requiredBrickDelta = brickService.RewriteRow(rowIndex, rewrittenCells);
 
             requiredBricksRemaining = Mathf.Max(0, requiredBricksRemaining + requiredBrickDelta);
+            if (activeLevelGlitchPlan != null && activeLevelGlitchPlan.HasGlitch(BreakoutLevelGlitchType.DriftRows))
+            {
+                brickService.ApplyRowDrift(activeLevelGlitchPlan.DriftRows);
+            }
+
             powerUpService?.ShowStatusBanner("REWRITE LIVE!", new Color(0.72f, 0.62f, 1f, 1f), 1.8f);
             EvaluateLevelCompletion();
         }
@@ -5934,6 +5950,7 @@ namespace GetBricked.Gameplay
                 LevelGlitchSelection.PrismLanes => "Prism Lanes",
                 LevelGlitchSelection.SwitchbackRails => "Switchback Rails",
                 LevelGlitchSelection.CapsuleRoulette => "Capsule Roulette",
+                LevelGlitchSelection.DriftRows => "Drift Rows",
                 _ => "Off",
             };
         }

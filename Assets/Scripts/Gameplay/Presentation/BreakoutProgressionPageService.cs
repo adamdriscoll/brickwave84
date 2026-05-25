@@ -183,6 +183,13 @@ namespace GetBricked.Gameplay
                 BreakoutLevelGlitchPlanner.CapsuleRouletteLadderUnlockIntensity,
                 highestCompletedIntensity,
                 ControlAccent));
+            cards.Add(BuildUnlockableGlitchCard(
+                "Drift Rows",
+                "Layout Rare Glitch",
+                "Brick rows slide slowly in opposite directions.",
+                BreakoutLevelGlitchPlanner.DriftRowsLadderUnlockIntensity,
+                highestCompletedIntensity,
+                LayoutAccent));
             AppendPlaceholderCards(cards, PlaceholderDrops, highestCompletedIntensity);
             AppendPlaceholderCards(cards, PlaceholderGlitches, highestCompletedIntensity);
             cards.Add(BuildHiddenSlotCard("Future Drop Slot", "Drop", "Hidden", "Future drop signal pending."));
@@ -541,6 +548,11 @@ namespace GetBricked.Gameplay
             }
 
             if (completedIntensity >= BreakoutLevelGlitchPlanner.CapsuleRouletteLadderUnlockIntensity)
+            {
+                count++;
+            }
+
+            if (completedIntensity >= BreakoutLevelGlitchPlanner.DriftRowsLadderUnlockIntensity)
             {
                 count++;
             }

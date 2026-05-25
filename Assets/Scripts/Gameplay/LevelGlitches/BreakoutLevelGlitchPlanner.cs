@@ -18,6 +18,7 @@ namespace GetBricked.Gameplay
         PrismLanes = 8,
         SwitchbackRails = 9,
         CapsuleRoulette = 10,
+        DriftRows = 11,
     }
 
     internal readonly struct BreakoutLevelGlitchDefinition
@@ -209,6 +210,19 @@ namespace GetBricked.Gameplay
         public float PhaseOffsetSeconds { get; }
     }
 
+    internal readonly struct BreakoutDriftRowsSpec
+    {
+        public BreakoutDriftRowsSpec(float speed, float startingDirectionSign)
+        {
+            Speed = Mathf.Clamp(speed, 0.12f, 0.75f);
+            StartingDirectionSign = Mathf.Sign(Mathf.Approximately(startingDirectionSign, 0f) ? 1f : startingDirectionSign);
+        }
+
+        public float Speed { get; }
+
+        public float StartingDirectionSign { get; }
+    }
+
     internal sealed class BreakoutLevelGlitchPlan
     {
         public static readonly BreakoutLevelGlitchPlan None = new BreakoutLevelGlitchPlan(
@@ -236,7 +250,8 @@ namespace GetBricked.Gameplay
             BreakoutLevelGlitchType[] activeGlitchTypes = null,
             BreakoutRowRewriteSpec rowRewrite = default,
             BreakoutPrismLaneSpec[] prismLanes = null,
-            BreakoutSwitchbackRailSpec switchbackRails = default)
+            BreakoutSwitchbackRailSpec switchbackRails = default,
+            BreakoutDriftRowsSpec driftRows = default)
         {
             GlitchType = glitchType;
             Rarity = BreakoutRarityRules.Clamp(rarity);
@@ -251,6 +266,7 @@ namespace GetBricked.Gameplay
             RowRewrite = rowRewrite;
             PrismLanes = prismLanes ?? Array.Empty<BreakoutPrismLaneSpec>();
             SwitchbackRails = switchbackRails;
+            DriftRows = driftRows;
             ActiveGlitchTypes = activeGlitchTypes != null && activeGlitchTypes.Length > 0
                 ? activeGlitchTypes
                 : glitchType != BreakoutLevelGlitchType.None
@@ -284,6 +300,8 @@ namespace GetBricked.Gameplay
 
         public BreakoutSwitchbackRailSpec SwitchbackRails { get; }
 
+        public BreakoutDriftRowsSpec DriftRows { get; }
+
         public BreakoutLevelGlitchType[] ActiveGlitchTypes { get; }
 
         public bool IsActive => ActiveGlitchTypes.Length > 0;
@@ -313,6 +331,7 @@ namespace GetBricked.Gameplay
         public const int PrismLanesLadderUnlockIntensity = 7;
         public const int SwitchbackRailsLadderUnlockIntensity = 8;
         public const int CapsuleRouletteLadderUnlockIntensity = 9;
+        public const int DriftRowsLadderUnlockIntensity = 10;
 
         private const float WarpGateScoreMultiplier = 1.35f;
         private const float TurboRailScoreMultiplier = 1.25f;
@@ -324,6 +343,7 @@ namespace GetBricked.Gameplay
         private const float PrismLanesScoreMultiplier = 1.31f;
         private const float SwitchbackRailsScoreMultiplier = 1.29f;
         private const float CapsuleRouletteScoreMultiplier = 1.27f;
+        private const float DriftRowsScoreMultiplier = 1.26f;
 
         private static readonly BreakoutLevelGlitchDefinition[] GlitchDefinitions =
         {
@@ -377,6 +397,11 @@ namespace GetBricked.Gameplay
                 LevelGlitchSelection.CapsuleRoulette,
                 BreakoutContentRarity.Rare,
                 CapsuleRouletteLadderUnlockIntensity),
+            new BreakoutLevelGlitchDefinition(
+                BreakoutLevelGlitchType.DriftRows,
+                LevelGlitchSelection.DriftRows,
+                BreakoutContentRarity.Rare,
+                DriftRowsLadderUnlockIntensity),
         };
 
         public static BreakoutLevelGlitchPlan BuildPlan(
@@ -471,6 +496,11 @@ namespace GetBricked.Gameplay
             if (definition.GlitchType == BreakoutLevelGlitchType.CapsuleRoulette)
             {
                 return BuildCapsuleRoulettePlan(definition.Rarity);
+            }
+
+            if (definition.GlitchType == BreakoutLevelGlitchType.DriftRows)
+            {
+                return BuildDriftRowsPlan(random, definition.Rarity);
             }
 
             return BuildWarpGatePlan(random, definition.Rarity);
@@ -578,6 +608,7 @@ namespace GetBricked.Gameplay
             var rowRewrite = default(BreakoutRowRewriteSpec);
             var prismLanes = Array.Empty<BreakoutPrismLaneSpec>();
             var switchbackRails = default(BreakoutSwitchbackRailSpec);
+            var driftRows = default(BreakoutDriftRowsSpec);
 
             for (var index = 0; index < definitions.Count; index++)
             {
@@ -628,6 +659,11 @@ namespace GetBricked.Gameplay
                 {
                     switchbackRails = plan.SwitchbackRails;
                 }
+
+                if (plan.HasGlitch(BreakoutLevelGlitchType.DriftRows))
+                {
+                    driftRows = plan.DriftRows;
+                }
             }
 
             return new BreakoutLevelGlitchPlan(
@@ -644,7 +680,8 @@ namespace GetBricked.Gameplay
                 activeTypes,
                 rowRewrite,
                 prismLanes,
-                switchbackRails);
+                switchbackRails,
+                driftRows);
         }
 
         private static BreakoutLevelGlitchPlan BuildWarpGatePlan(DeterministicRandomService random, BreakoutContentRarity rarity)
@@ -787,6 +824,19 @@ namespace GetBricked.Gameplay
                 CapsuleRouletteScoreMultiplier,
                 Array.Empty<BreakoutWarpGateSpec>(),
                 default);
+        }
+
+        private static BreakoutLevelGlitchPlan BuildDriftRowsPlan(DeterministicRandomService random, BreakoutContentRarity rarity)
+        {
+            return new BreakoutLevelGlitchPlan(
+                BreakoutLevelGlitchType.DriftRows,
+                rarity,
+                "Drift Rows",
+                $"Drift Rows x{DriftRowsScoreMultiplier:0.00}",
+                DriftRowsScoreMultiplier,
+                Array.Empty<BreakoutWarpGateSpec>(),
+                default,
+                driftRows: BuildDriftRows(random));
         }
 
         public static float GetGlitchChance(RunSettings settings, int levelIndex)
@@ -932,6 +982,13 @@ namespace GetBricked.Gameplay
                 random.Range(0f, 3.15f));
         }
 
+        private static BreakoutDriftRowsSpec BuildDriftRows(DeterministicRandomService random)
+        {
+            return new BreakoutDriftRowsSpec(
+                random.Range(0.26f, 0.38f),
+                random.NextBool() ? 1f : -1f);
+        }
+
         private static BreakoutLevelGlitchDefinition ResolveGlitchDefinition(
             DeterministicRandomService random,
             RunSettings settings,
@@ -1065,7 +1122,8 @@ namespace GetBricked.Gameplay
                 || selection == LevelGlitchSelection.RowRewrite
                 || selection == LevelGlitchSelection.PrismLanes
                 || selection == LevelGlitchSelection.SwitchbackRails
-                || selection == LevelGlitchSelection.CapsuleRoulette;
+                || selection == LevelGlitchSelection.CapsuleRoulette
+                || selection == LevelGlitchSelection.DriftRows;
         }
 
         private static BreakoutWarpGateWall ResolveGateWall(DeterministicRandomService random, int index)

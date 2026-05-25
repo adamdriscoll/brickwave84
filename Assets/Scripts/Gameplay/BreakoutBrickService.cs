@@ -343,6 +343,41 @@ namespace GetBricked.Gameplay
             return mirroredCount;
         }
 
+        public int ApplyRowDrift(BreakoutDriftRowsSpec spec)
+        {
+            var driftedCount = 0;
+            var bounds = movementBoundsResolver();
+
+            for (var index = bricks.Count - 1; index >= 0; index--)
+            {
+                var brick = bricks[index];
+
+                if (brick == null)
+                {
+                    bricks.RemoveAt(index);
+                    continue;
+                }
+
+                if (brick.Definition == null || brick.IsPendingRemoval)
+                {
+                    continue;
+                }
+
+                var row = brick.CaptureState().Row;
+                brick.SetMovementBounds(bounds);
+                brick.SetGlitchMotion(spec.Speed, ResolveDriftDirectionForRow(row, spec.StartingDirectionSign));
+                driftedCount++;
+            }
+
+            return driftedCount;
+        }
+
+        internal static Vector2 ResolveDriftDirectionForRow(int row, float startingDirectionSign)
+        {
+            var sign = Mathf.Sign(Mathf.Approximately(startingDirectionSign, 0f) ? 1f : startingDirectionSign);
+            return new Vector2(((Mathf.Max(0, row) & 1) == 0 ? sign : -sign), 0f);
+        }
+
         public int RewriteRow(int rowIndex, BreakoutProceduralBrickCell[] rowCells)
         {
             if (rowCells == null || rowCells.Length == 0)
