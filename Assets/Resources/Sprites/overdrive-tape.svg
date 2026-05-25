@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
+  <title id="title">Overdrive Tape</title>
+  <desc id="desc">A glowing cassette with speed chevrons and a central overdrive lightning mark.</desc>
+  <defs>
+    <filter id="softGlow" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="2.25" result="blur"/>
+      <feColorMatrix in="blur" type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 .8 0" result="glow"/>
+      <feMerge>
+        <feMergeNode in="glow"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <style><![CDATA[
+      .icon { fill: none; stroke: #fff; stroke-linecap: round; stroke-linejoin: round; filter: url(#softGlow); }
+      .body { stroke-width: 12; opacity: .94; }
+      .detail { stroke-width: 9; opacity: .86; }
+      .echo { stroke-width: 5; opacity: .42; }
+      .core { fill: #fff; opacity: .92; }
+    ]]></style>
+  </defs>
+  <g class="icon">
+    <path class="body" d="M54 76h148c12 0 22 10 22 22v72c0 12-10 22-22 22H54c-12 0-22-10-22-22V98c0-12 10-22 22-22Z"/>
+    <path class="detail" d="M73 94h110"/>
+    <circle class="detail" cx="86" cy="135" r="24"/>
+    <circle class="detail" cx="170" cy="135" r="24"/>
+    <path class="detail" d="M110 135h36"/>
+    <path class="body" d="M130 102l-18 42h22l-10 38 36-52h-23l18-28z"/>
+    <path class="echo" d="M34 60l20-18m16 18 20-18"/>
+    <path class="echo" d="M202 60l20-18m-4 44 24-16"/>
+    <path class="echo" d="M37 210l24-16m151 16 24-16"/>
+  </g>
+  <circle class="core" cx="86" cy="135" r="7"/>
+  <circle class="core" cx="170" cy="135" r="7"/>
+</svg>

@@ -119,6 +119,7 @@ public sealed class BreakoutPowerUpServiceTests
         var tiltRail = CreatePowerUp("Tilt Rail", PowerUpEffectType.PaddleHitTilt, false, 12f, 9f);
         var wrapRail = CreatePowerUp("Wrap Rail", PowerUpEffectType.PaddleWrap, true, 10f, 1f);
         var jackpotJam = CreatePowerUp("Jackpot Jam", PowerUpEffectType.JackpotJam, true, 8f, 3f, BreakoutContentRarity.Epic);
+        var overdriveTape = CreatePowerUp("Overdrive Tape", PowerUpEffectType.OverdriveTape, true, 9f, 1.25f, BreakoutContentRarity.Epic);
 
         service.ApplyPowerUp(magnet, null);
         service.ApplyPowerUp(scoreSurge, null);
@@ -135,14 +136,17 @@ public sealed class BreakoutPowerUpServiceTests
         service.ApplyPowerUp(tiltRail, null);
         service.ApplyPowerUp(wrapRail, null);
         service.ApplyPowerUp(jackpotJam, null);
+        service.ApplyPowerUp(overdriveTape, null);
 
         var modifiers = service.CalculateEffectModifiers(1f, 0f);
 
+        Assert.That(modifiers.PaddleSpeedMultiplier, Is.EqualTo(1.25f).Within(0.0001f));
         Assert.That(modifiers.BrickMagnetStrength, Is.EqualTo(0.38f).Within(0.0001f));
         Assert.That(modifiers.ScoreMultiplier, Is.EqualTo(2f * 1.28f * 3f).Within(0.0001f));
         Assert.That(modifiers.PaddleCloneEnabled, Is.True);
         Assert.That(modifiers.BrickJammerStrength, Is.EqualTo(0.75f).Within(0.0001f));
-        Assert.That(modifiers.TimedBallSpeedMultiplier, Is.EqualTo(1.28f * BreakoutPowerUpService.JackpotJamBallSpeedMultiplier).Within(0.0001f));
+        Assert.That(modifiers.TimedBallSpeedMultiplier, Is.EqualTo(1.28f * BreakoutPowerUpService.JackpotJamBallSpeedMultiplier * 1.25f).Within(0.0001f));
+        Assert.That(modifiers.PickupFallSpeedMultiplier, Is.EqualTo(1.25f).Within(0.0001f));
         Assert.That(modifiers.BallSizeMultiplier, Is.EqualTo(1.8f).Within(0.0001f));
         Assert.That(modifiers.HotPotatoStrength, Is.GreaterThan(0f));
         Assert.That(modifiers.ExplosiveBallStrength, Is.EqualTo(1f).Within(0.0001f));
@@ -652,6 +656,22 @@ public sealed class BreakoutPowerUpServiceTests
 
         Assert.That(movementStep.x, Is.GreaterThan(0f));
         Assert.That(movementStep.y, Is.LessThan(0f));
+    }
+
+    [Test]
+    public void ActivePickupFallSpeedMultiplierAcceleratesExistingPickups()
+    {
+        var service = CreateService();
+        var powerUp = CreatePowerUp("Overdrive Tape", PowerUpEffectType.OverdriveTape, true, 9f, 1.25f);
+        var pickup = CreateConfiguredPickup(powerUp, Vector2.zero);
+        service.ActivePickups.Add(pickup);
+
+        service.RefreshActivePickupFallSpeedMultiplier(1.25f);
+
+        var movementStep = (Vector2)InvokePrivateMethod(pickup, "ResolveFixedMovementStep");
+
+        Assert.That(GetPrivateField<float>(pickup, "activeFallSpeedMultiplier"), Is.EqualTo(1.25f).Within(0.0001f));
+        Assert.That(movementStep.y, Is.EqualTo(-3.2f * 1.25f * Time.fixedDeltaTime).Within(0.0001f));
     }
 
     [Test]

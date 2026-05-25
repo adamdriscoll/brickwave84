@@ -96,6 +96,7 @@ namespace GetBricked.Gameplay
             float lagSpikeStrength,
             float brickMagnetStrength,
             float brickRepulsionStrength,
+            float pickupFallSpeedMultiplier,
             float scoreMultiplier,
             bool paddleCloneEnabled,
             float brickJammerStrength,
@@ -124,6 +125,7 @@ namespace GetBricked.Gameplay
             LagSpikeStrength = lagSpikeStrength;
             BrickMagnetStrength = brickMagnetStrength;
             BrickRepulsionStrength = brickRepulsionStrength;
+            PickupFallSpeedMultiplier = Mathf.Max(0.1f, pickupFallSpeedMultiplier);
             ScoreMultiplier = scoreMultiplier;
             PaddleCloneEnabled = paddleCloneEnabled;
             BrickJammerStrength = brickJammerStrength;
@@ -168,6 +170,8 @@ namespace GetBricked.Gameplay
         public float BrickMagnetStrength { get; }
 
         public float BrickRepulsionStrength { get; }
+
+        public float PickupFallSpeedMultiplier { get; }
 
         public float ScoreMultiplier { get; }
 
@@ -233,6 +237,7 @@ namespace GetBricked.Gameplay
         private float lagSpikeStrength;
         private float brickMagnetStrength;
         private float brickRepulsionStrength;
+        private float pickupFallSpeedMultiplier;
         private float scoreMultiplier;
         private bool paddleCloneEnabled;
         private float brickJammerStrength;
@@ -263,6 +268,7 @@ namespace GetBricked.Gameplay
             lagSpikeStrength = 0f;
             brickMagnetStrength = 0f;
             brickRepulsionStrength = 0f;
+            pickupFallSpeedMultiplier = 1f;
             scoreMultiplier = 1f;
             paddleCloneEnabled = false;
             brickJammerStrength = 0f;
@@ -340,6 +346,11 @@ namespace GetBricked.Gameplay
                 case PowerUpEffectType.MagnetFlip:
                     brickRepulsionStrength = Mathf.Max(brickRepulsionStrength, Mathf.Clamp01(powerUpDefinition.Scalar * effectStrength));
                     break;
+                case PowerUpEffectType.OverdriveTape:
+                    timedBallSpeedMultiplier *= Mathf.Pow(powerUpDefinition.Scalar, effectStrength);
+                    paddleSpeedMultiplier *= Mathf.Pow(powerUpDefinition.Scalar, effectStrength);
+                    pickupFallSpeedMultiplier *= Mathf.Pow(powerUpDefinition.Scalar, effectStrength);
+                    break;
                 case PowerUpEffectType.ScoreMultiplier:
                     scoreMultiplier *= Mathf.Pow(powerUpDefinition.Scalar, effectStrength);
                     break;
@@ -412,6 +423,7 @@ namespace GetBricked.Gameplay
                 lagSpikeStrength,
                 brickMagnetStrength,
                 brickRepulsionStrength,
+                Mathf.Max(0.1f, pickupFallSpeedMultiplier),
                 Mathf.Max(0.1f, scoreMultiplier),
                 paddleCloneEnabled,
                 brickJammerStrength,
@@ -848,6 +860,24 @@ namespace GetBricked.Gameplay
 
                 var proximity = 1f - Mathf.Clamp01(distance / CapsuleMagnetRange);
                 pickup.SetCapsuleMagnetTarget(targetPosition, clampedStrength * Mathf.Lerp(0.35f, 1f, proximity));
+            }
+        }
+
+        public void RefreshActivePickupFallSpeedMultiplier(float multiplier)
+        {
+            var clampedMultiplier = Mathf.Clamp(multiplier, 0.35f, 1.5f);
+
+            for (var index = ActivePickups.Count - 1; index >= 0; index--)
+            {
+                var pickup = ActivePickups[index];
+
+                if (pickup == null)
+                {
+                    ActivePickups.RemoveAt(index);
+                    continue;
+                }
+
+                pickup.SetActiveFallSpeedMultiplier(clampedMultiplier);
             }
         }
 

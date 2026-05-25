@@ -113,6 +113,7 @@ namespace GetBricked.Gameplay.Data
         MagnetFlip = 39,
         DoubleTap = 40,
         FuseBurst = 41,
+        OverdriveTape = 42,
     }
 
     [CreateAssetMenu(menuName = "Get Bricked/Power-Up Definition", fileName = "PowerUpDefinition")]
@@ -221,7 +222,8 @@ namespace GetBricked.Gameplay.Data
                 || effectType == PowerUpEffectType.MicroSpark
                 || effectType == PowerUpEffectType.BrickBloom
                 || effectType == PowerUpEffectType.DoubleTap
-                || effectType == PowerUpEffectType.FuseBurst)
+                || effectType == PowerUpEffectType.FuseBurst
+                || effectType == PowerUpEffectType.OverdriveTape)
             {
                 return ThemeVisualSlot.PickupBurst;
             }

@@ -18,6 +18,7 @@ namespace GetBricked.Gameplay
         private Rigidbody2D pickupBody;
         private Collider2D pickupCollider;
         private float fallSpeed;
+        private float activeFallSpeedMultiplier = 1f;
         private float missThresholdY;
         private float rotationDegreesPerSecond;
         private float currentRotationDegrees;
@@ -40,6 +41,11 @@ namespace GetBricked.Gameplay
         public void MultiplyFallSpeed(float multiplier)
         {
             fallSpeed = Mathf.Max(0.1f, fallSpeed * Mathf.Clamp(multiplier, 0.35f, 1.5f));
+        }
+
+        public void SetActiveFallSpeedMultiplier(float multiplier)
+        {
+            activeFallSpeedMultiplier = Mathf.Clamp(multiplier, 0.35f, 1.5f);
         }
 
         public void SetCapsuleMagnetTarget(Vector2 targetPosition, float strength)
@@ -212,7 +218,8 @@ namespace GetBricked.Gameplay
 
         private Vector2 ResolveFixedMovementStep()
         {
-            var movementStep = Vector2.down * (fallSpeed * Time.fixedDeltaTime);
+            var effectiveFallSpeed = fallSpeed * activeFallSpeedMultiplier;
+            var movementStep = Vector2.down * (effectiveFallSpeed * Time.fixedDeltaTime);
 
             if (capsuleMagnetStrength <= 0.001f)
             {
@@ -226,7 +233,7 @@ namespace GetBricked.Gameplay
                 return movementStep;
             }
 
-            var lateralSpeed = fallSpeed * Mathf.Lerp(0.45f, 1.35f, capsuleMagnetStrength);
+            var lateralSpeed = effectiveFallSpeed * Mathf.Lerp(0.45f, 1.35f, capsuleMagnetStrength);
             var maxStep = lateralSpeed * Time.fixedDeltaTime;
             movementStep.x = Mathf.Clamp(pullX * capsuleMagnetStrength * 1.45f * Time.fixedDeltaTime, -maxStep, maxStep);
             return movementStep;

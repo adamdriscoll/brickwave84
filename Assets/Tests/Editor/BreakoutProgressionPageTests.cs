@@ -107,7 +107,7 @@ public sealed class BreakoutProgressionPageTests
             .Select(definition => definition.LadderUnlockIntensity)
             .OrderBy(heat => heat)
             .ToArray();
-        var expectedDropHeats = Enumerable.Range(1, 45).ToArray();
+        var expectedDropHeats = Enumerable.Range(1, 46).ToArray();
 
         Assert.That(unlockHeats, Is.EqualTo(expectedDropHeats));
 
@@ -125,6 +125,7 @@ public sealed class BreakoutProgressionPageTests
         var brickBloom = view.Cards.First(card => card.Title == "Brick Bloom");
         var doubleTap = view.Cards.First(card => card.Title == "Double Tap");
         var fuseBurst = view.Cards.First(card => card.Title == "Fuse Burst");
+        var overdriveTape = view.Cards.First(card => card.Title == "Overdrive Tape");
 
         Assert.That(turboRail.UnlockHint, Does.Contain("Heat 01"));
         Assert.That(mirrorGrid.UnlockHint, Does.Contain("Heat 02"));
@@ -154,6 +155,8 @@ public sealed class BreakoutProgressionPageTests
         Assert.That(doubleTap.Description, Does.Contain("2 angled copy balls"));
         Assert.That(fuseBurst.UnlockHint, Does.Contain("Heat 45"));
         Assert.That(fuseBurst.Description, Does.Contain("Clears one damaged brick"));
+        Assert.That(overdriveTape.UnlockHint, Does.Contain("Heat 46"));
+        Assert.That(overdriveTape.Description, Does.Contain("capsules all move x1.25"));
     }
 
     [Test]
@@ -441,6 +444,23 @@ public sealed class BreakoutProgressionPageTests
         Assert.That(card.Family, Does.Contain("Epic Mixed"));
         Assert.That(card.StateLabel, Is.EqualTo("Locked"));
         Assert.That(view.Cards.Count(item => item.Title == "Fuse Burst"), Is.EqualTo(1));
+    }
+
+    [Test]
+    public void ProgressionPageShowsOverdriveTapeAsLiveHeatFortySixDrop()
+    {
+        var overdriveTape = Resources.Load<PowerUpDefinition>("PowerUps/OverdriveTape");
+        Assert.That(overdriveTape, Is.Not.Null);
+
+        var view = new BreakoutProgressionPageService().BuildView(new[] { overdriveTape });
+        var card = view.Cards.First(item => item.Title == "Overdrive Tape");
+
+        Assert.That(card.UnlockHint, Does.Contain("Heat 46"));
+        Assert.That(card.Description, Does.Contain("Ball, paddle, and capsules"));
+        Assert.That(card.Description, Does.Contain("x1.25"));
+        Assert.That(card.Family, Does.Contain("Epic Mixed"));
+        Assert.That(card.StateLabel, Is.EqualTo("Locked"));
+        Assert.That(view.Cards.Count(item => item.Title == "Overdrive Tape"), Is.EqualTo(1));
     }
 
     [Test]

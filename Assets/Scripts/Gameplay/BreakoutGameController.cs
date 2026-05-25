@@ -5963,6 +5963,7 @@ namespace GetBricked.Gameplay
                     0f,
                     0f,
                     1f,
+                    1f,
                     false,
                     0f,
                     0f,
@@ -5999,6 +6000,8 @@ namespace GetBricked.Gameplay
                 TriggerMicroSparkPopFeedback();
                 return;
             }
+
+            powerUpService?.RefreshActivePickupFallSpeedMultiplier(activeEffectModifiers.PickupFallSpeedMultiplier);
 
             paddle.SetWavyStrength(activeEffectModifiers.WavyPaddleStrength);
             paddle.SetControlsReversed(activeEffectModifiers.ReverseControlsEnabled);
@@ -7074,7 +7077,13 @@ namespace GetBricked.Gameplay
 
         private float GetEffectivePickupFallSpeedMultiplier()
         {
-            return Mathf.Clamp(GetPersistentRunUpgradeModifiers().PickupFallSpeedMultiplier, 0.35f, 1.5f);
+            var activePickupMultiplier = activeEffectModifiers.PickupFallSpeedMultiplier > 0f
+                ? activeEffectModifiers.PickupFallSpeedMultiplier
+                : 1f;
+            return Mathf.Clamp(
+                GetPersistentRunUpgradeModifiers().PickupFallSpeedMultiplier * activePickupMultiplier,
+                0.35f,
+                1.5f);
         }
 
         private void ApplyTokenStormFallSpeed(PowerUpPickup pickup)
@@ -7192,6 +7201,7 @@ namespace GetBricked.Gameplay
                 PowerUpEffectType.HotPotatoBall => $"Ball x{definition.Scalar:0.00}, score x{definition.Scalar:0.00}",
                 PowerUpEffectType.JackpotJam => $"Score x{definition.Scalar:0.00}, ball x{BreakoutPowerUpService.JackpotJamBallSpeedMultiplier:0.00} for {definition.DurationSeconds:0.#}s",
                 PowerUpEffectType.MicroSpark => $"Ball size x{definition.Scalar:0.00}, score x{definition.SecondaryScalar:0.00} for {definition.DurationSeconds:0.#}s",
+                PowerUpEffectType.OverdriveTape => $"Ball, paddle, and capsules x{definition.Scalar:0.00} for {definition.DurationSeconds:0.#}s",
                 PowerUpEffectType.DoubleTap => $"Next paddle hit adds {Mathf.Max(1, definition.ExtraBallCount)} copy balls; paddle x{definition.Scalar:0.00} for {definition.DurationSeconds:0.#}s",
                 PowerUpEffectType.ExplosiveBall => $"Explodes bricks for {definition.DurationSeconds:0.#}s",
                 PowerUpEffectType.VectorSight => $"Aim preview for {definition.DurationSeconds:0.#}s",
