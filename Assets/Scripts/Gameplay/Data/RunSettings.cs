@@ -40,7 +40,8 @@ namespace GetBricked.Gameplay.Data
         GravityPocket = 4,
         TokenStorm = 5,
         StaticWall = 6,
-        Random = 7,
+        RowRewrite = 7,
+        Random = 8,
     }
 
     public sealed class RunSettings
@@ -204,6 +205,7 @@ namespace GetBricked.Gameplay.Data
             LevelGlitchSelection.GravityPocket => "Gravity Pocket Armed",
             LevelGlitchSelection.TokenStorm => "Token Storm Armed",
             LevelGlitchSelection.StaticWall => "Static Wall Armed",
+            LevelGlitchSelection.RowRewrite => "Row Rewrite Armed",
             _ => "Clean Walls",
         };
 

@@ -343,6 +343,81 @@ namespace GetBricked.Gameplay
             return mirroredCount;
         }
 
+        public int RewriteRow(int rowIndex, BreakoutProceduralBrickCell[] rowCells)
+        {
+            if (rowCells == null || rowCells.Length == 0)
+            {
+                return 0;
+            }
+
+            var removedRequiredCount = 0;
+            var replacementY = 0f;
+            var hasReplacementY = false;
+
+            for (var index = bricks.Count - 1; index >= 0; index--)
+            {
+                var brick = bricks[index];
+
+                if (brick == null)
+                {
+                    bricks.RemoveAt(index);
+                    continue;
+                }
+
+                var state = brick.CaptureState();
+
+                if (state.Row != rowIndex)
+                {
+                    continue;
+                }
+
+                if (!hasReplacementY)
+                {
+                    replacementY = state.Position.y;
+                    hasReplacementY = true;
+                }
+
+                if (brick.CountsTowardLevelCompletion)
+                {
+                    removedRequiredCount++;
+                }
+
+                bricks.RemoveAt(index);
+                DisableAndDestroyBrick(brick);
+            }
+
+            if (!hasReplacementY)
+            {
+                return -removedRequiredCount;
+            }
+
+            var addedRequiredCount = 0;
+            var totalWidth = (rowCells.Length * brickSize.x) + (Mathf.Max(0, rowCells.Length - 1) * brickSpacing.x);
+            var startX = (-totalWidth * 0.5f) + (brickSize.x * 0.5f);
+
+            for (var column = 0; column < rowCells.Length; column++)
+            {
+                var cell = rowCells[column];
+
+                if (cell == null || cell.Definition == null)
+                {
+                    continue;
+                }
+
+                var position = new Vector2(
+                    startX + (column * (brickSize.x + brickSpacing.x)),
+                    replacementY);
+                var brick = CreateBrick(position, cell.Definition, rowIndex, column, cell.MotionConfig);
+
+                if (brick != null && brick.CountsTowardLevelCompletion)
+                {
+                    addedRequiredCount++;
+                }
+            }
+
+            return addedRequiredCount - removedRequiredCount;
+        }
+
         public int DestroyBricksInExplosionRadius(
             Vector2 explosionCenter,
             float explosionRadius,

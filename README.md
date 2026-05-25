@@ -243,7 +243,7 @@ Late drop proposals should keep using mechanics the game already teaches: paddle
 | `Token Storm` | More capsules spawn, but fall at mixed speeds. | Heat 03 | Epic | Pickup glitch | Implemented |
 | `Gravity Pocket` | A slow drifting pocket bends nearby ball paths. | Heat 04 | Epic | Speed glitch | Implemented |
 | `Static Wall` | One side wall flickers between normal and weak bounce. | Heat 05 | Epic | Paddle glitch | Implemented |
-| `Row Rewrite` | One row rerolls into a new brick pattern after a timer. | Heat 06 | Rare | Layout glitch | Not implemented (UI placeholder) |
+| `Row Rewrite` | One row rerolls into a new brick pattern after a timer. | Heat 06 | Rare | Layout glitch | Implemented |
 | `Prism Lanes` | Marked lanes refract the ball into sharper angles. | Heat 07 | Rare | Precision glitch | Not implemented (UI placeholder) |
 | `Switchback Rails` | Side rails swap rebound angles every few seconds. | Heat 08 | Rare | Wall glitch | Not implemented (proposal) |
 | `Capsule Roulette` | Falling capsules rotate polarity until caught or missed. | Heat 09 | Rare | Pickup glitch | Not implemented (proposal) |

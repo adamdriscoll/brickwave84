@@ -64,7 +64,6 @@ namespace GetBricked.Gameplay
 
         private static readonly BreakoutProgressionPlaceholderItem[] PlaceholderGlitches =
         {
-            new BreakoutProgressionPlaceholderItem("Row Rewrite", "Glitch", "Layout", "One row rerolls into a new brick pattern after a timer.", 6, LayoutAccent),
             new BreakoutProgressionPlaceholderItem("Prism Lanes", "Glitch", "Precision", "Marked lanes refract the ball into sharper angles.", 7, PrecisionAccent),
         };
 
@@ -157,6 +156,13 @@ namespace GetBricked.Gameplay
                 BreakoutLevelGlitchPlanner.StaticWallLadderUnlockIntensity,
                 highestCompletedIntensity,
                 HazardAccent));
+            cards.Add(BuildUnlockableGlitchCard(
+                "Row Rewrite",
+                "Layout Rare Glitch",
+                "One row rerolls into a new brick pattern after a timer.",
+                BreakoutLevelGlitchPlanner.RowRewriteLadderUnlockIntensity,
+                highestCompletedIntensity,
+                LayoutAccent));
             AppendPlaceholderCards(cards, PlaceholderDrops, highestCompletedIntensity);
             AppendPlaceholderCards(cards, PlaceholderGlitches, highestCompletedIntensity);
             cards.Add(BuildHiddenSlotCard("Future Drop Slot", "Drop", "Hidden", "Future drop signal pending."));
@@ -495,6 +501,11 @@ namespace GetBricked.Gameplay
             }
 
             if (completedIntensity >= BreakoutLevelGlitchPlanner.StaticWallLadderUnlockIntensity)
+            {
+                count++;
+            }
+
+            if (completedIntensity >= BreakoutLevelGlitchPlanner.RowRewriteLadderUnlockIntensity)
             {
                 count++;
             }

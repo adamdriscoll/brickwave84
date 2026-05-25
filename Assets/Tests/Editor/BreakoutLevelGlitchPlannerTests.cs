@@ -147,6 +147,30 @@ public sealed class BreakoutLevelGlitchPlannerTests
         Assert.That(unlockedPlan.StaticWall.WeakDurationSeconds, Is.InRange(0.72f, 1.05f));
     }
 
+    [Test]
+    public void RogueGlitchHeatControlsWhenRowRewriteCanUnlock()
+    {
+        var lockedSettings = CreateRogueSettings(
+            rogueIntensity: BreakoutLevelGlitchPlanner.RowRewriteLadderUnlockIntensity,
+            levelGlitchSelection: LevelGlitchSelection.RowRewrite);
+        var unlockedSettings = CreateRogueSettings(
+            rogueIntensity: BreakoutLevelGlitchPlanner.RowRewriteLadderUnlockIntensity + 1,
+            levelGlitchSelection: LevelGlitchSelection.RowRewrite);
+
+        var lockedPlan = BreakoutLevelGlitchPlanner.BuildPlan(new DeterministicRandomService(7), lockedSettings, levelIndex: 9);
+        var unlockedPlan = BreakoutLevelGlitchPlanner.BuildPlan(new DeterministicRandomService(7), unlockedSettings, levelIndex: 9);
+
+        Assert.That(lockedPlan.IsActive, Is.False);
+        Assert.That(unlockedPlan.IsActive, Is.True);
+        Assert.That(unlockedPlan.GlitchType, Is.EqualTo(BreakoutLevelGlitchType.RowRewrite));
+        Assert.That(unlockedPlan.DisplayName, Is.EqualTo("Row Rewrite"));
+        Assert.That(unlockedPlan.Rarity, Is.EqualTo(BreakoutContentRarity.Rare));
+        Assert.That(unlockedPlan.ScoreMultiplier, Is.EqualTo(1.28f).Within(0.0001f));
+        Assert.That(unlockedPlan.RowRewrite.NormalizedRow, Is.InRange(0.12f, 0.78f));
+        Assert.That(unlockedPlan.RowRewrite.TriggerSeconds, Is.InRange(8.5f, 13.5f));
+        Assert.That(unlockedPlan.RowRewrite.FillChance, Is.InRange(0.54f, 0.76f));
+    }
+
 
     [Test]
     public void ForcedWarpGatePlanBuildsSmallPortalSetAndScoreBonus()
@@ -265,6 +289,20 @@ public sealed class BreakoutLevelGlitchPlannerTests
 
         Assert.That(plan.IsActive, Is.True);
         Assert.That(plan.GlitchType, Is.EqualTo(BreakoutLevelGlitchType.StaticWall));
+    }
+
+    [Test]
+    public void SelectedRowRewriteAlwaysBuildsRowRewriteEvenWhenChanceIsDisabled()
+    {
+        var settings = CreateSettings(
+            levelGlitchesEnabled: true,
+            chanceMultiplier: 0f,
+            levelGlitchSelection: LevelGlitchSelection.RowRewrite);
+
+        var plan = BreakoutLevelGlitchPlanner.BuildPlan(new DeterministicRandomService(3), settings, levelIndex: 9);
+
+        Assert.That(plan.IsActive, Is.True);
+        Assert.That(plan.GlitchType, Is.EqualTo(BreakoutLevelGlitchType.RowRewrite));
     }
 
 

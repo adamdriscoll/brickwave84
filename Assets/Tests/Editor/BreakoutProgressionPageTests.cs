@@ -72,7 +72,7 @@ public sealed class BreakoutProgressionPageTests
     }
 
     [Test]
-    public void ProgressionPageUsesSavedHeatForGlitchPlaceholderUnlockPreview()
+    public void ProgressionPageUsesSavedHeatForGlitchUnlocks()
     {
         BreakoutRogueRunResultStore.Save(new BreakoutRogueRunResult
         {
@@ -94,7 +94,8 @@ public sealed class BreakoutProgressionPageTests
         Assert.That(view.Paddles, Is.Empty);
         Assert.That(rowRewrite.UnlockState, Is.EqualTo(BreakoutUiProgressionUnlockState.Unlocked));
         Assert.That(prismLanes.UnlockState, Is.EqualTo(BreakoutUiProgressionUnlockState.SeenLocked));
-        Assert.That(rowRewrite.UnlockHint, Does.Contain("preview"));
+        Assert.That(rowRewrite.UnlockHint, Does.Contain("Heat 06"));
+        Assert.That(rowRewrite.UnlockHint, Does.Not.Contain("preview"));
         Assert.That(prismLanes.UnlockHint, Does.Contain("Heat 07"));
     }
 
@@ -118,6 +119,7 @@ public sealed class BreakoutProgressionPageTests
         var mirrorGrid = view.Cards.First(card => card.Title == "Mirror Grid");
         var tokenStorm = view.Cards.First(card => card.Title == "Token Storm");
         var gravityPocket = view.Cards.First(card => card.Title == "Gravity Pocket");
+        var rowRewrite = view.Cards.First(card => card.Title == "Row Rewrite");
         var solarShot = view.Cards.First(card => card.Title == "Solar Shot");
         var wrapRail = view.Cards.First(card => card.Title == "Wrap Rail");
         var staticShoes = view.Cards.First(card => card.Title == "Static Shoes");
@@ -141,6 +143,10 @@ public sealed class BreakoutProgressionPageTests
         Assert.That(tokenStorm.UnlockHint, Does.Contain("Heat 03"));
         Assert.That(tokenStorm.UnlockHint, Does.Not.Contain("preview"));
         Assert.That(tokenStorm.Family, Does.Contain("Epic"));
+        Assert.That(rowRewrite.UnlockHint, Does.Contain("Heat 06"));
+        Assert.That(rowRewrite.UnlockHint, Does.Not.Contain("preview"));
+        Assert.That(rowRewrite.Description, Does.Contain("rerolls"));
+        Assert.That(rowRewrite.Family, Does.Contain("Rare"));
         Assert.That(solarShot.UnlockHint, Does.Contain("Heat 36"));
         Assert.That(solarShot.Description, Does.Contain("burns away"));
         Assert.That(wrapRail.UnlockHint, Does.Contain("Heat 37"));

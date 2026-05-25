@@ -14,6 +14,7 @@ namespace GetBricked.Gameplay
         GravityPocket = 4,
         TokenStorm = 5,
         StaticWall = 6,
+        RowRewrite = 7,
     }
 
     internal readonly struct BreakoutLevelGlitchDefinition
@@ -143,6 +144,33 @@ namespace GetBricked.Gameplay
         public float PhaseOffsetSeconds { get; }
     }
 
+    internal readonly struct BreakoutRowRewriteSpec
+    {
+        public BreakoutRowRewriteSpec(
+            float normalizedRow,
+            float triggerSeconds,
+            float warningSeconds,
+            float fillChance,
+            int patternSeed)
+        {
+            NormalizedRow = Mathf.Clamp01(normalizedRow);
+            TriggerSeconds = Mathf.Max(3f, triggerSeconds);
+            WarningSeconds = Mathf.Clamp(warningSeconds, 0.5f, TriggerSeconds - 0.25f);
+            FillChance = Mathf.Clamp(fillChance, 0.35f, 0.9f);
+            PatternSeed = patternSeed == int.MinValue ? int.MaxValue : Mathf.Abs(patternSeed);
+        }
+
+        public float NormalizedRow { get; }
+
+        public float TriggerSeconds { get; }
+
+        public float WarningSeconds { get; }
+
+        public float FillChance { get; }
+
+        public int PatternSeed { get; }
+    }
+
     internal sealed class BreakoutLevelGlitchPlan
     {
         public static readonly BreakoutLevelGlitchPlan None = new BreakoutLevelGlitchPlan(
@@ -167,7 +195,8 @@ namespace GetBricked.Gameplay
             BreakoutTokenStormSpec tokenStorm = default,
             BreakoutGravityPocketSpec gravityPocket = default,
             BreakoutStaticWallSpec staticWall = default,
-            BreakoutLevelGlitchType[] activeGlitchTypes = null)
+            BreakoutLevelGlitchType[] activeGlitchTypes = null,
+            BreakoutRowRewriteSpec rowRewrite = default)
         {
             GlitchType = glitchType;
             Rarity = BreakoutRarityRules.Clamp(rarity);
@@ -179,6 +208,7 @@ namespace GetBricked.Gameplay
             TokenStorm = tokenStorm;
             GravityPocket = gravityPocket;
             StaticWall = staticWall;
+            RowRewrite = rowRewrite;
             ActiveGlitchTypes = activeGlitchTypes != null && activeGlitchTypes.Length > 0
                 ? activeGlitchTypes
                 : glitchType != BreakoutLevelGlitchType.None
@@ -206,6 +236,8 @@ namespace GetBricked.Gameplay
 
         public BreakoutStaticWallSpec StaticWall { get; }
 
+        public BreakoutRowRewriteSpec RowRewrite { get; }
+
         public BreakoutLevelGlitchType[] ActiveGlitchTypes { get; }
 
         public bool IsActive => ActiveGlitchTypes.Length > 0;
@@ -231,6 +263,7 @@ namespace GetBricked.Gameplay
         public const int TokenStormLadderUnlockIntensity = 3;
         public const int GravityPocketLadderUnlockIntensity = 4;
         public const int StaticWallLadderUnlockIntensity = 5;
+        public const int RowRewriteLadderUnlockIntensity = 6;
 
         private const float WarpGateScoreMultiplier = 1.35f;
         private const float TurboRailScoreMultiplier = 1.25f;
@@ -238,6 +271,7 @@ namespace GetBricked.Gameplay
         private const float TokenStormScoreMultiplier = 1.32f;
         private const float GravityPocketScoreMultiplier = 1.38f;
         private const float StaticWallScoreMultiplier = 1.34f;
+        private const float RowRewriteScoreMultiplier = 1.28f;
 
         private static readonly BreakoutLevelGlitchDefinition[] GlitchDefinitions =
         {
@@ -271,6 +305,11 @@ namespace GetBricked.Gameplay
                 LevelGlitchSelection.StaticWall,
                 BreakoutContentRarity.Epic,
                 StaticWallLadderUnlockIntensity),
+            new BreakoutLevelGlitchDefinition(
+                BreakoutLevelGlitchType.RowRewrite,
+                LevelGlitchSelection.RowRewrite,
+                BreakoutContentRarity.Rare,
+                RowRewriteLadderUnlockIntensity),
         };
 
         public static BreakoutLevelGlitchPlan BuildPlan(
@@ -345,6 +384,11 @@ namespace GetBricked.Gameplay
             if (definition.GlitchType == BreakoutLevelGlitchType.StaticWall)
             {
                 return BuildStaticWallPlan(random, definition.Rarity);
+            }
+
+            if (definition.GlitchType == BreakoutLevelGlitchType.RowRewrite)
+            {
+                return BuildRowRewritePlan(random, definition.Rarity);
             }
 
             return BuildWarpGatePlan(random, definition.Rarity);
@@ -449,6 +493,7 @@ namespace GetBricked.Gameplay
             var tokenStorm = default(BreakoutTokenStormSpec);
             var gravityPocket = default(BreakoutGravityPocketSpec);
             var staticWall = default(BreakoutStaticWallSpec);
+            var rowRewrite = default(BreakoutRowRewriteSpec);
 
             for (var index = 0; index < definitions.Count; index++)
             {
@@ -484,6 +529,11 @@ namespace GetBricked.Gameplay
                 {
                     staticWall = plan.StaticWall;
                 }
+
+                if (plan.HasGlitch(BreakoutLevelGlitchType.RowRewrite))
+                {
+                    rowRewrite = plan.RowRewrite;
+                }
             }
 
             return new BreakoutLevelGlitchPlan(
@@ -497,7 +547,8 @@ namespace GetBricked.Gameplay
                 tokenStorm,
                 gravityPocket,
                 staticWall,
-                activeTypes);
+                activeTypes,
+                rowRewrite);
         }
 
         private static BreakoutLevelGlitchPlan BuildWarpGatePlan(DeterministicRandomService random, BreakoutContentRarity rarity)
@@ -577,6 +628,22 @@ namespace GetBricked.Gameplay
                 default,
                 default,
                 BuildStaticWall(random));
+        }
+
+        private static BreakoutLevelGlitchPlan BuildRowRewritePlan(DeterministicRandomService random, BreakoutContentRarity rarity)
+        {
+            return new BreakoutLevelGlitchPlan(
+                BreakoutLevelGlitchType.RowRewrite,
+                rarity,
+                "Row Rewrite",
+                $"Row Rewrite x{RowRewriteScoreMultiplier:0.00}",
+                RowRewriteScoreMultiplier,
+                Array.Empty<BreakoutWarpGateSpec>(),
+                default,
+                default,
+                default,
+                default,
+                rowRewrite: BuildRowRewrite(random));
         }
 
         public static float GetGlitchChance(RunSettings settings, int levelIndex)
@@ -683,6 +750,16 @@ namespace GetBricked.Gameplay
                 random.Range(2.1f, 2.85f),
                 random.Range(0.72f, 1.05f),
                 random.Range(0f, 2.85f));
+        }
+
+        private static BreakoutRowRewriteSpec BuildRowRewrite(DeterministicRandomService random)
+        {
+            return new BreakoutRowRewriteSpec(
+                random.Range(0.12f, 0.78f),
+                random.Range(8.5f, 13.5f),
+                random.Range(1.8f, 2.6f),
+                random.Range(0.54f, 0.76f),
+                random.Range(1, int.MaxValue));
         }
 
         private static BreakoutLevelGlitchDefinition ResolveGlitchDefinition(
@@ -814,7 +891,8 @@ namespace GetBricked.Gameplay
                 || selection == LevelGlitchSelection.MirrorGrid
                 || selection == LevelGlitchSelection.GravityPocket
                 || selection == LevelGlitchSelection.TokenStorm
-                || selection == LevelGlitchSelection.StaticWall;
+                || selection == LevelGlitchSelection.StaticWall
+                || selection == LevelGlitchSelection.RowRewrite;
         }
 
         private static BreakoutWarpGateWall ResolveGateWall(DeterministicRandomService random, int index)

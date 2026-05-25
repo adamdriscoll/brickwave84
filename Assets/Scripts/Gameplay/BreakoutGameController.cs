@@ -238,6 +238,7 @@ namespace GetBricked.Gameplay
         private BreakoutPowerUpService powerUpService;
         private BreakoutAudioService audioService;
         private BreakoutBrickService brickService;
+        private BreakoutRowRewriteService rowRewriteService;
         private BreakoutPaddleSpawnService paddleSpawnService;
         private BreakoutBallSpawnService ballSpawnService;
         private BreakoutMainMenuService mainMenuService;
@@ -315,6 +316,13 @@ namespace GetBricked.Gameplay
         private bool isMirrorGridArmed;
         private bool hasMirrorGridTriggered;
         private int mirrorGridInitialRequiredBricks;
+        private bool isRowRewriteArmed;
+        private bool hasRowRewriteTriggered;
+        private bool hasShownRowRewriteWarning;
+        private float rowRewriteTimer;
+        private BreakoutRowRewriteSpec activeRowRewriteSpec;
+        private int currentLevelRowCount;
+        private int currentLevelColumnCount;
         private bool isDeveloperRunActive;
         private bool isMenuAttractModeActive;
         private float menuAttractRestartTimer;
@@ -458,6 +466,7 @@ namespace GetBricked.Gameplay
             UpdateServeBallRevealDelay();
             UpdateMenuAttractMode();
             UpdateGravityPocketInfluence();
+            UpdateRowRewriteTimer();
 
             var keyboard = Keyboard.current;
 
@@ -3307,6 +3316,7 @@ namespace GetBricked.Gameplay
                 ResolveBrickMovementBounds,
                 ResolveBrickVisualStyle,
                 DestroyRuntimeObject);
+            rowRewriteService = new BreakoutRowRewriteService(bricks, loadedBrickDefinitions);
         }
 
         private Rect ResolveBrickMovementBounds()
@@ -3483,11 +3493,15 @@ namespace GetBricked.Gameplay
 
         private void BuildBrickWall(BreakoutLevelLayoutPlan layoutPlan)
         {
+            currentLevelRowCount = layoutPlan?.BrickRows?.Length ?? 0;
+            currentLevelColumnCount = GetLayoutPlanColumnCount(layoutPlan);
+
             if (activeRunSettings != null
                 && activeRunSettings.IsTurnBasedMode
                 && turnBasedMultiplayerController != null
                 && turnBasedMultiplayerController.TryGetCurrentPlayerBrickState(currentLevelIndex, out var savedBrickStates))
             {
+                ResolveSavedBrickStateDimensions(savedBrickStates);
                 requiredBricksRemaining = brickService != null
                     ? brickService.BuildBrickWall(savedBrickStates)
                     : 0;
@@ -3497,6 +3511,37 @@ namespace GetBricked.Gameplay
             requiredBricksRemaining = brickService != null
                 ? brickService.BuildBrickWall(layoutPlan, arenaTop)
                 : 0;
+        }
+
+        private static int GetLayoutPlanColumnCount(BreakoutLevelLayoutPlan layoutPlan)
+        {
+            if (layoutPlan == null || layoutPlan.BrickRows == null)
+            {
+                return 0;
+            }
+
+            var columnCount = 0;
+
+            for (var rowIndex = 0; rowIndex < layoutPlan.BrickRows.Length; rowIndex++)
+            {
+                columnCount = Mathf.Max(columnCount, layoutPlan.BrickRows[rowIndex]?.Length ?? 0);
+            }
+
+            return columnCount;
+        }
+
+        private void ResolveSavedBrickStateDimensions(BreakoutBrickState[] savedBrickStates)
+        {
+            if (savedBrickStates == null || savedBrickStates.Length == 0)
+            {
+                return;
+            }
+
+            for (var index = 0; index < savedBrickStates.Length; index++)
+            {
+                currentLevelRowCount = Mathf.Max(currentLevelRowCount, savedBrickStates[index].Row + 1);
+                currentLevelColumnCount = Mathf.Max(currentLevelColumnCount, savedBrickStates[index].Column + 1);
+            }
         }
 
         private void ApplyLevelGlitchPlan(BreakoutLevelGlitchPlan glitchPlan)
@@ -3545,6 +3590,12 @@ namespace GetBricked.Gameplay
                 CreateStaticWall(activeLevelGlitchPlan);
                 powerUpService?.ShowStatusBanner("STATIC WALL!", new Color(0.99f, 0.27f, 0.31f, 1f), 2.2f);
             }
+
+            if (activeLevelGlitchPlan.HasGlitch(BreakoutLevelGlitchType.RowRewrite))
+            {
+                ArmRowRewrite(activeLevelGlitchPlan.RowRewrite);
+                powerUpService?.ShowStatusBanner("ROW REWRITE!", new Color(0.72f, 0.62f, 1f, 1f), 2.2f);
+            }
         }
 
         private void ClearLevelGlitches()
@@ -3553,6 +3604,11 @@ namespace GetBricked.Gameplay
             isMirrorGridArmed = false;
             hasMirrorGridTriggered = false;
             mirrorGridInitialRequiredBricks = 0;
+            isRowRewriteArmed = false;
+            hasRowRewriteTriggered = false;
+            hasShownRowRewriteWarning = false;
+            rowRewriteTimer = 0f;
+            activeRowRewriteSpec = default;
 
             if (activeWarpGateController != null)
             {
@@ -3636,6 +3692,66 @@ namespace GetBricked.Gameplay
                 squareSprite,
                 additiveSpriteMaterial,
                 Rect.MinMaxRect(arenaLeft, arenaBottom + 0.35f, arenaRight, arenaTop));
+        }
+
+        private void ArmRowRewrite(BreakoutRowRewriteSpec rowRewrite)
+        {
+            activeRowRewriteSpec = rowRewrite;
+            rowRewriteTimer = rowRewrite.TriggerSeconds;
+            isRowRewriteArmed = true;
+            hasRowRewriteTriggered = false;
+            hasShownRowRewriteWarning = false;
+        }
+
+        private void UpdateRowRewriteTimer()
+        {
+            if (!isRowRewriteArmed
+                || hasRowRewriteTriggered
+                || roundState != RoundState.Playing
+                || activeLevelGlitchPlan == null
+                || !activeLevelGlitchPlan.HasGlitch(BreakoutLevelGlitchType.RowRewrite))
+            {
+                return;
+            }
+
+            rowRewriteTimer = Mathf.Max(0f, rowRewriteTimer - Time.deltaTime);
+
+            if (!hasShownRowRewriteWarning && rowRewriteTimer <= activeRowRewriteSpec.WarningSeconds)
+            {
+                hasShownRowRewriteWarning = true;
+                powerUpService?.ShowStatusBanner("ROW SHIFTING!", new Color(1f, 0.87f, 0.36f, 1f), 1.3f);
+            }
+
+            if (rowRewriteTimer > 0f)
+            {
+                return;
+            }
+
+            hasRowRewriteTriggered = true;
+            isRowRewriteArmed = false;
+            RewriteActiveBrickRow();
+        }
+
+        private void RewriteActiveBrickRow()
+        {
+            if (brickService == null
+                || rowRewriteService == null
+                || bricks.Count == 0
+                || !rowRewriteService.TryBuildRewrite(
+                    activeRowRewriteSpec,
+                    currentLevelRowCount,
+                    currentLevelColumnCount,
+                    out var rowIndex,
+                    out var rewrittenCells))
+            {
+                return;
+            }
+
+            var requiredBrickDelta = brickService.RewriteRow(rowIndex, rewrittenCells);
+
+            requiredBricksRemaining = Mathf.Max(0, requiredBricksRemaining + requiredBrickDelta);
+            powerUpService?.ShowStatusBanner("REWRITE LIVE!", new Color(0.72f, 0.62f, 1f, 1f), 1.8f);
+            EvaluateLevelCompletion();
         }
 
         private void CreateWarpGates(BreakoutLevelGlitchPlan glitchPlan)
@@ -5645,6 +5761,7 @@ namespace GetBricked.Gameplay
                 LevelGlitchSelection.GravityPocket => "Gravity Pocket",
                 LevelGlitchSelection.TokenStorm => "Token Storm",
                 LevelGlitchSelection.StaticWall => "Static Wall",
+                LevelGlitchSelection.RowRewrite => "Row Rewrite",
                 _ => "Off",
             };
         }
