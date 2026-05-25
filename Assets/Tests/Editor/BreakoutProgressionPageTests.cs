@@ -107,7 +107,7 @@ public sealed class BreakoutProgressionPageTests
             .Select(definition => definition.LadderUnlockIntensity)
             .OrderBy(heat => heat)
             .ToArray();
-        var expectedDropHeats = Enumerable.Range(1, 41).ToArray();
+        var expectedDropHeats = Enumerable.Range(1, 42).ToArray();
 
         Assert.That(unlockHeats, Is.EqualTo(expectedDropHeats));
 
@@ -122,6 +122,7 @@ public sealed class BreakoutProgressionPageTests
         var jackpotJam = view.Cards.First(card => card.Title == "Jackpot Jam");
         var rewindCatch = view.Cards.First(card => card.Title == "Rewind Catch");
         var microSpark = view.Cards.First(card => card.Title == "Micro Spark");
+        var brickBloom = view.Cards.First(card => card.Title == "Brick Bloom");
 
         Assert.That(turboRail.UnlockHint, Does.Contain("Heat 01"));
         Assert.That(mirrorGrid.UnlockHint, Does.Contain("Heat 02"));
@@ -145,6 +146,8 @@ public sealed class BreakoutProgressionPageTests
         Assert.That(microSpark.UnlockHint, Does.Contain("Heat 41"));
         Assert.That(microSpark.Description, Does.Contain("Ball size x0.55"));
         Assert.That(microSpark.Description, Does.Contain("score x1.75"));
+        Assert.That(brickBloom.UnlockHint, Does.Contain("Heat 42"));
+        Assert.That(brickBloom.Description, Does.Contain("spawns 2 tiny bonus bricks"));
     }
 
     [Test]
@@ -273,6 +276,22 @@ public sealed class BreakoutProgressionPageTests
         Assert.That(card.Family, Does.Contain("Epic Helpful"));
         Assert.That(card.StateLabel, Is.EqualTo("Locked"));
         Assert.That(view.Cards.Count(item => item.Title == "Micro Spark"), Is.EqualTo(1));
+    }
+
+    [Test]
+    public void ProgressionPageShowsBrickBloomAsLiveHeatFortyTwoDrop()
+    {
+        var brickBloom = Resources.Load<PowerUpDefinition>("PowerUps/BrickBloom");
+        Assert.That(brickBloom, Is.Not.Null);
+
+        var view = new BreakoutProgressionPageService().BuildView(new[] { brickBloom });
+        var card = view.Cards.First(item => item.Title == "Brick Bloom");
+
+        Assert.That(card.UnlockHint, Does.Contain("Heat 42"));
+        Assert.That(card.Description, Does.Contain("spawns 2 tiny bonus bricks"));
+        Assert.That(card.Family, Does.Contain("Epic Mixed"));
+        Assert.That(card.StateLabel, Is.EqualTo("Locked"));
+        Assert.That(view.Cards.Count(item => item.Title == "Brick Bloom"), Is.EqualTo(1));
     }
 
     [Test]

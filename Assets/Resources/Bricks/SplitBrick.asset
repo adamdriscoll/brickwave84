@@ -45,6 +45,8 @@ MonoBehaviour:
     weight: 1
   - powerUpDefinition: {fileID: 11400000, guid: 2f084073d8fa4320b37b4d7d282bb625, type: 2}
     weight: 1
+  - powerUpDefinition: {fileID: 11400000, guid: 14d46c4eb70243098ccc00e2c3676f6e, type: 2}
+    weight: 1
   baseColor: {r: 0.72, g: 0.36, b: 1, a: 1}
   damagedColor: {r: 0.3, g: 0.16, b: 0.68, a: 1}
   spriteResourcePath: Sprites/split-brick

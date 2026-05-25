@@ -35,6 +35,8 @@ namespace GetBricked.Gameplay
         private const float ExplosiveBallSpeedBurstDuration = 1.45f;
         private const int ExplosiveBrickSplitBallCount = 3;
         private const float ExplosiveBrickSplitBallSizeMultiplier = 0.55f;
+        private const int BrickBloomBonusBrickCount = 2;
+        private const float BrickBloomPulseRadius = 0.85f;
         private const float PrismPopCopyBallSizeMultiplier = 0.72f;
         private const float PrismPopFallbackCopyLifetimeSeconds = 4f;
         private const float PrismPopLaunchOffsetMultiplier = 1.15f;
@@ -598,6 +600,7 @@ namespace GetBricked.Gameplay
                 requiredBricksRemaining = Mathf.Max(0, requiredBricksRemaining - 1);
             }
 
+            TryTriggerBrickBloom(explosionCenter);
             brickService.DisableAndDestroyBrick(brick);
             TryTriggerMirrorGrid();
 
@@ -672,6 +675,84 @@ namespace GetBricked.Gameplay
                 GetEffectiveSpecialBrickEffectMultiplier());
 
             EvaluateLevelCompletion();
+        }
+
+        private void TryTriggerBrickBloom(Vector2 bloomCenter)
+        {
+            if (powerUpService == null
+                || brickService == null
+                || powerUpService.BrickBloomCharges <= 0)
+            {
+                return;
+            }
+
+            var bloomDefinition = ResolveBrickBloomBonusDefinition();
+
+            if (bloomDefinition == null || !powerUpService.TryConsumeBrickBloomCharge(out var brickBloomPowerUp))
+            {
+                return;
+            }
+
+            var spawnedRequiredBricks = brickService.SpawnBonusBricks(
+                bloomDefinition,
+                bloomCenter,
+                ResolveBrickBloomBonusBrickCount(brickBloomPowerUp));
+
+            if (spawnedRequiredBricks <= 0)
+            {
+                return;
+            }
+
+            requiredBricksRemaining += spawnedRequiredBricks;
+            SpawnExplosionVisual(bloomCenter, BrickBloomPulseRadius);
+            powerUpService.ShowStatusBanner("BRICK BLOOM!", ResolveBrickBloomColor(), 1.8f);
+        }
+
+        private static int ResolveBrickBloomBonusBrickCount(PowerUpDefinition brickBloomPowerUp)
+        {
+            return Mathf.Clamp(
+                brickBloomPowerUp != null && brickBloomPowerUp.ExtraBallCount > 0
+                    ? brickBloomPowerUp.ExtraBallCount
+                    : BrickBloomBonusBrickCount,
+                1,
+                8);
+        }
+
+        private BrickDefinition ResolveBrickBloomBonusDefinition()
+        {
+            for (var index = 0; index < loadedBrickDefinitions.Count; index++)
+            {
+                var definition = loadedBrickDefinitions[index];
+
+                if (definition == null || !definition.IsBreakable)
+                {
+                    continue;
+                }
+
+                if (string.Equals(definition.DisplayName, "Tiny Brick", StringComparison.OrdinalIgnoreCase))
+                {
+                    return definition;
+                }
+            }
+
+            BrickDefinition smallestDefinition = null;
+
+            for (var index = 0; index < loadedBrickDefinitions.Count; index++)
+            {
+                var definition = loadedBrickDefinitions[index];
+
+                if (definition == null || !definition.IsBreakable)
+                {
+                    continue;
+                }
+
+                if (smallestDefinition == null || definition.SizeMultiplier < smallestDefinition.SizeMultiplier)
+                {
+                    smallestDefinition = definition;
+                }
+            }
+
+            return smallestDefinition;
         }
 
         public bool TryHandleSolarShot(BallController scoringBall, Brick brick)
@@ -7507,6 +7588,17 @@ namespace GetBricked.Gameplay
                     new Color(1f, 0.87f, 0.36f, 1f),
                     new Color(1f, 0.28f, 0.66f, 1f),
                     missileSprite != null ? missileSprite : triangleSprite).PrimaryColor
+                : new Color(1f, 0.87f, 0.36f, 1f);
+        }
+
+        private Color ResolveBrickBloomColor()
+        {
+            return themeService != null
+                ? themeService.ResolveThemeStyle(
+                    ThemeVisualSlot.PickupBurst,
+                    new Color(1f, 0.87f, 0.36f, 1f),
+                    new Color(0.45f, 0.95f, 0.72f, 1f),
+                    powerUpSprite).PrimaryColor
                 : new Color(1f, 0.87f, 0.36f, 1f);
         }
 

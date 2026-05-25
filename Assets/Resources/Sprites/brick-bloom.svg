@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
+  <title id="title">Brick Bloom</title>
+  <desc id="desc">A monochrome neon icon showing one brick blooming into two tiny bonus bricks.</desc>
+  <defs>
+    <filter id="softGlow" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="2.25" result="blur"/>
+      <feColorMatrix in="blur" type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 .8 0" result="glow"/>
+      <feMerge><feMergeNode in="glow"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <style><![CDATA[
+      .icon{fill:none;stroke:#fff;stroke-linecap:round;stroke-linejoin:round;filter:url(#softGlow)}
+      .main{stroke-width:12;opacity:.96}
+      .mid{stroke-width:8;opacity:.78}
+      .thin{stroke-width:4;opacity:.38}
+      .core{fill:#fff;stroke:none;opacity:.9;filter:url(#softGlow)}
+    ]]></style>
+  </defs>
+  <g class="icon">
+    <rect class="main" x="72" y="112" width="112" height="52" rx="8"/>
+    <path class="mid" d="M92 129h72M92 147h72"/>
+    <rect class="mid" x="46" y="54" width="56" height="34" rx="7"/>
+    <rect class="mid" x="154" y="54" width="56" height="34" rx="7"/>
+    <path class="main" d="M97 104c-10-12-17-23-21-36"/>
+    <path class="main" d="M159 104c10-12 17-23 21-36"/>
+    <path class="thin" d="M128 34v38M128 184v34M51 118H28M228 118h-23"/>
+    <path class="thin" d="M52 191l31-24M204 191l-31-24M43 38l19 18M213 38l-19 18"/>
+    <circle class="core" cx="128" cy="138" r="9"/>
+    <circle class="thin" cx="128" cy="128" r="92"/>
+  </g>
+</svg>

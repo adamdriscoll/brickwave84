@@ -157,17 +157,17 @@ Difficulty presets already change more than labels:
 | --- | --- | --- | --- | --- |
 | `Basic Brick` | `1` | `100` | Standard breakable starter brick | `Wide Paddle`, `Slow Ball`, `Multi-Ball`, `Narrow Paddle`, `Wavy Paddle`, `Sticky Paddle`, `Shield Wall` |
 | `Reinforced Brick` | `2` | `175` | Tougher breakable mid-tier brick | `Wide Paddle`, `Slow Ball`, `Fast Ball`, `Multi-Ball`, `Narrow Paddle`, `Wavy Paddle`, `Reverse Controls`, `Split Paddle`, `Lag Spike`, `Tilt Rail` |
-| `Fortified Brick` | `3` | `250` | High-durability breakable brick | `Fast Ball`, `Multi-Ball`, `Wide Paddle`, `Narrow Paddle`, `Slow Ball`, `Wavy Paddle`, `Phase Ball`, `Gravity Well`, `Fog of War` |
-| `Tiny Brick` | `1` | `325` | Quarter-scale breakable precision brick that is rarer in procedural mixes and pays out extra score for the smaller hitbox | `Wide Paddle`, `Slow Ball`, `Multi-Ball`, `Narrow Paddle`, `Wavy Paddle`, `Sticky Paddle`, `Shield Wall` |
+| `Fortified Brick` | `3` | `250` | High-durability breakable brick | `Fast Ball`, `Multi-Ball`, `Wide Paddle`, `Narrow Paddle`, `Slow Ball`, `Wavy Paddle`, `Phase Ball`, `Gravity Well`, `Fog of War`, `Brick Bloom` |
+| `Tiny Brick` | `1` | `325` | Quarter-scale breakable precision brick that is rarer in procedural mixes and pays out extra score for the smaller hitbox | `Wide Paddle`, `Slow Ball`, `Multi-Ball`, `Narrow Paddle`, `Wavy Paddle`, `Sticky Paddle`, `Shield Wall`, `Brick Bloom` |
 | `Spinner Brick` | `2` | `225` | Breakable rotor brick that starts spinning when hit, is rotation-anchored at its center, and kicks the ball into stranger ricochet angles while nearby bricks can physically limit its spin | `Wide Paddle`, `Slow Ball`, `Fast Ball`, `Reverse Controls`, `Split Paddle`, `Tilt Rail` |
 | `Jelly Block` | `2` | `190` | Breakable squish brick that slows the ball briefly on contact and adds a wobble read to the impact | `Slow Ball`, `Sticky Paddle`, `Multi-Ball`, `Score Surge`, `Mega Ball` |
-| `Split Brick` | `2` | `175` | Breakable brick that splits into `Tiny Brick` pieces when destroyed | `Wide Paddle`, `Slow Ball`, `Fast Ball`, `Multi-Ball`, `Mondo Multi`, `Bogus Multi`, `Mega Ball` |
-| `Explosive Brick` | `1` | `250` | Breakable brick with an explosion burst that splits the impact ball into three smaller boosted balls | `Narrow Paddle`, `Slow Ball`, `Wavy Paddle`, `Chain Lightning`, `Laser Paddle` |
+| `Split Brick` | `2` | `175` | Breakable brick that splits into `Tiny Brick` pieces when destroyed | `Wide Paddle`, `Slow Ball`, `Fast Ball`, `Multi-Ball`, `Mondo Multi`, `Bogus Multi`, `Mega Ball`, `Brick Bloom` |
+| `Explosive Brick` | `1` | `250` | Breakable brick with an explosion burst that splits the impact ball into three smaller boosted balls | `Narrow Paddle`, `Slow Ball`, `Wavy Paddle`, `Chain Lightning`, `Laser Paddle`, `Brick Bloom` |
 | `Steel Brick` | Indestructible | `0` | Obstacle brick that does not count toward completion | None |
 
 ### Unlock Progression
 
-Permanent run upgrades are always available in the between-stage draft pool. Drop and glitch unlocks now advance on parallel 50-Heat tracks: clearing a Heat can award one drop signal and one glitch signal. Implemented live drops currently fill Heat `01` through Heat `39`, with planned drop placeholders filling Heat `40` through Heat `50`. Implemented live glitches currently fill Heat `01` through Heat `05`, with planned glitch placeholders filling Heat `06` through Heat `50`. Default drops and default glitches start unlocked for Neon Ladder runs. Rarity still tunes odds and draft weighting, but it no longer controls unlock Heat. Implementation status tracks whether the item has live runtime gameplay behavior or is currently only a progression-screen placeholder.
+Permanent run upgrades are always available in the between-stage draft pool. Drop and glitch unlocks now advance on parallel 50-Heat tracks: clearing a Heat can award one drop signal and one glitch signal. Implemented live drops currently fill Heat `01` through Heat `42`, with planned drop placeholders filling Heat `43` through Heat `50`. Implemented live glitches currently fill Heat `01` through Heat `05`, with planned glitch placeholders filling Heat `06` through Heat `50`. Default drops and default glitches start unlocked for Neon Ladder runs. Rarity still tunes odds and draft weighting, but it no longer controls unlock Heat. Implementation status tracks whether the item has live runtime gameplay behavior or is currently only a progression-screen placeholder.
 
 Current balance shape: drops already have a healthy spread of classic brick-breaker tools, hazards, and mixed-risk capsules, but the late ladder needs more capstone capsules that answer or amplify stage chaos. Glitches are the bigger content gap: the implemented set proves the format with portals, layout flips, pickup storms, gravity, and wall behavior, so the rest of the ladder should lean into readable stage-wide rule changes rather than simple stat debuffs. New draft upgrades should help players build around that mayhem without erasing it.
 
@@ -223,7 +223,7 @@ Late drop proposals should keep using mechanics the game already teaches: paddle
 | `Jackpot Jam` | Score x3.00, but ball speed x1.35 for 8s. | Heat 39 | Epic | Mixed | Score/speed risk | Implemented |
 | `Rewind Catch` | Next missed ball rewinds to its last paddle hit instead of costing a life. | Heat 40 | Epic | Helpful | Rescue drop | Implemented |
 | `Micro Spark` | Ball size x0.55 and score x1.75 for 10s. | Heat 41 | Epic | Mixed | Precision score | Implemented |
-| `Brick Bloom` | First broken brick spawns two tiny bonus bricks that pay score and can drop capsules. | Heat 42 | Epic | Mixed | Brick spawn | Not implemented (proposal) |
+| `Brick Bloom` | Next broken brick spawns two tiny bonus bricks that pay score and can drop capsules. | Heat 42 | Epic | Mixed | Brick spawn | Implemented |
 | `Magnet Flip` | Balls are pushed away from nearby bricks for 8s. | Heat 43 | Epic | Hazard | Ball repulsion | Not implemented (proposal) |
 | `Double Tap` | Next paddle hit launches two angled copy balls and shrinks the rail briefly. | Heat 44 | Epic | Mixed | Split/control | Not implemented (proposal) |
 | `Fuse Burst` | Clears one damaged brick and triggers a short blackout. | Heat 45 | Epic | Mixed | Damage/visibility | Not implemented (proposal) |

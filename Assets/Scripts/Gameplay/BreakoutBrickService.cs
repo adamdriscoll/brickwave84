@@ -273,6 +273,29 @@ namespace GetBricked.Gameplay
             return requiredBrickCount;
         }
 
+        public int SpawnBonusBricks(BrickDefinition definition, Vector2 center, int count)
+        {
+            if (definition == null || count <= 0)
+            {
+                return 0;
+            }
+
+            var requiredBrickCount = 0;
+            var offsets = BuildSplitBrickOffsets(brickSize, definition, count);
+
+            for (var index = 0; index < offsets.Length; index++)
+            {
+                var brick = CreateBrick(ClampBrickPositionToMovementBounds(center + offsets[index], definition), definition, 0, index, default);
+
+                if (brick != null && brick.CountsTowardLevelCompletion)
+                {
+                    requiredBrickCount++;
+                }
+            }
+
+            return requiredBrickCount;
+        }
+
         public int GetEffectiveHitPoints(BrickDefinition definition)
         {
             if (definition == null || !definition.IsBreakable)
@@ -429,6 +452,15 @@ namespace GetBricked.Gameplay
                 };
             }
 
+            if (resolvedFragmentCount == 2)
+            {
+                return new[]
+                {
+                    new Vector2(-fragmentOffset.x, 0f),
+                    new Vector2(fragmentOffset.x, 0f),
+                };
+            }
+
             var offsets = new Vector2[resolvedFragmentCount];
             var radius = Mathf.Max(fragmentOffset.x, fragmentOffset.y);
             var yScale = fragmentOffset.x > 0.001f
@@ -449,6 +481,24 @@ namespace GetBricked.Gameplay
         private static int ResolveSplitBrickFragmentCount(float specialBrickEffectMultiplier)
         {
             return Mathf.Clamp(Mathf.RoundToInt(4f * Mathf.Max(1f, specialBrickEffectMultiplier)), 4, 8);
+        }
+
+        private Vector2 ClampBrickPositionToMovementBounds(Vector2 position, BrickDefinition definition)
+        {
+            var bounds = movementBoundsResolver();
+
+            if (bounds.width <= 0.01f || bounds.height <= 0.01f)
+            {
+                return position;
+            }
+
+            var halfSize = new Vector2(
+                brickSize.x * (definition?.SizeMultiplier ?? 1f) * 0.5f,
+                brickSize.y * (definition?.SizeMultiplier ?? 1f) * 0.5f);
+
+            return new Vector2(
+                Mathf.Clamp(position.x, bounds.xMin + halfSize.x, bounds.xMax - halfSize.x),
+                Mathf.Clamp(position.y, bounds.yMin + halfSize.y, bounds.yMax - halfSize.y));
         }
     }
 }

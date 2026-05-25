@@ -809,6 +809,37 @@ public sealed class BreakoutGameControllerPowerUpTests
     }
 
     [Test]
+    public void BrickBloomSpawnsTwoTinyBonusBricksOnNextBrokenBrick()
+    {
+        var controller = CreateControllerHarness(out var paddle);
+        var scoringBall = CreateBallHarness(controller, paddle);
+        var sourceBrick = CreateBrickHarness(controller, "Source", 100, Vector2.zero);
+        var tinyDefinition = CreateBrickDefinition("Tiny Brick", 1, 325);
+        var bricks = GetPrivateField<List<Brick>>(controller, "bricks");
+        var loadedBrickDefinitions = GetPrivateField<List<BrickDefinition>>(controller, "loadedBrickDefinitions");
+        var powerUpService = GetPrivateField<object>(controller, "powerUpService");
+
+        SetPrivateField(tinyDefinition, "sizeMultiplier", 0.5f);
+        loadedBrickDefinitions.Add(tinyDefinition);
+        bricks.Add(sourceBrick);
+        SetPrivateField(controller, "requiredBricksRemaining", 1);
+
+        InvokePrivateMethod(
+            controller,
+            "ApplyPowerUp",
+            CreatePowerUp("Brick Bloom", PowerUpEffectType.BrickBloom, true, 0f, 1f));
+
+        controller.HandleBrickDestroyed(sourceBrick, scoringBall, BrickDestructionCause.Impact);
+
+        Assert.That(GetPropertyValue<int>(powerUpService, "BrickBloomCharges"), Is.Zero);
+        Assert.That(GetPrivateField<int>(controller, "requiredBricksRemaining"), Is.EqualTo(2));
+        Assert.That(bricks, Has.Count.EqualTo(2));
+        Assert.That(bricks, Has.All.Matches<Brick>(brick => brick.Definition == tinyDefinition));
+        Assert.That(bricks.Exists(brick => brick.transform.position.x < 0f), Is.True);
+        Assert.That(bricks.Exists(brick => brick.transform.position.x > 0f), Is.True);
+    }
+
+    [Test]
     public void ExplosiveBrickImpactSplitsScoringBallIntoThreeSmallBalls()
     {
         var controller = CreateControllerHarness(out _);

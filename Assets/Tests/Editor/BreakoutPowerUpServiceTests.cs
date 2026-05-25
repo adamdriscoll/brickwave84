@@ -387,6 +387,25 @@ public sealed class BreakoutPowerUpServiceTests
     }
 
     [Test]
+    public void BrickBloomStacksAndConsumesOneChargeAtATime()
+    {
+        var service = CreateService();
+        var brickBloom = CreatePowerUp("Brick Bloom", PowerUpEffectType.BrickBloom, true, 0f, 1f, BreakoutContentRarity.Epic);
+
+        service.ApplyPowerUp(brickBloom, null);
+        service.ApplyPowerUp(brickBloom, null);
+
+        Assert.That(service.ActiveTimedEffects, Is.Empty);
+        Assert.That(service.BrickBloomCharges, Is.EqualTo(2));
+        Assert.That(service.BuildActiveEffectsLabel(), Does.Contain("BLOOM x2"));
+        Assert.That(service.TryConsumeBrickBloomCharge(out var firstDefinition), Is.True);
+        Assert.That(firstDefinition, Is.SameAs(brickBloom));
+        Assert.That(service.BrickBloomCharges, Is.EqualTo(1));
+        Assert.That(service.TryConsumeBrickBloomCharge(out var secondDefinition), Is.True);
+        Assert.That(secondDefinition, Is.SameAs(brickBloom));
+    }
+
+    [Test]
     public void CleanCatchConsumesOneArmedChargeAtATime()
     {
         var service = CreateService();

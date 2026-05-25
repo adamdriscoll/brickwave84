@@ -192,7 +192,7 @@ namespace GetBricked.Gameplay
                 {
                     Title = definition.DisplayName,
                     Kind = "Drop",
-                    Family = $"{definition.RarityLabel} {(definition.IsBeneficial ? "Helpful" : "Hazard")}",
+                    Family = BuildDropFamily(definition),
                     Description = BuildDropDescription(definition),
                     UnlockHint = isDefault
                         ? "Default content"
@@ -226,6 +226,21 @@ namespace GetBricked.Gameplay
             }
 
             return new ThemeVisualStyle(definition.PickupColor, definition.PickupColor, ResolvePowerUpSprite(definition));
+        }
+
+        private static string BuildDropFamily(PowerUpDefinition definition)
+        {
+            if (definition == null)
+            {
+                return string.Empty;
+            }
+
+            if (definition.EffectType == PowerUpEffectType.BrickBloom)
+            {
+                return $"{definition.RarityLabel} Mixed";
+            }
+
+            return $"{definition.RarityLabel} {(definition.IsBeneficial ? "Helpful" : "Hazard")}";
         }
 
         private static string BuildDropDescription(PowerUpDefinition definition)
@@ -276,6 +291,7 @@ namespace GetBricked.Gameplay
                 PowerUpEffectType.PrismPop => $"First brick hit within {definition.DurationSeconds:0.#}s splits a short-lived copy ball.",
                 PowerUpEffectType.SolarShot => "Next weak brick touched by the ball burns away without bouncing it.",
                 PowerUpEffectType.RandomMixedDrop => "Rolls one random unlocked helpful drop and one random unlocked hazard.",
+                PowerUpEffectType.BrickBloom => $"Next broken brick spawns {Mathf.Max(1, definition.ExtraBallCount > 0 ? definition.ExtraBallCount : Mathf.RoundToInt(definition.Scalar))} tiny bonus bricks.",
                 _ => $"{definition.HudLabel} for {definition.DurationSeconds:0.#}s.",
             };
         }

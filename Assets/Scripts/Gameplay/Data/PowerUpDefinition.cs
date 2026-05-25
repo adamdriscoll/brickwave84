@@ -109,6 +109,7 @@ namespace GetBricked.Gameplay.Data
         JackpotJam = 35,
         RewindCatch = 36,
         MicroSpark = 37,
+        BrickBloom = 38,
     }
 
     [CreateAssetMenu(menuName = "Get Bricked/Power-Up Definition", fileName = "PowerUpDefinition")]
@@ -165,6 +166,7 @@ namespace GetBricked.Gameplay.Data
             && effectType != PowerUpEffectType.RandomMixedDrop
             && effectType != PowerUpEffectType.MissileStock
             && effectType != PowerUpEffectType.SolarShot
+            && effectType != PowerUpEffectType.BrickBloom
             && DurationSeconds > 0f;
 
         public bool IsUnlockedForLadderIntensity(int intensity)
@@ -212,7 +214,8 @@ namespace GetBricked.Gameplay.Data
                 || effectType == PowerUpEffectType.SolarShot
                 || effectType == PowerUpEffectType.RandomMixedDrop
                 || effectType == PowerUpEffectType.JackpotJam
-                || effectType == PowerUpEffectType.MicroSpark)
+                || effectType == PowerUpEffectType.MicroSpark
+                || effectType == PowerUpEffectType.BrickBloom)
             {
                 return ThemeVisualSlot.PickupBurst;
             }

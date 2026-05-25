@@ -49,6 +49,8 @@ MonoBehaviour:
     weight: 1
   - powerUpDefinition: {fileID: 11400000, guid: 2f084073d8fa4320b37b4d7d282bb625, type: 2}
     weight: 1
+  - powerUpDefinition: {fileID: 11400000, guid: 14d46c4eb70243098ccc00e2c3676f6e, type: 2}
+    weight: 1
   baseColor: {r: 0.45, g: 0.98, b: 0.95, a: 1}
   damagedColor: {r: 0.18, g: 0.64, b: 0.67, a: 1}
   spriteResourcePath: 
