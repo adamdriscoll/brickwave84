@@ -88,6 +88,7 @@ public sealed class BreakoutProgressionPageTests
         var rowRewrite = view.Cards.First(card => card.Title == "Row Rewrite");
         var prismLanes = view.Cards.First(card => card.Title == "Prism Lanes");
         var switchbackRails = view.Cards.First(card => card.Title == "Switchback Rails");
+        var capsuleRoulette = view.Cards.First(card => card.Title == "Capsule Roulette");
 
         Assert.That(view.LadderLines, Has.Some.Contains("Heat 06"));
         Assert.That(view.LadderLines.Any(line => line.Contains("Paddle")), Is.False);
@@ -99,6 +100,7 @@ public sealed class BreakoutProgressionPageTests
         Assert.That(rowRewrite.UnlockHint, Does.Not.Contain("preview"));
         Assert.That(prismLanes.UnlockHint, Does.Contain("Heat 07"));
         Assert.That(switchbackRails.UnlockHint, Does.Contain("Heat 08"));
+        Assert.That(capsuleRoulette.UnlockHint, Does.Contain("Heat 09"));
     }
 
     [Test]
@@ -124,6 +126,7 @@ public sealed class BreakoutProgressionPageTests
         var rowRewrite = view.Cards.First(card => card.Title == "Row Rewrite");
         var prismLanes = view.Cards.First(card => card.Title == "Prism Lanes");
         var switchbackRails = view.Cards.First(card => card.Title == "Switchback Rails");
+        var capsuleRoulette = view.Cards.First(card => card.Title == "Capsule Roulette");
         var solarShot = view.Cards.First(card => card.Title == "Solar Shot");
         var wrapRail = view.Cards.First(card => card.Title == "Wrap Rail");
         var staticShoes = view.Cards.First(card => card.Title == "Static Shoes");
@@ -158,6 +161,9 @@ public sealed class BreakoutProgressionPageTests
         Assert.That(switchbackRails.UnlockHint, Does.Contain("Heat 08"));
         Assert.That(switchbackRails.Description, Does.Contain("swap rebound angles"));
         Assert.That(switchbackRails.Family, Does.Contain("Rare"));
+        Assert.That(capsuleRoulette.UnlockHint, Does.Contain("Heat 09"));
+        Assert.That(capsuleRoulette.Description, Does.Contain("rotate polarity"));
+        Assert.That(capsuleRoulette.Family, Does.Contain("Rare"));
         Assert.That(solarShot.UnlockHint, Does.Contain("Heat 36"));
         Assert.That(solarShot.Description, Does.Contain("burns away"));
         Assert.That(wrapRail.UnlockHint, Does.Contain("Heat 37"));

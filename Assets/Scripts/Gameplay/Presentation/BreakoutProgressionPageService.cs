@@ -176,6 +176,13 @@ namespace GetBricked.Gameplay
                 BreakoutLevelGlitchPlanner.SwitchbackRailsLadderUnlockIntensity,
                 highestCompletedIntensity,
                 SplitAccent));
+            cards.Add(BuildUnlockableGlitchCard(
+                "Capsule Roulette",
+                "Pickup Rare Glitch",
+                "Falling capsules rotate polarity until caught or missed.",
+                BreakoutLevelGlitchPlanner.CapsuleRouletteLadderUnlockIntensity,
+                highestCompletedIntensity,
+                ControlAccent));
             AppendPlaceholderCards(cards, PlaceholderDrops, highestCompletedIntensity);
             AppendPlaceholderCards(cards, PlaceholderGlitches, highestCompletedIntensity);
             cards.Add(BuildHiddenSlotCard("Future Drop Slot", "Drop", "Hidden", "Future drop signal pending."));
@@ -529,6 +536,11 @@ namespace GetBricked.Gameplay
             }
 
             if (completedIntensity >= BreakoutLevelGlitchPlanner.SwitchbackRailsLadderUnlockIntensity)
+            {
+                count++;
+            }
+
+            if (completedIntensity >= BreakoutLevelGlitchPlanner.CapsuleRouletteLadderUnlockIntensity)
             {
                 count++;
             }

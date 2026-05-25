@@ -801,6 +801,74 @@ public sealed class BreakoutPowerUpServiceTests
     }
 
     [Test]
+    public void CapsuleRouletteRerollsSpawnedPickupToOppositePolarity()
+    {
+        var service = CreateService();
+        var wide = CreatePowerUp("Wide Paddle", PowerUpEffectType.PaddleWidthMultiplier, true, 10f, 1.2f);
+        var narrow = CreatePowerUp("Narrow Paddle", PowerUpEffectType.PaddleWidthMultiplier, false, 10f, 0.7f);
+        SetPrivateField(wide, "pickupColor", new Color(0.2f, 0.95f, 0.45f, 1f));
+        SetPrivateField(narrow, "pickupColor", new Color(1f, 0.2f, 0.25f, 1f));
+        var brick = CreateBrick(CreateBrickDefinition(dropChance: 1f, wide, narrow));
+        var pickupsRoot = CreateRuntimeRoot("Pickups");
+
+        var pickup = service.TrySpawnPickup(
+            brick,
+            activeRunSettings: null,
+            activeRunState: null,
+            effectiveDropChanceMultiplier: 1f,
+            nextGameplayRandomFloat: (_, _) => 0f,
+            pickupsRoot,
+            arenaBottom: -4f,
+            themeService: null,
+            controller: null,
+            enableCapsuleRoulette: true);
+
+        Assert.That(pickup, Is.Not.Null);
+        Assert.That(pickup.Definition, Is.SameAs(wide));
+
+        service.UpdateCapsuleRoulettePickups(
+            isPlaying: true,
+            deltaTime: BreakoutPowerUpService.CapsuleRouletteIntervalSeconds,
+            nextGameplayRandomFloat: (_, _) => 0f,
+            themeService: null);
+
+        Assert.That(pickup.Definition, Is.SameAs(narrow));
+        Assert.That(pickup.VisualDefinition, Is.SameAs(narrow));
+        Assert.That(pickup.GetComponent<SpriteRenderer>().color, Is.EqualTo(narrow.PickupColor));
+    }
+
+    [Test]
+    public void CapsuleRouletteDoesNotArmWithoutBothPolarityPools()
+    {
+        var service = CreateService();
+        var wide = CreatePowerUp("Wide Paddle", PowerUpEffectType.PaddleWidthMultiplier, true, 10f, 1.2f);
+        var laser = CreatePowerUp("Laser Paddle", PowerUpEffectType.LaserPaddle, true, 10f, 1f);
+        var brick = CreateBrick(CreateBrickDefinition(dropChance: 1f, wide, laser));
+        var pickupsRoot = CreateRuntimeRoot("Pickups");
+
+        var pickup = service.TrySpawnPickup(
+            brick,
+            activeRunSettings: null,
+            activeRunState: null,
+            effectiveDropChanceMultiplier: 1f,
+            nextGameplayRandomFloat: (_, _) => 0f,
+            pickupsRoot,
+            arenaBottom: -4f,
+            themeService: null,
+            controller: null,
+            enableCapsuleRoulette: true);
+
+        service.UpdateCapsuleRoulettePickups(
+            isPlaying: true,
+            deltaTime: BreakoutPowerUpService.CapsuleRouletteIntervalSeconds,
+            nextGameplayRandomFloat: (_, _) => 0f,
+            themeService: null);
+
+        Assert.That(pickup, Is.Not.Null);
+        Assert.That(pickup.Definition, Is.SameAs(wide));
+    }
+
+    [Test]
     public void TrySpawnPickupReturnsNullWhenDropDoesNotPassChance()
     {
         var service = CreateService();

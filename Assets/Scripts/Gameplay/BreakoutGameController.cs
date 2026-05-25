@@ -459,6 +459,7 @@ namespace GetBricked.Gameplay
         private void Update()
         {
             UpdateTimedEffects();
+            UpdateCapsuleRoulettePickups();
             UpdateTemporaryBallLifetimes();
             RefreshBrickMagnetTargets();
             RefreshCapsuleMagnetTargets();
@@ -3592,6 +3593,11 @@ namespace GetBricked.Gameplay
                 powerUpService?.ShowStatusBanner("TOKEN STORM!", new Color(1f, 0.87f, 0.36f, 1f), 2.2f);
             }
 
+            if (activeLevelGlitchPlan.HasGlitch(BreakoutLevelGlitchType.CapsuleRoulette))
+            {
+                powerUpService?.ShowStatusBanner("CAPSULE ROULETTE!", new Color(1f, 0.87f, 0.36f, 1f), 2.2f);
+            }
+
             if (activeLevelGlitchPlan.HasGlitch(BreakoutLevelGlitchType.StaticWall))
             {
                 CreateStaticWall(activeLevelGlitchPlan);
@@ -5927,6 +5933,7 @@ namespace GetBricked.Gameplay
                 LevelGlitchSelection.RowRewrite => "Row Rewrite",
                 LevelGlitchSelection.PrismLanes => "Prism Lanes",
                 LevelGlitchSelection.SwitchbackRails => "Switchback Rails",
+                LevelGlitchSelection.CapsuleRoulette => "Capsule Roulette",
                 _ => "Off",
             };
         }
@@ -6128,7 +6135,8 @@ namespace GetBricked.Gameplay
                 this,
                 ResolveDeveloperForcedDrop(),
                 loadedPowerUpDefinitions,
-                GetEffectivePickupFallSpeedMultiplier());
+                GetEffectivePickupFallSpeedMultiplier(),
+                IsCapsuleRouletteActive());
 
             if (spawnedPickup != null)
             {
@@ -6138,6 +6146,21 @@ namespace GetBricked.Gameplay
             }
 
             ApplyVisualEffectState();
+        }
+
+        private void UpdateCapsuleRoulettePickups()
+        {
+            powerUpService?.UpdateCapsuleRoulettePickups(
+                IsGameplaySimulationActive() && IsCapsuleRouletteActive(),
+                Time.deltaTime,
+                NextGameplayRandomFloat,
+                themeService);
+        }
+
+        private bool IsCapsuleRouletteActive()
+        {
+            return activeLevelGlitchPlan != null
+                && activeLevelGlitchPlan.HasGlitch(BreakoutLevelGlitchType.CapsuleRoulette);
         }
 
         private PowerUpDefinition ResolveDeveloperForcedDrop()

@@ -44,6 +44,7 @@ namespace GetBricked.Gameplay.Data
         Random = 8,
         PrismLanes = 9,
         SwitchbackRails = 10,
+        CapsuleRoulette = 11,
     }
 
     public sealed class RunSettings
@@ -210,6 +211,7 @@ namespace GetBricked.Gameplay.Data
             LevelGlitchSelection.RowRewrite => "Row Rewrite Armed",
             LevelGlitchSelection.PrismLanes => "Prism Lanes Armed",
             LevelGlitchSelection.SwitchbackRails => "Switchback Rails Armed",
+            LevelGlitchSelection.CapsuleRoulette => "Capsule Roulette Armed",
             _ => "Clean Walls",
         };
 
@@ -220,7 +222,7 @@ namespace GetBricked.Gameplay.Data
             var normalized = (LevelGlitchSelection)Mathf.Clamp(
                 (int)levelGlitchSelection,
                 (int)LevelGlitchSelection.Off,
-                (int)LevelGlitchSelection.SwitchbackRails);
+                (int)LevelGlitchSelection.CapsuleRoulette);
 
             if (!levelGlitchesEnabled && normalized == LevelGlitchSelection.Random)
             {

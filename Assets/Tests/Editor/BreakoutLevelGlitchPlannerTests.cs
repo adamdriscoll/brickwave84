@@ -218,6 +218,27 @@ public sealed class BreakoutLevelGlitchPlannerTests
         Assert.That(unlockedPlan.SwitchbackRails.SwitchCycleSeconds, Is.InRange(2.35f, 3.15f));
     }
 
+    [Test]
+    public void RogueGlitchHeatControlsWhenCapsuleRouletteCanUnlock()
+    {
+        var lockedSettings = CreateRogueSettings(
+            rogueIntensity: BreakoutLevelGlitchPlanner.CapsuleRouletteLadderUnlockIntensity,
+            levelGlitchSelection: LevelGlitchSelection.CapsuleRoulette);
+        var unlockedSettings = CreateRogueSettings(
+            rogueIntensity: BreakoutLevelGlitchPlanner.CapsuleRouletteLadderUnlockIntensity + 1,
+            levelGlitchSelection: LevelGlitchSelection.CapsuleRoulette);
+
+        var lockedPlan = BreakoutLevelGlitchPlanner.BuildPlan(new DeterministicRandomService(7), lockedSettings, levelIndex: 9);
+        var unlockedPlan = BreakoutLevelGlitchPlanner.BuildPlan(new DeterministicRandomService(7), unlockedSettings, levelIndex: 9);
+
+        Assert.That(lockedPlan.IsActive, Is.False);
+        Assert.That(unlockedPlan.IsActive, Is.True);
+        Assert.That(unlockedPlan.GlitchType, Is.EqualTo(BreakoutLevelGlitchType.CapsuleRoulette));
+        Assert.That(unlockedPlan.DisplayName, Is.EqualTo("Capsule Roulette"));
+        Assert.That(unlockedPlan.Rarity, Is.EqualTo(BreakoutContentRarity.Rare));
+        Assert.That(unlockedPlan.ScoreMultiplier, Is.EqualTo(1.27f).Within(0.0001f));
+    }
+
 
     [Test]
     public void ForcedWarpGatePlanBuildsSmallPortalSetAndScoreBonus()
@@ -380,6 +401,21 @@ public sealed class BreakoutLevelGlitchPlannerTests
         Assert.That(plan.IsActive, Is.True);
         Assert.That(plan.GlitchType, Is.EqualTo(BreakoutLevelGlitchType.SwitchbackRails));
         Assert.That(plan.SwitchbackRails.SwitchCycleSeconds, Is.GreaterThan(0f));
+    }
+
+    [Test]
+    public void SelectedCapsuleRouletteAlwaysBuildsCapsuleRouletteEvenWhenChanceIsDisabled()
+    {
+        var settings = CreateSettings(
+            levelGlitchesEnabled: true,
+            chanceMultiplier: 0f,
+            levelGlitchSelection: LevelGlitchSelection.CapsuleRoulette);
+
+        var plan = BreakoutLevelGlitchPlanner.BuildPlan(new DeterministicRandomService(3), settings, levelIndex: 9);
+
+        Assert.That(plan.IsActive, Is.True);
+        Assert.That(plan.GlitchType, Is.EqualTo(BreakoutLevelGlitchType.CapsuleRoulette));
+        Assert.That(plan.HudLabel, Does.Contain("Capsule Roulette"));
     }
 
     [Test]

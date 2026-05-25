@@ -123,6 +123,30 @@ namespace GetBricked.Gameplay
             glowRenderer?.ApplyStyle(visualStyle);
         }
 
+        public void ApplyRoulettePayload(
+            PowerUpDefinition powerUpDefinition,
+            ThemeVisualStyle visualStyle,
+            PowerUpDefinition pickupVisualDefinition = null,
+            bool usesHelpfulVisualDisguise = false,
+            PowerUpDefinition pickupPrimaryPayloadDefinition = null,
+            PowerUpDefinition pickupSecondaryPayloadDefinition = null,
+            float spinDegreesPerSecond = 0f)
+        {
+            if (powerUpDefinition == null)
+            {
+                return;
+            }
+
+            definition = powerUpDefinition;
+            visualDefinition = pickupVisualDefinition != null ? pickupVisualDefinition : powerUpDefinition;
+            primaryPayloadDefinition = pickupPrimaryPayloadDefinition;
+            secondaryPayloadDefinition = pickupSecondaryPayloadDefinition;
+            UsesHelpfulVisualDisguise = usesHelpfulVisualDisguise;
+            rotationDegreesPerSecond = spinDegreesPerSecond;
+            gameObject.name = powerUpDefinition.DisplayName;
+            ApplyTheme(visualStyle);
+        }
+
         public void SetVisibilityMultiplier(float multiplier)
         {
             visibilityMultiplier = Mathf.Clamp(multiplier, 0.15f, 1f);

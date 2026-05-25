@@ -17,6 +17,7 @@ namespace GetBricked.Gameplay
         RowRewrite = 7,
         PrismLanes = 8,
         SwitchbackRails = 9,
+        CapsuleRoulette = 10,
     }
 
     internal readonly struct BreakoutLevelGlitchDefinition
@@ -311,6 +312,7 @@ namespace GetBricked.Gameplay
         public const int RowRewriteLadderUnlockIntensity = 6;
         public const int PrismLanesLadderUnlockIntensity = 7;
         public const int SwitchbackRailsLadderUnlockIntensity = 8;
+        public const int CapsuleRouletteLadderUnlockIntensity = 9;
 
         private const float WarpGateScoreMultiplier = 1.35f;
         private const float TurboRailScoreMultiplier = 1.25f;
@@ -321,6 +323,7 @@ namespace GetBricked.Gameplay
         private const float RowRewriteScoreMultiplier = 1.28f;
         private const float PrismLanesScoreMultiplier = 1.31f;
         private const float SwitchbackRailsScoreMultiplier = 1.29f;
+        private const float CapsuleRouletteScoreMultiplier = 1.27f;
 
         private static readonly BreakoutLevelGlitchDefinition[] GlitchDefinitions =
         {
@@ -369,6 +372,11 @@ namespace GetBricked.Gameplay
                 LevelGlitchSelection.SwitchbackRails,
                 BreakoutContentRarity.Rare,
                 SwitchbackRailsLadderUnlockIntensity),
+            new BreakoutLevelGlitchDefinition(
+                BreakoutLevelGlitchType.CapsuleRoulette,
+                LevelGlitchSelection.CapsuleRoulette,
+                BreakoutContentRarity.Rare,
+                CapsuleRouletteLadderUnlockIntensity),
         };
 
         public static BreakoutLevelGlitchPlan BuildPlan(
@@ -458,6 +466,11 @@ namespace GetBricked.Gameplay
             if (definition.GlitchType == BreakoutLevelGlitchType.SwitchbackRails)
             {
                 return BuildSwitchbackRailsPlan(random, definition.Rarity);
+            }
+
+            if (definition.GlitchType == BreakoutLevelGlitchType.CapsuleRoulette)
+            {
+                return BuildCapsuleRoulettePlan(definition.Rarity);
             }
 
             return BuildWarpGatePlan(random, definition.Rarity);
@@ -764,6 +777,18 @@ namespace GetBricked.Gameplay
                 switchbackRails: BuildSwitchbackRails(random));
         }
 
+        private static BreakoutLevelGlitchPlan BuildCapsuleRoulettePlan(BreakoutContentRarity rarity)
+        {
+            return new BreakoutLevelGlitchPlan(
+                BreakoutLevelGlitchType.CapsuleRoulette,
+                rarity,
+                "Capsule Roulette",
+                $"Capsule Roulette x{CapsuleRouletteScoreMultiplier:0.00}",
+                CapsuleRouletteScoreMultiplier,
+                Array.Empty<BreakoutWarpGateSpec>(),
+                default);
+        }
+
         public static float GetGlitchChance(RunSettings settings, int levelIndex)
         {
             if (settings == null)
@@ -1039,7 +1064,8 @@ namespace GetBricked.Gameplay
                 || selection == LevelGlitchSelection.StaticWall
                 || selection == LevelGlitchSelection.RowRewrite
                 || selection == LevelGlitchSelection.PrismLanes
-                || selection == LevelGlitchSelection.SwitchbackRails;
+                || selection == LevelGlitchSelection.SwitchbackRails
+                || selection == LevelGlitchSelection.CapsuleRoulette;
         }
 
         private static BreakoutWarpGateWall ResolveGateWall(DeterministicRandomService random, int index)
