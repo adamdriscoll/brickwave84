@@ -110,6 +110,7 @@ namespace GetBricked.Gameplay.Data
         RewindCatch = 36,
         MicroSpark = 37,
         BrickBloom = 38,
+        MagnetFlip = 39,
     }
 
     [CreateAssetMenu(menuName = "Get Bricked/Power-Up Definition", fileName = "PowerUpDefinition")]

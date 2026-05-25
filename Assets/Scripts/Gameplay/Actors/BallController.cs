@@ -228,7 +228,7 @@ namespace GetBricked.Gameplay
         public void SetBrickMagnetTarget(Vector2 targetPoint, float strength)
         {
             brickMagnetPoint = targetPoint;
-            brickMagnetStrength = Mathf.Clamp01(strength);
+            brickMagnetStrength = Mathf.Clamp(strength, -1f, 1f);
         }
 
         public void SetHotPotatoStrength(float strength)
@@ -793,7 +793,7 @@ namespace GetBricked.Gameplay
 
         private void ApplyBrickMagnet()
         {
-            if (ballBody == null || brickMagnetStrength <= 0.001f)
+            if (ballBody == null || Mathf.Abs(brickMagnetStrength) <= 0.001f)
             {
                 return;
             }
@@ -808,8 +808,10 @@ namespace GetBricked.Gameplay
             var currentDirection = ballBody.linearVelocity.sqrMagnitude > 0.01f
                 ? ballBody.linearVelocity.normalized
                 : lastTravelDirection.normalized;
-            var bendFactor = brickMagnetStrength * Time.fixedDeltaTime * 4.4f;
-            var curvedDirection = (currentDirection + (pullVector.normalized * bendFactor)).normalized;
+            var magnetDirection = pullVector.normalized;
+            var curvedDirection = brickMagnetStrength > 0f
+                ? ApplyBrickAttraction(currentDirection, magnetDirection)
+                : ApplyBrickRepulsion(currentDirection, magnetDirection);
 
             if (curvedDirection.sqrMagnitude <= 0.0001f)
             {
@@ -818,6 +820,56 @@ namespace GetBricked.Gameplay
 
             lastTravelDirection = curvedDirection;
             ballBody.linearVelocity = curvedDirection * GetTargetSpeed();
+        }
+
+        private Vector2 ApplyBrickAttraction(Vector2 currentDirection, Vector2 magnetDirection)
+        {
+            var bendFactor = brickMagnetStrength * Time.fixedDeltaTime * 4.4f;
+            return (currentDirection + (magnetDirection * bendFactor)).normalized;
+        }
+
+        private Vector2 ApplyBrickRepulsion(Vector2 currentDirection, Vector2 magnetDirection)
+        {
+            var awayDirection = -magnetDirection;
+
+            if (Vector2.Dot(currentDirection, awayDirection) < -0.92f)
+            {
+                var sideSign = Mathf.Sign(ballBody.position.x - brickMagnetPoint.x);
+
+                if (Mathf.Approximately(sideSign, 0f))
+                {
+                    sideSign = Mathf.Sign(lastTravelDirection.x);
+                }
+
+                if (Mathf.Approximately(sideSign, 0f))
+                {
+                    sideSign = 1f;
+                }
+
+                awayDirection = (awayDirection + (Vector2.right * sideSign * 0.85f)).normalized;
+            }
+
+            if (currentDirection.y > 0f && awayDirection.y < 0f)
+            {
+                var sideSign = Mathf.Sign(awayDirection.x);
+
+                if (Mathf.Approximately(sideSign, 0f))
+                {
+                    sideSign = Mathf.Sign(ballBody.position.x - brickMagnetPoint.x);
+                }
+
+                if (Mathf.Approximately(sideSign, 0f))
+                {
+                    sideSign = 1f;
+                }
+
+                awayDirection = new Vector2(
+                    Mathf.Max(Mathf.Abs(awayDirection.x), 0.75f) * sideSign,
+                    Mathf.Max(0.32f, currentDirection.y * 0.55f)).normalized;
+            }
+
+            var bendFactor = Mathf.Clamp01(Mathf.Abs(brickMagnetStrength) * Time.fixedDeltaTime * 10f);
+            return Vector2.Lerp(currentDirection, awayDirection, bendFactor).normalized;
         }
 
         private void ClearSpeedBurst()

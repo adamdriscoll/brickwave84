@@ -81,6 +81,7 @@ public sealed class BreakoutPowerUpServiceTests
         var megaBall = CreatePowerUp("Mega Ball", PowerUpEffectType.BallSizeMultiplier, true, 10f, 1.8f);
         var vectorSight = CreatePowerUp("Vector Sight", PowerUpEffectType.VectorSight, true, 14f, 1f);
         var capsuleMagnet = CreatePowerUp("Capsule Magnet", PowerUpEffectType.CapsuleMagnet, true, 12f, 1f);
+        var magnetFlip = CreatePowerUp("Magnet Flip", PowerUpEffectType.MagnetFlip, false, 8f, 0.2f, BreakoutContentRarity.Epic);
         var mirrorImage = CreatePowerUp("Mirror Image", PowerUpEffectType.MirrorImagePaddle, true, 12f, 1f);
         var cleanCatch = CreatePowerUp("Clean Catch", PowerUpEffectType.CleanCatch, true, 10f, 1.35f);
         var tiltRail = CreatePowerUp("Tilt Rail", PowerUpEffectType.PaddleHitTilt, false, 12f, 9f);
@@ -96,6 +97,7 @@ public sealed class BreakoutPowerUpServiceTests
         service.ApplyPowerUp(megaBall, null);
         service.ApplyPowerUp(vectorSight, null);
         service.ApplyPowerUp(capsuleMagnet, null);
+        service.ApplyPowerUp(magnetFlip, null);
         service.ApplyPowerUp(mirrorImage, null);
         service.ApplyPowerUp(cleanCatch, null);
         service.ApplyPowerUp(tiltRail, null);
@@ -114,6 +116,7 @@ public sealed class BreakoutPowerUpServiceTests
         Assert.That(modifiers.ExplosiveBallStrength, Is.EqualTo(1f).Within(0.0001f));
         Assert.That(modifiers.VectorSightStrength, Is.EqualTo(1f).Within(0.0001f));
         Assert.That(modifiers.CapsuleMagnetStrength, Is.EqualTo(1f).Within(0.0001f));
+        Assert.That(modifiers.BrickRepulsionStrength, Is.EqualTo(0.2f).Within(0.0001f));
         Assert.That(modifiers.MirrorImagePaddleEnabled, Is.True);
         Assert.That(modifiers.CleanCatchAimMultiplier, Is.EqualTo(1.35f).Within(0.0001f));
         Assert.That(modifiers.PaddleHitTiltDegrees, Is.EqualTo(9f).Within(0.0001f));

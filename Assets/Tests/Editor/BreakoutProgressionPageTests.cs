@@ -107,7 +107,7 @@ public sealed class BreakoutProgressionPageTests
             .Select(definition => definition.LadderUnlockIntensity)
             .OrderBy(heat => heat)
             .ToArray();
-        var expectedDropHeats = Enumerable.Range(1, 42).ToArray();
+        var expectedDropHeats = Enumerable.Range(1, 43).ToArray();
 
         Assert.That(unlockHeats, Is.EqualTo(expectedDropHeats));
 
@@ -385,6 +385,21 @@ public sealed class BreakoutProgressionPageTests
         Assert.That(card.UnlockHint, Does.Contain("Heat 19"));
         Assert.That(card.Description, Does.Contain("helpful capsules drift"));
         Assert.That(card.Family, Does.Contain("Rare Helpful"));
+        Assert.That(card.StateLabel, Is.EqualTo("Locked"));
+    }
+
+    [Test]
+    public void ProgressionPageShowsMagnetFlipAsLiveEpicHazardDrop()
+    {
+        var magnetFlip = Resources.Load<PowerUpDefinition>("PowerUps/MagnetFlip");
+        Assert.That(magnetFlip, Is.Not.Null);
+
+        var view = new BreakoutProgressionPageService().BuildView(new[] { magnetFlip });
+        var card = view.Cards.First(item => item.Title == "Magnet Flip");
+
+        Assert.That(card.UnlockHint, Does.Contain("Heat 43"));
+        Assert.That(card.Description, Does.Contain("pushed away from nearby bricks"));
+        Assert.That(card.Family, Does.Contain("Epic Hazard"));
         Assert.That(card.StateLabel, Is.EqualTo("Locked"));
     }
 

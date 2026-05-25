@@ -95,6 +95,7 @@ namespace GetBricked.Gameplay
             float fogVisibilityMultiplier,
             float lagSpikeStrength,
             float brickMagnetStrength,
+            float brickRepulsionStrength,
             float scoreMultiplier,
             bool paddleCloneEnabled,
             float brickJammerStrength,
@@ -122,6 +123,7 @@ namespace GetBricked.Gameplay
             FogVisibilityMultiplier = fogVisibilityMultiplier;
             LagSpikeStrength = lagSpikeStrength;
             BrickMagnetStrength = brickMagnetStrength;
+            BrickRepulsionStrength = brickRepulsionStrength;
             ScoreMultiplier = scoreMultiplier;
             PaddleCloneEnabled = paddleCloneEnabled;
             BrickJammerStrength = brickJammerStrength;
@@ -164,6 +166,8 @@ namespace GetBricked.Gameplay
         public float LagSpikeStrength { get; }
 
         public float BrickMagnetStrength { get; }
+
+        public float BrickRepulsionStrength { get; }
 
         public float ScoreMultiplier { get; }
 
@@ -221,6 +225,7 @@ namespace GetBricked.Gameplay
         private float fogVisibilityMultiplier;
         private float lagSpikeStrength;
         private float brickMagnetStrength;
+        private float brickRepulsionStrength;
         private float scoreMultiplier;
         private bool paddleCloneEnabled;
         private float brickJammerStrength;
@@ -250,6 +255,7 @@ namespace GetBricked.Gameplay
             fogVisibilityMultiplier = 1f;
             lagSpikeStrength = 0f;
             brickMagnetStrength = 0f;
+            brickRepulsionStrength = 0f;
             scoreMultiplier = 1f;
             paddleCloneEnabled = false;
             brickJammerStrength = 0f;
@@ -321,6 +327,9 @@ namespace GetBricked.Gameplay
                 case PowerUpEffectType.BrickMagnet:
                     brickMagnetStrength = Mathf.Max(brickMagnetStrength, Mathf.Clamp01(powerUpDefinition.Scalar * effectStrength));
                     break;
+                case PowerUpEffectType.MagnetFlip:
+                    brickRepulsionStrength = Mathf.Max(brickRepulsionStrength, Mathf.Clamp01(powerUpDefinition.Scalar * effectStrength));
+                    break;
                 case PowerUpEffectType.ScoreMultiplier:
                     scoreMultiplier *= Mathf.Pow(powerUpDefinition.Scalar, effectStrength);
                     break;
@@ -389,6 +398,7 @@ namespace GetBricked.Gameplay
                 fogVisibilityMultiplier,
                 lagSpikeStrength,
                 brickMagnetStrength,
+                brickRepulsionStrength,
                 Mathf.Max(0.1f, scoreMultiplier),
                 paddleCloneEnabled,
                 brickJammerStrength,

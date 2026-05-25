@@ -5951,6 +5951,7 @@ namespace GetBricked.Gameplay
                     1f,
                     0f,
                     0f,
+                    0f,
                     1f,
                     false,
                     0f,
@@ -7039,9 +7040,14 @@ namespace GetBricked.Gameplay
 
         private float GetEffectiveBrickMagnetStrength()
         {
-            return Mathf.Clamp01(Mathf.Max(
+            var brickAttractionStrength = Mathf.Max(
                 activeEffectModifiers.BrickMagnetStrength,
-                GetPersistentRunUpgradeModifiers().BrickMagnetStrength));
+                GetPersistentRunUpgradeModifiers().BrickMagnetStrength);
+
+            return Mathf.Clamp(
+                brickAttractionStrength - activeEffectModifiers.BrickRepulsionStrength,
+                -1f,
+                1f);
         }
 
         private float GetEffectiveSpecialBrickEffectMultiplier()
@@ -7123,6 +7129,7 @@ namespace GetBricked.Gameplay
                 PowerUpEffectType.ChainLightning => $"Chain hits for {definition.DurationSeconds:0.#}s",
                 PowerUpEffectType.ActiveDropMultiplier => $"Active effects x{definition.Scalar:0.00}",
                 PowerUpEffectType.BrickMagnet => $"Brick pull for {definition.DurationSeconds:0.#}s",
+                PowerUpEffectType.MagnetFlip => $"Brick repel for {definition.DurationSeconds:0.#}s",
                 PowerUpEffectType.ScoreMultiplier => $"Score x{definition.Scalar:0.00} for {definition.DurationSeconds:0.#}s",
                 PowerUpEffectType.PaddleClone => $"Clone rail for {definition.DurationSeconds:0.#}s",
                 PowerUpEffectType.MirrorImagePaddle => $"Mirror rail for {definition.DurationSeconds:0.#}s",
@@ -7824,7 +7831,7 @@ namespace GetBricked.Gameplay
         {
             var brickMagnetStrength = GetEffectiveBrickMagnetStrength();
 
-            if (brickMagnetStrength <= 0.001f)
+            if (Mathf.Abs(brickMagnetStrength) <= 0.001f)
             {
                 ClearBrickMagnetTargets();
                 return;
@@ -7871,7 +7878,11 @@ namespace GetBricked.Gameplay
                 return;
             }
 
-            if (TryFindNearestBreakableBrick(ball.transform.position, out var targetPosition))
+            var hasTarget = brickMagnetStrength < 0f
+                ? TryFindNearestBrickBlock(ball.transform.position, out var targetPosition)
+                : TryFindNearestBreakableBrick(ball.transform.position, out targetPosition);
+
+            if (hasTarget)
             {
                 ball.SetBrickMagnetTarget(targetPosition, brickMagnetStrength);
                 return;
@@ -7897,6 +7908,42 @@ namespace GetBricked.Gameplay
 
                 if (brick.Definition == null || !brick.Definition.IsBreakable)
                 {
+                    continue;
+                }
+
+                var distanceSquared = ((Vector2)brick.transform.position - sourcePosition).sqrMagnitude;
+
+                if (distanceSquared >= nearestDistanceSquared)
+                {
+                    continue;
+                }
+
+                nearestDistanceSquared = distanceSquared;
+                nearestBrick = brick;
+            }
+
+            if (nearestBrick == null)
+            {
+                targetPosition = Vector2.zero;
+                return false;
+            }
+
+            targetPosition = nearestBrick.transform.position;
+            return true;
+        }
+
+        private bool TryFindNearestBrickBlock(Vector2 sourcePosition, out Vector2 targetPosition)
+        {
+            Brick nearestBrick = null;
+            var nearestDistanceSquared = float.PositiveInfinity;
+
+            for (var index = bricks.Count - 1; index >= 0; index--)
+            {
+                var brick = bricks[index];
+
+                if (brick == null)
+                {
+                    bricks.RemoveAt(index);
                     continue;
                 }
 

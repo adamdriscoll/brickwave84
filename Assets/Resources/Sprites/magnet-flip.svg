@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
+  <title id="title">Magnet Flip</title>
+  <desc id="desc">A monochrome neon icon showing a magnet pushing brick blocks away.</desc>
+  <defs>
+    <filter id="softGlow" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="2.25" result="blur"/><feColorMatrix in="blur" type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 .8 0" result="glow"/><feMerge><feMergeNode in="glow"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+    <style><![CDATA[.icon{fill:none;stroke:#fff;stroke-linecap:round;stroke-linejoin:round;filter:url(#softGlow)}.main{stroke-width:10;opacity:.96}.mid{stroke-width:7;opacity:.84}.thin{stroke-width:4;opacity:.48}.fill{fill:#fff;stroke:none;opacity:.86;filter:url(#softGlow)}]]></style>
+  </defs>
+  <g class="icon">
+    <path class="main" d="M78 82 v54 c0 31 21 53 50 53 s50-22 50-53 V82"/>
+    <path class="mid" d="M78 82 h36 v48 c0 9 6 15 14 15 s14-6 14-15 V82 h36"/>
+    <rect class="mid" x="62" y="56" width="52" height="28" rx="5"/>
+    <rect class="mid" x="142" y="56" width="52" height="28" rx="5"/>
+    <path class="thin" d="M94 119 C81 111 70 110 58 117 M162 119 C175 111 186 110 198 117"/>
+    <path class="mid" d="M76 145 H40 M40 145 l16 -13 M40 145 l16 13"/>
+    <path class="mid" d="M180 145 h36 M216 145 l-16 -13 M216 145 l-16 13"/>
+    <rect class="fill" x="24" y="106" width="18" height="18" rx="3"/>
+    <rect class="fill" x="214" y="106" width="18" height="18" rx="3"/>
+    <rect class="fill" x="32" y="166" width="14" height="14" rx="2"/>
+    <rect class="fill" x="210" y="166" width="14" height="14" rx="2"/>
+  </g>
+</svg>

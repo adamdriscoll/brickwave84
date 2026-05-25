@@ -276,6 +276,7 @@ namespace GetBricked.Gameplay
                 PowerUpEffectType.LagSpike => $"Stalls paddle response in bursts for {definition.DurationSeconds:0.#}s.",
                 PowerUpEffectType.ActiveDropMultiplier => $"Active timed effects x{definition.Scalar:0.00}.",
                 PowerUpEffectType.BrickMagnet => $"Pulls the ball toward nearby bricks for {definition.DurationSeconds:0.#}s.",
+                PowerUpEffectType.MagnetFlip => $"Balls are pushed away from nearby bricks for {definition.DurationSeconds:0.#}s.",
                 PowerUpEffectType.ScoreMultiplier => $"Score x{definition.Scalar:0.00} for {definition.DurationSeconds:0.#}s.",
                 PowerUpEffectType.PaddleClone => $"Adds a clone rail for {definition.DurationSeconds:0.#}s.",
                 PowerUpEffectType.MirrorImagePaddle => $"Adds an opposite-moving mirror paddle for {definition.DurationSeconds:0.#}s.",
