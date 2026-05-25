@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
+  <title id="title">Double Tap</title>
+  <desc id="desc">A monochrome neon icon showing a paddle tap splitting a ball into two angled copies.</desc>
+  <defs>
+    <filter id="softGlow" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="2.25" result="blur"/>
+      <feColorMatrix in="blur" type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 .8 0" result="glow"/>
+      <feMerge><feMergeNode in="glow"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <style><![CDATA[
+      .icon{fill:none;stroke:#fff;stroke-linecap:round;stroke-linejoin:round;filter:url(#softGlow)}
+      .main{stroke-width:12;opacity:.96}
+      .mid{stroke-width:8;opacity:.82}
+      .thin{stroke-width:4;opacity:.42}
+      .core{fill:#fff;stroke:none;opacity:.96;filter:url(#softGlow)}
+      .copy{fill:#fff;stroke:none;opacity:.62;filter:url(#softGlow)}
+    ]]></style>
+  </defs>
+  <g class="icon">
+    <path class="main" d="M64 184 H192"/>
+    <path class="thin" d="M82 203 H174"/>
+    <path class="mid" d="M116 166 C124 155 132 155 140 166"/>
+    <circle class="core" cx="128" cy="126" r="18"/>
+    <path class="mid" d="M121 107 L82 58"/>
+    <path class="mid" d="M135 107 L174 58"/>
+    <path class="thin" d="M105 112 L68 92"/>
+    <path class="thin" d="M151 112 L188 92"/>
+    <circle class="copy" cx="73" cy="49" r="14"/>
+    <circle class="copy" cx="183" cy="49" r="14"/>
+    <path class="thin" d="M53 142 C70 131 89 130 106 139"/>
+    <path class="thin" d="M150 139 C167 130 186 131 203 142"/>
+    <path class="main" d="M95 181 L107 160"/>
+    <path class="main" d="M161 181 L149 160"/>
+  </g>
+</svg>

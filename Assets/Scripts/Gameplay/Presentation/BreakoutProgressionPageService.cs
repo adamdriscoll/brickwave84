@@ -235,7 +235,8 @@ namespace GetBricked.Gameplay
                 return string.Empty;
             }
 
-            if (definition.EffectType == PowerUpEffectType.BrickBloom)
+            if (definition.EffectType == PowerUpEffectType.BrickBloom
+                || definition.EffectType == PowerUpEffectType.DoubleTap)
             {
                 return $"{definition.RarityLabel} Mixed";
             }
@@ -284,6 +285,7 @@ namespace GetBricked.Gameplay
                 PowerUpEffectType.HotPotatoBall => $"Ball speed and score x{definition.Scalar:0.00} for {definition.DurationSeconds:0.#}s.",
                 PowerUpEffectType.JackpotJam => $"Score x{definition.Scalar:0.00}, but ball speed x{BreakoutPowerUpService.JackpotJamBallSpeedMultiplier:0.00} for {definition.DurationSeconds:0.#}s.",
                 PowerUpEffectType.MicroSpark => $"Ball size x{definition.Scalar:0.00} and score x{definition.SecondaryScalar:0.00} for {definition.DurationSeconds:0.#}s.",
+                PowerUpEffectType.DoubleTap => $"Next paddle hit launches {Mathf.Max(1, definition.ExtraBallCount)} angled copy balls, then paddle width x{definition.Scalar:0.00} for {definition.DurationSeconds:0.#}s.",
                 PowerUpEffectType.ExplosiveBall => $"Ball explosions damage nearby bricks for {definition.DurationSeconds:0.#}s.",
                 PowerUpEffectType.VectorSight => $"Shows a short paddle aim preview for {definition.DurationSeconds:0.#}s.",
                 PowerUpEffectType.RandomHarmfulDrop => "Looks helpful, then rolls a random hazard.",

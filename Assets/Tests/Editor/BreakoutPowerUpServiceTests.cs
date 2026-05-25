@@ -146,6 +146,36 @@ public sealed class BreakoutPowerUpServiceTests
     }
 
     [Test]
+    public void DoubleTapArmsNextPaddleHitAndStartsRailShrinkWhenConsumed()
+    {
+        var service = CreateService();
+        var doubleTap = CreatePowerUp(
+            "Double Tap",
+            PowerUpEffectType.DoubleTap,
+            true,
+            3.5f,
+            0.72f,
+            BreakoutContentRarity.Epic,
+            extraBallCount: 2);
+
+        service.ApplyPowerUp(doubleTap, null);
+
+        Assert.That(doubleTap.IsTimed, Is.False);
+        Assert.That(service.DoubleTapCharges, Is.EqualTo(1));
+        Assert.That(service.BuildActiveEffectsLabel(), Does.Contain("DOUBLE TAP"));
+
+        Assert.That(service.TryConsumeDoubleTapCharge(out var consumedDefinition, out var copyBallCount), Is.True);
+        var modifiers = service.CalculateEffectModifiers(1f, 0f);
+
+        Assert.That(consumedDefinition, Is.SameAs(doubleTap));
+        Assert.That(copyBallCount, Is.EqualTo(2));
+        Assert.That(service.DoubleTapCharges, Is.Zero);
+        Assert.That(service.ActiveTimedEffects, Has.Count.EqualTo(1));
+        Assert.That(modifiers.PaddleWidthMultiplier, Is.EqualTo(0.72f).Within(0.0001f));
+        Assert.That(service.BuildActiveEffectsLabel(), Does.Contain("DOUBLE TAP 3.5s"));
+    }
+
+    [Test]
     public void RemoveMicroSparkEffectsAtStackThresholdCancelsOnlyOverstackedMicroSpark()
     {
         var service = CreateService();
@@ -1017,7 +1047,8 @@ public sealed class BreakoutPowerUpServiceTests
         float durationSeconds,
         float scalar,
         BreakoutContentRarity rarity = BreakoutContentRarity.Common,
-        float secondaryScalar = 1f)
+        float secondaryScalar = 1f,
+        int extraBallCount = 0)
     {
         var powerUp = ScriptableObject.CreateInstance<PowerUpDefinition>();
         runtimeObjects.Add(powerUp);
@@ -1029,7 +1060,7 @@ public sealed class BreakoutPowerUpServiceTests
         SetPrivateField(powerUp, "durationSeconds", durationSeconds);
         SetPrivateField(powerUp, "scalar", scalar);
         SetPrivateField(powerUp, "secondaryScalar", secondaryScalar);
-        SetPrivateField(powerUp, "extraBallCount", 0);
+        SetPrivateField(powerUp, "extraBallCount", extraBallCount);
         return powerUp;
     }
 

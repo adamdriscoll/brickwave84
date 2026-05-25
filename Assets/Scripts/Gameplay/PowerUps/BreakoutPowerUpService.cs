@@ -352,6 +352,9 @@ namespace GetBricked.Gameplay
                     ballSizeMultiplier *= Mathf.Pow(powerUpDefinition.Scalar, effectStrength);
                     scoreMultiplier *= Mathf.Pow(Mathf.Max(1f, powerUpDefinition.SecondaryScalar), effectStrength);
                     break;
+                case PowerUpEffectType.DoubleTap:
+                    paddleWidthMultiplier *= Mathf.Pow(powerUpDefinition.Scalar, effectStrength);
+                    break;
                 case PowerUpEffectType.ExplosiveBall:
                     explosiveBallStrength = Mathf.Max(explosiveBallStrength, Mathf.Max(0.1f, powerUpDefinition.Scalar * effectStrength));
                     break;
@@ -442,6 +445,7 @@ namespace GetBricked.Gameplay
         private bool capsuleMadnessThresholdArmed = true;
         private PowerUpDefinition rewindCatchDefinition;
         private PowerUpDefinition brickBloomDefinition;
+        private PowerUpDefinition doubleTapDefinition;
 
         public BreakoutPowerUpService(Vector2 pickupSize, float pickupFallSpeed, float multiBallSpreadAngle, Material pickupMaterial)
         {
@@ -472,6 +476,8 @@ namespace GetBricked.Gameplay
         public int RewindCatchCharges { get; private set; }
 
         public int BrickBloomCharges { get; private set; }
+
+        public int DoubleTapCharges { get; private set; }
 
         public void UpdateTimedEffects(bool isPlaying, float deltaTime, System.Action modifiersChanged)
         {
@@ -727,6 +733,15 @@ namespace GetBricked.Gameplay
                 return default;
             }
 
+            if (powerUpDefinition.EffectType == PowerUpEffectType.DoubleTap)
+            {
+                DoubleTapCharges += 1;
+                doubleTapDefinition = powerUpDefinition;
+                ShowPickupBanner(powerUpDefinition, themeService, DoubleTapCharges);
+
+                return default;
+            }
+
             ShowPickupBanner(powerUpDefinition, themeService, 1);
 
             return powerUpDefinition.EffectType switch
@@ -843,8 +858,10 @@ namespace GetBricked.Gameplay
             SolarShotCharges = 0;
             RewindCatchCharges = 0;
             BrickBloomCharges = 0;
+            DoubleTapCharges = 0;
             rewindCatchDefinition = null;
             brickBloomDefinition = null;
+            doubleTapDefinition = null;
             ClearBankBonusCharge();
         }
 
@@ -950,6 +967,38 @@ namespace GetBricked.Gameplay
             if (BrickBloomCharges <= 0)
             {
                 brickBloomDefinition = null;
+            }
+
+            return true;
+        }
+
+        public bool TryConsumeDoubleTapCharge(out PowerUpDefinition definition, out int copyBallCount)
+        {
+            definition = null;
+            copyBallCount = 0;
+
+            if (DoubleTapCharges <= 0)
+            {
+                return false;
+            }
+
+            DoubleTapCharges--;
+            definition = doubleTapDefinition;
+            copyBallCount = Mathf.Clamp(
+                definition != null && definition.ExtraBallCount > 0
+                    ? definition.ExtraBallCount
+                    : 2,
+                1,
+                4);
+
+            if (definition != null)
+            {
+                AddTimedEffect(definition);
+            }
+
+            if (DoubleTapCharges <= 0)
+            {
+                doubleTapDefinition = null;
             }
 
             return true;
@@ -1070,7 +1119,11 @@ namespace GetBricked.Gameplay
         {
             var summaries = BuildTimedEffectStackSummaries();
 
-            if (summaries.Count == 0 && SolarShotCharges <= 0 && RewindCatchCharges <= 0 && BrickBloomCharges <= 0)
+            if (summaries.Count == 0
+                && SolarShotCharges <= 0
+                && RewindCatchCharges <= 0
+                && BrickBloomCharges <= 0
+                && DoubleTapCharges <= 0)
             {
                 return "Active Effects: none";
             }
@@ -1117,6 +1170,22 @@ namespace GetBricked.Gameplay
                 {
                     builder.Append(" x");
                     builder.Append(BrickBloomCharges);
+                }
+            }
+
+            if (DoubleTapCharges > 0)
+            {
+                if (builder.Length > 16)
+                {
+                    builder.Append(" | ");
+                }
+
+                builder.Append("DOUBLE TAP");
+
+                if (DoubleTapCharges > 1)
+                {
+                    builder.Append(" x");
+                    builder.Append(DoubleTapCharges);
                 }
             }
 

@@ -41,6 +41,8 @@ namespace GetBricked.Gameplay
         private const float PrismPopFallbackCopyLifetimeSeconds = 4f;
         private const float PrismPopLaunchOffsetMultiplier = 1.15f;
         private const float PrismPopMinimumHorizontalDirection = 0.22f;
+        private const float DoubleTapCopyBallSizeMultiplier = 0.86f;
+        private const float DoubleTapLaunchOffsetMultiplier = 1.2f;
         private const float MicroSparkPopStackThreshold = 4f;
         private const float TurboRailSpeedBurstMultiplier = 1.35f;
         private const float TurboRailSpeedBurstDuration = 4f;
@@ -999,6 +1001,8 @@ namespace GetBricked.Gameplay
                 ball.PassThroughPaddle(Mathf.Sign(contactPoint.x - hitPaddle.transform.position.x));
                 return true;
             }
+
+            TryTriggerDoubleTap(ball, hitPaddle, contactPoint);
 
             if (activeEffectModifiers.CleanCatchAimMultiplier > 1f
                 && stickyCaughtBall == null
@@ -6256,6 +6260,51 @@ namespace GetBricked.Gameplay
             }
         }
 
+        private void TryTriggerDoubleTap(BallController sourceBall, PaddleController hitPaddle, Vector2 contactPoint)
+        {
+            if (!IsGameplaySimulationActive()
+                || sourceBall == null
+                || hitPaddle == null
+                || ballSpawnService == null
+                || powerUpService == null
+                || !powerUpService.TryConsumeDoubleTapCharge(out var doubleTapDefinition, out var copyBallCount))
+            {
+                return;
+            }
+
+            ApplyActiveEffects();
+            var bounceDirection = sourceBall.ResolvePaddleBounceDirection(hitPaddle, contactPoint.x);
+            SpawnDoubleTapCopyBalls(contactPoint, bounceDirection, copyBallCount);
+            powerUpService.ShowStatusBanner("DOUBLE TAP!", ResolvePowerUpAccentColor(doubleTapDefinition), 1.35f);
+        }
+
+        private void SpawnDoubleTapCopyBalls(Vector2 launchCenter, Vector2 bounceDirection, int copyBallCount)
+        {
+            var resolvedCount = Mathf.Clamp(copyBallCount, 1, 4);
+            var resolvedDirection = bounceDirection.sqrMagnitude > 0.01f ? bounceDirection.normalized : Vector2.up;
+            var launchDirections = powerUpService != null
+                ? powerUpService.BuildMultiBallDirections(resolvedDirection, resolvedCount)
+                : BuildFallbackSplitDirections(resolvedDirection, resolvedCount);
+            var launchOffset = ResolveDoubleTapLaunchOffset();
+
+            for (var index = 0; index < launchDirections.Length; index++)
+            {
+                var direction = launchDirections[index].sqrMagnitude > 0.01f
+                    ? launchDirections[index].normalized
+                    : resolvedDirection;
+                var copyBall = CreateBall(false);
+                copyBall.SetBaseSizeMultiplier(DoubleTapCopyBallSizeMultiplier);
+                copyBall.SetWorldPosition(launchCenter + (direction * launchOffset));
+                copyBall.Launch(direction);
+                activeBalls.Add(copyBall);
+            }
+        }
+
+        private float ResolveDoubleTapLaunchOffset()
+        {
+            return Mathf.Max(0.04f, ballRadius * DoubleTapCopyBallSizeMultiplier * DoubleTapLaunchOffsetMultiplier);
+        }
+
         private void TryTriggerPrismPop(BallController sourceBall, Vector2 splitCenter, BrickDestructionCause destructionCause)
         {
             if (destructionCause != BrickDestructionCause.Impact
@@ -7137,6 +7186,7 @@ namespace GetBricked.Gameplay
                 PowerUpEffectType.HotPotatoBall => $"Ball x{definition.Scalar:0.00}, score x{definition.Scalar:0.00}",
                 PowerUpEffectType.JackpotJam => $"Score x{definition.Scalar:0.00}, ball x{BreakoutPowerUpService.JackpotJamBallSpeedMultiplier:0.00} for {definition.DurationSeconds:0.#}s",
                 PowerUpEffectType.MicroSpark => $"Ball size x{definition.Scalar:0.00}, score x{definition.SecondaryScalar:0.00} for {definition.DurationSeconds:0.#}s",
+                PowerUpEffectType.DoubleTap => $"Next paddle hit adds {Mathf.Max(1, definition.ExtraBallCount)} copy balls; paddle x{definition.Scalar:0.00} for {definition.DurationSeconds:0.#}s",
                 PowerUpEffectType.ExplosiveBall => $"Explodes bricks for {definition.DurationSeconds:0.#}s",
                 PowerUpEffectType.VectorSight => $"Aim preview for {definition.DurationSeconds:0.#}s",
                 PowerUpEffectType.CapsuleMagnet => $"Helpful capsules drift for {definition.DurationSeconds:0.#}s",

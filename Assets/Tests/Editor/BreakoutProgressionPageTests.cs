@@ -107,7 +107,7 @@ public sealed class BreakoutProgressionPageTests
             .Select(definition => definition.LadderUnlockIntensity)
             .OrderBy(heat => heat)
             .ToArray();
-        var expectedDropHeats = Enumerable.Range(1, 43).ToArray();
+        var expectedDropHeats = Enumerable.Range(1, 44).ToArray();
 
         Assert.That(unlockHeats, Is.EqualTo(expectedDropHeats));
 
@@ -123,6 +123,7 @@ public sealed class BreakoutProgressionPageTests
         var rewindCatch = view.Cards.First(card => card.Title == "Rewind Catch");
         var microSpark = view.Cards.First(card => card.Title == "Micro Spark");
         var brickBloom = view.Cards.First(card => card.Title == "Brick Bloom");
+        var doubleTap = view.Cards.First(card => card.Title == "Double Tap");
 
         Assert.That(turboRail.UnlockHint, Does.Contain("Heat 01"));
         Assert.That(mirrorGrid.UnlockHint, Does.Contain("Heat 02"));
@@ -148,6 +149,8 @@ public sealed class BreakoutProgressionPageTests
         Assert.That(microSpark.Description, Does.Contain("score x1.75"));
         Assert.That(brickBloom.UnlockHint, Does.Contain("Heat 42"));
         Assert.That(brickBloom.Description, Does.Contain("spawns 2 tiny bonus bricks"));
+        Assert.That(doubleTap.UnlockHint, Does.Contain("Heat 44"));
+        Assert.That(doubleTap.Description, Does.Contain("2 angled copy balls"));
     }
 
     [Test]
@@ -401,6 +404,23 @@ public sealed class BreakoutProgressionPageTests
         Assert.That(card.Description, Does.Contain("pushed away from nearby bricks"));
         Assert.That(card.Family, Does.Contain("Epic Hazard"));
         Assert.That(card.StateLabel, Is.EqualTo("Locked"));
+    }
+
+    [Test]
+    public void ProgressionPageShowsDoubleTapAsLiveHeatFortyFourDrop()
+    {
+        var doubleTap = Resources.Load<PowerUpDefinition>("PowerUps/DoubleTap");
+        Assert.That(doubleTap, Is.Not.Null);
+
+        var view = new BreakoutProgressionPageService().BuildView(new[] { doubleTap });
+        var card = view.Cards.First(item => item.Title == "Double Tap");
+
+        Assert.That(card.UnlockHint, Does.Contain("Heat 44"));
+        Assert.That(card.Description, Does.Contain("2 angled copy balls"));
+        Assert.That(card.Description, Does.Contain("paddle width x0.72"));
+        Assert.That(card.Family, Does.Contain("Epic Mixed"));
+        Assert.That(card.StateLabel, Is.EqualTo("Locked"));
+        Assert.That(view.Cards.Count(item => item.Title == "Double Tap"), Is.EqualTo(1));
     }
 
     [Test]

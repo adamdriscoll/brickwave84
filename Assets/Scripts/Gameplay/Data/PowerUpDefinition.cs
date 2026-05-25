@@ -111,6 +111,7 @@ namespace GetBricked.Gameplay.Data
         MicroSpark = 37,
         BrickBloom = 38,
         MagnetFlip = 39,
+        DoubleTap = 40,
     }
 
     [CreateAssetMenu(menuName = "Get Bricked/Power-Up Definition", fileName = "PowerUpDefinition")]
@@ -168,6 +169,7 @@ namespace GetBricked.Gameplay.Data
             && effectType != PowerUpEffectType.MissileStock
             && effectType != PowerUpEffectType.SolarShot
             && effectType != PowerUpEffectType.BrickBloom
+            && effectType != PowerUpEffectType.DoubleTap
             && DurationSeconds > 0f;
 
         public bool IsUnlockedForLadderIntensity(int intensity)
@@ -216,7 +218,8 @@ namespace GetBricked.Gameplay.Data
                 || effectType == PowerUpEffectType.RandomMixedDrop
                 || effectType == PowerUpEffectType.JackpotJam
                 || effectType == PowerUpEffectType.MicroSpark
-                || effectType == PowerUpEffectType.BrickBloom)
+                || effectType == PowerUpEffectType.BrickBloom
+                || effectType == PowerUpEffectType.DoubleTap)
             {
                 return ThemeVisualSlot.PickupBurst;
             }
