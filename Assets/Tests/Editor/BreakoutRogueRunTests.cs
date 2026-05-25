@@ -144,7 +144,7 @@ public sealed class BreakoutRogueRunTests
     }
 
     [Test]
-    public void DeveloperForcedGlitchMenuCyclesThroughRowRewrite()
+    public void DeveloperForcedGlitchMenuCyclesThroughPrismLanes()
     {
         var state = new BreakoutDeveloperLaunchState();
 
@@ -170,10 +170,13 @@ public sealed class BreakoutRogueRunTests
         Assert.That(state.ForcedLevelGlitchSelection, Is.EqualTo(LevelGlitchSelection.RowRewrite));
 
         state.AdjustField(BreakoutDeveloperLaunchField.ForcedGlitch, 1, null, null);
+        Assert.That(state.ForcedLevelGlitchSelection, Is.EqualTo(LevelGlitchSelection.PrismLanes));
+
+        state.AdjustField(BreakoutDeveloperLaunchField.ForcedGlitch, 1, null, null);
         Assert.That(state.ForcedLevelGlitchSelection, Is.EqualTo(LevelGlitchSelection.Off));
 
         state.AdjustField(BreakoutDeveloperLaunchField.ForcedGlitch, -1, null, null);
-        Assert.That(state.ForcedLevelGlitchSelection, Is.EqualTo(LevelGlitchSelection.RowRewrite));
+        Assert.That(state.ForcedLevelGlitchSelection, Is.EqualTo(LevelGlitchSelection.PrismLanes));
     }
 
     [Test]

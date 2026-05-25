@@ -57,6 +57,8 @@ namespace GetBricked.Gameplay
         private const float GravityPocketArenaHorizontalPadding = 1.35f;
         private const float GravityPocketArenaBottomPadding = 2.1f;
         private const float GravityPocketArenaTopPadding = 1.2f;
+        private const float PrismLaneBottomInset = 1.25f;
+        private const float PrismLaneTopInset = 1.05f;
         private const int AutoSaveBaseScoreCost = 10000;
         private const int AutoSaveBaseCostMaximumRogueHeat = 10;
         private const int AutoSaveScoreCostIncreasePerHeat = 1000;
@@ -312,6 +314,7 @@ namespace GetBricked.Gameplay
         private BreakoutTurboRailSection activeTurboRailSection;
         private BreakoutStaticWallSection activeStaticWallSection;
         private BreakoutGravityPocketVisual activeGravityPocketVisual;
+        private GameObject activePrismLaneField;
         private BreakoutMirrorGridVisual activeMirrorGridVisual;
         private bool isMirrorGridArmed;
         private bool hasMirrorGridTriggered;
@@ -3596,6 +3599,12 @@ namespace GetBricked.Gameplay
                 ArmRowRewrite(activeLevelGlitchPlan.RowRewrite);
                 powerUpService?.ShowStatusBanner("ROW REWRITE!", new Color(0.72f, 0.62f, 1f, 1f), 2.2f);
             }
+
+            if (activeLevelGlitchPlan.HasGlitch(BreakoutLevelGlitchType.PrismLanes))
+            {
+                CreatePrismLanes(activeLevelGlitchPlan);
+                powerUpService?.ShowStatusBanner("PRISM LANES!", new Color(1f, 0.87f, 0.36f, 1f), 2.2f);
+            }
         }
 
         private void ClearLevelGlitches()
@@ -3632,6 +3641,12 @@ namespace GetBricked.Gameplay
             {
                 DestroyRuntimeObject(activeGravityPocketVisual.gameObject);
                 activeGravityPocketVisual = null;
+            }
+
+            if (activePrismLaneField != null)
+            {
+                DestroyRuntimeObject(activePrismLaneField);
+                activePrismLaneField = null;
             }
 
             if (activeMirrorGridVisual != null)
@@ -3940,6 +3955,68 @@ namespace GetBricked.Gameplay
         {
             var height = Mathf.Max(1f, (arenaTop - StaticWallTopInset) - (arenaBottom + StaticWallBottomInset));
             return new Vector2(StaticWallThickness, height);
+        }
+
+        private void CreatePrismLanes(BreakoutLevelGlitchPlan glitchPlan)
+        {
+            if (glitchPlan == null || glitchPlan.PrismLanes.Length <= 0 || squareSprite == null)
+            {
+                return;
+            }
+
+            activePrismLaneField = new GameObject("Prism Lanes");
+            activePrismLaneField.transform.SetParent(glitchesRoot != null ? glitchesRoot : runtimeRoot, false);
+
+            for (var index = 0; index < glitchPlan.PrismLanes.Length; index++)
+            {
+                CreatePrismLane(activePrismLaneField.transform, index, glitchPlan.PrismLanes[index]);
+            }
+        }
+
+        private void CreatePrismLane(Transform laneRoot, int laneIndex, BreakoutPrismLaneSpec spec)
+        {
+            var laneObject = new GameObject($"Prism Lane {laneIndex + 1:00}");
+            laneObject.transform.SetParent(laneRoot, false);
+            laneObject.transform.position = ResolvePrismLanePosition(spec);
+
+            var laneSize = ResolvePrismLaneSize(spec);
+            var collider = laneObject.AddComponent<BoxCollider2D>();
+            collider.isTrigger = true;
+            collider.size = laneSize;
+
+            var visual = laneObject.AddComponent<BreakoutPrismLaneVisual>();
+            visual.Configure(
+                squareSprite,
+                spriteUnlitMaterial,
+                additiveSpriteMaterial,
+                laneSize,
+                laneIndex,
+                spec.RefractionSign);
+
+            var lane = laneObject.AddComponent<BreakoutPrismLaneSection>();
+            lane.Configure(spec.RefractionSign, visual);
+        }
+
+        private Vector2 ResolvePrismLanePosition(BreakoutPrismLaneSpec spec)
+        {
+            var x = Mathf.Lerp(arenaLeft + 0.95f, arenaRight - 0.95f, spec.NormalizedX);
+            var minY = arenaBottom + PrismLaneBottomInset;
+            var maxY = arenaTop - PrismLaneTopInset;
+
+            if (maxY <= minY)
+            {
+                minY = arenaBottom;
+                maxY = arenaTop;
+            }
+
+            return new Vector2(x, (minY + maxY) * 0.5f);
+        }
+
+        private Vector2 ResolvePrismLaneSize(BreakoutPrismLaneSpec spec)
+        {
+            var width = Mathf.Lerp(0.22f, 0.52f, spec.NormalizedWidth / 0.14f);
+            var height = Mathf.Max(1f, (arenaTop - PrismLaneTopInset) - (arenaBottom + PrismLaneBottomInset));
+            return new Vector2(width, height);
         }
 
         private void CreateGravityPocket(BreakoutLevelGlitchPlan glitchPlan)
@@ -5762,6 +5839,7 @@ namespace GetBricked.Gameplay
                 LevelGlitchSelection.TokenStorm => "Token Storm",
                 LevelGlitchSelection.StaticWall => "Static Wall",
                 LevelGlitchSelection.RowRewrite => "Row Rewrite",
+                LevelGlitchSelection.PrismLanes => "Prism Lanes",
                 _ => "Off",
             };
         }

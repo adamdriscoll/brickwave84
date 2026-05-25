@@ -64,7 +64,6 @@ namespace GetBricked.Gameplay
 
         private static readonly BreakoutProgressionPlaceholderItem[] PlaceholderGlitches =
         {
-            new BreakoutProgressionPlaceholderItem("Prism Lanes", "Glitch", "Precision", "Marked lanes refract the ball into sharper angles.", 7, PrecisionAccent),
         };
 
         public BreakoutUiProgressionView BuildView(IReadOnlyList<PowerUpDefinition> loadedPowerUps, BreakoutThemeService themeService = null)
@@ -163,6 +162,13 @@ namespace GetBricked.Gameplay
                 BreakoutLevelGlitchPlanner.RowRewriteLadderUnlockIntensity,
                 highestCompletedIntensity,
                 LayoutAccent));
+            cards.Add(BuildUnlockableGlitchCard(
+                "Prism Lanes",
+                "Precision Rare Glitch",
+                "Marked lanes refract the ball into sharper angles.",
+                BreakoutLevelGlitchPlanner.PrismLanesLadderUnlockIntensity,
+                highestCompletedIntensity,
+                PrecisionAccent));
             AppendPlaceholderCards(cards, PlaceholderDrops, highestCompletedIntensity);
             AppendPlaceholderCards(cards, PlaceholderGlitches, highestCompletedIntensity);
             cards.Add(BuildHiddenSlotCard("Future Drop Slot", "Drop", "Hidden", "Future drop signal pending."));
@@ -506,6 +512,11 @@ namespace GetBricked.Gameplay
             }
 
             if (completedIntensity >= BreakoutLevelGlitchPlanner.RowRewriteLadderUnlockIntensity)
+            {
+                count++;
+            }
+
+            if (completedIntensity >= BreakoutLevelGlitchPlanner.PrismLanesLadderUnlockIntensity)
             {
                 count++;
             }

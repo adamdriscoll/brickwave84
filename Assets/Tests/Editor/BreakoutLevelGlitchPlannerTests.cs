@@ -171,6 +171,29 @@ public sealed class BreakoutLevelGlitchPlannerTests
         Assert.That(unlockedPlan.RowRewrite.FillChance, Is.InRange(0.54f, 0.76f));
     }
 
+    [Test]
+    public void RogueGlitchHeatControlsWhenPrismLanesCanUnlock()
+    {
+        var lockedSettings = CreateRogueSettings(
+            rogueIntensity: BreakoutLevelGlitchPlanner.PrismLanesLadderUnlockIntensity,
+            levelGlitchSelection: LevelGlitchSelection.PrismLanes);
+        var unlockedSettings = CreateRogueSettings(
+            rogueIntensity: BreakoutLevelGlitchPlanner.PrismLanesLadderUnlockIntensity + 1,
+            levelGlitchSelection: LevelGlitchSelection.PrismLanes);
+
+        var lockedPlan = BreakoutLevelGlitchPlanner.BuildPlan(new DeterministicRandomService(7), lockedSettings, levelIndex: 9);
+        var unlockedPlan = BreakoutLevelGlitchPlanner.BuildPlan(new DeterministicRandomService(7), unlockedSettings, levelIndex: 9);
+
+        Assert.That(lockedPlan.IsActive, Is.False);
+        Assert.That(unlockedPlan.IsActive, Is.True);
+        Assert.That(unlockedPlan.GlitchType, Is.EqualTo(BreakoutLevelGlitchType.PrismLanes));
+        Assert.That(unlockedPlan.DisplayName, Is.EqualTo("Prism Lanes"));
+        Assert.That(unlockedPlan.Rarity, Is.EqualTo(BreakoutContentRarity.Rare));
+        Assert.That(unlockedPlan.ScoreMultiplier, Is.EqualTo(1.31f).Within(0.0001f));
+        Assert.That(unlockedPlan.PrismLanes.Length, Is.InRange(2, 3));
+        Assert.That(unlockedPlan.PrismLanes[0].NormalizedX, Is.InRange(0.1f, 0.9f));
+    }
+
 
     [Test]
     public void ForcedWarpGatePlanBuildsSmallPortalSetAndScoreBonus()
@@ -303,6 +326,31 @@ public sealed class BreakoutLevelGlitchPlannerTests
 
         Assert.That(plan.IsActive, Is.True);
         Assert.That(plan.GlitchType, Is.EqualTo(BreakoutLevelGlitchType.RowRewrite));
+    }
+
+    [Test]
+    public void SelectedPrismLanesAlwaysBuildsPrismLanesEvenWhenChanceIsDisabled()
+    {
+        var settings = CreateSettings(
+            levelGlitchesEnabled: true,
+            chanceMultiplier: 0f,
+            levelGlitchSelection: LevelGlitchSelection.PrismLanes);
+
+        var plan = BreakoutLevelGlitchPlanner.BuildPlan(new DeterministicRandomService(3), settings, levelIndex: 9);
+
+        Assert.That(plan.IsActive, Is.True);
+        Assert.That(plan.GlitchType, Is.EqualTo(BreakoutLevelGlitchType.PrismLanes));
+        Assert.That(plan.PrismLanes, Is.Not.Empty);
+    }
+
+    [Test]
+    public void PrismLaneRefractionBuildsSharperHorizontalDirection()
+    {
+        var refracted = BreakoutPrismLaneSection.BuildRefractedDirection(new UnityEngine.Vector2(0.12f, 1f), -1f);
+
+        Assert.That(refracted.x, Is.LessThan(-0.4f));
+        Assert.That(refracted.y, Is.GreaterThan(0f));
+        Assert.That(refracted.magnitude, Is.EqualTo(1f).Within(0.0001f));
     }
 
 

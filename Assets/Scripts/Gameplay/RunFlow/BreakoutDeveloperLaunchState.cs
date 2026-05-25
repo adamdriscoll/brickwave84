@@ -42,6 +42,7 @@ namespace GetBricked.Gameplay
             LevelGlitchSelection.TokenStorm,
             LevelGlitchSelection.StaticWall,
             LevelGlitchSelection.RowRewrite,
+            LevelGlitchSelection.PrismLanes,
         };
 
         private readonly HashSet<string> selectedUpgradeIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);

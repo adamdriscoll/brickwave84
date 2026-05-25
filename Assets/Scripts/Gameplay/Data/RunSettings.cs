@@ -42,6 +42,7 @@ namespace GetBricked.Gameplay.Data
         StaticWall = 6,
         RowRewrite = 7,
         Random = 8,
+        PrismLanes = 9,
     }
 
     public sealed class RunSettings
@@ -206,6 +207,7 @@ namespace GetBricked.Gameplay.Data
             LevelGlitchSelection.TokenStorm => "Token Storm Armed",
             LevelGlitchSelection.StaticWall => "Static Wall Armed",
             LevelGlitchSelection.RowRewrite => "Row Rewrite Armed",
+            LevelGlitchSelection.PrismLanes => "Prism Lanes Armed",
             _ => "Clean Walls",
         };
 
@@ -216,7 +218,7 @@ namespace GetBricked.Gameplay.Data
             var normalized = (LevelGlitchSelection)Mathf.Clamp(
                 (int)levelGlitchSelection,
                 (int)LevelGlitchSelection.Off,
-                (int)LevelGlitchSelection.Random);
+                (int)LevelGlitchSelection.PrismLanes);
 
             if (!levelGlitchesEnabled && normalized == LevelGlitchSelection.Random)
             {

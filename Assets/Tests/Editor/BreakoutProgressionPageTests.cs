@@ -120,6 +120,7 @@ public sealed class BreakoutProgressionPageTests
         var tokenStorm = view.Cards.First(card => card.Title == "Token Storm");
         var gravityPocket = view.Cards.First(card => card.Title == "Gravity Pocket");
         var rowRewrite = view.Cards.First(card => card.Title == "Row Rewrite");
+        var prismLanes = view.Cards.First(card => card.Title == "Prism Lanes");
         var solarShot = view.Cards.First(card => card.Title == "Solar Shot");
         var wrapRail = view.Cards.First(card => card.Title == "Wrap Rail");
         var staticShoes = view.Cards.First(card => card.Title == "Static Shoes");
@@ -147,6 +148,10 @@ public sealed class BreakoutProgressionPageTests
         Assert.That(rowRewrite.UnlockHint, Does.Not.Contain("preview"));
         Assert.That(rowRewrite.Description, Does.Contain("rerolls"));
         Assert.That(rowRewrite.Family, Does.Contain("Rare"));
+        Assert.That(prismLanes.UnlockHint, Does.Contain("Heat 07"));
+        Assert.That(prismLanes.UnlockHint, Does.Not.Contain("preview"));
+        Assert.That(prismLanes.Description, Does.Contain("refract"));
+        Assert.That(prismLanes.Family, Does.Contain("Rare"));
         Assert.That(solarShot.UnlockHint, Does.Contain("Heat 36"));
         Assert.That(solarShot.Description, Does.Contain("burns away"));
         Assert.That(wrapRail.UnlockHint, Does.Contain("Heat 37"));
