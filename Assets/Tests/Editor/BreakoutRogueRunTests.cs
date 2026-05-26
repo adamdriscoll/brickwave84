@@ -144,7 +144,7 @@ public sealed class BreakoutRogueRunTests
     }
 
     [Test]
-    public void DeveloperForcedGlitchMenuCyclesThroughRogueGate()
+    public void DeveloperForcedGlitchMenuCyclesThroughPickupPinball()
     {
         var state = new BreakoutDeveloperLaunchState();
 
@@ -177,6 +177,9 @@ public sealed class BreakoutRogueRunTests
 
         state.AdjustField(BreakoutDeveloperLaunchField.ForcedGlitch, 1, null, null);
         Assert.That(state.ForcedLevelGlitchSelection, Is.EqualTo(LevelGlitchSelection.CapsuleRoulette));
+
+        state.AdjustField(BreakoutDeveloperLaunchField.ForcedGlitch, 1, null, null);
+        Assert.That(state.ForcedLevelGlitchSelection, Is.EqualTo(LevelGlitchSelection.PickupPinball));
 
         state.AdjustField(BreakoutDeveloperLaunchField.ForcedGlitch, 1, null, null);
         Assert.That(state.ForcedLevelGlitchSelection, Is.EqualTo(LevelGlitchSelection.DriftRows));

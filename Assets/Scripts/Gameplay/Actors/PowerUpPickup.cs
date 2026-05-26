@@ -22,10 +22,17 @@ namespace GetBricked.Gameplay
         private float missThresholdY;
         private float rotationDegreesPerSecond;
         private float currentRotationDegrees;
+        private Rect pinballBounds;
+        private Vector2 pinballVelocity;
+        private float pinballGravityMultiplier = 1f;
+        private float pinballBounceDamping = 0.88f;
+        private float pinballBrickCooldownTimer;
+        private Brick lastPinballBrick;
         private Vector2 capsuleMagnetTarget;
         private float capsuleMagnetStrength;
         private Vector3 targetVisualScale = Vector3.one;
         private float visibilityMultiplier = 1f;
+        private bool pinballEnabled;
         private bool isResolved;
 
         public PowerUpDefinition Definition => definition;
@@ -52,6 +59,20 @@ namespace GetBricked.Gameplay
         {
             capsuleMagnetTarget = targetPosition;
             capsuleMagnetStrength = Mathf.Clamp01(strength);
+        }
+
+        internal void EnablePinball(Rect bounds, float directionSign, BreakoutPickupPinballSpec spec)
+        {
+            var resolvedSign = Mathf.Sign(Mathf.Approximately(directionSign, 0f) ? 1f : directionSign);
+            pinballBounds = bounds;
+            pinballGravityMultiplier = spec.GravityMultiplier;
+            pinballBounceDamping = spec.BounceDamping;
+            pinballVelocity = new Vector2(
+                resolvedSign * fallSpeed * spec.LateralVelocityMultiplier,
+                fallSpeed * spec.UpwardVelocityMultiplier);
+            pinballBrickCooldownTimer = 0f;
+            lastPinballBrick = null;
+            pinballEnabled = true;
         }
 
         public void Configure(
@@ -103,6 +124,10 @@ namespace GetBricked.Gameplay
                 pickupCollider.isTrigger = true;
             }
 
+            pinballEnabled = false;
+            pinballVelocity = Vector2.zero;
+            pinballBrickCooldownTimer = 0f;
+            lastPinballBrick = null;
             ApplyTheme(visualStyle);
         }
 
@@ -168,7 +193,7 @@ namespace GetBricked.Gameplay
                 return;
             }
 
-            var nextPosition = (Vector2)transform.position + ResolveFixedMovementStep();
+            var nextPosition = ResolveNextFixedPosition();
 
             if (pickupBody != null)
             {
@@ -211,11 +236,13 @@ namespace GetBricked.Gameplay
         private void OnTriggerEnter2D(Collider2D other)
         {
             TryCatch(other);
+            TryHandlePinballBounce(other);
         }
 
         private void OnTriggerStay2D(Collider2D other)
         {
             TryCatch(other);
+            TryHandlePinballBounce(other);
         }
 
         private void TryCatch(Collider2D other)
@@ -227,6 +254,29 @@ namespace GetBricked.Gameplay
 
             isResolved = true;
             gameController.HandlePickupCaught(this);
+        }
+
+        private void TryHandlePinballBounce(Collider2D other)
+        {
+            if (!pinballEnabled || isResolved || other == null || !other.TryGetComponent<Brick>(out var brick))
+            {
+                return;
+            }
+
+            if (brick == null || brick.Definition == null || brick.IsPendingRemoval)
+            {
+                return;
+            }
+
+            if (pinballBrickCooldownTimer > 0f && brick == lastPinballBrick)
+            {
+                return;
+            }
+
+            var normal = ResolvePinballBounceNormal((Vector2)transform.position, other.bounds);
+            pinballVelocity = BuildPinballBounceVelocity(pinballVelocity, normal, fallSpeed, pinballBounceDamping);
+            pinballBrickCooldownTimer = 0.08f;
+            lastPinballBrick = brick;
         }
 
         private bool IsOverlappingPaddle()
@@ -261,6 +311,109 @@ namespace GetBricked.Gameplay
             var maxStep = lateralSpeed * Time.fixedDeltaTime;
             movementStep.x = Mathf.Clamp(pullX * capsuleMagnetStrength * 1.45f * Time.fixedDeltaTime, -maxStep, maxStep);
             return movementStep;
+        }
+
+        private Vector2 ResolveNextFixedPosition()
+        {
+            if (!pinballEnabled)
+            {
+                return (Vector2)transform.position + ResolveFixedMovementStep();
+            }
+
+            pinballBrickCooldownTimer = Mathf.Max(0f, pinballBrickCooldownTimer - Time.fixedDeltaTime);
+            var effectiveFallSpeed = fallSpeed * activeFallSpeedMultiplier;
+            var gravity = effectiveFallSpeed * pinballGravityMultiplier;
+            pinballVelocity.y = Mathf.Max(
+                -effectiveFallSpeed * 1.55f,
+                pinballVelocity.y - (gravity * Time.fixedDeltaTime));
+
+            if (capsuleMagnetStrength > 0.001f)
+            {
+                var pullX = capsuleMagnetTarget.x - transform.position.x;
+                pinballVelocity.x += Mathf.Clamp(
+                    pullX * capsuleMagnetStrength * 1.35f * Time.fixedDeltaTime,
+                    -effectiveFallSpeed * 0.5f,
+                    effectiveFallSpeed * 0.5f);
+            }
+
+            var nextPosition = (Vector2)transform.position + (pinballVelocity * Time.fixedDeltaTime);
+            return ResolvePinballArenaBounce(nextPosition, effectiveFallSpeed);
+        }
+
+        private Vector2 ResolvePinballArenaBounce(Vector2 nextPosition, float effectiveFallSpeed)
+        {
+            var halfExtents = pickupCollider != null
+                ? (Vector2)pickupCollider.bounds.extents
+                : Vector2.zero;
+            var minX = pinballBounds.xMin + halfExtents.x;
+            var maxX = pinballBounds.xMax - halfExtents.x;
+            var maxY = pinballBounds.yMax - halfExtents.y;
+
+            if (nextPosition.x < minX)
+            {
+                nextPosition.x = minX;
+                pinballVelocity = BuildPinballBounceVelocity(pinballVelocity, Vector2.right, effectiveFallSpeed, pinballBounceDamping);
+            }
+            else if (nextPosition.x > maxX)
+            {
+                nextPosition.x = maxX;
+                pinballVelocity = BuildPinballBounceVelocity(pinballVelocity, Vector2.left, effectiveFallSpeed, pinballBounceDamping);
+            }
+
+            if (nextPosition.y > maxY)
+            {
+                nextPosition.y = maxY;
+                pinballVelocity = BuildPinballBounceVelocity(pinballVelocity, Vector2.down, effectiveFallSpeed, pinballBounceDamping);
+            }
+
+            return nextPosition;
+        }
+
+        internal static Vector2 BuildPinballBounceVelocity(
+            Vector2 incomingVelocity,
+            Vector2 normal,
+            float baseFallSpeed,
+            float damping)
+        {
+            var resolvedNormal = normal.sqrMagnitude > 0.0001f ? normal.normalized : Vector2.up;
+            var reflected = Vector2.Reflect(incomingVelocity, resolvedNormal) * Mathf.Clamp(damping, 0.65f, 1f);
+            var minimumHorizontalSpeed = Mathf.Max(0.12f, baseFallSpeed * 0.24f);
+
+            if (Mathf.Abs(reflected.x) < minimumHorizontalSpeed)
+            {
+                var sign = Mathf.Sign(Mathf.Approximately(reflected.x, 0f) ? incomingVelocity.x : reflected.x);
+                reflected.x = sign * minimumHorizontalSpeed;
+            }
+
+            return Vector2.ClampMagnitude(reflected, Mathf.Max(1f, baseFallSpeed * 1.65f));
+        }
+
+        internal static Vector2 ResolvePinballBounceNormal(Vector2 pickupPosition, Bounds obstacleBounds)
+        {
+            if (!obstacleBounds.Contains(pickupPosition))
+            {
+                var closestPoint = (Vector2)obstacleBounds.ClosestPoint(pickupPosition);
+                var outward = pickupPosition - closestPoint;
+                return outward.sqrMagnitude > 0.0001f ? outward.normalized : Vector2.up;
+            }
+
+            var leftDistance = Mathf.Abs(pickupPosition.x - obstacleBounds.min.x);
+            var rightDistance = Mathf.Abs(obstacleBounds.max.x - pickupPosition.x);
+            var bottomDistance = Mathf.Abs(pickupPosition.y - obstacleBounds.min.y);
+            var topDistance = Mathf.Abs(obstacleBounds.max.y - pickupPosition.y);
+            var nearest = Mathf.Min(leftDistance, rightDistance, bottomDistance, topDistance);
+
+            if (Mathf.Approximately(nearest, leftDistance))
+            {
+                return Vector2.left;
+            }
+
+            if (Mathf.Approximately(nearest, rightDistance))
+            {
+                return Vector2.right;
+            }
+
+            return Mathf.Approximately(nearest, bottomDistance) ? Vector2.down : Vector2.up;
         }
 
         private void NormalizeVisualScale()

@@ -25,6 +25,7 @@ namespace GetBricked.Gameplay
         GhostRow = 15,
         SplitHorizon = 16,
         RogueGate = 17,
+        PickupPinball = 18,
     }
 
     internal readonly struct BreakoutLevelGlitchDefinition
@@ -324,6 +325,29 @@ namespace GetBricked.Gameplay
         public float CooldownSeconds { get; }
     }
 
+    internal readonly struct BreakoutPickupPinballSpec
+    {
+        public BreakoutPickupPinballSpec(
+            float lateralVelocityMultiplier,
+            float upwardVelocityMultiplier,
+            float gravityMultiplier,
+            float bounceDamping)
+        {
+            LateralVelocityMultiplier = Mathf.Clamp(lateralVelocityMultiplier, 0.35f, 1.4f);
+            UpwardVelocityMultiplier = Mathf.Clamp(upwardVelocityMultiplier, 0.1f, 1.1f);
+            GravityMultiplier = Mathf.Clamp(gravityMultiplier, 0.6f, 2.2f);
+            BounceDamping = Mathf.Clamp(bounceDamping, 0.65f, 1f);
+        }
+
+        public float LateralVelocityMultiplier { get; }
+
+        public float UpwardVelocityMultiplier { get; }
+
+        public float GravityMultiplier { get; }
+
+        public float BounceDamping { get; }
+    }
+
     internal sealed class BreakoutLevelGlitchPlan
     {
         public static readonly BreakoutLevelGlitchPlan None = new BreakoutLevelGlitchPlan(
@@ -357,7 +381,8 @@ namespace GetBricked.Gameplay
             BreakoutFlickerBricksSpec flickerBricks = default,
             BreakoutCassetteSkipSpec cassetteSkip = default,
             BreakoutGhostRowSpec ghostRow = default,
-            BreakoutSplitHorizonSpec splitHorizon = default)
+            BreakoutSplitHorizonSpec splitHorizon = default,
+            BreakoutPickupPinballSpec pickupPinball = default)
         {
             GlitchType = glitchType;
             Rarity = BreakoutRarityRules.Clamp(rarity);
@@ -378,6 +403,7 @@ namespace GetBricked.Gameplay
             CassetteSkip = cassetteSkip;
             GhostRow = ghostRow;
             SplitHorizon = splitHorizon;
+            PickupPinball = pickupPinball;
             ActiveGlitchTypes = activeGlitchTypes != null && activeGlitchTypes.Length > 0
                 ? activeGlitchTypes
                 : glitchType != BreakoutLevelGlitchType.None
@@ -423,6 +449,8 @@ namespace GetBricked.Gameplay
 
         public BreakoutSplitHorizonSpec SplitHorizon { get; }
 
+        public BreakoutPickupPinballSpec PickupPinball { get; }
+
         public BreakoutLevelGlitchType[] ActiveGlitchTypes { get; }
 
         public bool IsActive => ActiveGlitchTypes.Length > 0;
@@ -459,6 +487,7 @@ namespace GetBricked.Gameplay
         public const int GhostRowLadderUnlockIntensity = 14;
         public const int SplitHorizonLadderUnlockIntensity = 15;
         public const int RogueGateLadderUnlockIntensity = 18;
+        public const int PickupPinballLadderUnlockIntensity = 19;
 
         private const float WarpGateScoreMultiplier = 1.35f;
         private const float TurboRailScoreMultiplier = 1.25f;
@@ -477,6 +506,7 @@ namespace GetBricked.Gameplay
         private const float GhostRowScoreMultiplier = 1.29f;
         private const float SplitHorizonScoreMultiplier = 1.3f;
         private const float RogueGateScoreMultiplier = 1.36f;
+        private const float PickupPinballScoreMultiplier = 1.33f;
 
         private static readonly BreakoutLevelGlitchDefinition[] GlitchDefinitions =
         {
@@ -565,6 +595,11 @@ namespace GetBricked.Gameplay
                 LevelGlitchSelection.RogueGate,
                 BreakoutContentRarity.Epic,
                 RogueGateLadderUnlockIntensity),
+            new BreakoutLevelGlitchDefinition(
+                BreakoutLevelGlitchType.PickupPinball,
+                LevelGlitchSelection.PickupPinball,
+                BreakoutContentRarity.Epic,
+                PickupPinballLadderUnlockIntensity),
         };
 
         public static BreakoutLevelGlitchPlan BuildPlan(
@@ -696,6 +731,11 @@ namespace GetBricked.Gameplay
                 return BuildRogueGatePlan(random, definition.Rarity);
             }
 
+            if (definition.GlitchType == BreakoutLevelGlitchType.PickupPinball)
+            {
+                return BuildPickupPinballPlan(definition.Rarity);
+            }
+
             return BuildWarpGatePlan(random, definition.Rarity);
         }
 
@@ -807,6 +847,7 @@ namespace GetBricked.Gameplay
             var cassetteSkip = default(BreakoutCassetteSkipSpec);
             var ghostRow = default(BreakoutGhostRowSpec);
             var splitHorizon = default(BreakoutSplitHorizonSpec);
+            var pickupPinball = default(BreakoutPickupPinballSpec);
 
             for (var index = 0; index < definitions.Count; index++)
             {
@@ -892,6 +933,11 @@ namespace GetBricked.Gameplay
                 {
                     splitHorizon = plan.SplitHorizon;
                 }
+
+                if (plan.HasGlitch(BreakoutLevelGlitchType.PickupPinball))
+                {
+                    pickupPinball = plan.PickupPinball;
+                }
             }
 
             return new BreakoutLevelGlitchPlan(
@@ -914,7 +960,8 @@ namespace GetBricked.Gameplay
                 flickerBricks,
                 cassetteSkip,
                 ghostRow,
-                splitHorizon);
+                splitHorizon,
+                pickupPinball);
         }
 
         private static void MarkGlitchSelectionExclusions(
@@ -1012,6 +1059,19 @@ namespace GetBricked.Gameplay
                 Array.Empty<BreakoutWarpGateSpec>(),
                 default,
                 new BreakoutTokenStormSpec(1.65f, 0.55f, 1.45f));
+        }
+
+        private static BreakoutLevelGlitchPlan BuildPickupPinballPlan(BreakoutContentRarity rarity)
+        {
+            return new BreakoutLevelGlitchPlan(
+                BreakoutLevelGlitchType.PickupPinball,
+                rarity,
+                "Pickup Pinball",
+                $"Pickup Pinball x{PickupPinballScoreMultiplier:0.00}",
+                PickupPinballScoreMultiplier,
+                Array.Empty<BreakoutWarpGateSpec>(),
+                default,
+                pickupPinball: new BreakoutPickupPinballSpec(0.82f, 0.62f, 1.18f, 0.88f));
         }
 
         private static BreakoutLevelGlitchPlan BuildStaticWallPlan(DeterministicRandomService random, BreakoutContentRarity rarity)
@@ -1512,7 +1572,8 @@ namespace GetBricked.Gameplay
                 || selection == LevelGlitchSelection.CassetteSkip
                 || selection == LevelGlitchSelection.GhostRow
                 || selection == LevelGlitchSelection.SplitHorizon
-                || selection == LevelGlitchSelection.RogueGate;
+                || selection == LevelGlitchSelection.RogueGate
+                || selection == LevelGlitchSelection.PickupPinball;
         }
 
         private static BreakoutWarpGateWall ResolveGateWall(DeterministicRandomService random, int index)

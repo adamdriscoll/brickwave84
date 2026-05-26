@@ -3731,6 +3731,11 @@ namespace GetBricked.Gameplay
                 powerUpService?.ShowStatusBanner("CAPSULE ROULETTE!", new Color(1f, 0.87f, 0.36f, 1f), 2.2f);
             }
 
+            if (activeLevelGlitchPlan.HasGlitch(BreakoutLevelGlitchType.PickupPinball))
+            {
+                powerUpService?.ShowStatusBanner("PICKUP PINBALL!", new Color(1f, 0.87f, 0.36f, 1f), 2.2f);
+            }
+
             if (activeLevelGlitchPlan.HasGlitch(BreakoutLevelGlitchType.DriftRows))
             {
                 ApplyDriftRows(activeLevelGlitchPlan.DriftRows);
@@ -6403,6 +6408,7 @@ namespace GetBricked.Gameplay
                 LevelGlitchSelection.GhostRow => "Ghost Row",
                 LevelGlitchSelection.SplitHorizon => "Split Horizon",
                 LevelGlitchSelection.RogueGate => "Rogue Gate",
+                LevelGlitchSelection.PickupPinball => "Pickup Pinball",
                 _ => "Off",
             };
         }
@@ -6610,6 +6616,7 @@ namespace GetBricked.Gameplay
             if (spawnedPickup != null)
             {
                 ApplyTokenStormFallSpeed(spawnedPickup);
+                ApplyPickupPinballMotion(spawnedPickup);
                 runStatsService?.RegisterDropDropped(spawnedPickup.Definition);
                 audioService?.PlayPickupDropped();
             }
@@ -6630,6 +6637,12 @@ namespace GetBricked.Gameplay
         {
             return activeLevelGlitchPlan != null
                 && activeLevelGlitchPlan.HasGlitch(BreakoutLevelGlitchType.CapsuleRoulette);
+        }
+
+        private bool IsPickupPinballActive()
+        {
+            return activeLevelGlitchPlan != null
+                && activeLevelGlitchPlan.HasGlitch(BreakoutLevelGlitchType.PickupPinball);
         }
 
         private PowerUpDefinition ResolveDeveloperForcedDrop()
@@ -7924,6 +7937,20 @@ namespace GetBricked.Gameplay
                 tokenStorm.MinimumFallSpeedMultiplier,
                 tokenStorm.MaximumFallSpeedMultiplier);
             pickup.MultiplyFallSpeed(fallSpeedMultiplier);
+        }
+
+        private void ApplyPickupPinballMotion(PowerUpPickup pickup)
+        {
+            if (pickup == null || !IsPickupPinballActive())
+            {
+                return;
+            }
+
+            var directionSign = NextGameplayRandomFloat(0f, 1f) < 0.5f ? -1f : 1f;
+            pickup.EnablePinball(
+                Rect.MinMaxRect(arenaLeft, arenaBottom, arenaRight, arenaTop),
+                directionSign,
+                activeLevelGlitchPlan.PickupPinball);
         }
 
         private float GetEffectiveBrickMagnetStrength()

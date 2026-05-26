@@ -45,6 +45,7 @@ namespace GetBricked.Gameplay
             LevelGlitchSelection.PrismLanes,
             LevelGlitchSelection.SwitchbackRails,
             LevelGlitchSelection.CapsuleRoulette,
+            LevelGlitchSelection.PickupPinball,
             LevelGlitchSelection.DriftRows,
             LevelGlitchSelection.HotCorners,
             LevelGlitchSelection.FlickerBricks,

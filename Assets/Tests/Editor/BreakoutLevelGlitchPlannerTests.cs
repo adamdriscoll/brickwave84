@@ -407,6 +407,30 @@ public sealed class BreakoutLevelGlitchPlannerTests
         Assert.That(unlockedPlan.WarpGates[0].NormalizedPosition, Is.InRange(0.18f, 0.82f));
     }
 
+    [Test]
+    public void RogueGlitchHeatControlsWhenPickupPinballCanUnlock()
+    {
+        var lockedSettings = CreateRogueSettings(
+            rogueIntensity: BreakoutLevelGlitchPlanner.PickupPinballLadderUnlockIntensity,
+            levelGlitchSelection: LevelGlitchSelection.PickupPinball);
+        var unlockedSettings = CreateRogueSettings(
+            rogueIntensity: BreakoutLevelGlitchPlanner.PickupPinballLadderUnlockIntensity + 1,
+            levelGlitchSelection: LevelGlitchSelection.PickupPinball);
+
+        var lockedPlan = BreakoutLevelGlitchPlanner.BuildPlan(new DeterministicRandomService(7), lockedSettings, levelIndex: 9);
+        var unlockedPlan = BreakoutLevelGlitchPlanner.BuildPlan(new DeterministicRandomService(7), unlockedSettings, levelIndex: 9);
+
+        Assert.That(lockedPlan.IsActive, Is.False);
+        Assert.That(unlockedPlan.IsActive, Is.True);
+        Assert.That(unlockedPlan.GlitchType, Is.EqualTo(BreakoutLevelGlitchType.PickupPinball));
+        Assert.That(unlockedPlan.DisplayName, Is.EqualTo("Pickup Pinball"));
+        Assert.That(unlockedPlan.Rarity, Is.EqualTo(BreakoutContentRarity.Epic));
+        Assert.That(unlockedPlan.ScoreMultiplier, Is.EqualTo(1.33f).Within(0.0001f));
+        Assert.That(unlockedPlan.PickupPinball.LateralVelocityMultiplier, Is.EqualTo(0.82f).Within(0.0001f));
+        Assert.That(unlockedPlan.PickupPinball.UpwardVelocityMultiplier, Is.EqualTo(0.62f).Within(0.0001f));
+        Assert.That(unlockedPlan.PickupPinball.GravityMultiplier, Is.EqualTo(1.18f).Within(0.0001f));
+    }
+
 
     [Test]
     public void ForcedWarpGatePlanBuildsSmallPortalSetAndScoreBonus()
@@ -693,6 +717,21 @@ public sealed class BreakoutLevelGlitchPlannerTests
     }
 
     [Test]
+    public void SelectedPickupPinballAlwaysBuildsPickupPinballEvenWhenChanceIsDisabled()
+    {
+        var settings = CreateSettings(
+            levelGlitchesEnabled: true,
+            chanceMultiplier: 0f,
+            levelGlitchSelection: LevelGlitchSelection.PickupPinball);
+
+        var plan = BreakoutLevelGlitchPlanner.BuildPlan(new DeterministicRandomService(3), settings, levelIndex: 9);
+
+        Assert.That(plan.IsActive, Is.True);
+        Assert.That(plan.GlitchType, Is.EqualTo(BreakoutLevelGlitchType.PickupPinball));
+        Assert.That(plan.HudLabel, Does.Contain("Pickup Pinball"));
+    }
+
+    [Test]
     public void PrismLaneRefractionBuildsSharperHorizontalDirection()
     {
         var refracted = BreakoutPrismLaneSection.BuildRefractedDirection(new UnityEngine.Vector2(0.12f, 1f), -1f);
@@ -755,6 +794,32 @@ public sealed class BreakoutLevelGlitchPlannerTests
         Assert.That(direction.x, Is.GreaterThan(0f));
         Assert.That(direction.y, Is.LessThan(0f));
         Assert.That(direction.magnitude, Is.EqualTo(1f).Within(0.0001f));
+    }
+
+    [Test]
+    public void PickupPinballReflectsCapsulesOffBrickFaces()
+    {
+        var velocity = PowerUpPickup.BuildPinballBounceVelocity(
+            new UnityEngine.Vector2(0.25f, -3.2f),
+            UnityEngine.Vector2.up,
+            3.2f,
+            0.88f);
+
+        Assert.That(velocity.y, Is.GreaterThan(0f));
+        Assert.That(Mathf.Abs(velocity.x), Is.GreaterThan(0.5f));
+        Assert.That(velocity.magnitude, Is.LessThanOrEqualTo(3.2f * 1.65f + 0.0001f));
+    }
+
+    [Test]
+    public void PickupPinballNormalResolvesNearestBrickFace()
+    {
+        var bounds = new Bounds(UnityEngine.Vector3.zero, new UnityEngine.Vector3(2f, 1f, 1f));
+
+        var topNormal = PowerUpPickup.ResolvePinballBounceNormal(new UnityEngine.Vector2(0.1f, 0.45f), bounds);
+        var leftNormal = PowerUpPickup.ResolvePinballBounceNormal(new UnityEngine.Vector2(-0.95f, 0f), bounds);
+
+        Assert.That(topNormal, Is.EqualTo(UnityEngine.Vector2.up));
+        Assert.That(leftNormal, Is.EqualTo(UnityEngine.Vector2.left));
     }
 
     [Test]

@@ -52,6 +52,7 @@ namespace GetBricked.Gameplay.Data
         GhostRow = 16,
         SplitHorizon = 17,
         RogueGate = 18,
+        PickupPinball = 19,
     }
 
     public sealed class RunSettings
@@ -226,6 +227,7 @@ namespace GetBricked.Gameplay.Data
             LevelGlitchSelection.GhostRow => "Ghost Row Armed",
             LevelGlitchSelection.SplitHorizon => "Split Horizon Armed",
             LevelGlitchSelection.RogueGate => "Rogue Gate Armed",
+            LevelGlitchSelection.PickupPinball => "Pickup Pinball Armed",
             _ => "Clean Walls",
         };
 
@@ -236,7 +238,7 @@ namespace GetBricked.Gameplay.Data
             var normalized = (LevelGlitchSelection)Mathf.Clamp(
                 (int)levelGlitchSelection,
                 (int)LevelGlitchSelection.Off,
-                (int)LevelGlitchSelection.RogueGate);
+                (int)LevelGlitchSelection.PickupPinball);
 
             if (!levelGlitchesEnabled && normalized == LevelGlitchSelection.Random)
             {

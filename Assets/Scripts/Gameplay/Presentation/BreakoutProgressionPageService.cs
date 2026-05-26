@@ -232,6 +232,13 @@ namespace GetBricked.Gameplay
                 BreakoutLevelGlitchPlanner.RogueGateLadderUnlockIntensity,
                 highestCompletedIntensity,
                 SplitAccent));
+            cards.Add(BuildUnlockableGlitchCard(
+                "Pickup Pinball",
+                "Pickup Epic Glitch",
+                "Capsules bounce off walls and bricks before falling again.",
+                BreakoutLevelGlitchPlanner.PickupPinballLadderUnlockIntensity,
+                highestCompletedIntensity,
+                ControlAccent));
             AppendPlaceholderCards(cards, PlaceholderDrops, highestCompletedIntensity);
             AppendPlaceholderCards(cards, PlaceholderGlitches, highestCompletedIntensity);
             cards.Add(BuildHiddenSlotCard("Future Drop Slot", "Drop", "Hidden", "Future drop signal pending."));
@@ -625,6 +632,11 @@ namespace GetBricked.Gameplay
             }
 
             if (completedIntensity >= BreakoutLevelGlitchPlanner.RogueGateLadderUnlockIntensity)
+            {
+                count++;
+            }
+
+            if (completedIntensity >= BreakoutLevelGlitchPlanner.PickupPinballLadderUnlockIntensity)
             {
                 count++;
             }
