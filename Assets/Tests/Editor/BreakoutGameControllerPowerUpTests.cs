@@ -1046,6 +1046,39 @@ public sealed class BreakoutGameControllerPowerUpTests
     }
 
     [Test]
+    public void CabinetNudgeBendsLaunchedBallAndPreservesSpeed()
+    {
+        var controller = CreateControllerHarness(out var paddle);
+        var serveBall = CreateBallHarness(controller, paddle);
+        serveBall.Launch(Vector2.up);
+        var speedBeforeNudge = serveBall.CurrentSpeed;
+
+        Assert.That(serveBall.ApplyCabinetNudge(0.24f), Is.True);
+
+        Assert.That(serveBall.CurrentVelocity.x, Is.GreaterThan(0f));
+        Assert.That(serveBall.CurrentSpeed, Is.EqualTo(speedBeforeNudge).Within(0.0001f));
+    }
+
+    [Test]
+    public void TiltAlarmLocksPaddleUntilTimerClears()
+    {
+        var controller = CreateControllerHarness(out var paddle);
+        var state = GetPrivateField<BreakoutTiltAlarmState>(controller, "tiltAlarmState");
+        state.RegisterNudge();
+        state.RegisterNudge();
+        state.RegisterNudge();
+
+        InvokePrivateMethod(controller, "ApplyActiveEffects");
+
+        Assert.That(GetPrivateField<float>(paddle, "moveSpeed"), Is.Zero);
+
+        state.Update(3f);
+        InvokePrivateMethod(controller, "ApplyActiveEffects");
+
+        Assert.That(GetPrivateField<float>(paddle, "moveSpeed"), Is.EqualTo(12f).Within(0.0001f));
+    }
+
+    [Test]
     public void RewindCatchReturnsMissedBallToLastPaddleHitAndConsumesCharge()
     {
         var controller = CreateControllerHarness(out var paddle);

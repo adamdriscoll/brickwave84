@@ -478,6 +478,27 @@ namespace GetBricked.Gameplay
             ballBody.linearVelocity = resolvedDirection * GetTargetSpeed();
         }
 
+        public bool ApplyCabinetNudge(float horizontalStrength)
+        {
+            if (ballBody == null || !hasLaunched)
+            {
+                return false;
+            }
+
+            var currentVelocity = ballBody.linearVelocity;
+            var currentDirection = currentVelocity.sqrMagnitude > 0.001f
+                ? currentVelocity.normalized
+                : lastTravelDirection;
+            var nudgedDirection = new Vector2(
+                currentDirection.x + horizontalStrength,
+                Mathf.Approximately(currentDirection.y, 0f)
+                    ? minimumVerticalDirection
+                    : currentDirection.y);
+
+            ApplyCollisionResponse(nudgedDirection);
+            return true;
+        }
+
         public Vector2 ResolvePaddleBounceDirection(PaddleController hitPaddle, float contactWorldX)
         {
             if (hitPaddle == null || hitPaddle.HalfWidthWorld <= 0.001f)

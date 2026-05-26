@@ -73,6 +73,7 @@ namespace GetBricked.Gameplay
         private const float AutoSaveBurstDurationSeconds = 2.6f;
         private const float TiltWarningNearMissPaddleWidthMultiplier = 1.55f;
         private const float TiltWarningRescueHeightPadding = 0.16f;
+        private const float TiltNudgeHorizontalStrength = 0.24f;
         private const string DefaultRoguePaddleLabel = BreakoutRogueRunResultStore.DefaultPaddleLabel;
         private const float MenuAttractRestartDelaySeconds = 0.2f;
         private const float MenuAttractPickupLeadDistance = 1.35f;
@@ -262,6 +263,7 @@ namespace GetBricked.Gameplay
         private BreakoutRogueRunController rogueRunController;
         private BreakoutTurnBasedMultiplayerController turnBasedMultiplayerController;
         private BreakoutRunStatsService runStatsService;
+        private readonly BreakoutTiltAlarmState tiltAlarmState = new BreakoutTiltAlarmState();
         private RoundState roundState;
         private int livesRemaining;
         private int lifeLossCount;
@@ -474,6 +476,7 @@ namespace GetBricked.Gameplay
             UpdateVectorSightVisual();
             UpdatePickupBanner();
             UpdateAutoSaveBurst();
+            UpdateTiltAlarmState();
             TrackRunStatsFrame();
             audioService?.Update(Time.unscaledDeltaTime);
             scoreService?.UpdateFloatingScorePopups(Time.unscaledDeltaTime);
@@ -539,6 +542,11 @@ namespace GetBricked.Gameplay
             }
 
             HandleManualBallSpeedInput(keyboard);
+
+            if (keyboard.tKey.wasPressedThisFrame && TryTriggerTiltNudge(keyboard))
+            {
+                return;
+            }
 
             var actionPressed = keyboard.spaceKey.wasPressedThisFrame || keyboard.enterKey.wasPressedThisFrame || keyboard.numpadEnterKey.wasPressedThisFrame;
             var missilePressed = keyboard.mKey.wasPressedThisFrame;
@@ -1013,6 +1021,109 @@ namespace GetBricked.Gameplay
             return paddleCollider.bounds.max.y + ballRadius + TiltWarningRescueHeightPadding;
         }
 
+        private bool TryTriggerTiltNudge(Keyboard keyboard)
+        {
+            if (roundState != RoundState.Playing)
+            {
+                return false;
+            }
+
+            var result = tiltAlarmState.RegisterNudge();
+
+            if (result == BreakoutTiltAlarmTriggerResult.Locked)
+            {
+                powerUpService?.ShowStatusBanner("TILT ALARM!", ResolveTiltAlarmColor(), 0.75f);
+                audioService?.PlayPowerDown();
+                return true;
+            }
+
+            var direction = ResolveTiltNudgeDirection(keyboard);
+            ApplyTiltNudgeToActiveBalls(direction);
+            paddle?.StartBreakWiggle();
+
+            switch (result)
+            {
+                case BreakoutTiltAlarmTriggerResult.Alarm:
+                    powerUpService?.ShowStatusBanner("TILT ALARM!", ResolveTiltAlarmColor(), 1.45f);
+                    audioService?.PlayPowerDown();
+                    ApplyActiveEffects();
+                    break;
+                case BreakoutTiltAlarmTriggerResult.Warning:
+                    powerUpService?.ShowStatusBanner("TILT WARNING!", ResolveTiltWarningColor(), 1.1f);
+                    audioService?.PlayPowerDown();
+                    break;
+                default:
+                    powerUpService?.ShowStatusBanner("NUDGE!", ResolveTiltNudgeColor(), 0.72f);
+                    break;
+            }
+
+            return true;
+        }
+
+        private void UpdateTiltAlarmState()
+        {
+            if (tiltAlarmState.Update(Time.deltaTime))
+            {
+                powerUpService?.ShowStatusBanner("TILT CLEAR", ResolveTiltNudgeColor(), 0.9f);
+                ApplyActiveEffects();
+            }
+        }
+
+        private int ApplyTiltNudgeToActiveBalls(float horizontalDirection)
+        {
+            var nudgedCount = 0;
+            var nudgeStrength = Mathf.Sign(horizontalDirection) * TiltNudgeHorizontalStrength;
+
+            if (serveBall != null && serveBall.ApplyCabinetNudge(nudgeStrength))
+            {
+                nudgedCount++;
+            }
+
+            for (var index = activeBalls.Count - 1; index >= 0; index--)
+            {
+                var activeBall = activeBalls[index];
+
+                if (activeBall == null)
+                {
+                    activeBalls.RemoveAt(index);
+                    continue;
+                }
+
+                if (activeBall == serveBall)
+                {
+                    continue;
+                }
+
+                if (activeBall.ApplyCabinetNudge(nudgeStrength))
+                {
+                    nudgedCount++;
+                }
+            }
+
+            return nudgedCount;
+        }
+
+        private float ResolveTiltNudgeDirection(Keyboard keyboard)
+        {
+            if (keyboard != null)
+            {
+                var leftPressed = keyboard.aKey.isPressed || keyboard.leftArrowKey.isPressed;
+                var rightPressed = keyboard.dKey.isPressed || keyboard.rightArrowKey.isPressed;
+
+                if (leftPressed != rightPressed)
+                {
+                    return leftPressed ? -1f : 1f;
+                }
+            }
+
+            if (paddle != null && Mathf.Abs(paddle.transform.position.x) > 0.1f)
+            {
+                return paddle.transform.position.x > 0f ? -1f : 1f;
+            }
+
+            return NextGameplayRandomBool() ? -1f : 1f;
+        }
+
         public bool TryHandleBallPaddleCollision(BallController ball, PaddleController hitPaddle, Collision2D collision)
         {
             if (ball == null || hitPaddle == null || collision == null)
@@ -1241,6 +1352,7 @@ namespace GetBricked.Gameplay
             autoSaveBurstTimer = 0f;
             lastLifeLossUsedAutoSave = false;
             tiltWarningSavesRemaining = 0;
+            tiltAlarmState.Reset();
             activeRunResultRecorded = false;
             activeSoloMarathonResultRecorded = false;
             activeSoloMarathonNewHighScore = false;
@@ -1430,6 +1542,7 @@ namespace GetBricked.Gameplay
             stickyCaughtBall = null;
             shieldWallCharges = 0;
             tiltWarningSavesRemaining = 0;
+            tiltAlarmState.Reset();
             laserShotCooldownTimer = 0f;
             missileShotCooldownTimer = 0f;
             scoreService?.ResetComboTracking(clearPopups: true);
@@ -3145,6 +3258,7 @@ namespace GetBricked.Gameplay
             ClearLevelGlitches();
             scoreService?.ResetComboTracking(clearPopups: true);
             tiltWarningSavesRemaining = GetEffectiveTiltWarningSavesPerLevel();
+            tiltAlarmState.Reset();
 
             if (loadedLevels.Count == 0 || levelIndex < 0)
             {
@@ -5447,7 +5561,7 @@ namespace GetBricked.Gameplay
                 SelectedActionIndex = selectedOverlayActionIndex,
                 FooterLines = new[]
                 {
-                    "A/D or Left/Right moves. Space launches/fires. M fires missiles. Up/Down tunes speed.",
+                    "A/D or Left/Right moves. Space launches/fires. M missiles. T nudges. Up/Down tunes speed.",
                     "Up/Down selects. Space confirms. Esc/P resumes. R setup.",
                 },
                 IsCompact = true,
@@ -6012,6 +6126,16 @@ namespace GetBricked.Gameplay
 
         private string BuildGameplayStatusLine()
         {
+            if (tiltAlarmState.IsAlarmActive)
+            {
+                return $"Tilt Alarm - rail locked {tiltAlarmState.AlarmTimer:0.0}s";
+            }
+
+            if (tiltAlarmState.IsWarningHot)
+            {
+                return $"Tilt heat {Mathf.RoundToInt(tiltAlarmState.HeatRatio * 100f):00}%";
+            }
+
             return activeLevelGlitchPlan != null && activeLevelGlitchPlan.IsActive
                 ? activeLevelGlitchPlan.HudLabel
                 : string.Empty;
@@ -6021,10 +6145,10 @@ namespace GetBricked.Gameplay
         {
             if (activeRunSettings == null || !activeRunSettings.IsTurnBasedMode)
             {
-                return "Press Space to launch the ball. Up/Down tunes speed.";
+                return "Press Space to launch. T nudges during play. Up/Down tunes speed.";
             }
 
-            return $"{turnBasedMultiplayerController?.BuildSwitchTitle() ?? "Up Next"}\nPress Space to launch. Up/Down tunes speed.";
+            return $"{turnBasedMultiplayerController?.BuildSwitchTitle() ?? "Up Next"}\nPress Space to launch. T nudges during play. Up/Down tunes speed.";
         }
 
         private string BuildLifeLostMessage()
@@ -6627,7 +6751,8 @@ namespace GetBricked.Gameplay
                     false);
             paddle.SetMoveSpeed(currentLevelPaddleSpeed
                 * (activeRunSettings?.PaddleSpeedMultiplier ?? 1f)
-                * activeEffectModifiers.PaddleSpeedMultiplier);
+                * activeEffectModifiers.PaddleSpeedMultiplier
+                * (tiltAlarmState.IsAlarmActive ? 0f : 1f));
             var paddleHitMaximumWidth = paddle.SetWidthMultiplier(activeEffectModifiers.PaddleWidthMultiplier);
 
             if (paddleHitMaximumWidth && TryBreakWidePaddle())
@@ -7592,6 +7717,28 @@ namespace GetBricked.Gameplay
                     new Color(0.45f, 0.95f, 0.72f, 1f),
                     squareSprite).PrimaryColor
                 : new Color(0.45f, 0.95f, 0.72f, 1f);
+        }
+
+        private Color ResolveTiltNudgeColor()
+        {
+            return themeService != null
+                ? themeService.ResolveThemeStyle(
+                    ThemeVisualSlot.PickupBurst,
+                    new Color(1f, 0.87f, 0.36f, 1f),
+                    new Color(1f, 0.49f, 0.86f, 1f),
+                    squareSprite).PrimaryColor
+                : new Color(1f, 0.87f, 0.36f, 1f);
+        }
+
+        private Color ResolveTiltAlarmColor()
+        {
+            return themeService != null
+                ? themeService.ResolveThemeStyle(
+                    ThemeVisualSlot.PickupHarmful,
+                    new Color(0.99f, 0.27f, 0.31f, 1f),
+                    new Color(1f, 0.49f, 0.86f, 1f),
+                    squareSprite).PrimaryColor
+                : new Color(0.99f, 0.27f, 0.31f, 1f);
         }
 
         private float GetMaximumBallSpeed()
