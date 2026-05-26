@@ -197,6 +197,13 @@ namespace GetBricked.Gameplay
                 BreakoutLevelGlitchPlanner.HotCornersLadderUnlockIntensity,
                 highestCompletedIntensity,
                 DamageAccent));
+            cards.Add(BuildUnlockableGlitchCard(
+                "Flicker Bricks",
+                "Visibility Rare Glitch",
+                "Some bricks only collide while visible.",
+                BreakoutLevelGlitchPlanner.FlickerBricksLadderUnlockIntensity,
+                highestCompletedIntensity,
+                PrecisionAccent));
             AppendPlaceholderCards(cards, PlaceholderDrops, highestCompletedIntensity);
             AppendPlaceholderCards(cards, PlaceholderGlitches, highestCompletedIntensity);
             cards.Add(BuildHiddenSlotCard("Future Drop Slot", "Drop", "Hidden", "Future drop signal pending."));
@@ -565,6 +572,11 @@ namespace GetBricked.Gameplay
             }
 
             if (completedIntensity >= BreakoutLevelGlitchPlanner.HotCornersLadderUnlockIntensity)
+            {
+                count++;
+            }
+
+            if (completedIntensity >= BreakoutLevelGlitchPlanner.FlickerBricksLadderUnlockIntensity)
             {
                 count++;
             }

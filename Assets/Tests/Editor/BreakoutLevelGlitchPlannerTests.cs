@@ -287,6 +287,31 @@ public sealed class BreakoutLevelGlitchPlannerTests
         Assert.That(unlockedPlan.HotCorners.SpeedBurstDurationSeconds, Is.InRange(2.35f, 3.25f));
     }
 
+    [Test]
+    public void RogueGlitchHeatControlsWhenFlickerBricksCanUnlock()
+    {
+        var lockedSettings = CreateRogueSettings(
+            rogueIntensity: BreakoutLevelGlitchPlanner.FlickerBricksLadderUnlockIntensity,
+            levelGlitchSelection: LevelGlitchSelection.FlickerBricks);
+        var unlockedSettings = CreateRogueSettings(
+            rogueIntensity: BreakoutLevelGlitchPlanner.FlickerBricksLadderUnlockIntensity + 1,
+            levelGlitchSelection: LevelGlitchSelection.FlickerBricks);
+
+        var lockedPlan = BreakoutLevelGlitchPlanner.BuildPlan(new DeterministicRandomService(7), lockedSettings, levelIndex: 9);
+        var unlockedPlan = BreakoutLevelGlitchPlanner.BuildPlan(new DeterministicRandomService(7), unlockedSettings, levelIndex: 9);
+
+        Assert.That(lockedPlan.IsActive, Is.False);
+        Assert.That(unlockedPlan.IsActive, Is.True);
+        Assert.That(unlockedPlan.GlitchType, Is.EqualTo(BreakoutLevelGlitchType.FlickerBricks));
+        Assert.That(unlockedPlan.DisplayName, Is.EqualTo("Flicker Bricks"));
+        Assert.That(unlockedPlan.Rarity, Is.EqualTo(BreakoutContentRarity.Rare));
+        Assert.That(unlockedPlan.ScoreMultiplier, Is.EqualTo(1.3f).Within(0.0001f));
+        Assert.That(unlockedPlan.FlickerBricks.AffectedBrickChance, Is.InRange(0.36f, 0.48f));
+        Assert.That(unlockedPlan.FlickerBricks.VisibleSeconds, Is.InRange(1.25f, 1.65f));
+        Assert.That(unlockedPlan.FlickerBricks.HiddenSeconds, Is.InRange(0.58f, 0.88f));
+        Assert.That(unlockedPlan.FlickerBricks.HiddenAlpha, Is.InRange(0.035f, 0.075f));
+    }
+
 
     [Test]
     public void ForcedWarpGatePlanBuildsSmallPortalSetAndScoreBonus()
@@ -497,6 +522,21 @@ public sealed class BreakoutLevelGlitchPlannerTests
     }
 
     [Test]
+    public void SelectedFlickerBricksAlwaysBuildsFlickerBricksEvenWhenChanceIsDisabled()
+    {
+        var settings = CreateSettings(
+            levelGlitchesEnabled: true,
+            chanceMultiplier: 0f,
+            levelGlitchSelection: LevelGlitchSelection.FlickerBricks);
+
+        var plan = BreakoutLevelGlitchPlanner.BuildPlan(new DeterministicRandomService(3), settings, levelIndex: 9);
+
+        Assert.That(plan.IsActive, Is.True);
+        Assert.That(plan.GlitchType, Is.EqualTo(BreakoutLevelGlitchType.FlickerBricks));
+        Assert.That(plan.HudLabel, Does.Contain("Flicker Bricks"));
+    }
+
+    [Test]
     public void PrismLaneRefractionBuildsSharperHorizontalDirection()
     {
         var refracted = BreakoutPrismLaneSection.BuildRefractedDirection(new UnityEngine.Vector2(0.12f, 1f), -1f);
@@ -544,6 +584,49 @@ public sealed class BreakoutLevelGlitchPlannerTests
         Assert.That(direction.x, Is.GreaterThan(0f));
         Assert.That(direction.y, Is.LessThan(0f));
         Assert.That(direction.magnitude, Is.EqualTo(1f).Within(0.0001f));
+    }
+
+    [Test]
+    public void BrickFlickerDisablesColliderWhenHidden()
+    {
+        var definition = ScriptableObject.CreateInstance<BrickDefinition>();
+        var brickObject = new GameObject("Flicker Brick Test");
+        var visualObject = new GameObject("Visual");
+
+        try
+        {
+            var collider = brickObject.AddComponent<BoxCollider2D>();
+            visualObject.transform.SetParent(brickObject.transform, false);
+            var renderer = visualObject.AddComponent<SpriteRenderer>();
+            var brick = brickObject.AddComponent<Brick>();
+            brick.Initialize(
+                null,
+                definition,
+                1,
+                new ThemeVisualStyle(Color.white, Color.gray, null),
+                0f,
+                Vector2.zero);
+
+            var visibleSeconds = 0.1f;
+            var hiddenSeconds = 10f;
+            var cycleSeconds = visibleSeconds + hiddenSeconds;
+            var hiddenPhase = Mathf.Repeat((visibleSeconds + 0.1f) - Time.time, cycleSeconds);
+
+            brick.SetFlicker(visibleSeconds, hiddenSeconds, 0.05f, hiddenPhase);
+
+            Assert.That(collider.enabled, Is.False);
+            Assert.That(renderer.color.a, Is.EqualTo(0.05f).Within(0.001f));
+
+            brick.ClearFlicker();
+
+            Assert.That(collider.enabled, Is.True);
+            Assert.That(renderer.color.a, Is.EqualTo(1f).Within(0.001f));
+        }
+        finally
+        {
+            Object.DestroyImmediate(brickObject);
+            Object.DestroyImmediate(definition);
+        }
     }
 
 

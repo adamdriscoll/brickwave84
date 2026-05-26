@@ -52,6 +52,8 @@ namespace GetBricked.Gameplay
         private readonly Func<Rect> movementBoundsResolver;
         private readonly Func<BrickDefinition, ThemeVisualStyle> styleResolver;
         private readonly Action<GameObject> destroyRuntimeObject;
+        private bool hasActiveFlickerBricks;
+        private BreakoutFlickerBricksSpec activeFlickerBricksSpec;
 
         public BreakoutBrickService(
             BreakoutGameController controller,
@@ -196,6 +198,7 @@ namespace GetBricked.Gameplay
                 row,
                 column);
             brick.SetMovementBounds(movementBoundsResolver());
+            ApplyActiveFlickerToBrick(brick, row, column, position);
             bricks.Add(brick);
             return brick;
         }
@@ -533,6 +536,51 @@ namespace GetBricked.Gameplay
             }
         }
 
+        public int ApplyFlickerBricks(BreakoutFlickerBricksSpec spec)
+        {
+            hasActiveFlickerBricks = true;
+            activeFlickerBricksSpec = spec;
+            var flickeringCount = 0;
+
+            for (var index = bricks.Count - 1; index >= 0; index--)
+            {
+                var brick = bricks[index];
+
+                if (brick == null)
+                {
+                    bricks.RemoveAt(index);
+                    continue;
+                }
+
+                var state = brick.CaptureState();
+                if (ApplyFlickerToBrick(brick, state.Row, state.Column, state.Position, spec))
+                {
+                    flickeringCount++;
+                }
+            }
+
+            return flickeringCount;
+        }
+
+        public void ClearFlickerBricks()
+        {
+            hasActiveFlickerBricks = false;
+            activeFlickerBricksSpec = default;
+
+            for (var index = bricks.Count - 1; index >= 0; index--)
+            {
+                var brick = bricks[index];
+
+                if (brick == null)
+                {
+                    bricks.RemoveAt(index);
+                    continue;
+                }
+
+                brick.ClearFlicker();
+            }
+        }
+
         internal static Vector2[] BuildSplitBrickOffsets(Vector2 baseBrickSize, BrickDefinition splitDefinition)
         {
             return BuildSplitBrickOffsets(baseBrickSize, splitDefinition, 4);
@@ -591,6 +639,52 @@ namespace GetBricked.Gameplay
         private static int ResolveSplitBrickFragmentCount(float specialBrickEffectMultiplier)
         {
             return Mathf.Clamp(Mathf.RoundToInt(4f * Mathf.Max(1f, specialBrickEffectMultiplier)), 4, 8);
+        }
+
+        private void ApplyActiveFlickerToBrick(Brick brick, int row, int column, Vector2 position)
+        {
+            if (hasActiveFlickerBricks)
+            {
+                ApplyFlickerToBrick(brick, row, column, position, activeFlickerBricksSpec);
+            }
+        }
+
+        private static bool ApplyFlickerToBrick(
+            Brick brick,
+            int row,
+            int column,
+            Vector2 position,
+            BreakoutFlickerBricksSpec spec)
+        {
+            if (brick == null || brick.Definition == null || !brick.Definition.IsBreakable)
+            {
+                return false;
+            }
+
+            if (ResolveFlickerRoll(row, column, position, spec.PatternSeed) > spec.AffectedBrickChance)
+            {
+                brick.ClearFlicker();
+                return false;
+            }
+
+            var cycleSeconds = spec.VisibleSeconds + spec.HiddenSeconds;
+            var phaseSeconds = ResolveFlickerRoll(row + 17, column + 31, position, spec.PatternSeed ^ 0x2A3F) * cycleSeconds;
+            brick.SetFlicker(spec.VisibleSeconds, spec.HiddenSeconds, spec.HiddenAlpha, phaseSeconds);
+            return true;
+        }
+
+        private static float ResolveFlickerRoll(int row, int column, Vector2 position, int seed)
+        {
+            unchecked
+            {
+                var hash = seed == 0 ? 17 : seed;
+                hash = (hash * 397) ^ Mathf.Max(0, row);
+                hash = (hash * 397) ^ Mathf.Max(0, column);
+                hash = (hash * 397) ^ Mathf.RoundToInt(position.x * 100f);
+                hash = (hash * 397) ^ Mathf.RoundToInt(position.y * 100f);
+                hash ^= hash >> 16;
+                return (hash & 0x7fffffff) / (float)int.MaxValue;
+            }
         }
 
         private Vector2 ClampBrickPositionToMovementBounds(Vector2 position, BrickDefinition definition)

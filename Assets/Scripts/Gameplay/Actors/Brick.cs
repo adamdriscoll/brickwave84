@@ -20,6 +20,7 @@ namespace GetBricked.Gameplay
         private BrickDefinition definition;
         private SpriteRenderer spriteRenderer;
         private BreakoutGlowRenderer glowRenderer;
+        private BoxCollider2D brickCollider;
         private Rigidbody2D brickBody;
         private HingeJoint2D spinJoint;
         private int maxHitPoints;
@@ -35,7 +36,14 @@ namespace GetBricked.Gameplay
         private Color themedDamagedColor;
         private float visibilityMultiplier = 1f;
         private float transitionVisibilityMultiplier = 1f;
+        private float flickerVisibilityMultiplier = 1f;
         private float jammerStrength;
+        private bool flickerEnabled;
+        private float flickerVisibleSeconds;
+        private float flickerHiddenSeconds;
+        private float flickerHiddenAlpha;
+        private float flickerPhaseSeconds;
+        private bool isFlickerColliderVisible = true;
         private Vector3 visualBaseScale = Vector3.one;
         private float jellyWobbleTimer;
         private float jellyWobbleDuration;
@@ -72,6 +80,7 @@ namespace GetBricked.Gameplay
         {
             gameController = controller;
             definition = brickDefinition;
+            brickCollider = GetComponent<BoxCollider2D>();
             spriteRenderer = GetComponentInChildren<SpriteRenderer>();
             glowRenderer = GetComponentInChildren<BreakoutGlowRenderer>();
             layoutRow = Mathf.Max(0, row);
@@ -182,6 +191,31 @@ namespace GetBricked.Gameplay
             RefreshVisual();
         }
 
+        public void SetFlicker(float visibleSeconds, float hiddenSeconds, float hiddenAlpha, float phaseSeconds)
+        {
+            flickerVisibleSeconds = Mathf.Max(0.1f, visibleSeconds);
+            flickerHiddenSeconds = Mathf.Max(0.1f, hiddenSeconds);
+            flickerHiddenAlpha = Mathf.Clamp01(hiddenAlpha);
+            flickerPhaseSeconds = Mathf.Max(0f, phaseSeconds);
+            flickerEnabled = definition != null && definition.IsBreakable;
+            UpdateFlicker(forceRefresh: true);
+        }
+
+        public void ClearFlicker()
+        {
+            flickerEnabled = false;
+            flickerVisibilityMultiplier = 1f;
+            isFlickerColliderVisible = true;
+
+            brickCollider ??= GetComponent<BoxCollider2D>();
+            if (brickCollider != null)
+            {
+                brickCollider.enabled = true;
+            }
+
+            RefreshVisual();
+        }
+
         public void SetJammerStrength(float strength)
         {
             jammerStrength = Mathf.Clamp01(strength);
@@ -282,6 +316,7 @@ namespace GetBricked.Gameplay
 
         private void Update()
         {
+            UpdateFlicker(forceRefresh: false);
             UpdateJellyWobble();
         }
 
@@ -582,9 +617,45 @@ namespace GetBricked.Gameplay
                 resolvedColor = Color.Lerp(themedDamagedColor, themedBaseColor, integrity);
             }
 
-            resolvedColor.a *= visibilityMultiplier * transitionVisibilityMultiplier;
+            resolvedColor.a *= visibilityMultiplier * transitionVisibilityMultiplier * flickerVisibilityMultiplier;
             spriteRenderer.color = resolvedColor;
             glowRenderer?.ApplyColor(resolvedColor);
+        }
+
+        private void UpdateFlicker(bool forceRefresh)
+        {
+            if (!flickerEnabled)
+            {
+                return;
+            }
+
+            brickCollider ??= GetComponent<BoxCollider2D>();
+
+            var cycleSeconds = flickerVisibleSeconds + flickerHiddenSeconds;
+            if (cycleSeconds <= 0.001f)
+            {
+                return;
+            }
+
+            var cyclePosition = Mathf.Repeat(Time.time + flickerPhaseSeconds, cycleSeconds);
+            var isVisible = cyclePosition < flickerVisibleSeconds;
+            var resolvedVisibility = isVisible ? 1f : flickerHiddenAlpha;
+
+            if (brickCollider != null)
+            {
+                brickCollider.enabled = isVisible;
+            }
+
+            if (!forceRefresh
+                && Mathf.Approximately(resolvedVisibility, flickerVisibilityMultiplier)
+                && isVisible == isFlickerColliderVisible)
+            {
+                return;
+            }
+
+            flickerVisibilityMultiplier = resolvedVisibility;
+            isFlickerColliderVisible = isVisible;
+            RefreshVisual();
         }
 
         private void ApplyDamage(int damage, BallController scoringBall, BrickDestructionCause destructionCause)

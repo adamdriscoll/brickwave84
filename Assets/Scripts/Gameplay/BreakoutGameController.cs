@@ -3635,6 +3635,12 @@ namespace GetBricked.Gameplay
                 CreateHotCorners(activeLevelGlitchPlan);
                 powerUpService?.ShowStatusBanner("HOT CORNERS!", new Color(1f, 0.49f, 0.15f, 1f), 2.2f);
             }
+
+            if (activeLevelGlitchPlan.HasGlitch(BreakoutLevelGlitchType.FlickerBricks))
+            {
+                ApplyFlickerBricks(activeLevelGlitchPlan.FlickerBricks);
+                powerUpService?.ShowStatusBanner("FLICKER BRICKS!", new Color(1f, 0.87f, 0.36f, 1f), 2.2f);
+            }
         }
 
         private void ClearLevelGlitches()
@@ -3697,12 +3703,18 @@ namespace GetBricked.Gameplay
                 activeMirrorGridVisual = null;
             }
 
+            brickService?.ClearFlickerBricks();
             ClearGravityPocketFromBalls();
         }
 
         private void ApplyDriftRows(BreakoutDriftRowsSpec driftRows)
         {
             brickService?.ApplyRowDrift(driftRows);
+        }
+
+        private void ApplyFlickerBricks(BreakoutFlickerBricksSpec flickerBricks)
+        {
+            brickService?.ApplyFlickerBricks(flickerBricks);
         }
 
         private void ArmMirrorGrid()
@@ -6019,6 +6031,7 @@ namespace GetBricked.Gameplay
                 LevelGlitchSelection.CapsuleRoulette => "Capsule Roulette",
                 LevelGlitchSelection.DriftRows => "Drift Rows",
                 LevelGlitchSelection.HotCorners => "Hot Corners",
+                LevelGlitchSelection.FlickerBricks => "Flicker Bricks",
                 _ => "Off",
             };
         }

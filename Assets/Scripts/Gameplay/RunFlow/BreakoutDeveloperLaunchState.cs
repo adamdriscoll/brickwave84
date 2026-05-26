@@ -47,6 +47,7 @@ namespace GetBricked.Gameplay
             LevelGlitchSelection.CapsuleRoulette,
             LevelGlitchSelection.DriftRows,
             LevelGlitchSelection.HotCorners,
+            LevelGlitchSelection.FlickerBricks,
         };
 
         private readonly HashSet<string> selectedUpgradeIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
