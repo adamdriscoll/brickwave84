@@ -253,6 +253,13 @@ namespace GetBricked.Gameplay
                 BreakoutLevelGlitchPlanner.MagnetStormLadderUnlockIntensity,
                 highestCompletedIntensity,
                 SplitAccent));
+            cards.Add(BuildUnlockableGlitchCard(
+                "Blacklight Bricks",
+                "Visibility Epic Glitch",
+                "Brick health and special types hide until first contact.",
+                BreakoutLevelGlitchPlanner.BlacklightBricksLadderUnlockIntensity,
+                highestCompletedIntensity,
+                PrecisionAccent));
             AppendPlaceholderCards(cards, PlaceholderDrops, highestCompletedIntensity);
             AppendPlaceholderCards(cards, PlaceholderGlitches, highestCompletedIntensity);
             cards.Add(BuildHiddenSlotCard("Future Drop Slot", "Drop", "Hidden", "Future drop signal pending."));
@@ -661,6 +668,11 @@ namespace GetBricked.Gameplay
             }
 
             if (completedIntensity >= BreakoutLevelGlitchPlanner.MagnetStormLadderUnlockIntensity)
+            {
+                count++;
+            }
+
+            if (completedIntensity >= BreakoutLevelGlitchPlanner.BlacklightBricksLadderUnlockIntensity)
             {
                 count++;
             }

@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 64">
+  <title>Blacklight brick disguise</title>
+  <desc>Rounded brick mask with bright rim strokes for the blacklight visibility glitch.</desc>
+  <rect x="13" y="13" width="94" height="38" rx="11" fill="#05020b" fill-opacity="0.72"/>
+  <rect x="6" y="6" width="108" height="52" rx="17" fill="none" stroke="#ffffff" stroke-opacity="0.13" stroke-width="8"/>
+  <rect x="9" y="9" width="102" height="46" rx="15" fill="none" stroke="#ffffff" stroke-opacity="0.24" stroke-width="5"/>
+  <rect x="12" y="12" width="96" height="40" rx="12" fill="none" stroke="#ffffff" stroke-opacity="0.92" stroke-width="2"/>
+  <path d="M25 18h18M77 18h18M25 46h18M77 46h18" fill="none" stroke="#ffffff" stroke-opacity="0.72" stroke-width="3" stroke-linecap="round"/>
+  <path d="M22 27h76M26 36h68" fill="none" stroke="#ffffff" stroke-opacity="0.28" stroke-width="2.5" stroke-linecap="round"/>
+  <path d="M31 42l9-20M54 43l9-22M78 42l9-20" fill="none" stroke="#ffffff" stroke-opacity="0.16" stroke-width="2" stroke-linecap="round"/>
+</svg>

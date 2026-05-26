@@ -55,6 +55,7 @@ namespace GetBricked.Gameplay.Data
         PickupPinball = 19,
         MagnetStorm = 20,
         BrickConveyor = 21,
+        BlacklightBricks = 22,
     }
 
     public sealed class RunSettings
@@ -232,6 +233,7 @@ namespace GetBricked.Gameplay.Data
             LevelGlitchSelection.PickupPinball => "Pickup Pinball Armed",
             LevelGlitchSelection.MagnetStorm => "Magnet Storm Armed",
             LevelGlitchSelection.BrickConveyor => "Brick Conveyor Armed",
+            LevelGlitchSelection.BlacklightBricks => "Blacklight Bricks Armed",
             _ => "Clean Walls",
         };
 
@@ -242,7 +244,7 @@ namespace GetBricked.Gameplay.Data
             var normalized = (LevelGlitchSelection)Mathf.Clamp(
                 (int)levelGlitchSelection,
                 (int)LevelGlitchSelection.Off,
-                (int)LevelGlitchSelection.BrickConveyor);
+                (int)LevelGlitchSelection.BlacklightBricks);
 
             if (!levelGlitchesEnabled && normalized == LevelGlitchSelection.Random)
             {

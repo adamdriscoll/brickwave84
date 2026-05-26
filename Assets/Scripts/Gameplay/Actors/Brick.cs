@@ -23,6 +23,8 @@ namespace GetBricked.Gameplay
         private BoxCollider2D brickCollider;
         private Rigidbody2D brickBody;
         private HingeJoint2D spinJoint;
+        private ThemeVisualStyle themedStyle;
+        private ThemeVisualStyle blacklightDisguiseStyle;
         private int maxHitPoints;
         private int hitPointsRemaining;
         private float movementSpeed;
@@ -48,6 +50,7 @@ namespace GetBricked.Gameplay
         private float flickerPhaseSeconds;
         private bool isFlickerColliderVisible = true;
         private bool isGhosted;
+        private bool isBlacklightDisguised;
         private Vector3 visualBaseScale = Vector3.one;
         private float jellyWobbleTimer;
         private float jellyWobbleDuration;
@@ -71,6 +74,8 @@ namespace GetBricked.Gameplay
             && hitPointsRemaining < maxHitPoints;
 
         public bool IsPendingRemoval => isPendingRemoval;
+
+        public bool IsBlacklightDisguised => isBlacklightDisguised;
 
         public void Initialize(
             BreakoutGameController controller,
@@ -166,6 +171,35 @@ namespace GetBricked.Gameplay
         }
 
         public void ApplyTheme(ThemeVisualStyle visualStyle)
+        {
+            themedStyle = visualStyle;
+            ApplyVisualStyle(isBlacklightDisguised ? blacklightDisguiseStyle : visualStyle);
+        }
+
+        public void ApplyBlacklightDisguise(ThemeVisualStyle disguiseStyle)
+        {
+            if (definition == null || !definition.IsBreakable)
+            {
+                return;
+            }
+
+            blacklightDisguiseStyle = disguiseStyle;
+            isBlacklightDisguised = true;
+            ApplyVisualStyle(blacklightDisguiseStyle);
+        }
+
+        public void ClearBlacklightDisguise()
+        {
+            if (!isBlacklightDisguised)
+            {
+                return;
+            }
+
+            isBlacklightDisguised = false;
+            ApplyVisualStyle(themedStyle);
+        }
+
+        private void ApplyVisualStyle(ThemeVisualStyle visualStyle)
         {
             spriteRenderer ??= GetComponentInChildren<SpriteRenderer>();
 
@@ -364,6 +398,8 @@ namespace GetBricked.Gameplay
                 ApplyImpactSpin(collision);
             }
 
+            RevealBlacklightDisguise();
+
             if (definition.JellyOnHit)
             {
                 ApplyJellyImpact(scoringBall, collision);
@@ -390,6 +426,7 @@ namespace GetBricked.Gameplay
                 return;
             }
 
+            RevealBlacklightDisguise();
             isPendingRemoval = true;
             hitPointsRemaining = 0;
             gameController.HandleBrickDestroyed(this, scoringBall, BrickDestructionCause.Explosion);
@@ -402,6 +439,7 @@ namespace GetBricked.Gameplay
                 return;
             }
 
+            RevealBlacklightDisguise();
             isPendingRemoval = true;
             hitPointsRemaining = 0;
             gameController.HandleBrickDestroyed(this, null, BrickDestructionCause.Missile);
@@ -414,6 +452,7 @@ namespace GetBricked.Gameplay
                 return;
             }
 
+            RevealBlacklightDisguise();
             ApplyDamage(Mathf.Max(1, damage), scoringBall, destructionCause);
         }
 
@@ -645,6 +684,14 @@ namespace GetBricked.Gameplay
             resolvedColor.a *= visibilityMultiplier * transitionVisibilityMultiplier * flickerVisibilityMultiplier * ghostVisibilityMultiplier;
             spriteRenderer.color = resolvedColor;
             glowRenderer?.ApplyColor(resolvedColor);
+        }
+
+        private void RevealBlacklightDisguise()
+        {
+            if (isBlacklightDisguised)
+            {
+                ClearBlacklightDisguise();
+            }
         }
 
         private void UpdateFlicker(bool forceRefresh)

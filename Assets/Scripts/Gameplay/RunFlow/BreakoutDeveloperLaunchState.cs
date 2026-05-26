@@ -34,6 +34,7 @@ namespace GetBricked.Gameplay
 
         private static readonly LevelGlitchSelection[] ForcedGlitchSelections =
         {
+            LevelGlitchSelection.BlacklightBricks,
             LevelGlitchSelection.BrickConveyor,
             LevelGlitchSelection.CapsuleRoulette,
             LevelGlitchSelection.CassetteSkip,

@@ -480,6 +480,27 @@ public sealed class BreakoutLevelGlitchPlannerTests
         Assert.That(unlockedPlan.MagnetStormPockets[0].DriftSpeed, Is.InRange(0.22f, 0.36f));
     }
 
+    [Test]
+    public void RogueGlitchHeatControlsWhenBlacklightBricksCanUnlock()
+    {
+        var lockedSettings = CreateRogueSettings(
+            rogueIntensity: BreakoutLevelGlitchPlanner.BlacklightBricksLadderUnlockIntensity,
+            levelGlitchSelection: LevelGlitchSelection.BlacklightBricks);
+        var unlockedSettings = CreateRogueSettings(
+            rogueIntensity: BreakoutLevelGlitchPlanner.BlacklightBricksLadderUnlockIntensity + 1,
+            levelGlitchSelection: LevelGlitchSelection.BlacklightBricks);
+
+        var lockedPlan = BreakoutLevelGlitchPlanner.BuildPlan(new DeterministicRandomService(7), lockedSettings, levelIndex: 9);
+        var unlockedPlan = BreakoutLevelGlitchPlanner.BuildPlan(new DeterministicRandomService(7), unlockedSettings, levelIndex: 9);
+
+        Assert.That(lockedPlan.IsActive, Is.False);
+        Assert.That(unlockedPlan.IsActive, Is.True);
+        Assert.That(unlockedPlan.GlitchType, Is.EqualTo(BreakoutLevelGlitchType.BlacklightBricks));
+        Assert.That(unlockedPlan.DisplayName, Is.EqualTo("Blacklight Bricks"));
+        Assert.That(unlockedPlan.Rarity, Is.EqualTo(BreakoutContentRarity.Epic));
+        Assert.That(unlockedPlan.ScoreMultiplier, Is.EqualTo(1.36f).Within(0.0001f));
+    }
+
 
     [Test]
     public void ForcedWarpGatePlanBuildsSmallPortalSetAndScoreBonus()
@@ -813,6 +834,21 @@ public sealed class BreakoutLevelGlitchPlannerTests
     }
 
     [Test]
+    public void SelectedBlacklightBricksAlwaysBuildsBlacklightBricksEvenWhenChanceIsDisabled()
+    {
+        var settings = CreateSettings(
+            levelGlitchesEnabled: true,
+            chanceMultiplier: 0f,
+            levelGlitchSelection: LevelGlitchSelection.BlacklightBricks);
+
+        var plan = BreakoutLevelGlitchPlanner.BuildPlan(new DeterministicRandomService(3), settings, levelIndex: 9);
+
+        Assert.That(plan.IsActive, Is.True);
+        Assert.That(plan.GlitchType, Is.EqualTo(BreakoutLevelGlitchType.BlacklightBricks));
+        Assert.That(plan.HudLabel, Does.Contain("Blacklight Bricks"));
+    }
+
+    [Test]
     public void PrismLaneRefractionBuildsSharperHorizontalDirection()
     {
         var refracted = BreakoutPrismLaneSection.BuildRefractedDirection(new UnityEngine.Vector2(0.12f, 1f), -1f);
@@ -970,6 +1006,54 @@ public sealed class BreakoutLevelGlitchPlannerTests
 
             Assert.That(collider.enabled, Is.True);
             Assert.That(renderer.color.a, Is.EqualTo(1f).Within(0.001f));
+        }
+        finally
+        {
+            Object.DestroyImmediate(brickObject);
+            Object.DestroyImmediate(definition);
+        }
+    }
+
+    [Test]
+    public void BlacklightBrickSpriteResourceIsAvailable()
+    {
+        var sprite = Resources.Load<Sprite>("Sprites/blacklight-brick");
+
+        Assert.That(sprite, Is.Not.Null);
+    }
+
+    [Test]
+    public void BrickBlacklightDisguiseRevealsOnEffectContact()
+    {
+        var definition = ScriptableObject.CreateInstance<BrickDefinition>();
+        var brickObject = new GameObject("Blacklight Brick Test");
+        var visualObject = new GameObject("Visual");
+
+        try
+        {
+            visualObject.transform.SetParent(brickObject.transform, false);
+            var renderer = visualObject.AddComponent<SpriteRenderer>();
+            var brick = brickObject.AddComponent<Brick>();
+            brickObject.AddComponent<BoxCollider2D>();
+            brick.Initialize(
+                null,
+                definition,
+                2,
+                new ThemeVisualStyle(Color.red, Color.gray, null),
+                0f,
+                Vector2.zero);
+
+            brick.ApplyBlacklightDisguise(new ThemeVisualStyle(Color.blue, Color.blue, null));
+
+            Assert.That(brick.IsBlacklightDisguised, Is.True);
+            Assert.That(renderer.color.r, Is.EqualTo(Color.blue.r).Within(0.001f));
+            Assert.That(renderer.color.b, Is.EqualTo(Color.blue.b).Within(0.001f));
+
+            brick.ApplyEffectHit(null, BrickDestructionCause.Laser, 1);
+
+            Assert.That(brick.IsBlacklightDisguised, Is.False);
+            Assert.That(renderer.color.r, Is.EqualTo(Color.gray.r).Within(0.001f));
+            Assert.That(renderer.color.g, Is.EqualTo(Color.gray.g).Within(0.001f));
         }
         finally
         {

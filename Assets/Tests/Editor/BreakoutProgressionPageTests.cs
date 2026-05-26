@@ -97,6 +97,7 @@ public sealed class BreakoutProgressionPageTests
         var brickConveyor = view.Cards.First(card => card.Title == "Brick Conveyor");
         var pickupPinball = view.Cards.First(card => card.Title == "Pickup Pinball");
         var magnetStorm = view.Cards.First(card => card.Title == "Magnet Storm");
+        var blacklightBricks = view.Cards.First(card => card.Title == "Blacklight Bricks");
 
         Assert.That(view.LadderLines, Has.Some.Contains("Heat 06"));
         Assert.That(view.LadderLines.Any(line => line.Contains("Paddle")), Is.False);
@@ -117,6 +118,7 @@ public sealed class BreakoutProgressionPageTests
         Assert.That(brickConveyor.UnlockHint, Does.Contain("Heat 17"));
         Assert.That(pickupPinball.UnlockHint, Does.Contain("Heat 19"));
         Assert.That(magnetStorm.UnlockHint, Does.Contain("Heat 20"));
+        Assert.That(blacklightBricks.UnlockHint, Does.Contain("Heat 21"));
     }
 
     [Test]
@@ -152,6 +154,7 @@ public sealed class BreakoutProgressionPageTests
         var brickConveyor = view.Cards.First(card => card.Title == "Brick Conveyor");
         var pickupPinball = view.Cards.First(card => card.Title == "Pickup Pinball");
         var magnetStorm = view.Cards.First(card => card.Title == "Magnet Storm");
+        var blacklightBricks = view.Cards.First(card => card.Title == "Blacklight Bricks");
         var solarShot = view.Cards.First(card => card.Title == "Solar Shot");
         var wrapRail = view.Cards.First(card => card.Title == "Wrap Rail");
         var staticShoes = view.Cards.First(card => card.Title == "Static Shoes");
@@ -216,6 +219,9 @@ public sealed class BreakoutProgressionPageTests
         Assert.That(magnetStorm.UnlockHint, Does.Contain("Heat 20"));
         Assert.That(magnetStorm.Description, Does.Contain("tug balls plus capsules"));
         Assert.That(magnetStorm.Family, Does.Contain("Epic"));
+        Assert.That(blacklightBricks.UnlockHint, Does.Contain("Heat 21"));
+        Assert.That(blacklightBricks.Description, Does.Contain("hide until first contact"));
+        Assert.That(blacklightBricks.Family, Does.Contain("Epic"));
         Assert.That(solarShot.UnlockHint, Does.Contain("Heat 36"));
         Assert.That(solarShot.Description, Does.Contain("burns away"));
         Assert.That(wrapRail.UnlockHint, Does.Contain("Heat 37"));

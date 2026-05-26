@@ -3795,6 +3795,12 @@ namespace GetBricked.Gameplay
                 powerUpService?.ShowStatusBanner("FLICKER BRICKS!", new Color(1f, 0.87f, 0.36f, 1f), 2.2f);
             }
 
+            if (activeLevelGlitchPlan.HasGlitch(BreakoutLevelGlitchType.BlacklightBricks))
+            {
+                ApplyBlacklightBricks();
+                powerUpService?.ShowStatusBanner("BLACKLIGHT!", new Color(1f, 0.49f, 0.86f, 1f), 2.2f);
+            }
+
             if (activeLevelGlitchPlan.HasGlitch(BreakoutLevelGlitchType.CassetteSkip))
             {
                 powerUpService?.ShowStatusBanner("CASSETTE SKIP!", new Color(1f, 0.49f, 0.86f, 1f), 2.2f);
@@ -3884,6 +3890,7 @@ namespace GetBricked.Gameplay
             }
 
             brickService?.ClearFlickerBricks();
+            brickService?.ClearBlacklightBricks();
             ClearGravityPocketFromBalls();
             ClearMagnetStormFromPickups();
             ClearSplitHorizonFromBalls();
@@ -3902,6 +3909,11 @@ namespace GetBricked.Gameplay
         private void ApplyFlickerBricks(BreakoutFlickerBricksSpec flickerBricks)
         {
             brickService?.ApplyFlickerBricks(flickerBricks);
+        }
+
+        private void ApplyBlacklightBricks()
+        {
+            brickService?.ApplyBlacklightBricks();
         }
 
         private void ArmGhostRow(BreakoutGhostRowSpec ghostRow)
@@ -6644,6 +6656,7 @@ namespace GetBricked.Gameplay
                 LevelGlitchSelection.PickupPinball => "Pickup Pinball",
                 LevelGlitchSelection.MagnetStorm => "Magnet Storm",
                 LevelGlitchSelection.BrickConveyor => "Brick Conveyor",
+                LevelGlitchSelection.BlacklightBricks => "Blacklight Bricks",
                 _ => "Off",
             };
         }

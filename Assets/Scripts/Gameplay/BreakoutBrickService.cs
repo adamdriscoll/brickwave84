@@ -39,6 +39,7 @@ namespace GetBricked.Gameplay
     internal sealed class BreakoutBrickService
     {
         private const int BrickSortingOrder = 5;
+        private const string BlacklightBrickSpriteResourcePath = "Sprites/blacklight-brick";
 
         private readonly BreakoutGameController controller;
         private readonly IList<Brick> bricks;
@@ -54,6 +55,8 @@ namespace GetBricked.Gameplay
         private readonly Action<GameObject> destroyRuntimeObject;
         private bool hasActiveFlickerBricks;
         private BreakoutFlickerBricksSpec activeFlickerBricksSpec;
+        private bool hasActiveBlacklightBricks;
+        private Sprite blacklightDisguiseSprite;
 
         public BreakoutBrickService(
             BreakoutGameController controller,
@@ -199,6 +202,7 @@ namespace GetBricked.Gameplay
                 column);
             brick.SetMovementBounds(movementBoundsResolver());
             ApplyActiveFlickerToBrick(brick, row, column, position);
+            ApplyActiveBlacklightToBrick(brick);
             bricks.Add(brick);
             return brick;
         }
@@ -616,6 +620,48 @@ namespace GetBricked.Gameplay
             }
         }
 
+        public int ApplyBlacklightBricks()
+        {
+            hasActiveBlacklightBricks = true;
+            var hiddenCount = 0;
+
+            for (var index = bricks.Count - 1; index >= 0; index--)
+            {
+                var brick = bricks[index];
+
+                if (brick == null)
+                {
+                    bricks.RemoveAt(index);
+                    continue;
+                }
+
+                if (ApplyBlacklightToBrick(brick))
+                {
+                    hiddenCount++;
+                }
+            }
+
+            return hiddenCount;
+        }
+
+        public void ClearBlacklightBricks()
+        {
+            hasActiveBlacklightBricks = false;
+
+            for (var index = bricks.Count - 1; index >= 0; index--)
+            {
+                var brick = bricks[index];
+
+                if (brick == null)
+                {
+                    bricks.RemoveAt(index);
+                    continue;
+                }
+
+                brick.ClearBlacklightDisguise();
+            }
+        }
+
         internal static Vector2[] BuildSplitBrickOffsets(Vector2 baseBrickSize, BrickDefinition splitDefinition)
         {
             return BuildSplitBrickOffsets(baseBrickSize, splitDefinition, 4);
@@ -682,6 +728,34 @@ namespace GetBricked.Gameplay
             {
                 ApplyFlickerToBrick(brick, row, column, position, activeFlickerBricksSpec);
             }
+        }
+
+        private void ApplyActiveBlacklightToBrick(Brick brick)
+        {
+            if (hasActiveBlacklightBricks)
+            {
+                ApplyBlacklightToBrick(brick);
+            }
+        }
+
+        private bool ApplyBlacklightToBrick(Brick brick)
+        {
+            if (brick == null || brick.Definition == null || !brick.Definition.IsBreakable)
+            {
+                return false;
+            }
+
+            brick.ApplyBlacklightDisguise(BuildBlacklightDisguiseStyle());
+            return true;
+        }
+
+        private ThemeVisualStyle BuildBlacklightDisguiseStyle()
+        {
+            blacklightDisguiseSprite ??= BreakoutRuntimeVisualFactory.LoadSpriteResource(
+                BlacklightBrickSpriteResourcePath,
+                fallbackSprite);
+            var blacklightColor = new Color(1f, 0.38f, 0.96f, 0.96f);
+            return new ThemeVisualStyle(blacklightColor, blacklightColor, blacklightDisguiseSprite);
         }
 
         private static bool ApplyFlickerToBrick(

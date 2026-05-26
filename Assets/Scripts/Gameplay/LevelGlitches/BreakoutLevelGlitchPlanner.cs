@@ -28,6 +28,7 @@ namespace GetBricked.Gameplay
         PickupPinball = 18,
         MagnetStorm = 19,
         BrickConveyor = 20,
+        BlacklightBricks = 21,
     }
 
     internal readonly struct BreakoutLevelGlitchDefinition
@@ -516,6 +517,7 @@ namespace GetBricked.Gameplay
         public const int RogueGateLadderUnlockIntensity = 18;
         public const int PickupPinballLadderUnlockIntensity = 19;
         public const int MagnetStormLadderUnlockIntensity = 20;
+        public const int BlacklightBricksLadderUnlockIntensity = 21;
 
         private const float WarpGateScoreMultiplier = 1.35f;
         private const float TurboRailScoreMultiplier = 1.25f;
@@ -537,6 +539,7 @@ namespace GetBricked.Gameplay
         private const float RogueGateScoreMultiplier = 1.36f;
         private const float PickupPinballScoreMultiplier = 1.33f;
         private const float MagnetStormScoreMultiplier = 1.4f;
+        private const float BlacklightBricksScoreMultiplier = 1.36f;
 
         private static readonly BreakoutLevelGlitchDefinition[] GlitchDefinitions =
         {
@@ -640,6 +643,11 @@ namespace GetBricked.Gameplay
                 LevelGlitchSelection.MagnetStorm,
                 BreakoutContentRarity.Epic,
                 MagnetStormLadderUnlockIntensity),
+            new BreakoutLevelGlitchDefinition(
+                BreakoutLevelGlitchType.BlacklightBricks,
+                LevelGlitchSelection.BlacklightBricks,
+                BreakoutContentRarity.Epic,
+                BlacklightBricksLadderUnlockIntensity),
         };
 
         public static BreakoutLevelGlitchPlan BuildPlan(
@@ -784,6 +792,11 @@ namespace GetBricked.Gameplay
             if (definition.GlitchType == BreakoutLevelGlitchType.MagnetStorm)
             {
                 return BuildMagnetStormPlan(random, definition.Rarity);
+            }
+
+            if (definition.GlitchType == BreakoutLevelGlitchType.BlacklightBricks)
+            {
+                return BuildBlacklightBricksPlan(definition.Rarity);
             }
 
             return BuildWarpGatePlan(random, definition.Rarity);
@@ -1320,6 +1333,18 @@ namespace GetBricked.Gameplay
                 brickConveyor: BuildBrickConveyor(random));
         }
 
+        private static BreakoutLevelGlitchPlan BuildBlacklightBricksPlan(BreakoutContentRarity rarity)
+        {
+            return new BreakoutLevelGlitchPlan(
+                BreakoutLevelGlitchType.BlacklightBricks,
+                rarity,
+                "Blacklight Bricks",
+                $"Blacklight Bricks x{BlacklightBricksScoreMultiplier:0.00}",
+                BlacklightBricksScoreMultiplier,
+                Array.Empty<BreakoutWarpGateSpec>(),
+                default);
+        }
+
         public static float GetGlitchChance(RunSettings settings, int levelIndex)
         {
             if (settings == null)
@@ -1694,7 +1719,8 @@ namespace GetBricked.Gameplay
                 || selection == LevelGlitchSelection.BrickConveyor
                 || selection == LevelGlitchSelection.RogueGate
                 || selection == LevelGlitchSelection.PickupPinball
-                || selection == LevelGlitchSelection.MagnetStorm;
+                || selection == LevelGlitchSelection.MagnetStorm
+                || selection == LevelGlitchSelection.BlacklightBricks;
         }
 
         private static BreakoutWarpGateWall ResolveGateWall(DeterministicRandomService random, int index)
