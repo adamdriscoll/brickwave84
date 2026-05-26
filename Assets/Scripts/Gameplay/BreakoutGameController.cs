@@ -2545,7 +2545,7 @@ namespace GetBricked.Gameplay
             var selectedPaddle = developerLaunchState.ResolvePaddle();
             var intensity = BreakoutRunProgression.ClampRogueIntensity(developerLaunchState.Intensity);
             var forcedGlitch = developerLaunchState.ForcedLevelGlitchSelection;
-            var shouldForceGlitch = forcedGlitch != LevelGlitchSelection.Off;
+            var shouldForceGlitch = developerLaunchState.ForcedLevelGlitchEnabled;
             var selectedGlitch = shouldForceGlitch
                 ? forcedGlitch
                 : LevelGlitchSelection.Random;
@@ -2585,7 +2585,7 @@ namespace GetBricked.Gameplay
                     levelGlitchUnlockIntensityOverride: intensity);
 
             var encounter = developerLaunchState.ResolveEncounter();
-            pendingValidationMessage = $"Dev jump loaded: {encounter.DisplayName} with {activeRunSettings.SelectedPaddleLabel} at Heat {activeRunSettings.RogueIntensity:00}. {BuildDeveloperForcedGlitchMessage(forcedGlitch)}";
+            pendingValidationMessage = $"Dev jump loaded: {encounter.DisplayName} with {activeRunSettings.SelectedPaddleLabel} at Heat {activeRunSettings.RogueIntensity:00}. {BuildDeveloperForcedGlitchMessage(shouldForceGlitch, forcedGlitch)}";
             StartNewRun(encounter, developerLaunchState.LivesRemaining, applyDeveloperSelections: true);
         }
 
@@ -2606,6 +2606,9 @@ namespace GetBricked.Gameplay
                     break;
                 case BreakoutDeveloperLaunchField.ForcedDrop:
                     developerLaunchState.ToggleForcedDrop();
+                    break;
+                case BreakoutDeveloperLaunchField.ForcedGlitch:
+                    developerLaunchState.ToggleForcedLevelGlitch();
                     break;
             }
         }
@@ -5369,6 +5372,7 @@ namespace GetBricked.Gameplay
             var dropSelected = currentDrop != null && developerLaunchState.IsDropUnlockSelected(currentDrop);
             var forcedDropEnabled = developerLaunchState.ForcedDropEnabled && forcedDrop != null;
             var forcedGlitch = developerLaunchState.ForcedLevelGlitchSelection;
+            var forcedGlitchEnabled = developerLaunchState.ForcedLevelGlitchEnabled;
 
             return new BreakoutUiRunSetupView
             {
@@ -5382,10 +5386,10 @@ namespace GetBricked.Gameplay
                     $"Upgrade: {FormatDeveloperToggle(upgradeSelected)} {FormatDeveloperUpgradeLabel(currentUpgrade)}",
                     $"Drop Unlock: {FormatDeveloperToggle(dropSelected)} {FormatDeveloperDropLabel(currentDrop)}",
                     $"Forced Drop: {FormatDeveloperToggle(forcedDropEnabled)} {FormatDeveloperDropLabel(forcedDrop)}",
-                    $"Forced Glitch: {FormatDeveloperForcedGlitchLabel(forcedGlitch)}",
+                    $"Forced Glitch: {FormatDeveloperForcedGlitchLabel(forcedGlitchEnabled, forcedGlitch)}",
                 },
                 SelectedFieldIndex = (int)selectedDeveloperLaunchField,
-                PreviewLine = $"Preview: {FormatDeveloperEncounterLabel(encounter)} | Heat {developerLaunchState.Intensity:00} | Balls {developerLaunchState.LivesRemaining:00} | Paddle x{selectedPaddle.WidthMultiplier:0.00} speed x{selectedPaddle.SpeedMultiplier:0.00} | Build {developerLaunchState.SelectedUpgradeCount:00} upgrades, {developerLaunchState.SelectedDropUnlockCount:00} drops | Force {FormatDeveloperForcedDropPreview(forcedDropEnabled, forcedDrop)} | Glitch {FormatDeveloperForcedGlitchPreview(forcedGlitch)} | Theme {ResolvePendingThemeDefinition()?.DisplayName ?? "Fallback"}",
+                PreviewLine = $"Preview: {FormatDeveloperEncounterLabel(encounter)} | Heat {developerLaunchState.Intensity:00} | Balls {developerLaunchState.LivesRemaining:00} | Paddle x{selectedPaddle.WidthMultiplier:0.00} speed x{selectedPaddle.SpeedMultiplier:0.00} | Build {developerLaunchState.SelectedUpgradeCount:00} upgrades, {developerLaunchState.SelectedDropUnlockCount:00} drops | Force {FormatDeveloperForcedDropPreview(forcedDropEnabled, forcedDrop)} | Glitch {FormatDeveloperForcedGlitchPreview(forcedGlitchEnabled, forcedGlitch)} | Theme {ResolvePendingThemeDefinition()?.DisplayName ?? "Fallback"}",
                 ValidationText = "Encounter cycles through Stage 01-10. Dev runs do not update the saved Neon Ladder result.",
                 HintText = "Up/Down selects. Left/Right changes. T toggles. N clears. Esc backs out. Space launches.",
             };
@@ -6555,23 +6559,21 @@ namespace GetBricked.Gameplay
             return drop.DisplayName;
         }
 
-        private static string FormatDeveloperForcedGlitchLabel(LevelGlitchSelection selection)
+        private static string FormatDeveloperForcedGlitchLabel(bool enabled, LevelGlitchSelection selection)
         {
-            return selection == LevelGlitchSelection.Off
-                ? "Off"
-                : $"[ON] {FormatLevelGlitchSelectionLabel(selection)}";
+            return $"{FormatDeveloperToggle(enabled)} {FormatLevelGlitchSelectionLabel(selection)}";
         }
 
-        private static string FormatDeveloperForcedGlitchPreview(LevelGlitchSelection selection)
+        private static string FormatDeveloperForcedGlitchPreview(bool enabled, LevelGlitchSelection selection)
         {
-            return selection == LevelGlitchSelection.Off
+            return !enabled
                 ? "normal rolls"
                 : FormatLevelGlitchSelectionLabel(selection);
         }
 
-        private static string BuildDeveloperForcedGlitchMessage(LevelGlitchSelection selection)
+        private static string BuildDeveloperForcedGlitchMessage(bool enabled, LevelGlitchSelection selection)
         {
-            return selection == LevelGlitchSelection.Off
+            return !enabled
                 ? "Glitches use normal Rogue rules."
                 : $"{FormatLevelGlitchSelectionLabel(selection)} forced for this stage.";
         }

@@ -34,25 +34,24 @@ namespace GetBricked.Gameplay
 
         private static readonly LevelGlitchSelection[] ForcedGlitchSelections =
         {
-            LevelGlitchSelection.Off,
-            LevelGlitchSelection.WarpGates,
-            LevelGlitchSelection.TurboRail,
-            LevelGlitchSelection.MirrorGrid,
-            LevelGlitchSelection.GravityPocket,
-            LevelGlitchSelection.TokenStorm,
-            LevelGlitchSelection.StaticWall,
-            LevelGlitchSelection.RowRewrite,
-            LevelGlitchSelection.PrismLanes,
-            LevelGlitchSelection.SwitchbackRails,
             LevelGlitchSelection.CapsuleRoulette,
-            LevelGlitchSelection.PickupPinball,
-            LevelGlitchSelection.DriftRows,
-            LevelGlitchSelection.HotCorners,
-            LevelGlitchSelection.FlickerBricks,
             LevelGlitchSelection.CassetteSkip,
+            LevelGlitchSelection.DriftRows,
+            LevelGlitchSelection.FlickerBricks,
             LevelGlitchSelection.GhostRow,
-            LevelGlitchSelection.SplitHorizon,
+            LevelGlitchSelection.GravityPocket,
+            LevelGlitchSelection.HotCorners,
+            LevelGlitchSelection.MirrorGrid,
+            LevelGlitchSelection.PickupPinball,
+            LevelGlitchSelection.PrismLanes,
             LevelGlitchSelection.RogueGate,
+            LevelGlitchSelection.RowRewrite,
+            LevelGlitchSelection.SplitHorizon,
+            LevelGlitchSelection.StaticWall,
+            LevelGlitchSelection.SwitchbackRails,
+            LevelGlitchSelection.TokenStorm,
+            LevelGlitchSelection.TurboRail,
+            LevelGlitchSelection.WarpGates,
         };
 
         private readonly HashSet<string> selectedUpgradeIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -72,7 +71,9 @@ namespace GetBricked.Gameplay
 
         public bool ForcedDropEnabled { get; private set; }
 
-        public LevelGlitchSelection ForcedLevelGlitchSelection { get; private set; } = LevelGlitchSelection.Off;
+        public LevelGlitchSelection ForcedLevelGlitchSelection { get; private set; } = ForcedGlitchSelections[0];
+
+        public bool ForcedLevelGlitchEnabled { get; private set; }
 
         public int SelectedUpgradeCount => selectedUpgradeIds.Count;
 
@@ -87,7 +88,8 @@ namespace GetBricked.Gameplay
             DropUnlockIndex = 0;
             ForcedDropIndex = 0;
             ForcedDropEnabled = false;
-            ForcedLevelGlitchSelection = LevelGlitchSelection.Off;
+            ForcedLevelGlitchSelection = ForcedGlitchSelections[0];
+            ForcedLevelGlitchEnabled = false;
             selectedUpgradeIds.Clear();
             selectedDropIds.Clear();
         }
@@ -157,6 +159,11 @@ namespace GetBricked.Gameplay
         public void ToggleForcedDrop()
         {
             ForcedDropEnabled = !ForcedDropEnabled;
+        }
+
+        public void ToggleForcedLevelGlitch()
+        {
+            ForcedLevelGlitchEnabled = !ForcedLevelGlitchEnabled;
         }
 
         public void ClearBuild()

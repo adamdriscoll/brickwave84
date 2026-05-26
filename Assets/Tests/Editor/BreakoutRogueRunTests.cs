@@ -117,7 +117,8 @@ public sealed class BreakoutRogueRunTests
             state.ToggleCurrentDropUnlock(new[] { drop });
             state.AdjustField(BreakoutDeveloperLaunchField.ForcedDrop, 1, null, new[] { drop, forcedDrop });
             state.ToggleForcedDrop();
-            state.AdjustField(BreakoutDeveloperLaunchField.ForcedGlitch, 3, null, null);
+            state.AdjustField(BreakoutDeveloperLaunchField.ForcedGlitch, 7, null, null);
+            state.ToggleForcedLevelGlitch();
 
             Assert.That(state.SelectedUpgradeCount, Is.EqualTo(1));
             Assert.That(state.SelectedDropUnlockCount, Is.EqualTo(1));
@@ -126,6 +127,7 @@ public sealed class BreakoutRogueRunTests
             Assert.That(state.ResolveForcedDrop(new[] { drop, forcedDrop }), Is.EqualTo(forcedDrop));
             Assert.That(state.ForcedDropEnabled, Is.True);
             Assert.That(state.ForcedLevelGlitchSelection, Is.EqualTo(LevelGlitchSelection.MirrorGrid));
+            Assert.That(state.ForcedLevelGlitchEnabled, Is.True);
 
             state.ClearBuild();
 
@@ -133,6 +135,7 @@ public sealed class BreakoutRogueRunTests
             Assert.That(state.SelectedDropUnlockCount, Is.EqualTo(0));
             Assert.That(state.ForcedDropEnabled, Is.True);
             Assert.That(state.ForcedLevelGlitchSelection, Is.EqualTo(LevelGlitchSelection.MirrorGrid));
+            Assert.That(state.ForcedLevelGlitchEnabled, Is.True);
             Assert.That(state.Intensity, Is.EqualTo(BreakoutRunProgression.MaxRogueIntensity));
         }
         finally
@@ -144,69 +147,49 @@ public sealed class BreakoutRogueRunTests
     }
 
     [Test]
-    public void DeveloperForcedGlitchMenuCyclesThroughPickupPinball()
+    public void DeveloperForcedGlitchMenuCyclesAlphabeticallyAndTogglesSeparately()
     {
         var state = new BreakoutDeveloperLaunchState();
+        var expected = new[]
+        {
+            LevelGlitchSelection.CapsuleRoulette,
+            LevelGlitchSelection.CassetteSkip,
+            LevelGlitchSelection.DriftRows,
+            LevelGlitchSelection.FlickerBricks,
+            LevelGlitchSelection.GhostRow,
+            LevelGlitchSelection.GravityPocket,
+            LevelGlitchSelection.HotCorners,
+            LevelGlitchSelection.MirrorGrid,
+            LevelGlitchSelection.PickupPinball,
+            LevelGlitchSelection.PrismLanes,
+            LevelGlitchSelection.RogueGate,
+            LevelGlitchSelection.RowRewrite,
+            LevelGlitchSelection.SplitHorizon,
+            LevelGlitchSelection.StaticWall,
+            LevelGlitchSelection.SwitchbackRails,
+            LevelGlitchSelection.TokenStorm,
+            LevelGlitchSelection.TurboRail,
+            LevelGlitchSelection.WarpGates,
+        };
+
+        Assert.That(state.ForcedLevelGlitchSelection, Is.EqualTo(expected[0]));
+        Assert.That(state.ForcedLevelGlitchEnabled, Is.False);
+
+        state.ToggleForcedLevelGlitch();
+        Assert.That(state.ForcedLevelGlitchEnabled, Is.True);
+
+        for (var index = 1; index < expected.Length; index++)
+        {
+            state.AdjustField(BreakoutDeveloperLaunchField.ForcedGlitch, 1, null, null);
+            Assert.That(state.ForcedLevelGlitchSelection, Is.EqualTo(expected[index]));
+            Assert.That(state.ForcedLevelGlitchEnabled, Is.True);
+        }
 
         state.AdjustField(BreakoutDeveloperLaunchField.ForcedGlitch, 1, null, null);
-        Assert.That(state.ForcedLevelGlitchSelection, Is.EqualTo(LevelGlitchSelection.WarpGates));
-
-        state.AdjustField(BreakoutDeveloperLaunchField.ForcedGlitch, 1, null, null);
-        Assert.That(state.ForcedLevelGlitchSelection, Is.EqualTo(LevelGlitchSelection.TurboRail));
-
-        state.AdjustField(BreakoutDeveloperLaunchField.ForcedGlitch, 1, null, null);
-        Assert.That(state.ForcedLevelGlitchSelection, Is.EqualTo(LevelGlitchSelection.MirrorGrid));
-
-        state.AdjustField(BreakoutDeveloperLaunchField.ForcedGlitch, 1, null, null);
-        Assert.That(state.ForcedLevelGlitchSelection, Is.EqualTo(LevelGlitchSelection.GravityPocket));
-
-        state.AdjustField(BreakoutDeveloperLaunchField.ForcedGlitch, 1, null, null);
-        Assert.That(state.ForcedLevelGlitchSelection, Is.EqualTo(LevelGlitchSelection.TokenStorm));
-
-        state.AdjustField(BreakoutDeveloperLaunchField.ForcedGlitch, 1, null, null);
-        Assert.That(state.ForcedLevelGlitchSelection, Is.EqualTo(LevelGlitchSelection.StaticWall));
-
-        state.AdjustField(BreakoutDeveloperLaunchField.ForcedGlitch, 1, null, null);
-        Assert.That(state.ForcedLevelGlitchSelection, Is.EqualTo(LevelGlitchSelection.RowRewrite));
-
-        state.AdjustField(BreakoutDeveloperLaunchField.ForcedGlitch, 1, null, null);
-        Assert.That(state.ForcedLevelGlitchSelection, Is.EqualTo(LevelGlitchSelection.PrismLanes));
-
-        state.AdjustField(BreakoutDeveloperLaunchField.ForcedGlitch, 1, null, null);
-        Assert.That(state.ForcedLevelGlitchSelection, Is.EqualTo(LevelGlitchSelection.SwitchbackRails));
-
-        state.AdjustField(BreakoutDeveloperLaunchField.ForcedGlitch, 1, null, null);
-        Assert.That(state.ForcedLevelGlitchSelection, Is.EqualTo(LevelGlitchSelection.CapsuleRoulette));
-
-        state.AdjustField(BreakoutDeveloperLaunchField.ForcedGlitch, 1, null, null);
-        Assert.That(state.ForcedLevelGlitchSelection, Is.EqualTo(LevelGlitchSelection.PickupPinball));
-
-        state.AdjustField(BreakoutDeveloperLaunchField.ForcedGlitch, 1, null, null);
-        Assert.That(state.ForcedLevelGlitchSelection, Is.EqualTo(LevelGlitchSelection.DriftRows));
-
-        state.AdjustField(BreakoutDeveloperLaunchField.ForcedGlitch, 1, null, null);
-        Assert.That(state.ForcedLevelGlitchSelection, Is.EqualTo(LevelGlitchSelection.HotCorners));
-
-        state.AdjustField(BreakoutDeveloperLaunchField.ForcedGlitch, 1, null, null);
-        Assert.That(state.ForcedLevelGlitchSelection, Is.EqualTo(LevelGlitchSelection.FlickerBricks));
-
-        state.AdjustField(BreakoutDeveloperLaunchField.ForcedGlitch, 1, null, null);
-        Assert.That(state.ForcedLevelGlitchSelection, Is.EqualTo(LevelGlitchSelection.CassetteSkip));
-
-        state.AdjustField(BreakoutDeveloperLaunchField.ForcedGlitch, 1, null, null);
-        Assert.That(state.ForcedLevelGlitchSelection, Is.EqualTo(LevelGlitchSelection.GhostRow));
-
-        state.AdjustField(BreakoutDeveloperLaunchField.ForcedGlitch, 1, null, null);
-        Assert.That(state.ForcedLevelGlitchSelection, Is.EqualTo(LevelGlitchSelection.SplitHorizon));
-
-        state.AdjustField(BreakoutDeveloperLaunchField.ForcedGlitch, 1, null, null);
-        Assert.That(state.ForcedLevelGlitchSelection, Is.EqualTo(LevelGlitchSelection.RogueGate));
-
-        state.AdjustField(BreakoutDeveloperLaunchField.ForcedGlitch, 1, null, null);
-        Assert.That(state.ForcedLevelGlitchSelection, Is.EqualTo(LevelGlitchSelection.Off));
+        Assert.That(state.ForcedLevelGlitchSelection, Is.EqualTo(expected[0]));
 
         state.AdjustField(BreakoutDeveloperLaunchField.ForcedGlitch, -1, null, null);
-        Assert.That(state.ForcedLevelGlitchSelection, Is.EqualTo(LevelGlitchSelection.RogueGate));
+        Assert.That(state.ForcedLevelGlitchSelection, Is.EqualTo(expected[expected.Length - 1]));
     }
 
     [Test]
