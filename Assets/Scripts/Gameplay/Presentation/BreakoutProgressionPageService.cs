@@ -211,6 +211,13 @@ namespace GetBricked.Gameplay
                 BreakoutLevelGlitchPlanner.CassetteSkipLadderUnlockIntensity,
                 highestCompletedIntensity,
                 DamageAccent));
+            cards.Add(BuildUnlockableGlitchCard(
+                "Ghost Row",
+                "Layout Rare Glitch",
+                "One row phases out after hits, then snaps back later.",
+                BreakoutLevelGlitchPlanner.GhostRowLadderUnlockIntensity,
+                highestCompletedIntensity,
+                LayoutAccent));
             AppendPlaceholderCards(cards, PlaceholderDrops, highestCompletedIntensity);
             AppendPlaceholderCards(cards, PlaceholderGlitches, highestCompletedIntensity);
             cards.Add(BuildHiddenSlotCard("Future Drop Slot", "Drop", "Hidden", "Future drop signal pending."));
@@ -589,6 +596,11 @@ namespace GetBricked.Gameplay
             }
 
             if (completedIntensity >= BreakoutLevelGlitchPlanner.CassetteSkipLadderUnlockIntensity)
+            {
+                count++;
+            }
+
+            if (completedIntensity >= BreakoutLevelGlitchPlanner.GhostRowLadderUnlockIntensity)
             {
                 count++;
             }

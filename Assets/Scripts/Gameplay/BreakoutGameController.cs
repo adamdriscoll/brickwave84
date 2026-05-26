@@ -245,6 +245,7 @@ namespace GetBricked.Gameplay
         private BreakoutAudioService audioService;
         private BreakoutBrickService brickService;
         private BreakoutRowRewriteService rowRewriteService;
+        private BreakoutGhostRowService ghostRowService;
         private BreakoutPaddleSpawnService paddleSpawnService;
         private BreakoutBallSpawnService ballSpawnService;
         private BreakoutMainMenuService mainMenuService;
@@ -478,6 +479,7 @@ namespace GetBricked.Gameplay
             UpdateMenuAttractMode();
             UpdateGravityPocketInfluence();
             UpdateRowRewriteTimer();
+            UpdateGhostRow();
 
             var keyboard = Keyboard.current;
 
@@ -586,6 +588,7 @@ namespace GetBricked.Gameplay
                 return;
             }
 
+            TryTriggerGhostRow(brick);
             runStatsService?.RegisterBrickDestroyed();
             audioService?.PlayBrickDestroyed(brickDefinition);
 
@@ -1155,6 +1158,7 @@ namespace GetBricked.Gameplay
             audioService?.PlayBrickHit(brick?.Definition);
             AwardBankBonusIfAvailable(brick != null ? (Vector2)brick.transform.position : Vector2.zero);
             TryTriggerPrismPop(scoringBall, brick != null ? (Vector2)brick.transform.position : Vector2.zero, BrickDestructionCause.Impact);
+            TryTriggerGhostRow(brick);
         }
 
         public void HandlePickupCaught(PowerUpPickup pickup)
@@ -3328,6 +3332,7 @@ namespace GetBricked.Gameplay
                 ResolveBrickVisualStyle,
                 DestroyRuntimeObject);
             rowRewriteService = new BreakoutRowRewriteService(bricks, loadedBrickDefinitions);
+            ghostRowService = new BreakoutGhostRowService(bricks);
         }
 
         private Rect ResolveBrickMovementBounds()
@@ -3647,6 +3652,12 @@ namespace GetBricked.Gameplay
             {
                 powerUpService?.ShowStatusBanner("CASSETTE SKIP!", new Color(1f, 0.49f, 0.86f, 1f), 2.2f);
             }
+
+            if (activeLevelGlitchPlan.HasGlitch(BreakoutLevelGlitchType.GhostRow))
+            {
+                ArmGhostRow(activeLevelGlitchPlan.GhostRow);
+                powerUpService?.ShowStatusBanner("GHOST ROW!", new Color(0.72f, 0.62f, 1f, 1f), 2.2f);
+            }
         }
 
         private void ClearLevelGlitches()
@@ -3661,6 +3672,7 @@ namespace GetBricked.Gameplay
             rowRewriteTimer = 0f;
             activeRowRewriteSpec = default;
             cassetteSkipPaddleHits = 0;
+            ghostRowService?.Clear();
 
             if (activeWarpGateController != null)
             {
@@ -3722,6 +3734,36 @@ namespace GetBricked.Gameplay
         private void ApplyFlickerBricks(BreakoutFlickerBricksSpec flickerBricks)
         {
             brickService?.ApplyFlickerBricks(flickerBricks);
+        }
+
+        private void ArmGhostRow(BreakoutGhostRowSpec ghostRow)
+        {
+            ghostRowService?.Arm(ghostRow, currentLevelRowCount);
+        }
+
+        private void UpdateGhostRow()
+        {
+            if (roundState != RoundState.Playing)
+            {
+                return;
+            }
+
+            ghostRowService?.Update(Time.deltaTime);
+        }
+
+        private void TryTriggerGhostRow(Brick brick)
+        {
+            if (activeLevelGlitchPlan == null
+                || !activeLevelGlitchPlan.HasGlitch(BreakoutLevelGlitchType.GhostRow)
+                || ghostRowService == null)
+            {
+                return;
+            }
+
+            if (ghostRowService.TryTriggerFromHit(brick))
+            {
+                powerUpService?.ShowStatusBanner("ROW PHASE!", new Color(0.72f, 0.62f, 1f, 1f), 1.1f);
+            }
         }
 
         public void TryApplyCassetteSkip(BallController ball)
@@ -6068,6 +6110,7 @@ namespace GetBricked.Gameplay
                 LevelGlitchSelection.HotCorners => "Hot Corners",
                 LevelGlitchSelection.FlickerBricks => "Flicker Bricks",
                 LevelGlitchSelection.CassetteSkip => "Cassette Skip",
+                LevelGlitchSelection.GhostRow => "Ghost Row",
                 _ => "Off",
             };
         }

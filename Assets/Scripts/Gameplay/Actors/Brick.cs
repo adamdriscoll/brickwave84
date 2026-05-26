@@ -37,6 +37,7 @@ namespace GetBricked.Gameplay
         private float visibilityMultiplier = 1f;
         private float transitionVisibilityMultiplier = 1f;
         private float flickerVisibilityMultiplier = 1f;
+        private float ghostVisibilityMultiplier = 1f;
         private float jammerStrength;
         private bool flickerEnabled;
         private float flickerVisibleSeconds;
@@ -44,6 +45,7 @@ namespace GetBricked.Gameplay
         private float flickerHiddenAlpha;
         private float flickerPhaseSeconds;
         private bool isFlickerColliderVisible = true;
+        private bool isGhosted;
         private Vector3 visualBaseScale = Vector3.one;
         private float jellyWobbleTimer;
         private float jellyWobbleDuration;
@@ -206,13 +208,15 @@ namespace GetBricked.Gameplay
             flickerEnabled = false;
             flickerVisibilityMultiplier = 1f;
             isFlickerColliderVisible = true;
+            RefreshColliderState();
+            RefreshVisual();
+        }
 
-            brickCollider ??= GetComponent<BoxCollider2D>();
-            if (brickCollider != null)
-            {
-                brickCollider.enabled = true;
-            }
-
+        internal void SetGhosted(bool ghosted, float hiddenAlpha = 0.12f)
+        {
+            isGhosted = ghosted && definition != null && definition.IsBreakable;
+            ghostVisibilityMultiplier = isGhosted ? Mathf.Clamp01(hiddenAlpha) : 1f;
+            RefreshColliderState();
             RefreshVisual();
         }
 
@@ -617,7 +621,7 @@ namespace GetBricked.Gameplay
                 resolvedColor = Color.Lerp(themedDamagedColor, themedBaseColor, integrity);
             }
 
-            resolvedColor.a *= visibilityMultiplier * transitionVisibilityMultiplier * flickerVisibilityMultiplier;
+            resolvedColor.a *= visibilityMultiplier * transitionVisibilityMultiplier * flickerVisibilityMultiplier * ghostVisibilityMultiplier;
             spriteRenderer.color = resolvedColor;
             glowRenderer?.ApplyColor(resolvedColor);
         }
@@ -641,11 +645,6 @@ namespace GetBricked.Gameplay
             var isVisible = cyclePosition < flickerVisibleSeconds;
             var resolvedVisibility = isVisible ? 1f : flickerHiddenAlpha;
 
-            if (brickCollider != null)
-            {
-                brickCollider.enabled = isVisible;
-            }
-
             if (!forceRefresh
                 && Mathf.Approximately(resolvedVisibility, flickerVisibilityMultiplier)
                 && isVisible == isFlickerColliderVisible)
@@ -655,7 +654,18 @@ namespace GetBricked.Gameplay
 
             flickerVisibilityMultiplier = resolvedVisibility;
             isFlickerColliderVisible = isVisible;
+            RefreshColliderState();
             RefreshVisual();
+        }
+
+        private void RefreshColliderState()
+        {
+            brickCollider ??= GetComponent<BoxCollider2D>();
+
+            if (brickCollider != null)
+            {
+                brickCollider.enabled = !isGhosted && isFlickerColliderVisible;
+            }
         }
 
         private void ApplyDamage(int damage, BallController scoringBall, BrickDestructionCause destructionCause)

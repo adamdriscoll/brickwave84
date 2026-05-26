@@ -335,6 +335,31 @@ public sealed class BreakoutLevelGlitchPlannerTests
         Assert.That(unlockedPlan.CassetteSkip.SkipDistance, Is.InRange(1.45f, 2.05f));
     }
 
+    [Test]
+    public void RogueGlitchHeatControlsWhenGhostRowCanUnlock()
+    {
+        var lockedSettings = CreateRogueSettings(
+            rogueIntensity: BreakoutLevelGlitchPlanner.GhostRowLadderUnlockIntensity,
+            levelGlitchSelection: LevelGlitchSelection.GhostRow);
+        var unlockedSettings = CreateRogueSettings(
+            rogueIntensity: BreakoutLevelGlitchPlanner.GhostRowLadderUnlockIntensity + 1,
+            levelGlitchSelection: LevelGlitchSelection.GhostRow);
+
+        var lockedPlan = BreakoutLevelGlitchPlanner.BuildPlan(new DeterministicRandomService(7), lockedSettings, levelIndex: 9);
+        var unlockedPlan = BreakoutLevelGlitchPlanner.BuildPlan(new DeterministicRandomService(7), unlockedSettings, levelIndex: 9);
+
+        Assert.That(lockedPlan.IsActive, Is.False);
+        Assert.That(unlockedPlan.IsActive, Is.True);
+        Assert.That(unlockedPlan.GlitchType, Is.EqualTo(BreakoutLevelGlitchType.GhostRow));
+        Assert.That(unlockedPlan.DisplayName, Is.EqualTo("Ghost Row"));
+        Assert.That(unlockedPlan.Rarity, Is.EqualTo(BreakoutContentRarity.Rare));
+        Assert.That(unlockedPlan.ScoreMultiplier, Is.EqualTo(1.29f).Within(0.0001f));
+        Assert.That(unlockedPlan.GhostRow.NormalizedRow, Is.InRange(0.16f, 0.82f));
+        Assert.That(unlockedPlan.GhostRow.PhaseDurationSeconds, Is.InRange(2.25f, 3.35f));
+        Assert.That(unlockedPlan.GhostRow.CooldownSeconds, Is.InRange(0.85f, 1.45f));
+        Assert.That(unlockedPlan.GhostRow.HiddenAlpha, Is.InRange(0.08f, 0.14f));
+    }
+
 
     [Test]
     public void ForcedWarpGatePlanBuildsSmallPortalSetAndScoreBonus()
@@ -575,6 +600,21 @@ public sealed class BreakoutLevelGlitchPlannerTests
     }
 
     [Test]
+    public void SelectedGhostRowAlwaysBuildsGhostRowEvenWhenChanceIsDisabled()
+    {
+        var settings = CreateSettings(
+            levelGlitchesEnabled: true,
+            chanceMultiplier: 0f,
+            levelGlitchSelection: LevelGlitchSelection.GhostRow);
+
+        var plan = BreakoutLevelGlitchPlanner.BuildPlan(new DeterministicRandomService(3), settings, levelIndex: 9);
+
+        Assert.That(plan.IsActive, Is.True);
+        Assert.That(plan.GlitchType, Is.EqualTo(BreakoutLevelGlitchType.GhostRow));
+        Assert.That(plan.HudLabel, Does.Contain("Ghost Row"));
+    }
+
+    [Test]
     public void PrismLaneRefractionBuildsSharperHorizontalDirection()
     {
         var refracted = BreakoutPrismLaneSection.BuildRefractedDirection(new UnityEngine.Vector2(0.12f, 1f), -1f);
@@ -657,6 +697,46 @@ public sealed class BreakoutLevelGlitchPlannerTests
 
             brick.ClearFlicker();
 
+            Assert.That(collider.enabled, Is.True);
+            Assert.That(renderer.color.a, Is.EqualTo(1f).Within(0.001f));
+        }
+        finally
+        {
+            Object.DestroyImmediate(brickObject);
+            Object.DestroyImmediate(definition);
+        }
+    }
+
+    [Test]
+    public void BrickGhostingDisablesColliderAndRestoresThroughFlickerState()
+    {
+        var definition = ScriptableObject.CreateInstance<BrickDefinition>();
+        var brickObject = new GameObject("Ghost Row Brick Test");
+        var visualObject = new GameObject("Visual");
+
+        try
+        {
+            var collider = brickObject.AddComponent<BoxCollider2D>();
+            visualObject.transform.SetParent(brickObject.transform, false);
+            var renderer = visualObject.AddComponent<SpriteRenderer>();
+            var brick = brickObject.AddComponent<Brick>();
+            brick.Initialize(
+                null,
+                definition,
+                1,
+                new ThemeVisualStyle(Color.white, Color.gray, null),
+                0f,
+                Vector2.zero);
+
+            brick.SetGhosted(true, 0.12f);
+
+            Assert.That(collider.enabled, Is.False);
+            Assert.That(renderer.color.a, Is.EqualTo(0.12f).Within(0.001f));
+
+            brick.SetFlicker(10f, 0.1f, 0.05f, 0f);
+            Assert.That(collider.enabled, Is.False);
+
+            brick.SetGhosted(false);
             Assert.That(collider.enabled, Is.True);
             Assert.That(renderer.color.a, Is.EqualTo(1f).Within(0.001f));
         }
