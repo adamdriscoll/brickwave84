@@ -10,17 +10,20 @@ namespace GetBricked.Gameplay
 
         public BreakoutWarpGateWall Wall { get; private set; }
 
+        public float NormalizedPosition { get; private set; }
+
         public Vector2 ExitPosition { get; private set; }
 
         public void Configure(
             BreakoutWarpGateController warpGateController,
             int portalIndex,
-            BreakoutWarpGateWall wall,
+            BreakoutWarpGateSpec spec,
             Vector2 exitPosition)
         {
             controller = warpGateController;
             PortalIndex = Mathf.Max(0, portalIndex);
-            Wall = wall;
+            Wall = spec.Wall;
+            NormalizedPosition = spec.NormalizedPosition;
             ExitPosition = exitPosition;
         }
 

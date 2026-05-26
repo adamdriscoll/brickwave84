@@ -384,6 +384,29 @@ public sealed class BreakoutLevelGlitchPlannerTests
         Assert.That(unlockedPlan.SplitHorizon.CooldownSeconds, Is.InRange(0.1f, 0.16f));
     }
 
+    [Test]
+    public void RogueGlitchHeatControlsWhenRogueGateCanUnlock()
+    {
+        var lockedSettings = CreateRogueSettings(
+            rogueIntensity: BreakoutLevelGlitchPlanner.RogueGateLadderUnlockIntensity,
+            levelGlitchSelection: LevelGlitchSelection.RogueGate);
+        var unlockedSettings = CreateRogueSettings(
+            rogueIntensity: BreakoutLevelGlitchPlanner.RogueGateLadderUnlockIntensity + 1,
+            levelGlitchSelection: LevelGlitchSelection.RogueGate);
+
+        var lockedPlan = BreakoutLevelGlitchPlanner.BuildPlan(new DeterministicRandomService(7), lockedSettings, levelIndex: 9);
+        var unlockedPlan = BreakoutLevelGlitchPlanner.BuildPlan(new DeterministicRandomService(7), unlockedSettings, levelIndex: 9);
+
+        Assert.That(lockedPlan.IsActive, Is.False);
+        Assert.That(unlockedPlan.IsActive, Is.True);
+        Assert.That(unlockedPlan.GlitchType, Is.EqualTo(BreakoutLevelGlitchType.RogueGate));
+        Assert.That(unlockedPlan.DisplayName, Is.EqualTo("Rogue Gate"));
+        Assert.That(unlockedPlan.Rarity, Is.EqualTo(BreakoutContentRarity.Epic));
+        Assert.That(unlockedPlan.ScoreMultiplier, Is.EqualTo(1.36f).Within(0.0001f));
+        Assert.That(unlockedPlan.WarpGates, Has.Length.EqualTo(1));
+        Assert.That(unlockedPlan.WarpGates[0].NormalizedPosition, Is.InRange(0.18f, 0.82f));
+    }
+
 
     [Test]
     public void ForcedWarpGatePlanBuildsSmallPortalSetAndScoreBonus()
@@ -651,6 +674,22 @@ public sealed class BreakoutLevelGlitchPlannerTests
         Assert.That(plan.IsActive, Is.True);
         Assert.That(plan.GlitchType, Is.EqualTo(BreakoutLevelGlitchType.SplitHorizon));
         Assert.That(plan.HudLabel, Does.Contain("Split Horizon"));
+    }
+
+    [Test]
+    public void SelectedRogueGateAlwaysBuildsSingleMovingGateEvenWhenChanceIsDisabled()
+    {
+        var settings = CreateSettings(
+            levelGlitchesEnabled: true,
+            chanceMultiplier: 0f,
+            levelGlitchSelection: LevelGlitchSelection.RogueGate);
+
+        var plan = BreakoutLevelGlitchPlanner.BuildPlan(new DeterministicRandomService(3), settings, levelIndex: 9);
+
+        Assert.That(plan.IsActive, Is.True);
+        Assert.That(plan.GlitchType, Is.EqualTo(BreakoutLevelGlitchType.RogueGate));
+        Assert.That(plan.HudLabel, Does.Contain("Rogue Gate"));
+        Assert.That(plan.WarpGates, Has.Length.EqualTo(1));
     }
 
     [Test]

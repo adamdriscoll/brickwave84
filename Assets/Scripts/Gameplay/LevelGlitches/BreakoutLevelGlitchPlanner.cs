@@ -24,6 +24,7 @@ namespace GetBricked.Gameplay
         CassetteSkip = 14,
         GhostRow = 15,
         SplitHorizon = 16,
+        RogueGate = 17,
     }
 
     internal readonly struct BreakoutLevelGlitchDefinition
@@ -457,6 +458,7 @@ namespace GetBricked.Gameplay
         public const int CassetteSkipLadderUnlockIntensity = 13;
         public const int GhostRowLadderUnlockIntensity = 14;
         public const int SplitHorizonLadderUnlockIntensity = 15;
+        public const int RogueGateLadderUnlockIntensity = 18;
 
         private const float WarpGateScoreMultiplier = 1.35f;
         private const float TurboRailScoreMultiplier = 1.25f;
@@ -474,6 +476,7 @@ namespace GetBricked.Gameplay
         private const float CassetteSkipScoreMultiplier = 1.27f;
         private const float GhostRowScoreMultiplier = 1.29f;
         private const float SplitHorizonScoreMultiplier = 1.3f;
+        private const float RogueGateScoreMultiplier = 1.36f;
 
         private static readonly BreakoutLevelGlitchDefinition[] GlitchDefinitions =
         {
@@ -557,6 +560,11 @@ namespace GetBricked.Gameplay
                 LevelGlitchSelection.SplitHorizon,
                 BreakoutContentRarity.Rare,
                 SplitHorizonLadderUnlockIntensity),
+            new BreakoutLevelGlitchDefinition(
+                BreakoutLevelGlitchType.RogueGate,
+                LevelGlitchSelection.RogueGate,
+                BreakoutContentRarity.Epic,
+                RogueGateLadderUnlockIntensity),
         };
 
         public static BreakoutLevelGlitchPlan BuildPlan(
@@ -683,6 +691,11 @@ namespace GetBricked.Gameplay
                 return BuildSplitHorizonPlan(random, definition.Rarity);
             }
 
+            if (definition.GlitchType == BreakoutLevelGlitchType.RogueGate)
+            {
+                return BuildRogueGatePlan(random, definition.Rarity);
+            }
+
             return BuildWarpGatePlan(random, definition.Rarity);
         }
 
@@ -705,7 +718,7 @@ namespace GetBricked.Gameplay
                 }
 
                 definitions.Add(definition);
-                selectedTypes.Add(definition.GlitchType);
+                MarkGlitchSelectionExclusions(selectedTypes, definition.GlitchType);
             }
 
             if (definitions.Count == 0)
@@ -810,6 +823,11 @@ namespace GetBricked.Gameplay
                     warpGates = plan.WarpGates;
                 }
 
+                if (plan.HasGlitch(BreakoutLevelGlitchType.RogueGate))
+                {
+                    warpGates = plan.WarpGates;
+                }
+
                 if (plan.HasGlitch(BreakoutLevelGlitchType.TurboRail))
                 {
                     turboRail = plan.TurboRail;
@@ -899,6 +917,27 @@ namespace GetBricked.Gameplay
                 splitHorizon);
         }
 
+        private static void MarkGlitchSelectionExclusions(
+            HashSet<BreakoutLevelGlitchType> selectedTypes,
+            BreakoutLevelGlitchType selectedType)
+        {
+            if (selectedTypes == null)
+            {
+                return;
+            }
+
+            selectedTypes.Add(selectedType);
+
+            if (selectedType == BreakoutLevelGlitchType.WarpGates)
+            {
+                selectedTypes.Add(BreakoutLevelGlitchType.RogueGate);
+            }
+            else if (selectedType == BreakoutLevelGlitchType.RogueGate)
+            {
+                selectedTypes.Add(BreakoutLevelGlitchType.WarpGates);
+            }
+        }
+
         private static BreakoutLevelGlitchPlan BuildWarpGatePlan(DeterministicRandomService random, BreakoutContentRarity rarity)
         {
             var gateCount = random.Range(2, 5);
@@ -909,6 +948,18 @@ namespace GetBricked.Gameplay
                 $"Warp Gates x{WarpGateScoreMultiplier:0.00}",
                 WarpGateScoreMultiplier,
                 BuildWarpGates(random, gateCount),
+                default);
+        }
+
+        private static BreakoutLevelGlitchPlan BuildRogueGatePlan(DeterministicRandomService random, BreakoutContentRarity rarity)
+        {
+            return new BreakoutLevelGlitchPlan(
+                BreakoutLevelGlitchType.RogueGate,
+                rarity,
+                "Rogue Gate",
+                $"Rogue Gate x{RogueGateScoreMultiplier:0.00}",
+                RogueGateScoreMultiplier,
+                BuildRogueGate(random),
                 default);
         }
 
@@ -1311,6 +1362,16 @@ namespace GetBricked.Gameplay
                 random.Range(0.1f, 0.16f));
         }
 
+        private static BreakoutWarpGateSpec[] BuildRogueGate(DeterministicRandomService random)
+        {
+            return new[]
+            {
+                new BreakoutWarpGateSpec(
+                    ResolveGateWall(random, random.Range(0, 3)),
+                    random.Range(0.18f, 0.82f)),
+            };
+        }
+
         private static BreakoutLevelGlitchDefinition ResolveGlitchDefinition(
             DeterministicRandomService random,
             RunSettings settings,
@@ -1450,7 +1511,8 @@ namespace GetBricked.Gameplay
                 || selection == LevelGlitchSelection.FlickerBricks
                 || selection == LevelGlitchSelection.CassetteSkip
                 || selection == LevelGlitchSelection.GhostRow
-                || selection == LevelGlitchSelection.SplitHorizon;
+                || selection == LevelGlitchSelection.SplitHorizon
+                || selection == LevelGlitchSelection.RogueGate;
         }
 
         private static BreakoutWarpGateWall ResolveGateWall(DeterministicRandomService random, int index)

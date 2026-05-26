@@ -225,6 +225,13 @@ namespace GetBricked.Gameplay
                 BreakoutLevelGlitchPlanner.SplitHorizonLadderUnlockIntensity,
                 highestCompletedIntensity,
                 SplitAccent));
+            cards.Add(BuildUnlockableGlitchCard(
+                "Rogue Gate",
+                "Warp Epic Glitch",
+                "A single moving portal relocates after each use.",
+                BreakoutLevelGlitchPlanner.RogueGateLadderUnlockIntensity,
+                highestCompletedIntensity,
+                SplitAccent));
             AppendPlaceholderCards(cards, PlaceholderDrops, highestCompletedIntensity);
             AppendPlaceholderCards(cards, PlaceholderGlitches, highestCompletedIntensity);
             cards.Add(BuildHiddenSlotCard("Future Drop Slot", "Drop", "Hidden", "Future drop signal pending."));
@@ -613,6 +620,11 @@ namespace GetBricked.Gameplay
             }
 
             if (completedIntensity >= BreakoutLevelGlitchPlanner.SplitHorizonLadderUnlockIntensity)
+            {
+                count++;
+            }
+
+            if (completedIntensity >= BreakoutLevelGlitchPlanner.RogueGateLadderUnlockIntensity)
             {
                 count++;
             }

@@ -3697,6 +3697,12 @@ namespace GetBricked.Gameplay
                 powerUpService?.ShowStatusBanner("WARP GATES!", new Color(0.03f, 0.93f, 0.98f, 1f), 2.2f);
             }
 
+            if (activeLevelGlitchPlan.HasGlitch(BreakoutLevelGlitchType.RogueGate))
+            {
+                CreateRogueGate(activeLevelGlitchPlan);
+                powerUpService?.ShowStatusBanner("ROGUE GATE!", new Color(1f, 0.49f, 0.86f, 1f), 2.2f);
+            }
+
             if (activeLevelGlitchPlan.HasGlitch(BreakoutLevelGlitchType.TurboRail))
             {
                 CreateTurboRail(activeLevelGlitchPlan);
@@ -4061,6 +4067,21 @@ namespace GetBricked.Gameplay
             }
         }
 
+        private void CreateRogueGate(BreakoutLevelGlitchPlan glitchPlan)
+        {
+            if (glitchPlan == null || glitchPlan.WarpGates.Length <= 0 || squareSprite == null)
+            {
+                return;
+            }
+
+            var gateRoot = new GameObject("Rogue Gate");
+            gateRoot.transform.SetParent(glitchesRoot != null ? glitchesRoot : runtimeRoot, false);
+
+            activeWarpGateController = gateRoot.AddComponent<BreakoutWarpGateController>();
+            activeWarpGateController.ConfigureRogueGate(this, ResolveWarpGatePosition, ResolveWarpGateExitPosition);
+            CreateWarpGatePortal(gateRoot.transform, 0, glitchPlan.WarpGates[0]);
+        }
+
         private void CreateWarpGatePortal(Transform gateRoot, int portalIndex, BreakoutWarpGateSpec spec)
         {
             var portalObject = new GameObject($"Warp Gate {portalIndex + 1:00}");
@@ -4068,7 +4089,7 @@ namespace GetBricked.Gameplay
             portalObject.transform.position = ResolveWarpGatePosition(spec);
 
             var portal = portalObject.AddComponent<BreakoutWarpGatePortal>();
-            portal.Configure(activeWarpGateController, portalIndex, spec.Wall, ResolveWarpGateExitPosition(spec));
+            portal.Configure(activeWarpGateController, portalIndex, spec, ResolveWarpGateExitPosition(spec));
             activeWarpGateController?.RegisterPortal(portal);
 
             var collider = portalObject.AddComponent<BoxCollider2D>();
@@ -6381,6 +6402,7 @@ namespace GetBricked.Gameplay
                 LevelGlitchSelection.CassetteSkip => "Cassette Skip",
                 LevelGlitchSelection.GhostRow => "Ghost Row",
                 LevelGlitchSelection.SplitHorizon => "Split Horizon",
+                LevelGlitchSelection.RogueGate => "Rogue Gate",
                 _ => "Off",
             };
         }

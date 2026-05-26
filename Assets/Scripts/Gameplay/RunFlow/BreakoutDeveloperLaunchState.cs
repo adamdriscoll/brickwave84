@@ -51,6 +51,7 @@ namespace GetBricked.Gameplay
             LevelGlitchSelection.CassetteSkip,
             LevelGlitchSelection.GhostRow,
             LevelGlitchSelection.SplitHorizon,
+            LevelGlitchSelection.RogueGate,
         };
 
         private readonly HashSet<string> selectedUpgradeIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);

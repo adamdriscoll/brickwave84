@@ -34,9 +34,6 @@ namespace GetBricked.Gameplay
             int portalIndex)
         {
             phase = portalIndex * 1.73f;
-            baseScale = wall == BreakoutWarpGateWall.Top
-                ? new Vector3(1.2f, 0.78f, 1f)
-                : new Vector3(0.78f, 1.2f, 1f);
 
             coreRenderer = CreateLayer("Dark Core", coreSprite, unlitMaterial, 19, new Color(0.015f, 0.004f, 0.024f, 0.98f), out coreTransform);
             innerVortexRenderer = CreateLayer("Inner Vortex", vortexSprite, additiveMaterial, 20, new Color(0.03f, 0.93f, 0.98f, 0.82f), out innerVortexTransform);
@@ -44,12 +41,20 @@ namespace GetBricked.Gameplay
             ringRenderer = CreateLayer("Event Ring", ringSprite, additiveMaterial, 21, new Color(0.98f, 1f, 1f, 0.86f), out ringTransform);
             haloRenderer = CreateLayer("Gravity Halo", ringSprite, additiveMaterial, 17, new Color(0.45f, 0.08f, 1f, 0.35f), out haloTransform);
 
+            SetWall(wall);
+            UpdateVisuals(0f);
+        }
+
+        public void SetWall(BreakoutWarpGateWall wall)
+        {
+            baseScale = wall == BreakoutWarpGateWall.Top
+                ? new Vector3(1.2f, 0.78f, 1f)
+                : new Vector3(0.78f, 1.2f, 1f);
             coreScale = Multiply(baseScale, 0.56f);
             innerVortexScale = Multiply(baseScale, 0.94f);
             outerVortexScale = Multiply(baseScale, 1.15f);
             ringScale = Multiply(baseScale, 1.03f);
             haloScale = Multiply(baseScale, 1.55f);
-            UpdateVisuals(0f);
         }
 
         private void Update()
