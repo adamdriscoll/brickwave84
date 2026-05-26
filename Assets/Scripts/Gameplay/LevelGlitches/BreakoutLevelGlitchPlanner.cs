@@ -21,6 +21,7 @@ namespace GetBricked.Gameplay
         DriftRows = 11,
         HotCorners = 12,
         FlickerBricks = 13,
+        CassetteSkip = 14,
     }
 
     internal readonly struct BreakoutLevelGlitchDefinition
@@ -268,6 +269,19 @@ namespace GetBricked.Gameplay
         public int PatternSeed { get; }
     }
 
+    internal readonly struct BreakoutCassetteSkipSpec
+    {
+        public BreakoutCassetteSkipSpec(int paddleHitsPerSkip, float skipDistance)
+        {
+            PaddleHitsPerSkip = Mathf.Clamp(paddleHitsPerSkip, 2, 6);
+            SkipDistance = Mathf.Clamp(skipDistance, 0.5f, 2.35f);
+        }
+
+        public int PaddleHitsPerSkip { get; }
+
+        public float SkipDistance { get; }
+    }
+
     internal sealed class BreakoutLevelGlitchPlan
     {
         public static readonly BreakoutLevelGlitchPlan None = new BreakoutLevelGlitchPlan(
@@ -298,7 +312,8 @@ namespace GetBricked.Gameplay
             BreakoutSwitchbackRailSpec switchbackRails = default,
             BreakoutDriftRowsSpec driftRows = default,
             BreakoutHotCornersSpec hotCorners = default,
-            BreakoutFlickerBricksSpec flickerBricks = default)
+            BreakoutFlickerBricksSpec flickerBricks = default,
+            BreakoutCassetteSkipSpec cassetteSkip = default)
         {
             GlitchType = glitchType;
             Rarity = BreakoutRarityRules.Clamp(rarity);
@@ -316,6 +331,7 @@ namespace GetBricked.Gameplay
             DriftRows = driftRows;
             HotCorners = hotCorners;
             FlickerBricks = flickerBricks;
+            CassetteSkip = cassetteSkip;
             ActiveGlitchTypes = activeGlitchTypes != null && activeGlitchTypes.Length > 0
                 ? activeGlitchTypes
                 : glitchType != BreakoutLevelGlitchType.None
@@ -355,6 +371,8 @@ namespace GetBricked.Gameplay
 
         public BreakoutFlickerBricksSpec FlickerBricks { get; }
 
+        public BreakoutCassetteSkipSpec CassetteSkip { get; }
+
         public BreakoutLevelGlitchType[] ActiveGlitchTypes { get; }
 
         public bool IsActive => ActiveGlitchTypes.Length > 0;
@@ -387,6 +405,7 @@ namespace GetBricked.Gameplay
         public const int DriftRowsLadderUnlockIntensity = 10;
         public const int HotCornersLadderUnlockIntensity = 11;
         public const int FlickerBricksLadderUnlockIntensity = 12;
+        public const int CassetteSkipLadderUnlockIntensity = 13;
 
         private const float WarpGateScoreMultiplier = 1.35f;
         private const float TurboRailScoreMultiplier = 1.25f;
@@ -401,6 +420,7 @@ namespace GetBricked.Gameplay
         private const float DriftRowsScoreMultiplier = 1.26f;
         private const float HotCornersScoreMultiplier = 1.28f;
         private const float FlickerBricksScoreMultiplier = 1.3f;
+        private const float CassetteSkipScoreMultiplier = 1.27f;
 
         private static readonly BreakoutLevelGlitchDefinition[] GlitchDefinitions =
         {
@@ -469,6 +489,11 @@ namespace GetBricked.Gameplay
                 LevelGlitchSelection.FlickerBricks,
                 BreakoutContentRarity.Rare,
                 FlickerBricksLadderUnlockIntensity),
+            new BreakoutLevelGlitchDefinition(
+                BreakoutLevelGlitchType.CassetteSkip,
+                LevelGlitchSelection.CassetteSkip,
+                BreakoutContentRarity.Rare,
+                CassetteSkipLadderUnlockIntensity),
         };
 
         public static BreakoutLevelGlitchPlan BuildPlan(
@@ -580,6 +605,11 @@ namespace GetBricked.Gameplay
                 return BuildFlickerBricksPlan(random, definition.Rarity);
             }
 
+            if (definition.GlitchType == BreakoutLevelGlitchType.CassetteSkip)
+            {
+                return BuildCassetteSkipPlan(random, definition.Rarity);
+            }
+
             return BuildWarpGatePlan(random, definition.Rarity);
         }
 
@@ -688,6 +718,7 @@ namespace GetBricked.Gameplay
             var driftRows = default(BreakoutDriftRowsSpec);
             var hotCorners = default(BreakoutHotCornersSpec);
             var flickerBricks = default(BreakoutFlickerBricksSpec);
+            var cassetteSkip = default(BreakoutCassetteSkipSpec);
 
             for (var index = 0; index < definitions.Count; index++)
             {
@@ -753,6 +784,11 @@ namespace GetBricked.Gameplay
                 {
                     flickerBricks = plan.FlickerBricks;
                 }
+
+                if (plan.HasGlitch(BreakoutLevelGlitchType.CassetteSkip))
+                {
+                    cassetteSkip = plan.CassetteSkip;
+                }
             }
 
             return new BreakoutLevelGlitchPlan(
@@ -772,7 +808,8 @@ namespace GetBricked.Gameplay
                 switchbackRails,
                 driftRows,
                 hotCorners,
-                flickerBricks);
+                flickerBricks,
+                cassetteSkip);
         }
 
         private static BreakoutLevelGlitchPlan BuildWarpGatePlan(DeterministicRandomService random, BreakoutContentRarity rarity)
@@ -956,6 +993,19 @@ namespace GetBricked.Gameplay
                 flickerBricks: BuildFlickerBricks(random));
         }
 
+        private static BreakoutLevelGlitchPlan BuildCassetteSkipPlan(DeterministicRandomService random, BreakoutContentRarity rarity)
+        {
+            return new BreakoutLevelGlitchPlan(
+                BreakoutLevelGlitchType.CassetteSkip,
+                rarity,
+                "Cassette Skip",
+                $"Cassette Skip x{CassetteSkipScoreMultiplier:0.00}",
+                CassetteSkipScoreMultiplier,
+                Array.Empty<BreakoutWarpGateSpec>(),
+                default,
+                cassetteSkip: BuildCassetteSkip(random));
+        }
+
         public static float GetGlitchChance(RunSettings settings, int levelIndex)
         {
             if (settings == null)
@@ -1124,6 +1174,13 @@ namespace GetBricked.Gameplay
                 random.Range(1, int.MaxValue));
         }
 
+        private static BreakoutCassetteSkipSpec BuildCassetteSkip(DeterministicRandomService random)
+        {
+            return new BreakoutCassetteSkipSpec(
+                random.Range(2, 4),
+                random.Range(1.45f, 2.05f));
+        }
+
         private static BreakoutLevelGlitchDefinition ResolveGlitchDefinition(
             DeterministicRandomService random,
             RunSettings settings,
@@ -1260,7 +1317,8 @@ namespace GetBricked.Gameplay
                 || selection == LevelGlitchSelection.CapsuleRoulette
                 || selection == LevelGlitchSelection.DriftRows
                 || selection == LevelGlitchSelection.HotCorners
-                || selection == LevelGlitchSelection.FlickerBricks;
+                || selection == LevelGlitchSelection.FlickerBricks
+                || selection == LevelGlitchSelection.CassetteSkip;
         }
 
         private static BreakoutWarpGateWall ResolveGateWall(DeterministicRandomService random, int index)

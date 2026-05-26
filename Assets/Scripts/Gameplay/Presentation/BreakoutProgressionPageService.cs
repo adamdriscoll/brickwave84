@@ -204,6 +204,13 @@ namespace GetBricked.Gameplay
                 BreakoutLevelGlitchPlanner.FlickerBricksLadderUnlockIntensity,
                 highestCompletedIntensity,
                 PrecisionAccent));
+            cards.Add(BuildUnlockableGlitchCard(
+                "Cassette Skip",
+                "Ball Rare Glitch",
+                "Every few paddle hits, the ball skips forward along its current path.",
+                BreakoutLevelGlitchPlanner.CassetteSkipLadderUnlockIntensity,
+                highestCompletedIntensity,
+                DamageAccent));
             AppendPlaceholderCards(cards, PlaceholderDrops, highestCompletedIntensity);
             AppendPlaceholderCards(cards, PlaceholderGlitches, highestCompletedIntensity);
             cards.Add(BuildHiddenSlotCard("Future Drop Slot", "Drop", "Hidden", "Future drop signal pending."));
@@ -577,6 +584,11 @@ namespace GetBricked.Gameplay
             }
 
             if (completedIntensity >= BreakoutLevelGlitchPlanner.FlickerBricksLadderUnlockIntensity)
+            {
+                count++;
+            }
+
+            if (completedIntensity >= BreakoutLevelGlitchPlanner.CassetteSkipLadderUnlockIntensity)
             {
                 count++;
             }

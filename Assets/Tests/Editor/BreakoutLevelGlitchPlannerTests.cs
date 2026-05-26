@@ -312,6 +312,29 @@ public sealed class BreakoutLevelGlitchPlannerTests
         Assert.That(unlockedPlan.FlickerBricks.HiddenAlpha, Is.InRange(0.035f, 0.075f));
     }
 
+    [Test]
+    public void RogueGlitchHeatControlsWhenCassetteSkipCanUnlock()
+    {
+        var lockedSettings = CreateRogueSettings(
+            rogueIntensity: BreakoutLevelGlitchPlanner.CassetteSkipLadderUnlockIntensity,
+            levelGlitchSelection: LevelGlitchSelection.CassetteSkip);
+        var unlockedSettings = CreateRogueSettings(
+            rogueIntensity: BreakoutLevelGlitchPlanner.CassetteSkipLadderUnlockIntensity + 1,
+            levelGlitchSelection: LevelGlitchSelection.CassetteSkip);
+
+        var lockedPlan = BreakoutLevelGlitchPlanner.BuildPlan(new DeterministicRandomService(7), lockedSettings, levelIndex: 9);
+        var unlockedPlan = BreakoutLevelGlitchPlanner.BuildPlan(new DeterministicRandomService(7), unlockedSettings, levelIndex: 9);
+
+        Assert.That(lockedPlan.IsActive, Is.False);
+        Assert.That(unlockedPlan.IsActive, Is.True);
+        Assert.That(unlockedPlan.GlitchType, Is.EqualTo(BreakoutLevelGlitchType.CassetteSkip));
+        Assert.That(unlockedPlan.DisplayName, Is.EqualTo("Cassette Skip"));
+        Assert.That(unlockedPlan.Rarity, Is.EqualTo(BreakoutContentRarity.Rare));
+        Assert.That(unlockedPlan.ScoreMultiplier, Is.EqualTo(1.27f).Within(0.0001f));
+        Assert.That(unlockedPlan.CassetteSkip.PaddleHitsPerSkip, Is.InRange(2, 3));
+        Assert.That(unlockedPlan.CassetteSkip.SkipDistance, Is.InRange(1.45f, 2.05f));
+    }
+
 
     [Test]
     public void ForcedWarpGatePlanBuildsSmallPortalSetAndScoreBonus()
@@ -534,6 +557,21 @@ public sealed class BreakoutLevelGlitchPlannerTests
         Assert.That(plan.IsActive, Is.True);
         Assert.That(plan.GlitchType, Is.EqualTo(BreakoutLevelGlitchType.FlickerBricks));
         Assert.That(plan.HudLabel, Does.Contain("Flicker Bricks"));
+    }
+
+    [Test]
+    public void SelectedCassetteSkipAlwaysBuildsCassetteSkipEvenWhenChanceIsDisabled()
+    {
+        var settings = CreateSettings(
+            levelGlitchesEnabled: true,
+            chanceMultiplier: 0f,
+            levelGlitchSelection: LevelGlitchSelection.CassetteSkip);
+
+        var plan = BreakoutLevelGlitchPlanner.BuildPlan(new DeterministicRandomService(3), settings, levelIndex: 9);
+
+        Assert.That(plan.IsActive, Is.True);
+        Assert.That(plan.GlitchType, Is.EqualTo(BreakoutLevelGlitchType.CassetteSkip));
+        Assert.That(plan.HudLabel, Does.Contain("Cassette Skip"));
     }
 
     [Test]

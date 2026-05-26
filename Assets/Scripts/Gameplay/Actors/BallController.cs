@@ -684,6 +684,7 @@ namespace GetBricked.Gameplay
             lastPaddleHitRewindDirection = bounceDirection;
             hasLastPaddleHitRewindAnchor = true;
             ApplyCollisionResponse(bounceDirection);
+            gameController?.TryApplyCassetteSkip(this);
         }
 
         private Vector2 ResolvePaddleBounceDirection(float normalizedOffset)

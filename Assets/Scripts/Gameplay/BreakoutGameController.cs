@@ -330,6 +330,7 @@ namespace GetBricked.Gameplay
         private bool hasShownRowRewriteWarning;
         private float rowRewriteTimer;
         private BreakoutRowRewriteSpec activeRowRewriteSpec;
+        private int cassetteSkipPaddleHits;
         private int currentLevelRowCount;
         private int currentLevelColumnCount;
         private bool isDeveloperRunActive;
@@ -3641,6 +3642,11 @@ namespace GetBricked.Gameplay
                 ApplyFlickerBricks(activeLevelGlitchPlan.FlickerBricks);
                 powerUpService?.ShowStatusBanner("FLICKER BRICKS!", new Color(1f, 0.87f, 0.36f, 1f), 2.2f);
             }
+
+            if (activeLevelGlitchPlan.HasGlitch(BreakoutLevelGlitchType.CassetteSkip))
+            {
+                powerUpService?.ShowStatusBanner("CASSETTE SKIP!", new Color(1f, 0.49f, 0.86f, 1f), 2.2f);
+            }
         }
 
         private void ClearLevelGlitches()
@@ -3654,6 +3660,7 @@ namespace GetBricked.Gameplay
             hasShownRowRewriteWarning = false;
             rowRewriteTimer = 0f;
             activeRowRewriteSpec = default;
+            cassetteSkipPaddleHits = 0;
 
             if (activeWarpGateController != null)
             {
@@ -3715,6 +3722,34 @@ namespace GetBricked.Gameplay
         private void ApplyFlickerBricks(BreakoutFlickerBricksSpec flickerBricks)
         {
             brickService?.ApplyFlickerBricks(flickerBricks);
+        }
+
+        public void TryApplyCassetteSkip(BallController ball)
+        {
+            if (!IsGameplaySimulationActive()
+                || ball == null
+                || activeLevelGlitchPlan == null
+                || !activeLevelGlitchPlan.HasGlitch(BreakoutLevelGlitchType.CassetteSkip))
+            {
+                return;
+            }
+
+            var cassetteSkip = activeLevelGlitchPlan.CassetteSkip;
+            cassetteSkipPaddleHits++;
+
+            if (cassetteSkipPaddleHits < cassetteSkip.PaddleHitsPerSkip)
+            {
+                return;
+            }
+
+            cassetteSkipPaddleHits = 0;
+            var velocity = ball.CurrentVelocity;
+            var direction = velocity.sqrMagnitude > 0.01f ? velocity.normalized : Vector2.up;
+            var targetPosition = (Vector2)ball.transform.position + (direction * cassetteSkip.SkipDistance);
+            targetPosition.x = Mathf.Clamp(targetPosition.x, arenaLeft + ballRadius, arenaRight - ballRadius);
+            targetPosition.y = Mathf.Clamp(targetPosition.y, arenaBottom + ballRadius, arenaTop - ballRadius);
+            ball.SetWorldPosition(targetPosition);
+            powerUpService?.ShowStatusBanner("TAPE SKIP!", new Color(1f, 0.49f, 0.86f, 1f), 0.95f);
         }
 
         private void ArmMirrorGrid()
@@ -6032,6 +6067,7 @@ namespace GetBricked.Gameplay
                 LevelGlitchSelection.DriftRows => "Drift Rows",
                 LevelGlitchSelection.HotCorners => "Hot Corners",
                 LevelGlitchSelection.FlickerBricks => "Flicker Bricks",
+                LevelGlitchSelection.CassetteSkip => "Cassette Skip",
                 _ => "Off",
             };
         }
