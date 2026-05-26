@@ -324,6 +324,7 @@ namespace GetBricked.Gameplay
         private BreakoutTurboRailSection activeTurboRailSection;
         private BreakoutStaticWallSection activeStaticWallSection;
         private BreakoutGravityPocketVisual activeGravityPocketVisual;
+        private readonly List<BreakoutGravityPocketVisual> activeMagnetStormVisuals = new List<BreakoutGravityPocketVisual>();
         private GameObject activePrismLaneField;
         private GameObject activeSwitchbackRailField;
         private GameObject activeHotCornerField;
@@ -485,6 +486,7 @@ namespace GetBricked.Gameplay
             UpdateServeBallRevealDelay();
             UpdateMenuAttractMode();
             UpdateGravityPocketInfluence();
+            UpdateMagnetStormInfluence();
             UpdateRowRewriteTimer();
             UpdateGhostRow();
 
@@ -3739,10 +3741,22 @@ namespace GetBricked.Gameplay
                 powerUpService?.ShowStatusBanner("PICKUP PINBALL!", new Color(1f, 0.87f, 0.36f, 1f), 2.2f);
             }
 
+            if (activeLevelGlitchPlan.HasGlitch(BreakoutLevelGlitchType.MagnetStorm))
+            {
+                CreateMagnetStorm(activeLevelGlitchPlan);
+                powerUpService?.ShowStatusBanner("MAGNET STORM!", new Color(0.03f, 0.93f, 0.98f, 1f), 2.2f);
+            }
+
             if (activeLevelGlitchPlan.HasGlitch(BreakoutLevelGlitchType.DriftRows))
             {
                 ApplyDriftRows(activeLevelGlitchPlan.DriftRows);
                 powerUpService?.ShowStatusBanner("DRIFT ROWS!", new Color(0.72f, 0.62f, 1f, 1f), 2.2f);
+            }
+
+            if (activeLevelGlitchPlan.HasGlitch(BreakoutLevelGlitchType.BrickConveyor))
+            {
+                ApplyBrickConveyor(activeLevelGlitchPlan.BrickConveyor);
+                powerUpService?.ShowStatusBanner("BRICK CONVEYOR!", new Color(0.72f, 0.62f, 1f, 1f), 2.2f);
             }
 
             if (activeLevelGlitchPlan.HasGlitch(BreakoutLevelGlitchType.StaticWall))
@@ -3837,6 +3851,8 @@ namespace GetBricked.Gameplay
                 activeGravityPocketVisual = null;
             }
 
+            ClearMagnetStormVisuals();
+
             if (activePrismLaneField != null)
             {
                 DestroyRuntimeObject(activePrismLaneField);
@@ -3869,12 +3885,18 @@ namespace GetBricked.Gameplay
 
             brickService?.ClearFlickerBricks();
             ClearGravityPocketFromBalls();
+            ClearMagnetStormFromPickups();
             ClearSplitHorizonFromBalls();
         }
 
         private void ApplyDriftRows(BreakoutDriftRowsSpec driftRows)
         {
             brickService?.ApplyRowDrift(driftRows);
+        }
+
+        private void ApplyBrickConveyor(BreakoutBrickConveyorSpec brickConveyor)
+        {
+            brickService?.ApplyBrickConveyor(brickConveyor);
         }
 
         private void ApplyFlickerBricks(BreakoutFlickerBricksSpec flickerBricks)
@@ -4596,6 +4618,54 @@ namespace GetBricked.Gameplay
             ApplyGravityPocketToBalls();
         }
 
+        private void CreateMagnetStorm(BreakoutLevelGlitchPlan glitchPlan)
+        {
+            if (glitchPlan == null || circleSprite == null || glitchPlan.MagnetStormPockets.Length <= 0)
+            {
+                return;
+            }
+
+            ClearMagnetStormVisuals();
+
+            for (var index = 0; index < glitchPlan.MagnetStormPockets.Length; index++)
+            {
+                var spec = glitchPlan.MagnetStormPockets[index];
+                var pocketObject = new GameObject($"Magnet Storm Pocket {index + 1:00}");
+                pocketObject.transform.SetParent(glitchesRoot != null ? glitchesRoot : runtimeRoot, false);
+                pocketObject.transform.position = ResolveGravityPocketPosition(spec);
+
+                var visual = pocketObject.AddComponent<BreakoutGravityPocketVisual>();
+                visual.Configure(
+                    circleSprite,
+                    squareSprite,
+                    spriteUnlitMaterial,
+                    additiveSpriteMaterial,
+                    spec.Radius,
+                    ResolveGravityPocketMovementBounds(),
+                    spec.DriftSpeed,
+                    spec.DriftPhase);
+                activeMagnetStormVisuals.Add(visual);
+            }
+
+            ApplyGravityPocketToBalls();
+            RefreshMagnetStormPickupTargets();
+        }
+
+        private void ClearMagnetStormVisuals()
+        {
+            for (var index = activeMagnetStormVisuals.Count - 1; index >= 0; index--)
+            {
+                var visual = activeMagnetStormVisuals[index];
+
+                if (visual != null)
+                {
+                    DestroyRuntimeObject(visual.gameObject);
+                }
+            }
+
+            activeMagnetStormVisuals.Clear();
+        }
+
         private Vector2 ResolveGravityPocketPosition(BreakoutGravityPocketSpec spec)
         {
             var minX = arenaLeft + GravityPocketArenaHorizontalPadding;
@@ -4655,6 +4725,32 @@ namespace GetBricked.Gameplay
             ApplyGravityPocketToBalls();
         }
 
+        private void UpdateMagnetStormInfluence()
+        {
+            if (activeLevelGlitchPlan == null
+                || !activeLevelGlitchPlan.HasGlitch(BreakoutLevelGlitchType.MagnetStorm)
+                || activeMagnetStormVisuals.Count == 0)
+            {
+                return;
+            }
+
+            for (var index = activeMagnetStormVisuals.Count - 1; index >= 0; index--)
+            {
+                var visual = activeMagnetStormVisuals[index];
+
+                if (visual == null)
+                {
+                    activeMagnetStormVisuals.RemoveAt(index);
+                    continue;
+                }
+
+                visual.Tick(Time.time);
+            }
+
+            ApplyGravityPocketToBalls();
+            RefreshMagnetStormPickupTargets();
+        }
+
         private void ApplyGravityPocketToBalls()
         {
             ApplyGravityPocketToBall(serveBall);
@@ -4672,12 +4768,9 @@ namespace GetBricked.Gameplay
                 return;
             }
 
-            if (activeLevelGlitchPlan != null
-                && activeLevelGlitchPlan.HasGlitch(BreakoutLevelGlitchType.GravityPocket)
-                && activeGravityPocketVisual != null)
+            if (TryResolveStrongestPocket(ball.transform.position, out var centerPoint, out var radius, out var strength))
             {
-                var spec = activeLevelGlitchPlan.GravityPocket;
-                ball.SetGravityPocket(activeGravityPocketVisual.transform.position, spec.Radius, spec.Strength);
+                ball.SetGravityPocket(centerPoint, radius, strength);
                 return;
             }
 
@@ -4694,6 +4787,142 @@ namespace GetBricked.Gameplay
             for (var index = activeBalls.Count - 1; index >= 0; index--)
             {
                 activeBalls[index]?.SetGravityPocket(Vector2.zero, 0f, 0f);
+            }
+        }
+
+        private bool TryResolveStrongestPocket(
+            Vector2 worldPosition,
+            out Vector2 centerPoint,
+            out float radius,
+            out float strength)
+        {
+            centerPoint = Vector2.zero;
+            radius = 0f;
+            strength = 0f;
+            var bestInfluence = 0f;
+
+            if (activeLevelGlitchPlan != null
+                && activeLevelGlitchPlan.HasGlitch(BreakoutLevelGlitchType.GravityPocket)
+                && activeGravityPocketVisual != null)
+            {
+                TryUseStrongerPocket(
+                    worldPosition,
+                    activeGravityPocketVisual.transform.position,
+                    activeLevelGlitchPlan.GravityPocket.Radius,
+                    activeLevelGlitchPlan.GravityPocket.Strength,
+                    ref centerPoint,
+                    ref radius,
+                    ref strength,
+                    ref bestInfluence);
+            }
+
+            if (activeLevelGlitchPlan != null
+                && activeLevelGlitchPlan.HasGlitch(BreakoutLevelGlitchType.MagnetStorm))
+            {
+                var pocketCount = Mathf.Min(activeMagnetStormVisuals.Count, activeLevelGlitchPlan.MagnetStormPockets.Length);
+
+                for (var index = 0; index < pocketCount; index++)
+                {
+                    var visual = activeMagnetStormVisuals[index];
+
+                    if (visual == null)
+                    {
+                        continue;
+                    }
+
+                    var spec = activeLevelGlitchPlan.MagnetStormPockets[index];
+                    TryUseStrongerPocket(
+                        worldPosition,
+                        visual.transform.position,
+                        spec.Radius,
+                        spec.Strength,
+                        ref centerPoint,
+                        ref radius,
+                        ref strength,
+                        ref bestInfluence);
+                }
+            }
+
+            return bestInfluence > 0.001f;
+        }
+
+        private static void TryUseStrongerPocket(
+            Vector2 worldPosition,
+            Vector2 pocketCenter,
+            float pocketRadius,
+            float pocketStrength,
+            ref Vector2 bestCenter,
+            ref float bestRadius,
+            ref float bestStrength,
+            ref float bestInfluence)
+        {
+            if (pocketRadius <= 0.001f || pocketStrength <= 0.001f)
+            {
+                return;
+            }
+
+            var distance = Vector2.Distance(worldPosition, pocketCenter);
+
+            if (distance > pocketRadius)
+            {
+                return;
+            }
+
+            var falloff = 1f - Mathf.Clamp01(distance / pocketRadius);
+            var influence = pocketStrength * Mathf.Lerp(0.35f, 1f, falloff);
+
+            if (influence <= bestInfluence)
+            {
+                return;
+            }
+
+            bestInfluence = influence;
+            bestCenter = pocketCenter;
+            bestRadius = pocketRadius;
+            bestStrength = pocketStrength;
+        }
+
+        private void RefreshMagnetStormPickupTargets()
+        {
+            var activePickups = powerUpService?.ActivePickups;
+
+            if (activePickups == null)
+            {
+                return;
+            }
+
+            for (var index = activePickups.Count - 1; index >= 0; index--)
+            {
+                var pickup = activePickups[index];
+
+                if (pickup == null)
+                {
+                    activePickups.RemoveAt(index);
+                    continue;
+                }
+
+                if (TryResolveStrongestPocket(pickup.transform.position, out var centerPoint, out var radius, out var strength))
+                {
+                    pickup.SetMagnetStormPocket(centerPoint, radius, strength);
+                    continue;
+                }
+
+                pickup.SetMagnetStormPocket(Vector2.zero, 0f, 0f);
+            }
+        }
+
+        private void ClearMagnetStormFromPickups()
+        {
+            var activePickups = powerUpService?.ActivePickups;
+
+            if (activePickups == null)
+            {
+                return;
+            }
+
+            for (var index = activePickups.Count - 1; index >= 0; index--)
+            {
+                activePickups[index]?.SetMagnetStormPocket(Vector2.zero, 0f, 0f);
             }
         }
 
@@ -6413,6 +6642,8 @@ namespace GetBricked.Gameplay
                 LevelGlitchSelection.SplitHorizon => "Split Horizon",
                 LevelGlitchSelection.RogueGate => "Rogue Gate",
                 LevelGlitchSelection.PickupPinball => "Pickup Pinball",
+                LevelGlitchSelection.MagnetStorm => "Magnet Storm",
+                LevelGlitchSelection.BrickConveyor => "Brick Conveyor",
                 _ => "Off",
             };
         }

@@ -30,6 +30,9 @@ namespace GetBricked.Gameplay
         private Brick lastPinballBrick;
         private Vector2 capsuleMagnetTarget;
         private float capsuleMagnetStrength;
+        private Vector2 magnetStormTarget;
+        private float magnetStormRadius;
+        private float magnetStormStrength;
         private Vector3 targetVisualScale = Vector3.one;
         private float visibilityMultiplier = 1f;
         private bool pinballEnabled;
@@ -59,6 +62,13 @@ namespace GetBricked.Gameplay
         {
             capsuleMagnetTarget = targetPosition;
             capsuleMagnetStrength = Mathf.Clamp01(strength);
+        }
+
+        public void SetMagnetStormPocket(Vector2 targetPosition, float radius, float strength)
+        {
+            magnetStormTarget = targetPosition;
+            magnetStormRadius = Mathf.Max(0f, radius);
+            magnetStormStrength = magnetStormRadius > 0.001f ? Mathf.Clamp01(strength) : 0f;
         }
 
         internal void EnablePinball(Rect bounds, float directionSign, BreakoutPickupPinballSpec spec)
@@ -128,6 +138,7 @@ namespace GetBricked.Gameplay
             pinballVelocity = Vector2.zero;
             pinballBrickCooldownTimer = 0f;
             lastPinballBrick = null;
+            SetMagnetStormPocket(Vector2.zero, 0f, 0f);
             ApplyTheme(visualStyle);
         }
 
@@ -295,22 +306,25 @@ namespace GetBricked.Gameplay
             var effectiveFallSpeed = fallSpeed * activeFallSpeedMultiplier;
             var movementStep = Vector2.down * (effectiveFallSpeed * Time.fixedDeltaTime);
 
-            if (capsuleMagnetStrength <= 0.001f)
+            if (capsuleMagnetStrength > 0.001f)
             {
-                return movementStep;
+                var pullX = capsuleMagnetTarget.x - transform.position.x;
+
+                if (Mathf.Abs(pullX) > 0.01f)
+                {
+                    var lateralSpeed = effectiveFallSpeed * Mathf.Lerp(0.45f, 1.35f, capsuleMagnetStrength);
+                    var maxStep = lateralSpeed * Time.fixedDeltaTime;
+                    movementStep.x = Mathf.Clamp(pullX * capsuleMagnetStrength * 1.45f * Time.fixedDeltaTime, -maxStep, maxStep);
+                }
             }
 
-            var pullX = capsuleMagnetTarget.x - transform.position.x;
-
-            if (Mathf.Abs(pullX) <= 0.01f)
-            {
-                return movementStep;
-            }
-
-            var lateralSpeed = effectiveFallSpeed * Mathf.Lerp(0.45f, 1.35f, capsuleMagnetStrength);
-            var maxStep = lateralSpeed * Time.fixedDeltaTime;
-            movementStep.x = Mathf.Clamp(pullX * capsuleMagnetStrength * 1.45f * Time.fixedDeltaTime, -maxStep, maxStep);
-            return movementStep;
+            return movementStep + BuildMagnetStormPullStep(
+                transform.position,
+                magnetStormTarget,
+                magnetStormRadius,
+                magnetStormStrength,
+                effectiveFallSpeed,
+                Time.fixedDeltaTime);
         }
 
         private Vector2 ResolveNextFixedPosition()
@@ -336,8 +350,48 @@ namespace GetBricked.Gameplay
                     effectiveFallSpeed * 0.5f);
             }
 
+            var stormStep = BuildMagnetStormPullStep(
+                transform.position,
+                magnetStormTarget,
+                magnetStormRadius,
+                magnetStormStrength,
+                effectiveFallSpeed,
+                Time.fixedDeltaTime);
+
+            if (stormStep.sqrMagnitude > 0.000001f)
+            {
+                pinballVelocity += stormStep / Mathf.Max(Time.fixedDeltaTime, 0.0001f);
+                pinballVelocity = Vector2.ClampMagnitude(pinballVelocity, Mathf.Max(1f, effectiveFallSpeed * 1.65f));
+            }
+
             var nextPosition = (Vector2)transform.position + (pinballVelocity * Time.fixedDeltaTime);
             return ResolvePinballArenaBounce(nextPosition, effectiveFallSpeed);
+        }
+
+        internal static Vector2 BuildMagnetStormPullStep(
+            Vector2 position,
+            Vector2 targetPosition,
+            float radius,
+            float strength,
+            float effectiveFallSpeed,
+            float deltaTime)
+        {
+            if (radius <= 0.001f || strength <= 0.001f || effectiveFallSpeed <= 0.001f || deltaTime <= 0.0001f)
+            {
+                return Vector2.zero;
+            }
+
+            var pullVector = targetPosition - position;
+            var distance = pullVector.magnitude;
+
+            if (distance <= 0.0001f || distance > radius)
+            {
+                return Vector2.zero;
+            }
+
+            var falloff = 1f - Mathf.Clamp01(distance / radius);
+            var pullSpeed = effectiveFallSpeed * Mathf.Lerp(0.35f, 1.15f, strength) * Mathf.Lerp(0.3f, 1f, falloff);
+            return pullVector.normalized * pullSpeed * deltaTime;
         }
 
         private Vector2 ResolvePinballArenaBounce(Vector2 nextPosition, float effectiveFallSpeed)

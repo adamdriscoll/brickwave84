@@ -30,6 +30,8 @@ namespace GetBricked.Gameplay
         private Rect movementBounds;
         private bool hasMotion;
         private bool hasMovementBounds;
+        private bool usesConveyorWrap;
+        private float conveyorWrapPadding;
         private bool isPendingRemoval;
         private bool canSpin;
         private Color themedBaseColor;
@@ -239,6 +241,8 @@ namespace GetBricked.Gameplay
 
         internal void SetGlitchMotion(float speed, Vector2 direction)
         {
+            usesConveyorWrap = false;
+            conveyorWrapPadding = 0f;
             movementSpeed = Mathf.Max(0f, speed);
             hasMotion = movementSpeed > 0.01f && direction.sqrMagnitude > 0.001f;
 
@@ -275,6 +279,15 @@ namespace GetBricked.Gameplay
             brickBody.WakeUp();
         }
 
+        internal void SetConveyorMotion(float speed, Vector2 direction, float wrapPadding)
+        {
+            usesConveyorWrap = true;
+            conveyorWrapPadding = Mathf.Max(0f, wrapPadding);
+            SetGlitchMotion(speed, direction);
+            usesConveyorWrap = hasMotion;
+            conveyorWrapPadding = Mathf.Max(0f, wrapPadding);
+        }
+
         private void FixedUpdate()
         {
             if (!hasMotion || brickBody == null)
@@ -305,7 +318,15 @@ namespace GetBricked.Gameplay
                     lastMovementDirection = Vector2.right;
                 }
 
-                KeepMovingBrickInsideBounds();
+                if (usesConveyorWrap)
+                {
+                    WrapMovingBrickInsideBounds();
+                }
+                else
+                {
+                    KeepMovingBrickInsideBounds();
+                }
+
                 brickBody.linearVelocity = lastMovementDirection * movementSpeed;
             }
 
@@ -665,6 +686,47 @@ namespace GetBricked.Gameplay
             if (brickCollider != null)
             {
                 brickCollider.enabled = !isGhosted && isFlickerColliderVisible;
+            }
+        }
+
+        private void WrapMovingBrickInsideBounds()
+        {
+            if (!hasMovementBounds || brickBody == null || lastMovementDirection.sqrMagnitude <= 0.0001f)
+            {
+                return;
+            }
+
+            var halfSize = new Vector2(
+                Mathf.Abs(transform.lossyScale.x) * 0.5f,
+                Mathf.Abs(transform.lossyScale.y) * 0.5f);
+            var minX = movementBounds.xMin + halfSize.x;
+            var maxX = movementBounds.xMax - halfSize.x;
+            var minY = movementBounds.yMin + halfSize.y;
+            var maxY = movementBounds.yMax - halfSize.y;
+
+            if (minX > maxX || minY > maxY)
+            {
+                return;
+            }
+
+            var position = brickBody.position;
+            var wrappedPosition = new Vector2(
+                position.x,
+                Mathf.Clamp(position.y, minY, maxY));
+            var padding = conveyorWrapPadding;
+
+            if (lastMovementDirection.x > 0f && position.x > maxX + padding)
+            {
+                wrappedPosition.x = minX - padding;
+            }
+            else if (lastMovementDirection.x < 0f && position.x < minX - padding)
+            {
+                wrappedPosition.x = maxX + padding;
+            }
+
+            if ((wrappedPosition - position).sqrMagnitude > 0.000001f)
+            {
+                brickBody.position = wrappedPosition;
             }
         }
 

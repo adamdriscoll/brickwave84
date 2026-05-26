@@ -94,7 +94,9 @@ public sealed class BreakoutProgressionPageTests
         var flickerBricks = view.Cards.First(card => card.Title == "Flicker Bricks");
         var ghostRow = view.Cards.First(card => card.Title == "Ghost Row");
         var splitHorizon = view.Cards.First(card => card.Title == "Split Horizon");
+        var brickConveyor = view.Cards.First(card => card.Title == "Brick Conveyor");
         var pickupPinball = view.Cards.First(card => card.Title == "Pickup Pinball");
+        var magnetStorm = view.Cards.First(card => card.Title == "Magnet Storm");
 
         Assert.That(view.LadderLines, Has.Some.Contains("Heat 06"));
         Assert.That(view.LadderLines.Any(line => line.Contains("Paddle")), Is.False);
@@ -112,7 +114,9 @@ public sealed class BreakoutProgressionPageTests
         Assert.That(flickerBricks.UnlockHint, Does.Contain("Heat 12"));
         Assert.That(ghostRow.UnlockHint, Does.Contain("Heat 14"));
         Assert.That(splitHorizon.UnlockHint, Does.Contain("Heat 15"));
+        Assert.That(brickConveyor.UnlockHint, Does.Contain("Heat 17"));
         Assert.That(pickupPinball.UnlockHint, Does.Contain("Heat 19"));
+        Assert.That(magnetStorm.UnlockHint, Does.Contain("Heat 20"));
     }
 
     [Test]
@@ -145,7 +149,9 @@ public sealed class BreakoutProgressionPageTests
         var cassetteSkip = view.Cards.First(card => card.Title == "Cassette Skip");
         var ghostRow = view.Cards.First(card => card.Title == "Ghost Row");
         var splitHorizon = view.Cards.First(card => card.Title == "Split Horizon");
+        var brickConveyor = view.Cards.First(card => card.Title == "Brick Conveyor");
         var pickupPinball = view.Cards.First(card => card.Title == "Pickup Pinball");
+        var magnetStorm = view.Cards.First(card => card.Title == "Magnet Storm");
         var solarShot = view.Cards.First(card => card.Title == "Solar Shot");
         var wrapRail = view.Cards.First(card => card.Title == "Wrap Rail");
         var staticShoes = view.Cards.First(card => card.Title == "Static Shoes");
@@ -201,9 +207,15 @@ public sealed class BreakoutProgressionPageTests
         Assert.That(splitHorizon.UnlockHint, Does.Contain("Heat 15"));
         Assert.That(splitHorizon.Description, Does.Contain("midpoint bends"));
         Assert.That(splitHorizon.Family, Does.Contain("Rare"));
+        Assert.That(brickConveyor.UnlockHint, Does.Contain("Heat 17"));
+        Assert.That(brickConveyor.Description, Does.Contain("crawl sideways"));
+        Assert.That(brickConveyor.Family, Does.Contain("Epic"));
         Assert.That(pickupPinball.UnlockHint, Does.Contain("Heat 19"));
         Assert.That(pickupPinball.Description, Does.Contain("bounce off walls and bricks"));
         Assert.That(pickupPinball.Family, Does.Contain("Epic"));
+        Assert.That(magnetStorm.UnlockHint, Does.Contain("Heat 20"));
+        Assert.That(magnetStorm.Description, Does.Contain("tug balls plus capsules"));
+        Assert.That(magnetStorm.Family, Does.Contain("Epic"));
         Assert.That(solarShot.UnlockHint, Does.Contain("Heat 36"));
         Assert.That(solarShot.Description, Does.Contain("burns away"));
         Assert.That(wrapRail.UnlockHint, Does.Contain("Heat 37"));

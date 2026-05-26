@@ -34,6 +34,7 @@ namespace GetBricked.Gameplay
 
         private static readonly LevelGlitchSelection[] ForcedGlitchSelections =
         {
+            LevelGlitchSelection.BrickConveyor,
             LevelGlitchSelection.CapsuleRoulette,
             LevelGlitchSelection.CassetteSkip,
             LevelGlitchSelection.DriftRows,
@@ -41,6 +42,7 @@ namespace GetBricked.Gameplay
             LevelGlitchSelection.GhostRow,
             LevelGlitchSelection.GravityPocket,
             LevelGlitchSelection.HotCorners,
+            LevelGlitchSelection.MagnetStorm,
             LevelGlitchSelection.MirrorGrid,
             LevelGlitchSelection.PickupPinball,
             LevelGlitchSelection.PrismLanes,

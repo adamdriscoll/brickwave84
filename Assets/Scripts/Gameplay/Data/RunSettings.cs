@@ -53,6 +53,8 @@ namespace GetBricked.Gameplay.Data
         SplitHorizon = 17,
         RogueGate = 18,
         PickupPinball = 19,
+        MagnetStorm = 20,
+        BrickConveyor = 21,
     }
 
     public sealed class RunSettings
@@ -228,6 +230,8 @@ namespace GetBricked.Gameplay.Data
             LevelGlitchSelection.SplitHorizon => "Split Horizon Armed",
             LevelGlitchSelection.RogueGate => "Rogue Gate Armed",
             LevelGlitchSelection.PickupPinball => "Pickup Pinball Armed",
+            LevelGlitchSelection.MagnetStorm => "Magnet Storm Armed",
+            LevelGlitchSelection.BrickConveyor => "Brick Conveyor Armed",
             _ => "Clean Walls",
         };
 
@@ -238,7 +242,7 @@ namespace GetBricked.Gameplay.Data
             var normalized = (LevelGlitchSelection)Mathf.Clamp(
                 (int)levelGlitchSelection,
                 (int)LevelGlitchSelection.Off,
-                (int)LevelGlitchSelection.PickupPinball);
+                (int)LevelGlitchSelection.BrickConveyor);
 
             if (!levelGlitchesEnabled && normalized == LevelGlitchSelection.Random)
             {

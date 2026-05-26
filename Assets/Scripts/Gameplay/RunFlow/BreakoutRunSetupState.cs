@@ -183,7 +183,7 @@ namespace GetBricked.Gameplay
                     SelectedLevelGlitch = (LevelGlitchSelection)Mathf.Clamp(
                         (int)SelectedLevelGlitch + direction,
                         (int)LevelGlitchSelection.Off,
-                        (int)LevelGlitchSelection.PickupPinball);
+                        (int)LevelGlitchSelection.BrickConveyor);
                     break;
                 case BreakoutRunSetupField.Theme:
                     ThemeId = shiftThemeId != null ? shiftThemeId(ThemeId, direction) : ThemeId;
@@ -360,7 +360,7 @@ namespace GetBricked.Gameplay
             return (LevelGlitchSelection)Mathf.Clamp(
                 (int)selection,
                 (int)LevelGlitchSelection.Off,
-                (int)LevelGlitchSelection.PickupPinball);
+                (int)LevelGlitchSelection.BrickConveyor);
         }
 
         private static string BuildLevelGlitchWarningLabel(LevelGlitchSelection selection)
@@ -385,6 +385,8 @@ namespace GetBricked.Gameplay
                 LevelGlitchSelection.SplitHorizon => "Split Horizon",
                 LevelGlitchSelection.RogueGate => "Rogue Gate",
                 LevelGlitchSelection.PickupPinball => "Pickup Pinball",
+                LevelGlitchSelection.MagnetStorm => "Magnet Storm",
+                LevelGlitchSelection.BrickConveyor => "Brick Conveyor",
                 _ => "Random glitches",
             };
         }

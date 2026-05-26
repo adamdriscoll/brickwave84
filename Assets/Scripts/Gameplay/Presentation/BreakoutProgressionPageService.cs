@@ -226,6 +226,13 @@ namespace GetBricked.Gameplay
                 highestCompletedIntensity,
                 SplitAccent));
             cards.Add(BuildUnlockableGlitchCard(
+                "Brick Conveyor",
+                "Layout Epic Glitch",
+                "Brick bands crawl sideways while gaps stay dangerous.",
+                BreakoutLevelGlitchPlanner.BrickConveyorLadderUnlockIntensity,
+                highestCompletedIntensity,
+                LayoutAccent));
+            cards.Add(BuildUnlockableGlitchCard(
                 "Rogue Gate",
                 "Warp Epic Glitch",
                 "A single moving portal relocates after each use.",
@@ -239,6 +246,13 @@ namespace GetBricked.Gameplay
                 BreakoutLevelGlitchPlanner.PickupPinballLadderUnlockIntensity,
                 highestCompletedIntensity,
                 ControlAccent));
+            cards.Add(BuildUnlockableGlitchCard(
+                "Magnet Storm",
+                "Gravity Epic Glitch",
+                "Pull pockets drift across the board and tug balls plus capsules.",
+                BreakoutLevelGlitchPlanner.MagnetStormLadderUnlockIntensity,
+                highestCompletedIntensity,
+                SplitAccent));
             AppendPlaceholderCards(cards, PlaceholderDrops, highestCompletedIntensity);
             AppendPlaceholderCards(cards, PlaceholderGlitches, highestCompletedIntensity);
             cards.Add(BuildHiddenSlotCard("Future Drop Slot", "Drop", "Hidden", "Future drop signal pending."));
@@ -631,12 +645,22 @@ namespace GetBricked.Gameplay
                 count++;
             }
 
+            if (completedIntensity >= BreakoutLevelGlitchPlanner.BrickConveyorLadderUnlockIntensity)
+            {
+                count++;
+            }
+
             if (completedIntensity >= BreakoutLevelGlitchPlanner.RogueGateLadderUnlockIntensity)
             {
                 count++;
             }
 
             if (completedIntensity >= BreakoutLevelGlitchPlanner.PickupPinballLadderUnlockIntensity)
+            {
+                count++;
+            }
+
+            if (completedIntensity >= BreakoutLevelGlitchPlanner.MagnetStormLadderUnlockIntensity)
             {
                 count++;
             }

@@ -408,6 +408,30 @@ public sealed class BreakoutLevelGlitchPlannerTests
     }
 
     [Test]
+    public void RogueGlitchHeatControlsWhenBrickConveyorCanUnlock()
+    {
+        var lockedSettings = CreateRogueSettings(
+            rogueIntensity: BreakoutLevelGlitchPlanner.BrickConveyorLadderUnlockIntensity,
+            levelGlitchSelection: LevelGlitchSelection.BrickConveyor);
+        var unlockedSettings = CreateRogueSettings(
+            rogueIntensity: BreakoutLevelGlitchPlanner.BrickConveyorLadderUnlockIntensity + 1,
+            levelGlitchSelection: LevelGlitchSelection.BrickConveyor);
+
+        var lockedPlan = BreakoutLevelGlitchPlanner.BuildPlan(new DeterministicRandomService(7), lockedSettings, levelIndex: 9);
+        var unlockedPlan = BreakoutLevelGlitchPlanner.BuildPlan(new DeterministicRandomService(7), unlockedSettings, levelIndex: 9);
+
+        Assert.That(lockedPlan.IsActive, Is.False);
+        Assert.That(unlockedPlan.IsActive, Is.True);
+        Assert.That(unlockedPlan.GlitchType, Is.EqualTo(BreakoutLevelGlitchType.BrickConveyor));
+        Assert.That(unlockedPlan.DisplayName, Is.EqualTo("Brick Conveyor"));
+        Assert.That(unlockedPlan.Rarity, Is.EqualTo(BreakoutContentRarity.Epic));
+        Assert.That(unlockedPlan.ScoreMultiplier, Is.EqualTo(1.35f).Within(0.0001f));
+        Assert.That(unlockedPlan.BrickConveyor.Speed, Is.InRange(0.34f, 0.48f));
+        Assert.That(Mathf.Abs(unlockedPlan.BrickConveyor.StartingDirectionSign), Is.EqualTo(1f).Within(0.0001f));
+        Assert.That(unlockedPlan.BrickConveyor.WrapPadding, Is.InRange(0.35f, 0.65f));
+    }
+
+    [Test]
     public void RogueGlitchHeatControlsWhenPickupPinballCanUnlock()
     {
         var lockedSettings = CreateRogueSettings(
@@ -429,6 +453,31 @@ public sealed class BreakoutLevelGlitchPlannerTests
         Assert.That(unlockedPlan.PickupPinball.LateralVelocityMultiplier, Is.EqualTo(0.82f).Within(0.0001f));
         Assert.That(unlockedPlan.PickupPinball.UpwardVelocityMultiplier, Is.EqualTo(0.62f).Within(0.0001f));
         Assert.That(unlockedPlan.PickupPinball.GravityMultiplier, Is.EqualTo(1.18f).Within(0.0001f));
+    }
+
+    [Test]
+    public void RogueGlitchHeatControlsWhenMagnetStormCanUnlock()
+    {
+        var lockedSettings = CreateRogueSettings(
+            rogueIntensity: BreakoutLevelGlitchPlanner.MagnetStormLadderUnlockIntensity,
+            levelGlitchSelection: LevelGlitchSelection.MagnetStorm);
+        var unlockedSettings = CreateRogueSettings(
+            rogueIntensity: BreakoutLevelGlitchPlanner.MagnetStormLadderUnlockIntensity + 1,
+            levelGlitchSelection: LevelGlitchSelection.MagnetStorm);
+
+        var lockedPlan = BreakoutLevelGlitchPlanner.BuildPlan(new DeterministicRandomService(7), lockedSettings, levelIndex: 9);
+        var unlockedPlan = BreakoutLevelGlitchPlanner.BuildPlan(new DeterministicRandomService(7), unlockedSettings, levelIndex: 9);
+
+        Assert.That(lockedPlan.IsActive, Is.False);
+        Assert.That(unlockedPlan.IsActive, Is.True);
+        Assert.That(unlockedPlan.GlitchType, Is.EqualTo(BreakoutLevelGlitchType.MagnetStorm));
+        Assert.That(unlockedPlan.DisplayName, Is.EqualTo("Magnet Storm"));
+        Assert.That(unlockedPlan.Rarity, Is.EqualTo(BreakoutContentRarity.Epic));
+        Assert.That(unlockedPlan.ScoreMultiplier, Is.EqualTo(1.4f).Within(0.0001f));
+        Assert.That(unlockedPlan.MagnetStormPockets, Has.Length.EqualTo(3));
+        Assert.That(unlockedPlan.MagnetStormPockets[0].Radius, Is.InRange(1.45f, 1.85f));
+        Assert.That(unlockedPlan.MagnetStormPockets[0].Strength, Is.InRange(0.44f, 0.58f));
+        Assert.That(unlockedPlan.MagnetStormPockets[0].DriftSpeed, Is.InRange(0.22f, 0.36f));
     }
 
 
@@ -717,6 +766,22 @@ public sealed class BreakoutLevelGlitchPlannerTests
     }
 
     [Test]
+    public void SelectedBrickConveyorAlwaysBuildsBrickConveyorEvenWhenChanceIsDisabled()
+    {
+        var settings = CreateSettings(
+            levelGlitchesEnabled: true,
+            chanceMultiplier: 0f,
+            levelGlitchSelection: LevelGlitchSelection.BrickConveyor);
+
+        var plan = BreakoutLevelGlitchPlanner.BuildPlan(new DeterministicRandomService(3), settings, levelIndex: 9);
+
+        Assert.That(plan.IsActive, Is.True);
+        Assert.That(plan.GlitchType, Is.EqualTo(BreakoutLevelGlitchType.BrickConveyor));
+        Assert.That(plan.HudLabel, Does.Contain("Brick Conveyor"));
+        Assert.That(plan.BrickConveyor.Speed, Is.GreaterThan(0f));
+    }
+
+    [Test]
     public void SelectedPickupPinballAlwaysBuildsPickupPinballEvenWhenChanceIsDisabled()
     {
         var settings = CreateSettings(
@@ -729,6 +794,22 @@ public sealed class BreakoutLevelGlitchPlannerTests
         Assert.That(plan.IsActive, Is.True);
         Assert.That(plan.GlitchType, Is.EqualTo(BreakoutLevelGlitchType.PickupPinball));
         Assert.That(plan.HudLabel, Does.Contain("Pickup Pinball"));
+    }
+
+    [Test]
+    public void SelectedMagnetStormAlwaysBuildsMagnetStormEvenWhenChanceIsDisabled()
+    {
+        var settings = CreateSettings(
+            levelGlitchesEnabled: true,
+            chanceMultiplier: 0f,
+            levelGlitchSelection: LevelGlitchSelection.MagnetStorm);
+
+        var plan = BreakoutLevelGlitchPlanner.BuildPlan(new DeterministicRandomService(3), settings, levelIndex: 9);
+
+        Assert.That(plan.IsActive, Is.True);
+        Assert.That(plan.GlitchType, Is.EqualTo(BreakoutLevelGlitchType.MagnetStorm));
+        Assert.That(plan.HudLabel, Does.Contain("Magnet Storm"));
+        Assert.That(plan.MagnetStormPockets, Has.Length.EqualTo(3));
     }
 
     [Test]
@@ -784,6 +865,21 @@ public sealed class BreakoutLevelGlitchPlannerTests
     }
 
     [Test]
+    public void BrickConveyorAlternatesDirectionByTwoRowBands()
+    {
+        var firstRow = BreakoutBrickService.ResolveConveyorDirectionForRow(0, 1f);
+        var secondRow = BreakoutBrickService.ResolveConveyorDirectionForRow(1, 1f);
+        var thirdRow = BreakoutBrickService.ResolveConveyorDirectionForRow(2, 1f);
+        var fourthRow = BreakoutBrickService.ResolveConveyorDirectionForRow(3, -1f);
+
+        Assert.That(firstRow.x, Is.EqualTo(1f).Within(0.0001f));
+        Assert.That(secondRow.x, Is.EqualTo(1f).Within(0.0001f));
+        Assert.That(thirdRow.x, Is.EqualTo(-1f).Within(0.0001f));
+        Assert.That(fourthRow.x, Is.EqualTo(1f).Within(0.0001f));
+        Assert.That(firstRow.y, Is.Zero);
+    }
+
+    [Test]
     public void HotCornerBumperKicksTowardCenter()
     {
         var direction = BreakoutHotCornerBumper.BuildKickDirection(
@@ -820,6 +916,23 @@ public sealed class BreakoutLevelGlitchPlannerTests
 
         Assert.That(topNormal, Is.EqualTo(UnityEngine.Vector2.up));
         Assert.That(leftNormal, Is.EqualTo(UnityEngine.Vector2.left));
+    }
+
+    [Test]
+    public void MagnetStormPullStepTugsCapsulesTowardPocket()
+    {
+        var pullStep = PowerUpPickup.BuildMagnetStormPullStep(
+            new UnityEngine.Vector2(0f, 0f),
+            new UnityEngine.Vector2(1f, 1f),
+            2f,
+            0.55f,
+            3.2f,
+            0.02f);
+
+        Assert.That(pullStep.x, Is.GreaterThan(0f));
+        Assert.That(pullStep.y, Is.GreaterThan(0f));
+        Assert.That(pullStep.magnitude, Is.GreaterThan(0f));
+        Assert.That(pullStep.magnitude, Is.LessThanOrEqualTo(3.2f * 1.15f * 0.02f + 0.0001f));
     }
 
     [Test]
