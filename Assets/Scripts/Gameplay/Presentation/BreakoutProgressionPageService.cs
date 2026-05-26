@@ -218,6 +218,13 @@ namespace GetBricked.Gameplay
                 BreakoutLevelGlitchPlanner.GhostRowLadderUnlockIntensity,
                 highestCompletedIntensity,
                 LayoutAccent));
+            cards.Add(BuildUnlockableGlitchCard(
+                "Split Horizon",
+                "Trajectory Rare Glitch",
+                "Crossing the arena midpoint bends the ball angle slightly.",
+                BreakoutLevelGlitchPlanner.SplitHorizonLadderUnlockIntensity,
+                highestCompletedIntensity,
+                SplitAccent));
             AppendPlaceholderCards(cards, PlaceholderDrops, highestCompletedIntensity);
             AppendPlaceholderCards(cards, PlaceholderGlitches, highestCompletedIntensity);
             cards.Add(BuildHiddenSlotCard("Future Drop Slot", "Drop", "Hidden", "Future drop signal pending."));
@@ -601,6 +608,11 @@ namespace GetBricked.Gameplay
             }
 
             if (completedIntensity >= BreakoutLevelGlitchPlanner.GhostRowLadderUnlockIntensity)
+            {
+                count++;
+            }
+
+            if (completedIntensity >= BreakoutLevelGlitchPlanner.SplitHorizonLadderUnlockIntensity)
             {
                 count++;
             }

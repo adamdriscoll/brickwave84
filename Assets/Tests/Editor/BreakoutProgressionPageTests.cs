@@ -93,6 +93,7 @@ public sealed class BreakoutProgressionPageTests
         var hotCorners = view.Cards.First(card => card.Title == "Hot Corners");
         var flickerBricks = view.Cards.First(card => card.Title == "Flicker Bricks");
         var ghostRow = view.Cards.First(card => card.Title == "Ghost Row");
+        var splitHorizon = view.Cards.First(card => card.Title == "Split Horizon");
 
         Assert.That(view.LadderLines, Has.Some.Contains("Heat 06"));
         Assert.That(view.LadderLines.Any(line => line.Contains("Paddle")), Is.False);
@@ -109,6 +110,7 @@ public sealed class BreakoutProgressionPageTests
         Assert.That(hotCorners.UnlockHint, Does.Contain("Heat 11"));
         Assert.That(flickerBricks.UnlockHint, Does.Contain("Heat 12"));
         Assert.That(ghostRow.UnlockHint, Does.Contain("Heat 14"));
+        Assert.That(splitHorizon.UnlockHint, Does.Contain("Heat 15"));
     }
 
     [Test]
@@ -140,6 +142,7 @@ public sealed class BreakoutProgressionPageTests
         var flickerBricks = view.Cards.First(card => card.Title == "Flicker Bricks");
         var cassetteSkip = view.Cards.First(card => card.Title == "Cassette Skip");
         var ghostRow = view.Cards.First(card => card.Title == "Ghost Row");
+        var splitHorizon = view.Cards.First(card => card.Title == "Split Horizon");
         var solarShot = view.Cards.First(card => card.Title == "Solar Shot");
         var wrapRail = view.Cards.First(card => card.Title == "Wrap Rail");
         var staticShoes = view.Cards.First(card => card.Title == "Static Shoes");
@@ -192,6 +195,9 @@ public sealed class BreakoutProgressionPageTests
         Assert.That(ghostRow.UnlockHint, Does.Contain("Heat 14"));
         Assert.That(ghostRow.Description, Does.Contain("phases out after hits"));
         Assert.That(ghostRow.Family, Does.Contain("Rare"));
+        Assert.That(splitHorizon.UnlockHint, Does.Contain("Heat 15"));
+        Assert.That(splitHorizon.Description, Does.Contain("midpoint bends"));
+        Assert.That(splitHorizon.Family, Does.Contain("Rare"));
         Assert.That(solarShot.UnlockHint, Does.Contain("Heat 36"));
         Assert.That(solarShot.Description, Does.Contain("burns away"));
         Assert.That(wrapRail.UnlockHint, Does.Contain("Heat 37"));

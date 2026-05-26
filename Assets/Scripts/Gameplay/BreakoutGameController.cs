@@ -59,6 +59,9 @@ namespace GetBricked.Gameplay
         private const float GravityPocketArenaTopPadding = 1.2f;
         private const float PrismLaneBottomInset = 1.25f;
         private const float PrismLaneTopInset = 1.05f;
+        private const float SplitHorizonLineThickness = 0.08f;
+        private const float SplitHorizonGlowThickness = 0.34f;
+        private const float SplitHorizonCooldownSeconds = 0.13f;
         private const float SwitchbackRailThickness = 0.22f;
         private const float SwitchbackRailBottomInset = 1.55f;
         private const float SwitchbackRailTopInset = 0.95f;
@@ -322,6 +325,7 @@ namespace GetBricked.Gameplay
         private GameObject activePrismLaneField;
         private GameObject activeSwitchbackRailField;
         private GameObject activeHotCornerField;
+        private GameObject activeSplitHorizonField;
         private BreakoutMirrorGridVisual activeMirrorGridVisual;
         private bool isMirrorGridArmed;
         private bool hasMirrorGridTriggered;
@@ -3496,6 +3500,7 @@ namespace GetBricked.Gameplay
         {
             var ball = ballSpawnService.CreateBall(followsPaddleWhenIdle, arenaBottom - 1f);
             ApplyGravityPocketToBall(ball);
+            ApplySplitHorizonToBall(ball);
             return ball;
         }
 
@@ -3658,6 +3663,12 @@ namespace GetBricked.Gameplay
                 ArmGhostRow(activeLevelGlitchPlan.GhostRow);
                 powerUpService?.ShowStatusBanner("GHOST ROW!", new Color(0.72f, 0.62f, 1f, 1f), 2.2f);
             }
+
+            if (activeLevelGlitchPlan.HasGlitch(BreakoutLevelGlitchType.SplitHorizon))
+            {
+                CreateSplitHorizon(activeLevelGlitchPlan);
+                powerUpService?.ShowStatusBanner("SPLIT HORIZON!", new Color(0.03f, 0.93f, 0.98f, 1f), 2.2f);
+            }
         }
 
         private void ClearLevelGlitches()
@@ -3716,6 +3727,12 @@ namespace GetBricked.Gameplay
                 activeHotCornerField = null;
             }
 
+            if (activeSplitHorizonField != null)
+            {
+                DestroyRuntimeObject(activeSplitHorizonField);
+                activeSplitHorizonField = null;
+            }
+
             if (activeMirrorGridVisual != null)
             {
                 DestroyRuntimeObject(activeMirrorGridVisual.gameObject);
@@ -3724,6 +3741,7 @@ namespace GetBricked.Gameplay
 
             brickService?.ClearFlickerBricks();
             ClearGravityPocketFromBalls();
+            ClearSplitHorizonFromBalls();
         }
 
         private void ApplyDriftRows(BreakoutDriftRowsSpec driftRows)
@@ -4158,6 +4176,133 @@ namespace GetBricked.Gameplay
             var width = Mathf.Lerp(0.22f, 0.52f, spec.NormalizedWidth / 0.14f);
             var height = Mathf.Max(1f, (arenaTop - PrismLaneTopInset) - (arenaBottom + PrismLaneBottomInset));
             return new Vector2(width, height);
+        }
+
+        private void CreateSplitHorizon(BreakoutLevelGlitchPlan glitchPlan)
+        {
+            if (glitchPlan == null || squareSprite == null)
+            {
+                return;
+            }
+
+            activeSplitHorizonField = new GameObject("Split Horizon");
+            activeSplitHorizonField.transform.SetParent(glitchesRoot != null ? glitchesRoot : runtimeRoot, false);
+            activeSplitHorizonField.transform.position = new Vector2(0f, ResolveSplitHorizonY(glitchPlan.SplitHorizon));
+
+            var width = Mathf.Max(1f, arenaRight - arenaLeft);
+            CreateSplitHorizonLayer(
+                "Split Horizon Glow",
+                activeSplitHorizonField.transform,
+                width,
+                SplitHorizonGlowThickness,
+                new Color(0.03f, 0.93f, 0.98f, 0.16f),
+                13,
+                additiveSpriteMaterial != null ? additiveSpriteMaterial : spriteUnlitMaterial);
+            CreateSplitHorizonLayer(
+                "Split Horizon Core",
+                activeSplitHorizonField.transform,
+                width,
+                SplitHorizonLineThickness,
+                new Color(0.98f, 1f, 1f, 0.74f),
+                18,
+                additiveSpriteMaterial != null ? additiveSpriteMaterial : spriteUnlitMaterial);
+            CreateSplitHorizonLayer(
+                "Split Horizon Magenta Trace",
+                activeSplitHorizonField.transform,
+                width,
+                SplitHorizonLineThickness * 0.55f,
+                new Color(1f, 0.22f, 0.84f, 0.72f),
+                19,
+                additiveSpriteMaterial != null ? additiveSpriteMaterial : spriteUnlitMaterial,
+                new Vector2(0f, SplitHorizonLineThickness * 1.35f));
+            CreateSplitHorizonLayer(
+                "Split Horizon Cyan Trace",
+                activeSplitHorizonField.transform,
+                width,
+                SplitHorizonLineThickness * 0.55f,
+                new Color(0.03f, 0.93f, 0.98f, 0.72f),
+                19,
+                additiveSpriteMaterial != null ? additiveSpriteMaterial : spriteUnlitMaterial,
+                new Vector2(0f, -SplitHorizonLineThickness * 1.35f));
+
+            ApplySplitHorizonToBalls();
+        }
+
+        private void CreateSplitHorizonLayer(
+            string layerName,
+            Transform root,
+            float width,
+            float height,
+            Color color,
+            int sortingOrder,
+            Material material,
+            Vector2 localPosition = default)
+        {
+            var layer = new GameObject(layerName);
+            layer.transform.SetParent(root, false);
+            layer.transform.localPosition = localPosition;
+            layer.transform.localScale = new Vector3(width, height, 1f);
+
+            var renderer = layer.AddComponent<SpriteRenderer>();
+            renderer.sprite = squareSprite;
+            renderer.sharedMaterial = material;
+            renderer.sortingOrder = sortingOrder;
+            renderer.color = color;
+        }
+
+        private float ResolveSplitHorizonY(BreakoutSplitHorizonSpec spec)
+        {
+            var minY = arenaBottom + 1.45f;
+            var maxY = arenaTop - 1.65f;
+
+            if (maxY <= minY)
+            {
+                minY = arenaBottom;
+                maxY = arenaTop;
+            }
+
+            return Mathf.Lerp(minY, maxY, spec.NormalizedY);
+        }
+
+        private void ApplySplitHorizonToBalls()
+        {
+            ApplySplitHorizonToBall(serveBall);
+
+            for (var index = activeBalls.Count - 1; index >= 0; index--)
+            {
+                ApplySplitHorizonToBall(activeBalls[index]);
+            }
+        }
+
+        private void ApplySplitHorizonToBall(BallController ball)
+        {
+            if (ball == null)
+            {
+                return;
+            }
+
+            if (activeLevelGlitchPlan != null
+                && activeLevelGlitchPlan.HasGlitch(BreakoutLevelGlitchType.SplitHorizon))
+            {
+                var spec = activeLevelGlitchPlan.SplitHorizon;
+                ball.SetSplitHorizon(ResolveSplitHorizonY(spec), spec.BendDegrees, spec.CooldownSeconds);
+                return;
+            }
+
+            ball.SetSplitHorizon(0f, 0f, SplitHorizonCooldownSeconds);
+        }
+
+        private void ClearSplitHorizonFromBalls()
+        {
+            if (serveBall != null)
+            {
+                serveBall.SetSplitHorizon(0f, 0f, SplitHorizonCooldownSeconds);
+            }
+
+            for (var index = activeBalls.Count - 1; index >= 0; index--)
+            {
+                activeBalls[index]?.SetSplitHorizon(0f, 0f, SplitHorizonCooldownSeconds);
+            }
         }
 
         private void CreateSwitchbackRails(BreakoutLevelGlitchPlan glitchPlan)
@@ -6111,6 +6256,7 @@ namespace GetBricked.Gameplay
                 LevelGlitchSelection.FlickerBricks => "Flicker Bricks",
                 LevelGlitchSelection.CassetteSkip => "Cassette Skip",
                 LevelGlitchSelection.GhostRow => "Ghost Row",
+                LevelGlitchSelection.SplitHorizon => "Split Horizon",
                 _ => "Off",
             };
         }
@@ -6529,6 +6675,7 @@ namespace GetBricked.Gameplay
                 serveBall.SetSizeMultiplier(activeEffectModifiers.BallSizeMultiplier);
                 serveBall.SetGravityWell(gravityWellCenter, activeEffectModifiers.GravityWellStrength);
                 ApplyGravityPocketToBall(serveBall);
+                ApplySplitHorizonToBall(serveBall);
                 serveBall.SetHotPotatoStrength(activeEffectModifiers.HotPotatoStrength);
                 serveBall.SetExplosiveBallStrength(activeEffectModifiers.ExplosiveBallStrength);
                 serveBall.SetSolarShotCharged(solarShotCharged);
@@ -6550,6 +6697,7 @@ namespace GetBricked.Gameplay
                 activeBall.SetSizeMultiplier(activeEffectModifiers.BallSizeMultiplier);
                 activeBall.SetGravityWell(gravityWellCenter, activeEffectModifiers.GravityWellStrength);
                 ApplyGravityPocketToBall(activeBall);
+                ApplySplitHorizonToBall(activeBall);
                 activeBall.SetHotPotatoStrength(activeEffectModifiers.HotPotatoStrength);
                 activeBall.SetExplosiveBallStrength(activeEffectModifiers.ExplosiveBallStrength);
                 activeBall.SetSolarShotCharged(solarShotCharged);

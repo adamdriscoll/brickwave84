@@ -50,6 +50,7 @@ namespace GetBricked.Gameplay.Data
         FlickerBricks = 14,
         CassetteSkip = 15,
         GhostRow = 16,
+        SplitHorizon = 17,
     }
 
     public sealed class RunSettings
@@ -222,6 +223,7 @@ namespace GetBricked.Gameplay.Data
             LevelGlitchSelection.FlickerBricks => "Flicker Bricks Armed",
             LevelGlitchSelection.CassetteSkip => "Cassette Skip Armed",
             LevelGlitchSelection.GhostRow => "Ghost Row Armed",
+            LevelGlitchSelection.SplitHorizon => "Split Horizon Armed",
             _ => "Clean Walls",
         };
 
@@ -232,7 +234,7 @@ namespace GetBricked.Gameplay.Data
             var normalized = (LevelGlitchSelection)Mathf.Clamp(
                 (int)levelGlitchSelection,
                 (int)LevelGlitchSelection.Off,
-                (int)LevelGlitchSelection.GhostRow);
+                (int)LevelGlitchSelection.SplitHorizon);
 
             if (!levelGlitchesEnabled && normalized == LevelGlitchSelection.Random)
             {

@@ -23,6 +23,7 @@ namespace GetBricked.Gameplay
         FlickerBricks = 13,
         CassetteSkip = 14,
         GhostRow = 15,
+        SplitHorizon = 16,
     }
 
     internal readonly struct BreakoutLevelGlitchDefinition
@@ -306,6 +307,22 @@ namespace GetBricked.Gameplay
         public float HiddenAlpha { get; }
     }
 
+    internal readonly struct BreakoutSplitHorizonSpec
+    {
+        public BreakoutSplitHorizonSpec(float normalizedY, float bendDegrees, float cooldownSeconds)
+        {
+            NormalizedY = Mathf.Clamp01(normalizedY);
+            BendDegrees = Mathf.Clamp(bendDegrees, 3f, 18f);
+            CooldownSeconds = Mathf.Clamp(cooldownSeconds, 0.04f, 0.35f);
+        }
+
+        public float NormalizedY { get; }
+
+        public float BendDegrees { get; }
+
+        public float CooldownSeconds { get; }
+    }
+
     internal sealed class BreakoutLevelGlitchPlan
     {
         public static readonly BreakoutLevelGlitchPlan None = new BreakoutLevelGlitchPlan(
@@ -338,7 +355,8 @@ namespace GetBricked.Gameplay
             BreakoutHotCornersSpec hotCorners = default,
             BreakoutFlickerBricksSpec flickerBricks = default,
             BreakoutCassetteSkipSpec cassetteSkip = default,
-            BreakoutGhostRowSpec ghostRow = default)
+            BreakoutGhostRowSpec ghostRow = default,
+            BreakoutSplitHorizonSpec splitHorizon = default)
         {
             GlitchType = glitchType;
             Rarity = BreakoutRarityRules.Clamp(rarity);
@@ -358,6 +376,7 @@ namespace GetBricked.Gameplay
             FlickerBricks = flickerBricks;
             CassetteSkip = cassetteSkip;
             GhostRow = ghostRow;
+            SplitHorizon = splitHorizon;
             ActiveGlitchTypes = activeGlitchTypes != null && activeGlitchTypes.Length > 0
                 ? activeGlitchTypes
                 : glitchType != BreakoutLevelGlitchType.None
@@ -401,6 +420,8 @@ namespace GetBricked.Gameplay
 
         public BreakoutGhostRowSpec GhostRow { get; }
 
+        public BreakoutSplitHorizonSpec SplitHorizon { get; }
+
         public BreakoutLevelGlitchType[] ActiveGlitchTypes { get; }
 
         public bool IsActive => ActiveGlitchTypes.Length > 0;
@@ -435,6 +456,7 @@ namespace GetBricked.Gameplay
         public const int FlickerBricksLadderUnlockIntensity = 12;
         public const int CassetteSkipLadderUnlockIntensity = 13;
         public const int GhostRowLadderUnlockIntensity = 14;
+        public const int SplitHorizonLadderUnlockIntensity = 15;
 
         private const float WarpGateScoreMultiplier = 1.35f;
         private const float TurboRailScoreMultiplier = 1.25f;
@@ -451,6 +473,7 @@ namespace GetBricked.Gameplay
         private const float FlickerBricksScoreMultiplier = 1.3f;
         private const float CassetteSkipScoreMultiplier = 1.27f;
         private const float GhostRowScoreMultiplier = 1.29f;
+        private const float SplitHorizonScoreMultiplier = 1.3f;
 
         private static readonly BreakoutLevelGlitchDefinition[] GlitchDefinitions =
         {
@@ -529,6 +552,11 @@ namespace GetBricked.Gameplay
                 LevelGlitchSelection.GhostRow,
                 BreakoutContentRarity.Rare,
                 GhostRowLadderUnlockIntensity),
+            new BreakoutLevelGlitchDefinition(
+                BreakoutLevelGlitchType.SplitHorizon,
+                LevelGlitchSelection.SplitHorizon,
+                BreakoutContentRarity.Rare,
+                SplitHorizonLadderUnlockIntensity),
         };
 
         public static BreakoutLevelGlitchPlan BuildPlan(
@@ -650,6 +678,11 @@ namespace GetBricked.Gameplay
                 return BuildGhostRowPlan(random, definition.Rarity);
             }
 
+            if (definition.GlitchType == BreakoutLevelGlitchType.SplitHorizon)
+            {
+                return BuildSplitHorizonPlan(random, definition.Rarity);
+            }
+
             return BuildWarpGatePlan(random, definition.Rarity);
         }
 
@@ -760,6 +793,7 @@ namespace GetBricked.Gameplay
             var flickerBricks = default(BreakoutFlickerBricksSpec);
             var cassetteSkip = default(BreakoutCassetteSkipSpec);
             var ghostRow = default(BreakoutGhostRowSpec);
+            var splitHorizon = default(BreakoutSplitHorizonSpec);
 
             for (var index = 0; index < definitions.Count; index++)
             {
@@ -835,6 +869,11 @@ namespace GetBricked.Gameplay
                 {
                     ghostRow = plan.GhostRow;
                 }
+
+                if (plan.HasGlitch(BreakoutLevelGlitchType.SplitHorizon))
+                {
+                    splitHorizon = plan.SplitHorizon;
+                }
             }
 
             return new BreakoutLevelGlitchPlan(
@@ -856,7 +895,8 @@ namespace GetBricked.Gameplay
                 hotCorners,
                 flickerBricks,
                 cassetteSkip,
-                ghostRow);
+                ghostRow,
+                splitHorizon);
         }
 
         private static BreakoutLevelGlitchPlan BuildWarpGatePlan(DeterministicRandomService random, BreakoutContentRarity rarity)
@@ -1066,6 +1106,19 @@ namespace GetBricked.Gameplay
                 ghostRow: BuildGhostRow(random));
         }
 
+        private static BreakoutLevelGlitchPlan BuildSplitHorizonPlan(DeterministicRandomService random, BreakoutContentRarity rarity)
+        {
+            return new BreakoutLevelGlitchPlan(
+                BreakoutLevelGlitchType.SplitHorizon,
+                rarity,
+                "Split Horizon",
+                $"Split Horizon x{SplitHorizonScoreMultiplier:0.00}",
+                SplitHorizonScoreMultiplier,
+                Array.Empty<BreakoutWarpGateSpec>(),
+                default,
+                splitHorizon: BuildSplitHorizon(random));
+        }
+
         public static float GetGlitchChance(RunSettings settings, int levelIndex)
         {
             if (settings == null)
@@ -1250,6 +1303,14 @@ namespace GetBricked.Gameplay
                 random.Range(0.08f, 0.14f));
         }
 
+        private static BreakoutSplitHorizonSpec BuildSplitHorizon(DeterministicRandomService random)
+        {
+            return new BreakoutSplitHorizonSpec(
+                random.Range(0.44f, 0.56f),
+                random.Range(7.5f, 10.5f),
+                random.Range(0.1f, 0.16f));
+        }
+
         private static BreakoutLevelGlitchDefinition ResolveGlitchDefinition(
             DeterministicRandomService random,
             RunSettings settings,
@@ -1388,7 +1449,8 @@ namespace GetBricked.Gameplay
                 || selection == LevelGlitchSelection.HotCorners
                 || selection == LevelGlitchSelection.FlickerBricks
                 || selection == LevelGlitchSelection.CassetteSkip
-                || selection == LevelGlitchSelection.GhostRow;
+                || selection == LevelGlitchSelection.GhostRow
+                || selection == LevelGlitchSelection.SplitHorizon;
         }
 
         private static BreakoutWarpGateWall ResolveGateWall(DeterministicRandomService random, int index)

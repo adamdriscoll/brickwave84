@@ -36,6 +36,12 @@ namespace GetBricked.Gameplay
         private float gravityPocketStrength;
         private float gravityPocketRadius;
         private Vector2 gravityPocketPoint;
+        private bool splitHorizonEnabled;
+        private float splitHorizonY;
+        private float splitHorizonBendDegrees;
+        private float splitHorizonCooldownSeconds;
+        private float splitHorizonCooldownTimer;
+        private float splitHorizonPreviousOffset;
         private float brickMagnetStrength;
         private Vector2 brickMagnetPoint;
         private float hotPotatoStrength;
@@ -229,6 +235,16 @@ namespace GetBricked.Gameplay
             gravityPocketPoint = centerPoint;
             gravityPocketRadius = Mathf.Max(0f, radius);
             gravityPocketStrength = gravityPocketRadius > 0.001f ? Mathf.Clamp01(strength) : 0f;
+        }
+
+        public void SetSplitHorizon(float horizonY, float bendDegrees, float cooldownSeconds)
+        {
+            splitHorizonEnabled = bendDegrees > 0.001f;
+            splitHorizonY = horizonY;
+            splitHorizonBendDegrees = Mathf.Clamp(bendDegrees, 0f, 28f);
+            splitHorizonCooldownSeconds = Mathf.Clamp(cooldownSeconds, 0.02f, 0.6f);
+            splitHorizonCooldownTimer = 0f;
+            splitHorizonPreviousOffset = transform.position.y - splitHorizonY;
         }
 
         public void SetBrickMagnetTarget(Vector2 targetPoint, float strength)
@@ -539,6 +555,7 @@ namespace GetBricked.Gameplay
             UpdateJellySlowTimer();
             ApplyGravityWell();
             ApplyGravityPocket();
+            ApplySplitHorizon();
             ApplyBrickMagnet();
             ClampBallVelocity();
         }
@@ -830,6 +847,39 @@ namespace GetBricked.Gameplay
             ballBody.linearVelocity = curvedDirection * GetTargetSpeed();
         }
 
+        private void ApplySplitHorizon()
+        {
+            if (ballBody == null || !splitHorizonEnabled)
+            {
+                return;
+            }
+
+            if (splitHorizonCooldownTimer > 0f)
+            {
+                splitHorizonCooldownTimer = Mathf.Max(0f, splitHorizonCooldownTimer - Time.fixedDeltaTime);
+            }
+
+            var currentOffset = ballBody.position.y - splitHorizonY;
+            var crossedHorizon = splitHorizonPreviousOffset < 0f && currentOffset >= 0f
+                || splitHorizonPreviousOffset > 0f && currentOffset <= 0f;
+
+            if (crossedHorizon && splitHorizonCooldownTimer <= 0f)
+            {
+                var crossingDirectionY = currentOffset - splitHorizonPreviousOffset;
+                var refractedDirection = BuildSplitHorizonDirection(
+                    ballBody.linearVelocity,
+                    ballBody.position.x,
+                    crossingDirectionY,
+                    splitHorizonBendDegrees,
+                    minimumVerticalDirection);
+                lastTravelDirection = refractedDirection;
+                ballBody.linearVelocity = refractedDirection * GetTargetSpeed();
+                splitHorizonCooldownTimer = splitHorizonCooldownSeconds;
+            }
+
+            splitHorizonPreviousOffset = currentOffset;
+        }
+
         private void ApplyBrickMagnet()
         {
             if (ballBody == null || Mathf.Abs(brickMagnetStrength) <= 0.001f)
@@ -909,6 +959,52 @@ namespace GetBricked.Gameplay
 
             var bendFactor = Mathf.Clamp01(Mathf.Abs(brickMagnetStrength) * Time.fixedDeltaTime * 10f);
             return Vector2.Lerp(currentDirection, awayDirection, bendFactor).normalized;
+        }
+
+        internal static Vector2 BuildSplitHorizonDirection(
+            Vector2 incomingVelocity,
+            float worldX,
+            float crossingDirectionY,
+            float bendDegrees,
+            float minimumVerticalFraction)
+        {
+            var incomingDirection = incomingVelocity.sqrMagnitude > 0.001f
+                ? incomingVelocity.normalized
+                : Vector2.up;
+            var horizontalSign = Mathf.Sign(worldX);
+
+            if (Mathf.Approximately(horizontalSign, 0f))
+            {
+                horizontalSign = Mathf.Sign(incomingDirection.x);
+            }
+
+            if (Mathf.Approximately(horizontalSign, 0f))
+            {
+                horizontalSign = 1f;
+            }
+
+            var verticalSign = Mathf.Sign(incomingDirection.y);
+
+            if (Mathf.Approximately(verticalSign, 0f))
+            {
+                verticalSign = Mathf.Sign(crossingDirectionY);
+            }
+
+            if (Mathf.Approximately(verticalSign, 0f))
+            {
+                verticalSign = 1f;
+            }
+
+            var horizontalKick = Mathf.Sin(Mathf.Clamp(bendDegrees, 0f, 28f) * Mathf.Deg2Rad);
+            var resolvedMinimumVertical = Mathf.Clamp(minimumVerticalFraction, 0.05f, 0.95f);
+            var maximumHorizontal = Mathf.Sqrt(Mathf.Max(0.01f, 1f - (resolvedMinimumVertical * resolvedMinimumVertical)));
+            var horizontal = Mathf.Clamp(
+                incomingDirection.x + (horizontalKick * horizontalSign),
+                -maximumHorizontal,
+                maximumHorizontal);
+            var vertical = Mathf.Sqrt(Mathf.Max(0.01f, 1f - (horizontal * horizontal))) * verticalSign;
+
+            return new Vector2(horizontal, vertical).normalized;
         }
 
         private void ClearSpeedBurst()

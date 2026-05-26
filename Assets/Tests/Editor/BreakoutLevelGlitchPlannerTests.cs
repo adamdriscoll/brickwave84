@@ -360,6 +360,30 @@ public sealed class BreakoutLevelGlitchPlannerTests
         Assert.That(unlockedPlan.GhostRow.HiddenAlpha, Is.InRange(0.08f, 0.14f));
     }
 
+    [Test]
+    public void RogueGlitchHeatControlsWhenSplitHorizonCanUnlock()
+    {
+        var lockedSettings = CreateRogueSettings(
+            rogueIntensity: BreakoutLevelGlitchPlanner.SplitHorizonLadderUnlockIntensity,
+            levelGlitchSelection: LevelGlitchSelection.SplitHorizon);
+        var unlockedSettings = CreateRogueSettings(
+            rogueIntensity: BreakoutLevelGlitchPlanner.SplitHorizonLadderUnlockIntensity + 1,
+            levelGlitchSelection: LevelGlitchSelection.SplitHorizon);
+
+        var lockedPlan = BreakoutLevelGlitchPlanner.BuildPlan(new DeterministicRandomService(7), lockedSettings, levelIndex: 9);
+        var unlockedPlan = BreakoutLevelGlitchPlanner.BuildPlan(new DeterministicRandomService(7), unlockedSettings, levelIndex: 9);
+
+        Assert.That(lockedPlan.IsActive, Is.False);
+        Assert.That(unlockedPlan.IsActive, Is.True);
+        Assert.That(unlockedPlan.GlitchType, Is.EqualTo(BreakoutLevelGlitchType.SplitHorizon));
+        Assert.That(unlockedPlan.DisplayName, Is.EqualTo("Split Horizon"));
+        Assert.That(unlockedPlan.Rarity, Is.EqualTo(BreakoutContentRarity.Rare));
+        Assert.That(unlockedPlan.ScoreMultiplier, Is.EqualTo(1.3f).Within(0.0001f));
+        Assert.That(unlockedPlan.SplitHorizon.NormalizedY, Is.InRange(0.44f, 0.56f));
+        Assert.That(unlockedPlan.SplitHorizon.BendDegrees, Is.InRange(7.5f, 10.5f));
+        Assert.That(unlockedPlan.SplitHorizon.CooldownSeconds, Is.InRange(0.1f, 0.16f));
+    }
+
 
     [Test]
     public void ForcedWarpGatePlanBuildsSmallPortalSetAndScoreBonus()
@@ -615,11 +639,41 @@ public sealed class BreakoutLevelGlitchPlannerTests
     }
 
     [Test]
+    public void SelectedSplitHorizonAlwaysBuildsSplitHorizonEvenWhenChanceIsDisabled()
+    {
+        var settings = CreateSettings(
+            levelGlitchesEnabled: true,
+            chanceMultiplier: 0f,
+            levelGlitchSelection: LevelGlitchSelection.SplitHorizon);
+
+        var plan = BreakoutLevelGlitchPlanner.BuildPlan(new DeterministicRandomService(3), settings, levelIndex: 9);
+
+        Assert.That(plan.IsActive, Is.True);
+        Assert.That(plan.GlitchType, Is.EqualTo(BreakoutLevelGlitchType.SplitHorizon));
+        Assert.That(plan.HudLabel, Does.Contain("Split Horizon"));
+    }
+
+    [Test]
     public void PrismLaneRefractionBuildsSharperHorizontalDirection()
     {
         var refracted = BreakoutPrismLaneSection.BuildRefractedDirection(new UnityEngine.Vector2(0.12f, 1f), -1f);
 
         Assert.That(refracted.x, Is.LessThan(-0.4f));
+        Assert.That(refracted.y, Is.GreaterThan(0f));
+        Assert.That(refracted.magnitude, Is.EqualTo(1f).Within(0.0001f));
+    }
+
+    [Test]
+    public void SplitHorizonBendsBallAwayFromCenterWithoutFlippingVerticalTravel()
+    {
+        var refracted = BallController.BuildSplitHorizonDirection(
+            new UnityEngine.Vector2(0.05f, 1f),
+            worldX: 2f,
+            crossingDirectionY: 1f,
+            bendDegrees: 9f,
+            minimumVerticalFraction: 0.35f);
+
+        Assert.That(refracted.x, Is.GreaterThan(0.15f));
         Assert.That(refracted.y, Is.GreaterThan(0f));
         Assert.That(refracted.magnitude, Is.EqualTo(1f).Within(0.0001f));
     }
