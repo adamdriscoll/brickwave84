@@ -173,6 +173,7 @@ public sealed class BreakoutRogueRunTests
             LevelGlitchSelection.SplitHorizon,
             LevelGlitchSelection.StaticWall,
             LevelGlitchSelection.SwitchbackRails,
+            LevelGlitchSelection.ThinAir,
             LevelGlitchSelection.TokenStorm,
             LevelGlitchSelection.TurboRail,
             LevelGlitchSelection.WarpGates,

@@ -66,6 +66,7 @@ namespace GetBricked.Gameplay
         private const float StaticWallThickness = 0.22f;
         private const float StaticWallBottomInset = 1.15f;
         private const float StaticWallTopInset = 0.55f;
+        private const float ThinAirEscapeMargin = 0.55f;
         private const float GravityPocketArenaHorizontalPadding = 1.35f;
         private const float GravityPocketArenaBottomPadding = 2.1f;
         private const float GravityPocketArenaTopPadding = 1.2f;
@@ -345,6 +346,10 @@ namespace GetBricked.Gameplay
         private Collider2D shieldWallCollider;
         private BreakoutShieldWallVisual shieldWallVisual;
         private BreakoutVectorSightVisual vectorSightVisual;
+        private SpriteRenderer leftWallRenderer;
+        private SpriteRenderer rightWallRenderer;
+        private BoxCollider2D leftWallCollider;
+        private BoxCollider2D rightWallCollider;
         private int shieldWallCharges;
         private float laserShotCooldownTimer;
         private float laserRainStrikeTimer;
@@ -354,6 +359,7 @@ namespace GetBricked.Gameplay
         private BreakoutWarpGateController activeWarpGateController;
         private BreakoutTurboRailSection activeTurboRailSection;
         private BreakoutStaticWallSection activeStaticWallSection;
+        private BreakoutThinAirWallSection activeThinAirWallSection;
         private BreakoutGravityPocketVisual activeGravityPocketVisual;
         private readonly List<BreakoutGravityPocketVisual> activeMagnetStormVisuals = new List<BreakoutGravityPocketVisual>();
         private GameObject activePrismLaneField;
@@ -1231,6 +1237,33 @@ namespace GetBricked.Gameplay
                 powerUpService.ShowStatusBanner("REWIND CATCH!", ResolvePowerUpAccentColor(rewindCatchDefinition), 1.35f);
             }
 
+            return true;
+        }
+
+        public bool TryHandleBallExitedThinAir(BallController ball)
+        {
+            if (!IsGameplaySimulationActive()
+                || ball == null
+                || activeLevelGlitchPlan == null
+                || !activeLevelGlitchPlan.HasGlitch(BreakoutLevelGlitchType.ThinAir)
+                || activeThinAirWallSection == null)
+            {
+                return false;
+            }
+
+            var ballX = ball.transform.position.x;
+            var escaped = activeThinAirWallSection.Wall == BreakoutWarpGateWall.Right
+                ? ballX > arenaRight + ThinAirEscapeMargin
+                : ballX < arenaLeft - ThinAirEscapeMargin;
+
+            if (!escaped)
+            {
+                return false;
+            }
+
+            powerUpService?.ShowStatusBanner("THIN AIR!", new Color(0.03f, 0.93f, 0.98f, 1f), 1.1f);
+            ball.Stop();
+            HandleBallLost(ball);
             return true;
         }
 
@@ -3570,17 +3603,21 @@ namespace GetBricked.Gameplay
 
         private void CreateBounds()
         {
-            CreateBoundary(
+            var leftWall = CreateBoundary(
                 "Left Wall",
                 new Vector2(arenaLeft - (wallThickness * 0.5f), 0f),
                 new Vector2(wallThickness, cameraHalfHeight * 2f),
                 wallColor);
+            leftWallRenderer = leftWall.Renderer;
+            leftWallCollider = leftWall.Collider;
 
-            CreateBoundary(
+            var rightWall = CreateBoundary(
                 "Right Wall",
                 new Vector2(arenaRight + (wallThickness * 0.5f), 0f),
                 new Vector2(wallThickness, cameraHalfHeight * 2f),
                 wallColor);
+            rightWallRenderer = rightWall.Renderer;
+            rightWallCollider = rightWall.Collider;
 
             CreateBoundary(
                 "Top Wall",
@@ -3589,7 +3626,7 @@ namespace GetBricked.Gameplay
                 wallColor);
         }
 
-        private void CreateBoundary(string wallName, Vector2 position, Vector2 size, Color color)
+        private (SpriteRenderer Renderer, BoxCollider2D Collider) CreateBoundary(string wallName, Vector2 position, Vector2 size, Color color)
         {
             var wallObject = new GameObject(wallName);
             wallObject.transform.SetParent(wallsRoot, false);
@@ -3605,6 +3642,7 @@ namespace GetBricked.Gameplay
 
             var collider = wallObject.AddComponent<BoxCollider2D>();
             collider.sharedMaterial = bounceMaterial;
+            return (spriteRenderer, collider);
         }
 
         private void CreateShieldWallVisual()
@@ -3804,6 +3842,12 @@ namespace GetBricked.Gameplay
                 powerUpService?.ShowStatusBanner("STATIC WALL!", new Color(0.99f, 0.27f, 0.31f, 1f), 2.2f);
             }
 
+            if (activeLevelGlitchPlan.HasGlitch(BreakoutLevelGlitchType.ThinAir))
+            {
+                CreateThinAirWall(activeLevelGlitchPlan);
+                powerUpService?.ShowStatusBanner("THIN AIR!", new Color(0.03f, 0.93f, 0.98f, 1f), 2.2f);
+            }
+
             if (activeLevelGlitchPlan.HasGlitch(BreakoutLevelGlitchType.RowRewrite))
             {
                 ArmRowRewrite(activeLevelGlitchPlan.RowRewrite);
@@ -3911,6 +3955,14 @@ namespace GetBricked.Gameplay
             {
                 DestroyRuntimeObject(activeStaticWallSection.gameObject);
                 activeStaticWallSection = null;
+            }
+
+            if (activeThinAirWallSection != null)
+            {
+                activeThinAirWallSection.Restore();
+                activeThinAirWallSection.enabled = false;
+                DestroyRuntimeObject(activeThinAirWallSection);
+                activeThinAirWallSection = null;
             }
 
             if (activeGravityPocketVisual != null)
@@ -4499,6 +4551,33 @@ namespace GetBricked.Gameplay
         {
             var height = Mathf.Max(1f, (arenaTop - StaticWallTopInset) - (arenaBottom + StaticWallBottomInset));
             return new Vector2(StaticWallThickness, height);
+        }
+
+        private void CreateThinAirWall(BreakoutLevelGlitchPlan glitchPlan)
+        {
+            if (glitchPlan == null)
+            {
+                return;
+            }
+
+            var wall = glitchPlan.ThinAir.Wall;
+            var renderer = wall == BreakoutWarpGateWall.Right ? rightWallRenderer : leftWallRenderer;
+            var collider = wall == BreakoutWarpGateWall.Right ? rightWallCollider : leftWallCollider;
+
+            if (renderer == null || collider == null)
+            {
+                return;
+            }
+
+            activeThinAirWallSection = collider.gameObject.AddComponent<BreakoutThinAirWallSection>();
+            activeThinAirWallSection.Configure(
+                wall,
+                renderer,
+                collider,
+                glitchPlan.ThinAir.OpenCycleSeconds,
+                glitchPlan.ThinAir.OpenDurationSeconds,
+                glitchPlan.ThinAir.WarningSeconds,
+                glitchPlan.ThinAir.PhaseOffsetSeconds);
         }
 
         private void CreatePrismLanes(BreakoutLevelGlitchPlan glitchPlan)
@@ -6870,6 +6949,7 @@ namespace GetBricked.Gameplay
                 LevelGlitchSelection.RewindWall => "Rewind Wall",
                 LevelGlitchSelection.ScoreLeak => "Score Leak",
                 LevelGlitchSelection.LaserRain => "Laser Rain",
+                LevelGlitchSelection.ThinAir => "Thin Air",
                 _ => "Off",
             };
         }

@@ -281,6 +281,13 @@ namespace GetBricked.Gameplay
                 BreakoutLevelGlitchPlanner.LaserRainLadderUnlockIntensity,
                 highestCompletedIntensity,
                 HazardAccent));
+            cards.Add(BuildUnlockableGlitchCard(
+                "Thin Air",
+                "Wall Epic Glitch",
+                "One side wall opens and closes on a timer.",
+                BreakoutLevelGlitchPlanner.ThinAirLadderUnlockIntensity,
+                highestCompletedIntensity,
+                SplitAccent));
             AppendPlaceholderCards(cards, PlaceholderDrops, highestCompletedIntensity);
             AppendPlaceholderCards(cards, PlaceholderGlitches, highestCompletedIntensity);
             cards.Add(BuildHiddenSlotCard("Future Drop Slot", "Drop", "Hidden", "Future drop signal pending."));
@@ -709,6 +716,11 @@ namespace GetBricked.Gameplay
             }
 
             if (completedIntensity >= BreakoutLevelGlitchPlanner.LaserRainLadderUnlockIntensity)
+            {
+                count++;
+            }
+
+            if (completedIntensity >= BreakoutLevelGlitchPlanner.ThinAirLadderUnlockIntensity)
             {
                 count++;
             }

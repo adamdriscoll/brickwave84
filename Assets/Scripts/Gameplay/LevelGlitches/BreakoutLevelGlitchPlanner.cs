@@ -32,6 +32,7 @@ namespace GetBricked.Gameplay
         RewindWall = 22,
         ScoreLeak = 23,
         LaserRain = 24,
+        ThinAir = 25,
     }
 
     internal readonly struct BreakoutLevelGlitchDefinition
@@ -157,6 +158,35 @@ namespace GetBricked.Gameplay
         public float WeakCycleSeconds { get; }
 
         public float WeakDurationSeconds { get; }
+
+        public float PhaseOffsetSeconds { get; }
+    }
+
+    internal readonly struct BreakoutThinAirSpec
+    {
+        public BreakoutThinAirSpec(
+            BreakoutWarpGateWall wall,
+            float openCycleSeconds,
+            float openDurationSeconds,
+            float warningSeconds,
+            float phaseOffsetSeconds)
+        {
+            Wall = wall == BreakoutWarpGateWall.Right
+                ? BreakoutWarpGateWall.Right
+                : BreakoutWarpGateWall.Left;
+            OpenCycleSeconds = Mathf.Max(1.2f, openCycleSeconds);
+            OpenDurationSeconds = Mathf.Clamp(openDurationSeconds, 0.24f, OpenCycleSeconds * 0.65f);
+            WarningSeconds = Mathf.Clamp(warningSeconds, 0.1f, OpenCycleSeconds - OpenDurationSeconds);
+            PhaseOffsetSeconds = Mathf.Max(0f, phaseOffsetSeconds);
+        }
+
+        public BreakoutWarpGateWall Wall { get; }
+
+        public float OpenCycleSeconds { get; }
+
+        public float OpenDurationSeconds { get; }
+
+        public float WarningSeconds { get; }
 
         public float PhaseOffsetSeconds { get; }
     }
@@ -449,6 +479,7 @@ namespace GetBricked.Gameplay
             BreakoutTokenStormSpec tokenStorm = default,
             BreakoutGravityPocketSpec gravityPocket = default,
             BreakoutStaticWallSpec staticWall = default,
+            BreakoutThinAirSpec thinAir = default,
             BreakoutLevelGlitchType[] activeGlitchTypes = null,
             BreakoutRowRewriteSpec rowRewrite = default,
             BreakoutPrismLaneSpec[] prismLanes = null,
@@ -475,6 +506,7 @@ namespace GetBricked.Gameplay
             TokenStorm = tokenStorm;
             GravityPocket = gravityPocket;
             StaticWall = staticWall;
+            ThinAir = thinAir;
             RowRewrite = rowRewrite;
             PrismLanes = prismLanes ?? Array.Empty<BreakoutPrismLaneSpec>();
             SwitchbackRails = switchbackRails;
@@ -515,6 +547,8 @@ namespace GetBricked.Gameplay
         public BreakoutGravityPocketSpec GravityPocket { get; }
 
         public BreakoutStaticWallSpec StaticWall { get; }
+
+        public BreakoutThinAirSpec ThinAir { get; }
 
         public BreakoutRowRewriteSpec RowRewrite { get; }
 
@@ -587,6 +621,7 @@ namespace GetBricked.Gameplay
         public const int RewindWallLadderUnlockIntensity = 22;
         public const int ScoreLeakLadderUnlockIntensity = 23;
         public const int LaserRainLadderUnlockIntensity = 24;
+        public const int ThinAirLadderUnlockIntensity = 25;
 
         private const float WarpGateScoreMultiplier = 1.35f;
         private const float TurboRailScoreMultiplier = 1.25f;
@@ -612,6 +647,7 @@ namespace GetBricked.Gameplay
         private const float RewindWallScoreMultiplier = 1.37f;
         private const float ScoreLeakScoreMultiplier = 1.42f;
         private const float LaserRainScoreMultiplier = 1.44f;
+        private const float ThinAirScoreMultiplier = 1.45f;
 
         private static readonly BreakoutLevelGlitchDefinition[] GlitchDefinitions =
         {
@@ -735,6 +771,11 @@ namespace GetBricked.Gameplay
                 LevelGlitchSelection.LaserRain,
                 BreakoutContentRarity.Epic,
                 LaserRainLadderUnlockIntensity),
+            new BreakoutLevelGlitchDefinition(
+                BreakoutLevelGlitchType.ThinAir,
+                LevelGlitchSelection.ThinAir,
+                BreakoutContentRarity.Epic,
+                ThinAirLadderUnlockIntensity),
         };
 
         public static BreakoutLevelGlitchPlan BuildPlan(
@@ -901,6 +942,11 @@ namespace GetBricked.Gameplay
                 return BuildLaserRainPlan(definition.Rarity);
             }
 
+            if (definition.GlitchType == BreakoutLevelGlitchType.ThinAir)
+            {
+                return BuildThinAirPlan(random, definition.Rarity);
+            }
+
             return BuildWarpGatePlan(random, definition.Rarity);
         }
 
@@ -1003,6 +1049,7 @@ namespace GetBricked.Gameplay
             var tokenStorm = default(BreakoutTokenStormSpec);
             var gravityPocket = default(BreakoutGravityPocketSpec);
             var staticWall = default(BreakoutStaticWallSpec);
+            var thinAir = default(BreakoutThinAirSpec);
             var rowRewrite = default(BreakoutRowRewriteSpec);
             var prismLanes = Array.Empty<BreakoutPrismLaneSpec>();
             var switchbackRails = default(BreakoutSwitchbackRailSpec);
@@ -1056,6 +1103,11 @@ namespace GetBricked.Gameplay
                 if (plan.HasGlitch(BreakoutLevelGlitchType.StaticWall))
                 {
                     staticWall = plan.StaticWall;
+                }
+
+                if (plan.HasGlitch(BreakoutLevelGlitchType.ThinAir))
+                {
+                    thinAir = plan.ThinAir;
                 }
 
                 if (plan.HasGlitch(BreakoutLevelGlitchType.RowRewrite))
@@ -1140,6 +1192,7 @@ namespace GetBricked.Gameplay
                 tokenStorm,
                 gravityPocket,
                 staticWall,
+                thinAir,
                 activeTypes,
                 rowRewrite,
                 prismLanes,
@@ -1183,6 +1236,19 @@ namespace GetBricked.Gameplay
             else if (selectedType == BreakoutLevelGlitchType.RewindWall)
             {
                 selectedTypes.Add(BreakoutLevelGlitchType.RowRewrite);
+            }
+            else if (selectedType == BreakoutLevelGlitchType.StaticWall)
+            {
+                selectedTypes.Add(BreakoutLevelGlitchType.ThinAir);
+            }
+            else if (selectedType == BreakoutLevelGlitchType.ThinAir)
+            {
+                selectedTypes.Add(BreakoutLevelGlitchType.StaticWall);
+                selectedTypes.Add(BreakoutLevelGlitchType.SwitchbackRails);
+            }
+            else if (selectedType == BreakoutLevelGlitchType.SwitchbackRails)
+            {
+                selectedTypes.Add(BreakoutLevelGlitchType.ThinAir);
             }
         }
 
@@ -1508,6 +1574,19 @@ namespace GetBricked.Gameplay
                 default);
         }
 
+        private static BreakoutLevelGlitchPlan BuildThinAirPlan(DeterministicRandomService random, BreakoutContentRarity rarity)
+        {
+            return new BreakoutLevelGlitchPlan(
+                BreakoutLevelGlitchType.ThinAir,
+                rarity,
+                "Thin Air",
+                $"Thin Air x{ThinAirScoreMultiplier:0.00}",
+                ThinAirScoreMultiplier,
+                Array.Empty<BreakoutWarpGateSpec>(),
+                default,
+                thinAir: BuildThinAir(random));
+        }
+
         public static float GetGlitchChance(RunSettings settings, int levelIndex)
         {
             if (settings == null)
@@ -1728,6 +1807,16 @@ namespace GetBricked.Gameplay
                 random.Range(1.15f, 1.75f));
         }
 
+        private static BreakoutThinAirSpec BuildThinAir(DeterministicRandomService random)
+        {
+            return new BreakoutThinAirSpec(
+                random.NextBool() ? BreakoutWarpGateWall.Right : BreakoutWarpGateWall.Left,
+                random.Range(3.35f, 4.25f),
+                random.Range(0.85f, 1.22f),
+                random.Range(0.52f, 0.78f),
+                random.Range(0f, 4.25f));
+        }
+
         private static BreakoutSplitHorizonSpec BuildSplitHorizon(DeterministicRandomService random)
         {
             return new BreakoutSplitHorizonSpec(
@@ -1901,7 +1990,8 @@ namespace GetBricked.Gameplay
                 || selection == LevelGlitchSelection.BlacklightBricks
                 || selection == LevelGlitchSelection.RewindWall
                 || selection == LevelGlitchSelection.ScoreLeak
-                || selection == LevelGlitchSelection.LaserRain;
+                || selection == LevelGlitchSelection.LaserRain
+                || selection == LevelGlitchSelection.ThinAir;
         }
 
         private static BreakoutWarpGateWall ResolveGateWall(DeterministicRandomService random, int index)

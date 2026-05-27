@@ -569,6 +569,31 @@ public sealed class BreakoutLevelGlitchPlannerTests
         Assert.That(unlockedPlan.ScoreMultiplier, Is.EqualTo(1.44f).Within(0.0001f));
     }
 
+    [Test]
+    public void RogueGlitchHeatControlsWhenThinAirCanUnlock()
+    {
+        var lockedSettings = CreateRogueSettings(
+            rogueIntensity: BreakoutLevelGlitchPlanner.ThinAirLadderUnlockIntensity,
+            levelGlitchSelection: LevelGlitchSelection.ThinAir);
+        var unlockedSettings = CreateRogueSettings(
+            rogueIntensity: BreakoutLevelGlitchPlanner.ThinAirLadderUnlockIntensity + 1,
+            levelGlitchSelection: LevelGlitchSelection.ThinAir);
+
+        var lockedPlan = BreakoutLevelGlitchPlanner.BuildPlan(new DeterministicRandomService(7), lockedSettings, levelIndex: 9);
+        var unlockedPlan = BreakoutLevelGlitchPlanner.BuildPlan(new DeterministicRandomService(7), unlockedSettings, levelIndex: 9);
+
+        Assert.That(lockedPlan.IsActive, Is.False);
+        Assert.That(unlockedPlan.IsActive, Is.True);
+        Assert.That(unlockedPlan.GlitchType, Is.EqualTo(BreakoutLevelGlitchType.ThinAir));
+        Assert.That(unlockedPlan.DisplayName, Is.EqualTo("Thin Air"));
+        Assert.That(unlockedPlan.Rarity, Is.EqualTo(BreakoutContentRarity.Epic));
+        Assert.That(unlockedPlan.ScoreMultiplier, Is.EqualTo(1.45f).Within(0.0001f));
+        Assert.That(unlockedPlan.ThinAir.Wall, Is.EqualTo(BreakoutWarpGateWall.Left).Or.EqualTo(BreakoutWarpGateWall.Right));
+        Assert.That(unlockedPlan.ThinAir.OpenCycleSeconds, Is.InRange(3.35f, 4.25f));
+        Assert.That(unlockedPlan.ThinAir.OpenDurationSeconds, Is.InRange(0.85f, 1.22f));
+        Assert.That(unlockedPlan.ThinAir.WarningSeconds, Is.InRange(0.52f, 0.78f));
+    }
+
 
     [Test]
     public void ForcedWarpGatePlanBuildsSmallPortalSetAndScoreBonus()
@@ -959,6 +984,21 @@ public sealed class BreakoutLevelGlitchPlannerTests
         Assert.That(plan.IsActive, Is.True);
         Assert.That(plan.GlitchType, Is.EqualTo(BreakoutLevelGlitchType.LaserRain));
         Assert.That(plan.HudLabel, Does.Contain("Laser Rain"));
+    }
+
+    [Test]
+    public void SelectedThinAirAlwaysBuildsThinAirEvenWhenChanceIsDisabled()
+    {
+        var settings = CreateSettings(
+            levelGlitchesEnabled: true,
+            chanceMultiplier: 0f,
+            levelGlitchSelection: LevelGlitchSelection.ThinAir);
+
+        var plan = BreakoutLevelGlitchPlanner.BuildPlan(new DeterministicRandomService(3), settings, levelIndex: 9);
+
+        Assert.That(plan.IsActive, Is.True);
+        Assert.That(plan.GlitchType, Is.EqualTo(BreakoutLevelGlitchType.ThinAir));
+        Assert.That(plan.HudLabel, Does.Contain("Thin Air"));
     }
 
     [Test]

@@ -162,6 +162,7 @@ public sealed class BreakoutProgressionPageTests
         var rewindWall = view.Cards.First(card => card.Title == "Rewind Wall");
         var scoreLeak = view.Cards.First(card => card.Title == "Score Leak");
         var laserRain = view.Cards.First(card => card.Title == "Laser Rain");
+        var thinAir = view.Cards.First(card => card.Title == "Thin Air");
         var solarShot = view.Cards.First(card => card.Title == "Solar Shot");
         var wrapRail = view.Cards.First(card => card.Title == "Wrap Rail");
         var staticShoes = view.Cards.First(card => card.Title == "Static Shoes");
@@ -238,6 +239,9 @@ public sealed class BreakoutProgressionPageTests
         Assert.That(laserRain.UnlockHint, Does.Contain("Heat 24"));
         Assert.That(laserRain.Description, Does.Contain("Warning lanes"));
         Assert.That(laserRain.Family, Does.Contain("Epic"));
+        Assert.That(thinAir.UnlockHint, Does.Contain("Heat 25"));
+        Assert.That(thinAir.Description, Does.Contain("opens and closes"));
+        Assert.That(thinAir.Family, Does.Contain("Epic"));
         Assert.That(solarShot.UnlockHint, Does.Contain("Heat 36"));
         Assert.That(solarShot.Description, Does.Contain("burns away"));
         Assert.That(wrapRail.UnlockHint, Does.Contain("Heat 37"));

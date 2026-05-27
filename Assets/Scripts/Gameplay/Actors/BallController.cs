@@ -572,6 +572,11 @@ namespace GetBricked.Gameplay
                 return;
             }
 
+            if (gameController != null && gameController.TryHandleBallExitedThinAir(this))
+            {
+                return;
+            }
+
             UpdateSpeedBurstTimer();
             UpdateJellySlowTimer();
             ApplyGravityWell();
