@@ -159,6 +159,8 @@ namespace GetBricked.Gameplay
         public string TopLine = string.Empty;
         public string ScoreText = string.Empty;
         public int ScoreValue;
+        public bool IsScoreLeakActive;
+        public float ScoreLeakIntensity;
         public int LifeCount;
         public Sprite LifeIcon;
         public Color LifeIconColor = Color.white;

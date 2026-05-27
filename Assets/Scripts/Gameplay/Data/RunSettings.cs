@@ -57,6 +57,7 @@ namespace GetBricked.Gameplay.Data
         BrickConveyor = 21,
         BlacklightBricks = 22,
         RewindWall = 23,
+        ScoreLeak = 24,
     }
 
     public sealed class RunSettings
@@ -236,6 +237,7 @@ namespace GetBricked.Gameplay.Data
             LevelGlitchSelection.BrickConveyor => "Brick Conveyor Armed",
             LevelGlitchSelection.BlacklightBricks => "Blacklight Bricks Armed",
             LevelGlitchSelection.RewindWall => "Rewind Wall Armed",
+            LevelGlitchSelection.ScoreLeak => "Score Leak Armed",
             _ => "Clean Walls",
         };
 
@@ -246,7 +248,7 @@ namespace GetBricked.Gameplay.Data
             var normalized = (LevelGlitchSelection)Mathf.Clamp(
                 (int)levelGlitchSelection,
                 (int)LevelGlitchSelection.Off,
-                (int)LevelGlitchSelection.RewindWall);
+                (int)LevelGlitchSelection.ScoreLeak);
 
             if (!levelGlitchesEnabled && normalized == LevelGlitchSelection.Random)
             {

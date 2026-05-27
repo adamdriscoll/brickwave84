@@ -168,6 +168,7 @@ public sealed class BreakoutRogueRunTests
             LevelGlitchSelection.RewindWall,
             LevelGlitchSelection.RogueGate,
             LevelGlitchSelection.RowRewrite,
+            LevelGlitchSelection.ScoreLeak,
             LevelGlitchSelection.SplitHorizon,
             LevelGlitchSelection.StaticWall,
             LevelGlitchSelection.SwitchbackRails,

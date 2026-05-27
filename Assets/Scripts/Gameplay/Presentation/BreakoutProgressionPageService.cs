@@ -267,6 +267,13 @@ namespace GetBricked.Gameplay
                 BreakoutLevelGlitchPlanner.RewindWallLadderUnlockIntensity,
                 highestCompletedIntensity,
                 LayoutAccent));
+            cards.Add(BuildUnlockableGlitchCard(
+                "Score Leak",
+                "Score Epic Glitch",
+                "Score drains between brick breaks until you crack the next brick.",
+                BreakoutLevelGlitchPlanner.ScoreLeakLadderUnlockIntensity,
+                highestCompletedIntensity,
+                DamageAccent));
             AppendPlaceholderCards(cards, PlaceholderDrops, highestCompletedIntensity);
             AppendPlaceholderCards(cards, PlaceholderGlitches, highestCompletedIntensity);
             cards.Add(BuildHiddenSlotCard("Future Drop Slot", "Drop", "Hidden", "Future drop signal pending."));
@@ -685,6 +692,11 @@ namespace GetBricked.Gameplay
             }
 
             if (completedIntensity >= BreakoutLevelGlitchPlanner.RewindWallLadderUnlockIntensity)
+            {
+                count++;
+            }
+
+            if (completedIntensity >= BreakoutLevelGlitchPlanner.ScoreLeakLadderUnlockIntensity)
             {
                 count++;
             }

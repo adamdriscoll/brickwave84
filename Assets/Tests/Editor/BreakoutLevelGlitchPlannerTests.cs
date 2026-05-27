@@ -525,6 +525,29 @@ public sealed class BreakoutLevelGlitchPlannerTests
         Assert.That(unlockedPlan.RewindWall.WarningSeconds, Is.InRange(0.55f, 0.95f));
     }
 
+    [Test]
+    public void RogueGlitchHeatControlsWhenScoreLeakCanUnlock()
+    {
+        var lockedSettings = CreateRogueSettings(
+            rogueIntensity: BreakoutLevelGlitchPlanner.ScoreLeakLadderUnlockIntensity,
+            levelGlitchSelection: LevelGlitchSelection.ScoreLeak);
+        var unlockedSettings = CreateRogueSettings(
+            rogueIntensity: BreakoutLevelGlitchPlanner.ScoreLeakLadderUnlockIntensity + 1,
+            levelGlitchSelection: LevelGlitchSelection.ScoreLeak);
+
+        var lockedPlan = BreakoutLevelGlitchPlanner.BuildPlan(new DeterministicRandomService(7), lockedSettings, levelIndex: 9);
+        var unlockedPlan = BreakoutLevelGlitchPlanner.BuildPlan(new DeterministicRandomService(7), unlockedSettings, levelIndex: 9);
+
+        Assert.That(lockedPlan.IsActive, Is.False);
+        Assert.That(unlockedPlan.IsActive, Is.True);
+        Assert.That(unlockedPlan.GlitchType, Is.EqualTo(BreakoutLevelGlitchType.ScoreLeak));
+        Assert.That(unlockedPlan.DisplayName, Is.EqualTo("Score Leak"));
+        Assert.That(unlockedPlan.Rarity, Is.EqualTo(BreakoutContentRarity.Epic));
+        Assert.That(unlockedPlan.ScoreMultiplier, Is.EqualTo(1.42f).Within(0.0001f));
+        Assert.That(unlockedPlan.ScoreLeak.PointsPerSecond, Is.InRange(10f, 16f));
+        Assert.That(unlockedPlan.ScoreLeak.GraceSeconds, Is.InRange(1.15f, 1.75f));
+    }
+
 
     [Test]
     public void ForcedWarpGatePlanBuildsSmallPortalSetAndScoreBonus()
@@ -885,6 +908,36 @@ public sealed class BreakoutLevelGlitchPlannerTests
         Assert.That(plan.IsActive, Is.True);
         Assert.That(plan.GlitchType, Is.EqualTo(BreakoutLevelGlitchType.RewindWall));
         Assert.That(plan.HudLabel, Does.Contain("Rewind Wall"));
+    }
+
+    [Test]
+    public void SelectedScoreLeakAlwaysBuildsScoreLeakEvenWhenChanceIsDisabled()
+    {
+        var settings = CreateSettings(
+            levelGlitchesEnabled: true,
+            chanceMultiplier: 0f,
+            levelGlitchSelection: LevelGlitchSelection.ScoreLeak);
+
+        var plan = BreakoutLevelGlitchPlanner.BuildPlan(new DeterministicRandomService(3), settings, levelIndex: 9);
+
+        Assert.That(plan.IsActive, Is.True);
+        Assert.That(plan.GlitchType, Is.EqualTo(BreakoutLevelGlitchType.ScoreLeak));
+        Assert.That(plan.HudLabel, Does.Contain("Score Leak"));
+    }
+
+    [Test]
+    public void ScoreLeakPenaltyTricklesFromAccumulatorWithoutDroppingBelowZero()
+    {
+        var accumulator = 0f;
+
+        var firstPenalty = BreakoutScoreLeakCalculator.CalculatePenalty(10, 12f, 0.08f, ref accumulator);
+        var secondPenalty = BreakoutScoreLeakCalculator.CalculatePenalty(10, 12f, 0.08f, ref accumulator);
+        var cappedPenalty = BreakoutScoreLeakCalculator.CalculatePenalty(1, 12f, 1f, ref accumulator);
+
+        Assert.That(firstPenalty, Is.Zero);
+        Assert.That(secondPenalty, Is.EqualTo(1));
+        Assert.That(cappedPenalty, Is.EqualTo(1));
+        Assert.That(accumulator, Is.GreaterThanOrEqualTo(0f));
     }
 
     [Test]

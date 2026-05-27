@@ -32,6 +32,7 @@ namespace GetBricked.Gameplay
         private float brickCounterPulseStartTime = -100f;
         private int previousHudScoreValue = int.MinValue;
         private float scorePopStartTime = -100f;
+        private float scoreLeakPulseStartTime = -100f;
         private int previousHudLifeCount = -1;
         private LifeLossHudAnimation lifeLossAnimation;
 
@@ -1746,10 +1747,14 @@ namespace GetBricked.Gameplay
             {
                 scorePopStartTime = Time.unscaledTime;
             }
+            else if (previousHudScoreValue != int.MinValue && view.IsScoreLeakActive && view.ScoreValue < previousHudScoreValue)
+            {
+                scoreLeakPulseStartTime = Time.unscaledTime;
+            }
 
             previousHudScoreValue = view.ScoreValue;
 
-            DrawScoreReadout(scoreRect, scoreText);
+            DrawScoreReadout(scoreRect, scoreText, view.IsScoreLeakActive, view.ScoreLeakIntensity);
             x += scoreWidth + dividerGap;
             DrawHudDivider(new Rect(x, rect.y + 3f, dividerWidth, rect.height - 6f));
             x += dividerWidth + dividerGap;
@@ -1789,21 +1794,36 @@ namespace GetBricked.Gameplay
             return x + dividerWidth;
         }
 
-        private void DrawScoreReadout(Rect rect, string scoreText)
+        private void DrawScoreReadout(Rect rect, string scoreText, bool isScoreLeakActive, float scoreLeakIntensity)
         {
             var popAge = Time.unscaledTime - scorePopStartTime;
             var pop = Mathf.Clamp01(1f - (popAge / ScorePopDuration));
             var wave = Mathf.Sin(pop * Mathf.PI);
+            var leakPulseAge = Time.unscaledTime - scoreLeakPulseStartTime;
+            var leakPulse = isScoreLeakActive ? Mathf.Clamp01(1f - (leakPulseAge / 0.34f)) : 0f;
+            var leakWave = Mathf.Sin(leakPulse * Mathf.PI);
             var baseColor = pop > 0f
                 ? Color.Lerp(palette.TextPrimary, palette.AccentWarm, wave * 0.5f)
-                : palette.TextPrimary;
+                : isScoreLeakActive
+                    ? Color.Lerp(palette.TextPrimary, palette.Danger, 0.28f + (0.28f * leakWave))
+                    : palette.TextPrimary;
 
             if (pop > 0f)
             {
                 DrawSolidRect(Inflate(rect, Mathf.Lerp(2f, 8f, wave)), WithAlpha(palette.AccentWarm, 0.08f * wave));
             }
 
+            if (isScoreLeakActive)
+            {
+                DrawSolidRect(Inflate(rect, Mathf.Lerp(2f, 5f, leakWave)), WithAlpha(palette.Danger, 0.045f + (0.08f * leakWave)));
+            }
+
             DrawTextWithShadow(rect, scoreText, hudStyle, baseColor, 0.35f + (0.18f * wave));
+
+            if (isScoreLeakActive)
+            {
+                DrawScoreLeakDrips(rect, Mathf.Clamp01(scoreLeakIntensity));
+            }
 
             if (pop <= 0f)
             {
@@ -1815,6 +1835,29 @@ namespace GetBricked.Gameplay
             GUIUtility.ScaleAroundPivot(new Vector2(scale, scale), rect.center);
             DrawTextWithShadow(rect, scoreText, hudStyle, WithAlpha(palette.AccentWarm, 0.72f * wave), 0.2f * wave);
             GUI.matrix = previousMatrix;
+        }
+
+        private void DrawScoreLeakDrips(Rect scoreRect, float intensity)
+        {
+            var dripCount = Mathf.Clamp(Mathf.RoundToInt(Mathf.Lerp(3f, 6f, intensity)), 3, 6);
+            var time = Time.unscaledTime;
+            var lineColor = Color.Lerp(palette.Danger, palette.AccentWarm, 0.24f);
+
+            for (var index = 0; index < dripCount; index++)
+            {
+                var seed = (index * 37.13f) + 5.7f;
+                var phase = Mathf.Repeat((time * Mathf.Lerp(0.52f, 0.82f, intensity)) + (index / (float)dripCount), 1f);
+                var xWave = Mathf.Sin((time * 2.1f) + seed) * 3.5f;
+                var x = Mathf.Lerp(scoreRect.x + 10f, scoreRect.xMax - 10f, (index + 0.5f) / dripCount) + xWave;
+                var y = scoreRect.yMax + Mathf.Lerp(0f, 34f, phase);
+                var alpha = Mathf.Sin(phase * Mathf.PI) * Mathf.Lerp(0.36f, 0.74f, intensity);
+                var lineHeight = Mathf.Lerp(7f, 18f, phase);
+                var lineRect = new Rect(x - 1f, y - lineHeight, 2f, lineHeight);
+                var digitRect = new Rect(x - 14f, y - 3f, 28f, 16f);
+
+                DrawSolidRect(lineRect, WithAlpha(lineColor, alpha * 0.5f));
+                DrawTextWithShadow(digitRect, "-1", floatingScoreTagStyle, WithAlpha(lineColor, alpha), 0.12f * alpha);
+            }
         }
 
         internal static float CalculateHudScoreReadoutWidth(float measuredTextWidth, float availableWidth)

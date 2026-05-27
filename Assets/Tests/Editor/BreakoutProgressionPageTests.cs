@@ -99,6 +99,7 @@ public sealed class BreakoutProgressionPageTests
         var magnetStorm = view.Cards.First(card => card.Title == "Magnet Storm");
         var blacklightBricks = view.Cards.First(card => card.Title == "Blacklight Bricks");
         var rewindWall = view.Cards.First(card => card.Title == "Rewind Wall");
+        var scoreLeak = view.Cards.First(card => card.Title == "Score Leak");
 
         Assert.That(view.LadderLines, Has.Some.Contains("Heat 06"));
         Assert.That(view.LadderLines.Any(line => line.Contains("Paddle")), Is.False);
@@ -121,6 +122,7 @@ public sealed class BreakoutProgressionPageTests
         Assert.That(magnetStorm.UnlockHint, Does.Contain("Heat 20"));
         Assert.That(blacklightBricks.UnlockHint, Does.Contain("Heat 21"));
         Assert.That(rewindWall.UnlockHint, Does.Contain("Heat 22"));
+        Assert.That(scoreLeak.UnlockHint, Does.Contain("Heat 23"));
     }
 
     [Test]
@@ -158,6 +160,7 @@ public sealed class BreakoutProgressionPageTests
         var magnetStorm = view.Cards.First(card => card.Title == "Magnet Storm");
         var blacklightBricks = view.Cards.First(card => card.Title == "Blacklight Bricks");
         var rewindWall = view.Cards.First(card => card.Title == "Rewind Wall");
+        var scoreLeak = view.Cards.First(card => card.Title == "Score Leak");
         var solarShot = view.Cards.First(card => card.Title == "Solar Shot");
         var wrapRail = view.Cards.First(card => card.Title == "Wrap Rail");
         var staticShoes = view.Cards.First(card => card.Title == "Static Shoes");
@@ -228,6 +231,9 @@ public sealed class BreakoutProgressionPageTests
         Assert.That(rewindWall.UnlockHint, Does.Contain("Heat 22"));
         Assert.That(rewindWall.Description, Does.Contain("rebuilds once"));
         Assert.That(rewindWall.Family, Does.Contain("Epic"));
+        Assert.That(scoreLeak.UnlockHint, Does.Contain("Heat 23"));
+        Assert.That(scoreLeak.Description, Does.Contain("Score drains between brick breaks"));
+        Assert.That(scoreLeak.Family, Does.Contain("Epic"));
         Assert.That(solarShot.UnlockHint, Does.Contain("Heat 36"));
         Assert.That(solarShot.Description, Does.Contain("burns away"));
         Assert.That(wrapRail.UnlockHint, Does.Contain("Heat 37"));

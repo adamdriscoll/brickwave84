@@ -1459,6 +1459,31 @@ public sealed class BreakoutGameControllerPowerUpTests
         Assert.That(GetFieldValue<string>(popups[0], "SecondaryText"), Is.EqualTo("COMBO BONUS: SLAM CHAIN + PARTY SPLIT!"));
     }
 
+    [Test]
+    public void ScoreLeakResetsGraceWhenBrickBreaks()
+    {
+        var controller = CreateControllerHarness(out _);
+        var scoreLeak = new BreakoutScoreLeakSpec(12f, 1.5f);
+        var plan = new BreakoutLevelGlitchPlan(
+            BreakoutLevelGlitchType.ScoreLeak,
+            BreakoutContentRarity.Epic,
+            "Score Leak",
+            "Score Leak -12/s x1.42",
+            1.42f,
+            Array.Empty<BreakoutWarpGateSpec>(),
+            default,
+            scoreLeak: scoreLeak);
+
+        SetPrivateField(controller, "activeLevelGlitchPlan", plan);
+        SetPrivateField(controller, "scoreLeakGraceTimer", 0f);
+        SetPrivateField(controller, "scoreLeakAccumulator", 2f);
+
+        InvokePrivateMethod(controller, "ResetScoreLeakOnBrickBreak");
+
+        Assert.That(GetPrivateField<float>(controller, "scoreLeakGraceTimer"), Is.EqualTo(1.5f).Within(0.0001f));
+        Assert.That(GetPrivateField<float>(controller, "scoreLeakAccumulator"), Is.Zero);
+    }
+
     private BreakoutGameController CreateControllerHarness(out PaddleController paddle)
     {
         controllerObject = new GameObject("BreakoutGameController Test");

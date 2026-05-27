@@ -50,6 +50,7 @@ namespace GetBricked.Gameplay
             LevelGlitchSelection.RewindWall,
             LevelGlitchSelection.RogueGate,
             LevelGlitchSelection.RowRewrite,
+            LevelGlitchSelection.ScoreLeak,
             LevelGlitchSelection.SplitHorizon,
             LevelGlitchSelection.StaticWall,
             LevelGlitchSelection.SwitchbackRails,

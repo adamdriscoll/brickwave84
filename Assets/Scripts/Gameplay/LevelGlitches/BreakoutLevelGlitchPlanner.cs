@@ -30,6 +30,7 @@ namespace GetBricked.Gameplay
         BrickConveyor = 20,
         BlacklightBricks = 21,
         RewindWall = 22,
+        ScoreLeak = 23,
     }
 
     internal readonly struct BreakoutLevelGlitchDefinition
@@ -348,6 +349,42 @@ namespace GetBricked.Gameplay
         public float WarningSeconds { get; }
     }
 
+    internal readonly struct BreakoutScoreLeakSpec
+    {
+        public BreakoutScoreLeakSpec(float pointsPerSecond, float graceSeconds)
+        {
+            PointsPerSecond = Mathf.Clamp(pointsPerSecond, 4f, 30f);
+            GraceSeconds = Mathf.Clamp(graceSeconds, 0.5f, 3f);
+        }
+
+        public float PointsPerSecond { get; }
+
+        public float GraceSeconds { get; }
+    }
+
+    internal static class BreakoutScoreLeakCalculator
+    {
+        public static int CalculatePenalty(int currentScore, float pointsPerSecond, float deltaSeconds, ref float leakAccumulator)
+        {
+            if (currentScore <= 0 || pointsPerSecond <= 0f || deltaSeconds <= 0f)
+            {
+                leakAccumulator = 0f;
+                return 0;
+            }
+
+            leakAccumulator = Mathf.Max(0f, leakAccumulator) + pointsPerSecond * deltaSeconds;
+            var penalty = Mathf.Min(currentScore, Mathf.FloorToInt(leakAccumulator));
+
+            if (penalty <= 0)
+            {
+                return 0;
+            }
+
+            leakAccumulator -= penalty;
+            return penalty;
+        }
+    }
+
     internal readonly struct BreakoutSplitHorizonSpec
     {
         public BreakoutSplitHorizonSpec(float normalizedY, float bendDegrees, float cooldownSeconds)
@@ -424,7 +461,8 @@ namespace GetBricked.Gameplay
             BreakoutPickupPinballSpec pickupPinball = default,
             BreakoutGravityPocketSpec[] magnetStormPockets = null,
             BreakoutBrickConveyorSpec brickConveyor = default,
-            BreakoutRewindWallSpec rewindWall = default)
+            BreakoutRewindWallSpec rewindWall = default,
+            BreakoutScoreLeakSpec scoreLeak = default)
         {
             GlitchType = glitchType;
             Rarity = BreakoutRarityRules.Clamp(rarity);
@@ -449,6 +487,7 @@ namespace GetBricked.Gameplay
             MagnetStormPockets = magnetStormPockets ?? Array.Empty<BreakoutGravityPocketSpec>();
             BrickConveyor = brickConveyor;
             RewindWall = rewindWall;
+            ScoreLeak = scoreLeak;
             ActiveGlitchTypes = activeGlitchTypes != null && activeGlitchTypes.Length > 0
                 ? activeGlitchTypes
                 : glitchType != BreakoutLevelGlitchType.None
@@ -502,6 +541,8 @@ namespace GetBricked.Gameplay
 
         public BreakoutRewindWallSpec RewindWall { get; }
 
+        public BreakoutScoreLeakSpec ScoreLeak { get; }
+
         public BreakoutLevelGlitchType[] ActiveGlitchTypes { get; }
 
         public bool IsActive => ActiveGlitchTypes.Length > 0;
@@ -543,6 +584,7 @@ namespace GetBricked.Gameplay
         public const int MagnetStormLadderUnlockIntensity = 20;
         public const int BlacklightBricksLadderUnlockIntensity = 21;
         public const int RewindWallLadderUnlockIntensity = 22;
+        public const int ScoreLeakLadderUnlockIntensity = 23;
 
         private const float WarpGateScoreMultiplier = 1.35f;
         private const float TurboRailScoreMultiplier = 1.25f;
@@ -566,6 +608,7 @@ namespace GetBricked.Gameplay
         private const float MagnetStormScoreMultiplier = 1.4f;
         private const float BlacklightBricksScoreMultiplier = 1.36f;
         private const float RewindWallScoreMultiplier = 1.37f;
+        private const float ScoreLeakScoreMultiplier = 1.42f;
 
         private static readonly BreakoutLevelGlitchDefinition[] GlitchDefinitions =
         {
@@ -679,6 +722,11 @@ namespace GetBricked.Gameplay
                 LevelGlitchSelection.RewindWall,
                 BreakoutContentRarity.Epic,
                 RewindWallLadderUnlockIntensity),
+            new BreakoutLevelGlitchDefinition(
+                BreakoutLevelGlitchType.ScoreLeak,
+                LevelGlitchSelection.ScoreLeak,
+                BreakoutContentRarity.Epic,
+                ScoreLeakLadderUnlockIntensity),
         };
 
         public static BreakoutLevelGlitchPlan BuildPlan(
@@ -835,6 +883,11 @@ namespace GetBricked.Gameplay
                 return BuildRewindWallPlan(random, definition.Rarity);
             }
 
+            if (definition.GlitchType == BreakoutLevelGlitchType.ScoreLeak)
+            {
+                return BuildScoreLeakPlan(random, definition.Rarity);
+            }
+
             return BuildWarpGatePlan(random, definition.Rarity);
         }
 
@@ -950,6 +1003,7 @@ namespace GetBricked.Gameplay
             var magnetStormPockets = Array.Empty<BreakoutGravityPocketSpec>();
             var brickConveyor = default(BreakoutBrickConveyorSpec);
             var rewindWall = default(BreakoutRewindWallSpec);
+            var scoreLeak = default(BreakoutScoreLeakSpec);
 
             for (var index = 0; index < definitions.Count; index++)
             {
@@ -1055,6 +1109,11 @@ namespace GetBricked.Gameplay
                 {
                     rewindWall = plan.RewindWall;
                 }
+
+                if (plan.HasGlitch(BreakoutLevelGlitchType.ScoreLeak))
+                {
+                    scoreLeak = plan.ScoreLeak;
+                }
             }
 
             return new BreakoutLevelGlitchPlan(
@@ -1081,7 +1140,8 @@ namespace GetBricked.Gameplay
                 pickupPinball,
                 magnetStormPockets,
                 brickConveyor,
-                rewindWall);
+                rewindWall,
+                scoreLeak);
         }
 
         private static void MarkGlitchSelectionExclusions(
@@ -1409,6 +1469,20 @@ namespace GetBricked.Gameplay
                 rewindWall: BuildRewindWall(random));
         }
 
+        private static BreakoutLevelGlitchPlan BuildScoreLeakPlan(DeterministicRandomService random, BreakoutContentRarity rarity)
+        {
+            var scoreLeak = BuildScoreLeak(random);
+            return new BreakoutLevelGlitchPlan(
+                BreakoutLevelGlitchType.ScoreLeak,
+                rarity,
+                "Score Leak",
+                $"Score Leak -{scoreLeak.PointsPerSecond:0}/s x{ScoreLeakScoreMultiplier:0.00}",
+                ScoreLeakScoreMultiplier,
+                Array.Empty<BreakoutWarpGateSpec>(),
+                default,
+                scoreLeak: scoreLeak);
+        }
+
         public static float GetGlitchChance(RunSettings settings, int levelIndex)
         {
             if (settings == null)
@@ -1622,6 +1696,13 @@ namespace GetBricked.Gameplay
                 random.Range(0.55f, 0.95f));
         }
 
+        private static BreakoutScoreLeakSpec BuildScoreLeak(DeterministicRandomService random)
+        {
+            return new BreakoutScoreLeakSpec(
+                random.Range(10f, 16f),
+                random.Range(1.15f, 1.75f));
+        }
+
         private static BreakoutSplitHorizonSpec BuildSplitHorizon(DeterministicRandomService random)
         {
             return new BreakoutSplitHorizonSpec(
@@ -1793,7 +1874,8 @@ namespace GetBricked.Gameplay
                 || selection == LevelGlitchSelection.PickupPinball
                 || selection == LevelGlitchSelection.MagnetStorm
                 || selection == LevelGlitchSelection.BlacklightBricks
-                || selection == LevelGlitchSelection.RewindWall;
+                || selection == LevelGlitchSelection.RewindWall
+                || selection == LevelGlitchSelection.ScoreLeak;
         }
 
         private static BreakoutWarpGateWall ResolveGateWall(DeterministicRandomService random, int index)

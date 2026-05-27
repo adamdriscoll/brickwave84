@@ -339,6 +339,8 @@ namespace GetBricked.Gameplay
         private bool hasShownRowRewriteWarning;
         private float rowRewriteTimer;
         private BreakoutRowRewriteSpec activeRowRewriteSpec;
+        private float scoreLeakGraceTimer;
+        private float scoreLeakAccumulator;
         private int cassetteSkipPaddleHits;
         private int currentLevelRowCount;
         private int currentLevelColumnCount;
@@ -491,6 +493,7 @@ namespace GetBricked.Gameplay
             UpdateRowRewriteTimer();
             UpdateGhostRow();
             UpdateRewindWall();
+            UpdateScoreLeak();
 
             var keyboard = Keyboard.current;
 
@@ -604,6 +607,7 @@ namespace GetBricked.Gameplay
                 return;
             }
 
+            ResetScoreLeakOnBrickBreak();
             TryTriggerGhostRow(brick);
             TryTriggerRewindWall(brick);
             runStatsService?.RegisterBrickDestroyed();
@@ -3811,6 +3815,12 @@ namespace GetBricked.Gameplay
                 powerUpService?.ShowStatusBanner("REWIND WALL!", new Color(0.72f, 0.62f, 1f, 1f), 2.2f);
             }
 
+            if (activeLevelGlitchPlan.HasGlitch(BreakoutLevelGlitchType.ScoreLeak))
+            {
+                ArmScoreLeak(activeLevelGlitchPlan.ScoreLeak);
+                powerUpService?.ShowStatusBanner("SCORE LEAK!", new Color(0.99f, 0.27f, 0.31f, 1f), 2.2f);
+            }
+
             if (activeLevelGlitchPlan.HasGlitch(BreakoutLevelGlitchType.CassetteSkip))
             {
                 powerUpService?.ShowStatusBanner("CASSETTE SKIP!", new Color(1f, 0.49f, 0.86f, 1f), 2.2f);
@@ -3840,6 +3850,8 @@ namespace GetBricked.Gameplay
             hasShownRowRewriteWarning = false;
             rowRewriteTimer = 0f;
             activeRowRewriteSpec = default;
+            scoreLeakGraceTimer = 0f;
+            scoreLeakAccumulator = 0f;
             cassetteSkipPaddleHits = 0;
             ghostRowService?.Clear();
             rewindWallService?.Clear();
@@ -3905,6 +3917,76 @@ namespace GetBricked.Gameplay
             ClearGravityPocketFromBalls();
             ClearMagnetStormFromPickups();
             ClearSplitHorizonFromBalls();
+        }
+
+        private void ArmScoreLeak(BreakoutScoreLeakSpec scoreLeak)
+        {
+            scoreLeakGraceTimer = scoreLeak.GraceSeconds;
+            scoreLeakAccumulator = 0f;
+        }
+
+        private void UpdateScoreLeak()
+        {
+            if (activeLevelGlitchPlan == null || !activeLevelGlitchPlan.HasGlitch(BreakoutLevelGlitchType.ScoreLeak))
+            {
+                return;
+            }
+
+            var scoreLeak = activeLevelGlitchPlan.ScoreLeak;
+
+            if (roundState != RoundState.Playing)
+            {
+                scoreLeakGraceTimer = Mathf.Max(scoreLeakGraceTimer, scoreLeak.GraceSeconds);
+                scoreLeakAccumulator = 0f;
+                return;
+            }
+
+            if (scoreLeakGraceTimer > 0f)
+            {
+                scoreLeakGraceTimer = Mathf.Max(0f, scoreLeakGraceTimer - Time.deltaTime);
+                return;
+            }
+
+            var penalty = BreakoutScoreLeakCalculator.CalculatePenalty(
+                score,
+                scoreLeak.PointsPerSecond,
+                Time.deltaTime,
+                ref scoreLeakAccumulator);
+
+            if (penalty > 0)
+            {
+                score -= penalty;
+            }
+        }
+
+        private void ResetScoreLeakOnBrickBreak()
+        {
+            if (activeLevelGlitchPlan == null || !activeLevelGlitchPlan.HasGlitch(BreakoutLevelGlitchType.ScoreLeak))
+            {
+                return;
+            }
+
+            scoreLeakGraceTimer = activeLevelGlitchPlan.ScoreLeak.GraceSeconds;
+            scoreLeakAccumulator = 0f;
+        }
+
+        private bool IsScoreLeakDraining()
+        {
+            return activeLevelGlitchPlan != null
+                && activeLevelGlitchPlan.HasGlitch(BreakoutLevelGlitchType.ScoreLeak)
+                && roundState == RoundState.Playing
+                && scoreLeakGraceTimer <= 0f
+                && score > 0;
+        }
+
+        private float GetScoreLeakVisualIntensity()
+        {
+            if (!IsScoreLeakDraining())
+            {
+                return 0f;
+            }
+
+            return Mathf.Clamp01(activeLevelGlitchPlan.ScoreLeak.PointsPerSecond / 16f);
         }
 
         private void ApplyDriftRows(BreakoutDriftRowsSpec driftRows)
@@ -5839,6 +5921,8 @@ namespace GetBricked.Gameplay
                 TopLine = scoreText,
                 ScoreText = scoreText,
                 ScoreValue = score,
+                IsScoreLeakActive = IsScoreLeakDraining(),
+                ScoreLeakIntensity = GetScoreLeakVisualIntensity(),
                 LifeCount = Mathf.Max(0, GetLifeCounterValue()),
                 LifeIcon = ballStyle.Sprite != null ? ballStyle.Sprite : ballSprite,
                 LifeIconColor = ballStyle.PrimaryColor,
@@ -6745,6 +6829,7 @@ namespace GetBricked.Gameplay
                 LevelGlitchSelection.BrickConveyor => "Brick Conveyor",
                 LevelGlitchSelection.BlacklightBricks => "Blacklight Bricks",
                 LevelGlitchSelection.RewindWall => "Rewind Wall",
+                LevelGlitchSelection.ScoreLeak => "Score Leak",
                 _ => "Off",
             };
         }
