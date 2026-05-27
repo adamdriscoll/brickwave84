@@ -816,6 +816,31 @@ public sealed class BreakoutGameControllerPowerUpTests
     }
 
     [Test]
+    public void CloneStaticPaddleFollowsDelayedPaddleSamples()
+    {
+        CreateControllerHarness(out var paddle);
+        var spec = new BreakoutCloneStaticSpec(0.4f, 0.9f, 0.7f);
+
+        paddle.SetCloneStaticPaddleEnabled(true, spec);
+        InvokePrivateMethod(paddle, "RecordCloneStaticSample", 0f, new Vector2(-2f, -3.5f), 0f);
+        InvokePrivateMethod(paddle, "RecordCloneStaticSample", 0.4f, new Vector2(2f, -3.5f), 0f);
+        InvokePrivateMethod(paddle, "RecordCloneStaticSample", 0.8f, new Vector2(6f, -3.5f), 0f);
+        InvokePrivateMethod(paddle, "UpdateCloneStaticPaddle", 0.8f);
+
+        var cloneStaticObject = GetPrivateField<GameObject>(paddle, "cloneStaticPaddleObject");
+
+        Assert.That(cloneStaticObject, Is.Not.Null);
+        Assert.That(cloneStaticObject.activeSelf, Is.True);
+        Assert.That(cloneStaticObject.transform.position.x, Is.EqualTo(2f).Within(0.0001f));
+        Assert.That(cloneStaticObject.transform.position.y, Is.EqualTo(-2.6f).Within(0.0001f));
+        Assert.That(cloneStaticObject.transform.localScale.x, Is.EqualTo(paddle.transform.localScale.x * 0.7f).Within(0.0001f));
+
+        paddle.SetCloneStaticPaddleEnabled(false);
+
+        Assert.That(cloneStaticObject.activeSelf, Is.False);
+    }
+
+    [Test]
     public void CleanCatchRelaunchesWithAmplifiedPaddleAim()
     {
         var controller = CreateControllerHarness(out var paddle);

@@ -618,6 +618,30 @@ public sealed class BreakoutLevelGlitchPlannerTests
         Assert.That(unlockedPlan.PrismShuffle.MinimumHorizontal, Is.InRange(0.54f, 0.68f));
     }
 
+    [Test]
+    public void RogueGlitchHeatControlsWhenCloneStaticCanUnlock()
+    {
+        var lockedSettings = CreateRogueSettings(
+            rogueIntensity: BreakoutLevelGlitchPlanner.CloneStaticLadderUnlockIntensity,
+            levelGlitchSelection: LevelGlitchSelection.CloneStatic);
+        var unlockedSettings = CreateRogueSettings(
+            rogueIntensity: BreakoutLevelGlitchPlanner.CloneStaticLadderUnlockIntensity + 1,
+            levelGlitchSelection: LevelGlitchSelection.CloneStatic);
+
+        var lockedPlan = BreakoutLevelGlitchPlanner.BuildPlan(new DeterministicRandomService(7), lockedSettings, levelIndex: 9);
+        var unlockedPlan = BreakoutLevelGlitchPlanner.BuildPlan(new DeterministicRandomService(7), unlockedSettings, levelIndex: 9);
+
+        Assert.That(lockedPlan.IsActive, Is.False);
+        Assert.That(unlockedPlan.IsActive, Is.True);
+        Assert.That(unlockedPlan.GlitchType, Is.EqualTo(BreakoutLevelGlitchType.CloneStatic));
+        Assert.That(unlockedPlan.DisplayName, Is.EqualTo("Clone Static"));
+        Assert.That(unlockedPlan.Rarity, Is.EqualTo(BreakoutContentRarity.Epic));
+        Assert.That(unlockedPlan.ScoreMultiplier, Is.EqualTo(1.46f).Within(0.0001f));
+        Assert.That(unlockedPlan.CloneStatic.DelaySeconds, Is.InRange(0.32f, 0.52f));
+        Assert.That(unlockedPlan.CloneStatic.VerticalOffset, Is.InRange(0.82f, 1.08f));
+        Assert.That(unlockedPlan.CloneStatic.WidthMultiplier, Is.InRange(0.64f, 0.78f));
+    }
+
 
     [Test]
     public void ForcedWarpGatePlanBuildsSmallPortalSetAndScoreBonus()
@@ -1038,6 +1062,21 @@ public sealed class BreakoutLevelGlitchPlannerTests
         Assert.That(plan.IsActive, Is.True);
         Assert.That(plan.GlitchType, Is.EqualTo(BreakoutLevelGlitchType.PrismShuffle));
         Assert.That(plan.HudLabel, Does.Contain("Prism Shuffle"));
+    }
+
+    [Test]
+    public void SelectedCloneStaticAlwaysBuildsCloneStaticEvenWhenChanceIsDisabled()
+    {
+        var settings = CreateSettings(
+            levelGlitchesEnabled: true,
+            chanceMultiplier: 0f,
+            levelGlitchSelection: LevelGlitchSelection.CloneStatic);
+
+        var plan = BreakoutLevelGlitchPlanner.BuildPlan(new DeterministicRandomService(3), settings, levelIndex: 9);
+
+        Assert.That(plan.IsActive, Is.True);
+        Assert.That(plan.GlitchType, Is.EqualTo(BreakoutLevelGlitchType.CloneStatic));
+        Assert.That(plan.HudLabel, Does.Contain("Clone Static"));
     }
 
     [Test]

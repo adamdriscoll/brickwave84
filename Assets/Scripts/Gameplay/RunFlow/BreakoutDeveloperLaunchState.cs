@@ -38,6 +38,7 @@ namespace GetBricked.Gameplay
             LevelGlitchSelection.BrickConveyor,
             LevelGlitchSelection.CapsuleRoulette,
             LevelGlitchSelection.CassetteSkip,
+            LevelGlitchSelection.CloneStatic,
             LevelGlitchSelection.DriftRows,
             LevelGlitchSelection.FlickerBricks,
             LevelGlitchSelection.GhostRow,

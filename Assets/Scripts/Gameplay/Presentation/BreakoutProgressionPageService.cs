@@ -295,6 +295,13 @@ namespace GetBricked.Gameplay
                 BreakoutLevelGlitchPlanner.PrismShuffleLadderUnlockIntensity,
                 highestCompletedIntensity,
                 PrecisionAccent));
+            cards.Add(BuildUnlockableGlitchCard(
+                "Clone Static",
+                "Paddle Epic Glitch",
+                "A ghost paddle copies your last movement with a delay.",
+                BreakoutLevelGlitchPlanner.CloneStaticLadderUnlockIntensity,
+                highestCompletedIntensity,
+                HazardAccent));
             AppendPlaceholderCards(cards, PlaceholderDrops, highestCompletedIntensity);
             AppendPlaceholderCards(cards, PlaceholderGlitches, highestCompletedIntensity);
             cards.Add(BuildHiddenSlotCard("Future Drop Slot", "Drop", "Hidden", "Future drop signal pending."));
@@ -733,6 +740,11 @@ namespace GetBricked.Gameplay
             }
 
             if (completedIntensity >= BreakoutLevelGlitchPlanner.PrismShuffleLadderUnlockIntensity)
+            {
+                count++;
+            }
+
+            if (completedIntensity >= BreakoutLevelGlitchPlanner.CloneStaticLadderUnlockIntensity)
             {
                 count++;
             }

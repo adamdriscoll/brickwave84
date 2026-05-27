@@ -3866,6 +3866,12 @@ namespace GetBricked.Gameplay
                 powerUpService?.ShowStatusBanner("PRISM SHUFFLE!", new Color(1f, 0.87f, 0.36f, 1f), 2.2f);
             }
 
+            if (activeLevelGlitchPlan.HasGlitch(BreakoutLevelGlitchType.CloneStatic))
+            {
+                paddle?.SetCloneStaticPaddleEnabled(true, activeLevelGlitchPlan.CloneStatic);
+                powerUpService?.ShowStatusBanner("CLONE STATIC!", new Color(0.72f, 0.62f, 1f, 1f), 2.2f);
+            }
+
             if (activeLevelGlitchPlan.HasGlitch(BreakoutLevelGlitchType.SwitchbackRails))
             {
                 CreateSwitchbackRails(activeLevelGlitchPlan);
@@ -3944,6 +3950,7 @@ namespace GetBricked.Gameplay
             ghostRowService?.Clear();
             rewindWallService?.Clear();
             ClearPendingLaserRainLanes();
+            paddle?.SetCloneStaticPaddleEnabled(false);
 
             if (activeWarpGateController != null)
             {
@@ -6968,6 +6975,7 @@ namespace GetBricked.Gameplay
                 LevelGlitchSelection.LaserRain => "Laser Rain",
                 LevelGlitchSelection.ThinAir => "Thin Air",
                 LevelGlitchSelection.PrismShuffle => "Prism Shuffle",
+                LevelGlitchSelection.CloneStatic => "Clone Static",
                 _ => "Off",
             };
         }

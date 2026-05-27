@@ -6,6 +6,25 @@ namespace GetBricked.Gameplay
     [RequireComponent(typeof(Rigidbody2D))]
     public sealed class PaddleController : MonoBehaviour
     {
+        private struct DelayedPaddleSample
+        {
+            public DelayedPaddleSample(float time, Vector2 position, float rotation, Vector3 scale)
+            {
+                Time = time;
+                Position = position;
+                Rotation = rotation;
+                Scale = scale;
+            }
+
+            public float Time { get; }
+
+            public Vector2 Position { get; }
+
+            public float Rotation { get; }
+
+            public Vector3 Scale { get; }
+        }
+
         private const float WavyRetargetMinSeconds = 0.09f;
         private const float WavyRetargetMaxSeconds = 0.22f;
         private const float WavyBlendSpeed = 11f;
@@ -28,6 +47,12 @@ namespace GetBricked.Gameplay
         private const float ClonePaddleYOffset = 0.74f;
         private const float ClonePaddleWidthMultiplier = 0.62f;
         private const int ClonePaddleSortingOrder = 19;
+        private const int CloneStaticPaddleSortingOrder = 18;
+        private const float CloneStaticDefaultDelaySeconds = 0.42f;
+        private const float CloneStaticDefaultYOffset = 0.9f;
+        private const float CloneStaticDefaultWidthMultiplier = 0.72f;
+        private const float CloneStaticTintAlpha = 0.58f;
+        private const float CloneStaticHistoryPaddingSeconds = 0.25f;
         private const float MirrorImagePaddleYOffset = 1.16f;
         private const int MirrorImagePaddleSortingOrder = 39;
         private const float AutopilotDeadZone = 0.16f;
@@ -77,6 +102,14 @@ namespace GetBricked.Gameplay
         private GameObject clonePaddleObject;
         private BoxCollider2D clonePaddleCollider;
         private SpriteRenderer clonePaddleRenderer;
+        private GameObject cloneStaticPaddleObject;
+        private Rigidbody2D cloneStaticPaddleBody;
+        private SpriteRenderer cloneStaticPaddleRenderer;
+        private readonly System.Collections.Generic.List<DelayedPaddleSample> cloneStaticSamples = new System.Collections.Generic.List<DelayedPaddleSample>();
+        private bool cloneStaticPaddleEnabled;
+        private float cloneStaticDelaySeconds = CloneStaticDefaultDelaySeconds;
+        private float cloneStaticYOffset = CloneStaticDefaultYOffset;
+        private float cloneStaticWidthMultiplier = CloneStaticDefaultWidthMultiplier;
         private bool isAuxiliaryPaddle;
         private float inputDirectionMultiplier = 1f;
         private GameObject mirrorImagePaddleObject;
@@ -252,6 +285,36 @@ namespace GetBricked.Gameplay
             }
         }
 
+        internal void SetCloneStaticPaddleEnabled(bool enabled, BreakoutCloneStaticSpec spec = default)
+        {
+            if (isAuxiliaryPaddle)
+            {
+                return;
+            }
+
+            cloneStaticPaddleEnabled = enabled;
+
+            if (!enabled)
+            {
+                cloneStaticSamples.Clear();
+
+                if (cloneStaticPaddleObject != null)
+                {
+                    cloneStaticPaddleObject.SetActive(false);
+                }
+
+                return;
+            }
+
+            cloneStaticDelaySeconds = spec.DelaySeconds > 0f ? spec.DelaySeconds : CloneStaticDefaultDelaySeconds;
+            cloneStaticYOffset = spec.VerticalOffset > 0f ? spec.VerticalOffset : CloneStaticDefaultYOffset;
+            cloneStaticWidthMultiplier = spec.WidthMultiplier > 0f ? spec.WidthMultiplier : CloneStaticDefaultWidthMultiplier;
+            EnsureCloneStaticPaddle();
+            cloneStaticPaddleObject.SetActive(true);
+            ResetCloneStaticSamples();
+            UpdateCloneStaticPaddle(Time.fixedTime);
+        }
+
         public void SetMirrorImagePaddleEnabled(bool enabled)
         {
             if (isAuxiliaryPaddle)
@@ -301,6 +364,8 @@ namespace GetBricked.Gameplay
             paddleBody.linearVelocity = Vector2.zero;
             HideWrapRailEcho();
             RestoreWrapRailSourceTint();
+            ResetCloneStaticSamples();
+            UpdateCloneStaticPaddle(Time.fixedTime);
             mirrorImagePaddle?.ResetToStart();
         }
 
@@ -318,18 +383,28 @@ namespace GetBricked.Gameplay
                 }
             }
 
-            if (wrapRailEchoObject == null)
+            if (wrapRailEchoObject != null)
             {
-                return;
+                if (Application.isPlaying)
+                {
+                    Destroy(wrapRailEchoObject);
+                }
+                else
+                {
+                    DestroyImmediate(wrapRailEchoObject);
+                }
             }
 
-            if (Application.isPlaying)
+            if (!isAuxiliaryPaddle && cloneStaticPaddleObject != null)
             {
-                Destroy(wrapRailEchoObject);
-            }
-            else
-            {
-                DestroyImmediate(wrapRailEchoObject);
+                if (Application.isPlaying)
+                {
+                    Destroy(cloneStaticPaddleObject);
+                }
+                else
+                {
+                    DestroyImmediate(cloneStaticPaddleObject);
+                }
             }
         }
 
@@ -381,6 +456,8 @@ namespace GetBricked.Gameplay
             }
 
             UpdateWrapRailEcho(nextPosition.x, nextPosition.y, currentRotation);
+            RecordCloneStaticSample(Time.fixedTime, nextPosition, currentRotation);
+            UpdateCloneStaticPaddle(Time.fixedTime);
         }
 
         private float ResolveNextHorizontalPosition(float requestedX)
@@ -783,6 +860,134 @@ namespace GetBricked.Gameplay
 
             clonePaddleRenderer.sortingOrder = ClonePaddleSortingOrder;
             clonePaddleObject.SetActive(false);
+        }
+
+        private void EnsureCloneStaticPaddle()
+        {
+            if (cloneStaticPaddleObject != null)
+            {
+                return;
+            }
+
+            var sourceRenderer = GetComponentInChildren<SpriteRenderer>();
+            var sourceCollider = GetComponent<BoxCollider2D>();
+            cloneStaticPaddleObject = new GameObject("Clone Static Paddle");
+            cloneStaticPaddleObject.transform.SetParent(transform.parent, false);
+
+            var ghostVisual = new GameObject("Visual");
+            ghostVisual.transform.SetParent(cloneStaticPaddleObject.transform, false);
+
+            cloneStaticPaddleRenderer = ghostVisual.AddComponent<SpriteRenderer>();
+
+            if (sourceRenderer != null)
+            {
+                cloneStaticPaddleRenderer.sprite = sourceRenderer.sprite;
+                cloneStaticPaddleRenderer.sharedMaterial = sourceRenderer.sharedMaterial;
+                ApplyTintAlpha(cloneStaticPaddleRenderer, BreakoutSpriteRendererUtility.ResolveTint(sourceRenderer), CloneStaticTintAlpha);
+                BreakoutSpriteRendererUtility.NormalizeScale(cloneStaticPaddleRenderer);
+            }
+
+            cloneStaticPaddleRenderer.sortingOrder = CloneStaticPaddleSortingOrder;
+
+            var ghostCollider = cloneStaticPaddleObject.AddComponent<BoxCollider2D>();
+
+            if (sourceCollider != null)
+            {
+                ghostCollider.sharedMaterial = sourceCollider.sharedMaterial;
+            }
+
+            cloneStaticPaddleBody = cloneStaticPaddleObject.AddComponent<Rigidbody2D>();
+            cloneStaticPaddleBody.bodyType = RigidbodyType2D.Kinematic;
+            cloneStaticPaddleBody.gravityScale = 0f;
+            cloneStaticPaddleBody.interpolation = RigidbodyInterpolation2D.Interpolate;
+            cloneStaticPaddleBody.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
+            cloneStaticPaddleObject.SetActive(false);
+        }
+
+        private void ResetCloneStaticSamples()
+        {
+            cloneStaticSamples.Clear();
+
+            if (!cloneStaticPaddleEnabled || paddleBody == null)
+            {
+                return;
+            }
+
+            var currentPosition = paddleBody.position;
+            var currentRotation = GetCurrentRotation();
+            RecordCloneStaticSample(Time.fixedTime, currentPosition, currentRotation);
+        }
+
+        private void RecordCloneStaticSample(float time, Vector2 position, float rotation)
+        {
+            if (!cloneStaticPaddleEnabled)
+            {
+                return;
+            }
+
+            cloneStaticSamples.Add(new DelayedPaddleSample(time, position, rotation, transform.localScale));
+            TrimCloneStaticSamples(time);
+        }
+
+        private void TrimCloneStaticSamples(float currentTime)
+        {
+            var oldestUsefulTime = currentTime - cloneStaticDelaySeconds - CloneStaticHistoryPaddingSeconds;
+
+            while (cloneStaticSamples.Count > 2 && cloneStaticSamples[1].Time < oldestUsefulTime)
+            {
+                cloneStaticSamples.RemoveAt(0);
+            }
+        }
+
+        private void UpdateCloneStaticPaddle(float currentTime)
+        {
+            if (!cloneStaticPaddleEnabled || cloneStaticPaddleObject == null || cloneStaticSamples.Count == 0)
+            {
+                return;
+            }
+
+            var sample = ResolveCloneStaticSample(currentTime - cloneStaticDelaySeconds);
+            var delayedPosition = new Vector2(sample.Position.x, startingY + cloneStaticYOffset);
+            var delayedScale = sample.Scale;
+            delayedScale.x *= cloneStaticWidthMultiplier;
+            cloneStaticPaddleObject.transform.localScale = delayedScale;
+            cloneStaticPaddleObject.transform.SetPositionAndRotation(
+                delayedPosition,
+                Quaternion.Euler(0f, 0f, sample.Rotation));
+
+            if (cloneStaticPaddleBody != null)
+            {
+                cloneStaticPaddleBody.position = delayedPosition;
+                cloneStaticPaddleBody.rotation = sample.Rotation;
+            }
+        }
+
+        private DelayedPaddleSample ResolveCloneStaticSample(float targetTime)
+        {
+            if (cloneStaticSamples.Count == 1 || targetTime <= cloneStaticSamples[0].Time)
+            {
+                return cloneStaticSamples[0];
+            }
+
+            for (var index = 1; index < cloneStaticSamples.Count; index++)
+            {
+                var current = cloneStaticSamples[index];
+
+                if (targetTime > current.Time)
+                {
+                    continue;
+                }
+
+                var previous = cloneStaticSamples[index - 1];
+                var ratio = Mathf.InverseLerp(previous.Time, current.Time, targetTime);
+                return new DelayedPaddleSample(
+                    targetTime,
+                    Vector2.Lerp(previous.Position, current.Position, ratio),
+                    Mathf.LerpAngle(previous.Rotation, current.Rotation, ratio),
+                    Vector3.Lerp(previous.Scale, current.Scale, ratio));
+            }
+
+            return cloneStaticSamples[cloneStaticSamples.Count - 1];
         }
 
         private void EnsureMirrorImagePaddle()

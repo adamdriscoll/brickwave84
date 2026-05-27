@@ -34,6 +34,7 @@ namespace GetBricked.Gameplay
         LaserRain = 24,
         ThinAir = 25,
         PrismShuffle = 26,
+        CloneStatic = 27,
     }
 
     internal readonly struct BreakoutLevelGlitchDefinition
@@ -190,6 +191,22 @@ namespace GetBricked.Gameplay
         public float WarningSeconds { get; }
 
         public float PhaseOffsetSeconds { get; }
+    }
+
+    internal readonly struct BreakoutCloneStaticSpec
+    {
+        public BreakoutCloneStaticSpec(float delaySeconds, float verticalOffset, float widthMultiplier)
+        {
+            DelaySeconds = Mathf.Clamp(delaySeconds, 0.18f, 0.85f);
+            VerticalOffset = Mathf.Clamp(verticalOffset, 0.45f, 1.35f);
+            WidthMultiplier = Mathf.Clamp(widthMultiplier, 0.45f, 0.95f);
+        }
+
+        public float DelaySeconds { get; }
+
+        public float VerticalOffset { get; }
+
+        public float WidthMultiplier { get; }
     }
 
     internal readonly struct BreakoutRowRewriteSpec
@@ -515,7 +532,8 @@ namespace GetBricked.Gameplay
             BreakoutBrickConveyorSpec brickConveyor = default,
             BreakoutRewindWallSpec rewindWall = default,
             BreakoutScoreLeakSpec scoreLeak = default,
-            BreakoutPrismShuffleSpec prismShuffle = default)
+            BreakoutPrismShuffleSpec prismShuffle = default,
+            BreakoutCloneStaticSpec cloneStatic = default)
         {
             GlitchType = glitchType;
             Rarity = BreakoutRarityRules.Clamp(rarity);
@@ -543,6 +561,7 @@ namespace GetBricked.Gameplay
             RewindWall = rewindWall;
             ScoreLeak = scoreLeak;
             PrismShuffle = prismShuffle;
+            CloneStatic = cloneStatic;
             ActiveGlitchTypes = activeGlitchTypes != null && activeGlitchTypes.Length > 0
                 ? activeGlitchTypes
                 : glitchType != BreakoutLevelGlitchType.None
@@ -602,6 +621,8 @@ namespace GetBricked.Gameplay
 
         public BreakoutPrismShuffleSpec PrismShuffle { get; }
 
+        public BreakoutCloneStaticSpec CloneStatic { get; }
+
         public BreakoutLevelGlitchType[] ActiveGlitchTypes { get; }
 
         public bool IsActive => ActiveGlitchTypes.Length > 0;
@@ -647,6 +668,7 @@ namespace GetBricked.Gameplay
         public const int LaserRainLadderUnlockIntensity = 24;
         public const int ThinAirLadderUnlockIntensity = 25;
         public const int PrismShuffleLadderUnlockIntensity = 26;
+        public const int CloneStaticLadderUnlockIntensity = 27;
 
         private const float WarpGateScoreMultiplier = 1.35f;
         private const float TurboRailScoreMultiplier = 1.25f;
@@ -674,6 +696,7 @@ namespace GetBricked.Gameplay
         private const float LaserRainScoreMultiplier = 1.44f;
         private const float ThinAirScoreMultiplier = 1.45f;
         private const float PrismShuffleScoreMultiplier = 1.43f;
+        private const float CloneStaticScoreMultiplier = 1.46f;
 
         private static readonly BreakoutLevelGlitchDefinition[] GlitchDefinitions =
         {
@@ -807,6 +830,11 @@ namespace GetBricked.Gameplay
                 LevelGlitchSelection.PrismShuffle,
                 BreakoutContentRarity.Epic,
                 PrismShuffleLadderUnlockIntensity),
+            new BreakoutLevelGlitchDefinition(
+                BreakoutLevelGlitchType.CloneStatic,
+                LevelGlitchSelection.CloneStatic,
+                BreakoutContentRarity.Epic,
+                CloneStaticLadderUnlockIntensity),
         };
 
         public static BreakoutLevelGlitchPlan BuildPlan(
@@ -983,6 +1011,11 @@ namespace GetBricked.Gameplay
                 return BuildPrismShufflePlan(random, definition.Rarity);
             }
 
+            if (definition.GlitchType == BreakoutLevelGlitchType.CloneStatic)
+            {
+                return BuildCloneStaticPlan(random, definition.Rarity);
+            }
+
             return BuildWarpGatePlan(random, definition.Rarity);
         }
 
@@ -1101,6 +1134,7 @@ namespace GetBricked.Gameplay
             var rewindWall = default(BreakoutRewindWallSpec);
             var scoreLeak = default(BreakoutScoreLeakSpec);
             var prismShuffle = default(BreakoutPrismShuffleSpec);
+            var cloneStatic = default(BreakoutCloneStaticSpec);
 
             for (var index = 0; index < definitions.Count; index++)
             {
@@ -1221,6 +1255,11 @@ namespace GetBricked.Gameplay
                 {
                     prismShuffle = plan.PrismShuffle;
                 }
+
+                if (plan.HasGlitch(BreakoutLevelGlitchType.CloneStatic))
+                {
+                    cloneStatic = plan.CloneStatic;
+                }
             }
 
             return new BreakoutLevelGlitchPlan(
@@ -1250,7 +1289,8 @@ namespace GetBricked.Gameplay
                 brickConveyor,
                 rewindWall,
                 scoreLeak,
-                prismShuffle);
+                prismShuffle,
+                cloneStatic);
         }
 
         private static void MarkGlitchSelectionExclusions(
@@ -1643,6 +1683,19 @@ namespace GetBricked.Gameplay
                 prismShuffle: BuildPrismShuffle(random));
         }
 
+        private static BreakoutLevelGlitchPlan BuildCloneStaticPlan(DeterministicRandomService random, BreakoutContentRarity rarity)
+        {
+            return new BreakoutLevelGlitchPlan(
+                BreakoutLevelGlitchType.CloneStatic,
+                rarity,
+                "Clone Static",
+                $"Clone Static x{CloneStaticScoreMultiplier:0.00}",
+                CloneStaticScoreMultiplier,
+                Array.Empty<BreakoutWarpGateSpec>(),
+                default,
+                cloneStatic: BuildCloneStatic(random));
+        }
+
         public static float GetGlitchChance(RunSettings settings, int levelIndex)
         {
             if (settings == null)
@@ -1882,6 +1935,14 @@ namespace GetBricked.Gameplay
                 random.Range(1, int.MaxValue));
         }
 
+        private static BreakoutCloneStaticSpec BuildCloneStatic(DeterministicRandomService random)
+        {
+            return new BreakoutCloneStaticSpec(
+                random.Range(0.32f, 0.52f),
+                random.Range(0.82f, 1.08f),
+                random.Range(0.64f, 0.78f));
+        }
+
         private static BreakoutSplitHorizonSpec BuildSplitHorizon(DeterministicRandomService random)
         {
             return new BreakoutSplitHorizonSpec(
@@ -2057,7 +2118,8 @@ namespace GetBricked.Gameplay
                 || selection == LevelGlitchSelection.ScoreLeak
                 || selection == LevelGlitchSelection.LaserRain
                 || selection == LevelGlitchSelection.ThinAir
-                || selection == LevelGlitchSelection.PrismShuffle;
+                || selection == LevelGlitchSelection.PrismShuffle
+                || selection == LevelGlitchSelection.CloneStatic;
         }
 
         private static BreakoutWarpGateWall ResolveGateWall(DeterministicRandomService random, int index)
