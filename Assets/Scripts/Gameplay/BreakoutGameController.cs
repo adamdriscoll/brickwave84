@@ -281,6 +281,7 @@ namespace GetBricked.Gameplay
         private BreakoutRowRewriteService rowRewriteService;
         private BreakoutGhostRowService ghostRowService;
         private BreakoutRewindWallService rewindWallService;
+        private BreakoutBrickLockService brickLockService;
         private BreakoutPaddleSpawnService paddleSpawnService;
         private BreakoutBallSpawnService ballSpawnService;
         private BreakoutMainMenuService mainMenuService;
@@ -357,6 +358,7 @@ namespace GetBricked.Gameplay
         private float missileShotCooldownTimer;
         private float activeLevelElapsedSeconds;
         private BreakoutLevelGlitchPlan activeLevelGlitchPlan = BreakoutLevelGlitchPlan.None;
+        private float nextBrickLockBlockedBannerTime;
         private BreakoutWarpGateController activeWarpGateController;
         private BreakoutTurboRailSection activeTurboRailSection;
         private BreakoutStaticWallSection activeStaticWallSection;
@@ -649,6 +651,7 @@ namespace GetBricked.Gameplay
             ResetScoreLeakOnBrickBreak();
             TryTriggerGhostRow(brick);
             TryTriggerRewindWall(brick);
+            TryTriggerBrickLock(brick);
             runStatsService?.RegisterBrickDestroyed();
             audioService?.PlayBrickDestroyed(brickDefinition);
 
@@ -846,6 +849,7 @@ namespace GetBricked.Gameplay
             if (scoringBall == null
                 || brick == null
                 || brick.IsPendingRemoval
+                || brick.IsBrickLockShielded
                 || powerUpService == null
                 || powerUpService.SolarShotCharges <= 0
                 || !IsSolarShotVulnerable(brick))
@@ -1349,6 +1353,20 @@ namespace GetBricked.Gameplay
             AwardBankBonusIfAvailable(brick != null ? (Vector2)brick.transform.position : Vector2.zero);
             TryTriggerPrismPop(scoringBall, brick != null ? (Vector2)brick.transform.position : Vector2.zero, BrickDestructionCause.Impact);
             TryTriggerGhostRow(brick);
+        }
+
+        public void HandleBrickLockBlocked(Brick brick, BallController scoringBall = null)
+        {
+            runStatsService?.RegisterBrickHit();
+            audioService?.PlayBrickHit(brick?.Definition);
+
+            if (Time.time < nextBrickLockBlockedBannerTime)
+            {
+                return;
+            }
+
+            nextBrickLockBlockedBannerTime = Time.time + 0.85f;
+            powerUpService?.ShowStatusBanner("LOCKED!", new Color(0.03f, 0.93f, 0.98f, 1f), 0.9f);
         }
 
         public void HandlePickupCaught(PowerUpPickup pickup)
@@ -3531,6 +3549,7 @@ namespace GetBricked.Gameplay
             rowRewriteService = new BreakoutRowRewriteService(bricks, loadedBrickDefinitions);
             ghostRowService = new BreakoutGhostRowService(bricks);
             rewindWallService = new BreakoutRewindWallService(bricks);
+            brickLockService = new BreakoutBrickLockService(bricks);
         }
 
         private Rect ResolveBrickMovementBounds()
@@ -3826,6 +3845,12 @@ namespace GetBricked.Gameplay
                 powerUpService?.ShowStatusBanner("DROP TIDE!", new Color(1f, 0.87f, 0.36f, 1f), 2.2f);
             }
 
+            if (activeLevelGlitchPlan.HasGlitch(BreakoutLevelGlitchType.BrickLock))
+            {
+                ArmBrickLock(activeLevelGlitchPlan.BrickLock);
+                powerUpService?.ShowStatusBanner("BRICK LOCK!", new Color(0.03f, 0.93f, 0.98f, 1f), 2.2f);
+            }
+
             if (activeLevelGlitchPlan.HasGlitch(BreakoutLevelGlitchType.MagnetStorm))
             {
                 CreateMagnetStorm(activeLevelGlitchPlan);
@@ -3958,6 +3983,7 @@ namespace GetBricked.Gameplay
             cassetteSkipPaddleHits = 0;
             ghostRowService?.Clear();
             rewindWallService?.Clear();
+            brickLockService?.Clear();
             ClearPendingLaserRainLanes();
             paddle?.SetCloneStaticPaddleEnabled(false);
 
@@ -4128,6 +4154,11 @@ namespace GetBricked.Gameplay
             brickService?.ApplyPrismShuffle(prismShuffle);
         }
 
+        private void ArmBrickLock(BreakoutBrickLockSpec brickLock)
+        {
+            brickLockService?.Arm(brickLock, currentLevelRowCount, currentLevelColumnCount);
+        }
+
         private void ArmGhostRow(BreakoutGhostRowSpec ghostRow)
         {
             ghostRowService?.Arm(ghostRow, currentLevelRowCount);
@@ -4213,6 +4244,21 @@ namespace GetBricked.Gameplay
             if (rewindWallService.TryRegisterDestroyedBrick(brick))
             {
                 powerUpService?.ShowStatusBanner("REWIND ARMED!", new Color(1f, 0.87f, 0.36f, 1f), 1.1f);
+            }
+        }
+
+        private void TryTriggerBrickLock(Brick brick)
+        {
+            if (activeLevelGlitchPlan == null
+                || !activeLevelGlitchPlan.HasGlitch(BreakoutLevelGlitchType.BrickLock)
+                || brickLockService == null)
+            {
+                return;
+            }
+
+            if (brickLockService.TryRegisterDestroyedBrick(brick))
+            {
+                powerUpService?.ShowStatusBanner("LOCK OPEN!", new Color(0.03f, 0.93f, 0.98f, 1f), 1.35f);
             }
         }
 
@@ -6986,6 +7032,7 @@ namespace GetBricked.Gameplay
                 LevelGlitchSelection.PrismShuffle => "Prism Shuffle",
                 LevelGlitchSelection.CloneStatic => "Clone Static",
                 LevelGlitchSelection.DropTide => "Drop Tide",
+                LevelGlitchSelection.BrickLock => "Brick Lock",
                 _ => "Off",
             };
         }

@@ -21,6 +21,7 @@ namespace GetBricked.Gameplay
         private SpriteRenderer spriteRenderer;
         private BreakoutGlowRenderer glowRenderer;
         private SpriteRenderer prismShuffleRenderer;
+        private SpriteRenderer brickLockRenderer;
         private BoxCollider2D brickCollider;
         private Rigidbody2D brickBody;
         private HingeJoint2D spinJoint;
@@ -53,6 +54,7 @@ namespace GetBricked.Gameplay
         private bool isGhosted;
         private bool isBlacklightDisguised;
         private bool isPrismShuffleMarked;
+        private bool isBrickLockShielded;
         private float prismShuffleRotationSign = 1f;
         private float prismShuffleRotationDegrees;
         private float prismShuffleMinimumHorizontal;
@@ -87,6 +89,8 @@ namespace GetBricked.Gameplay
         public bool IsBlacklightDisguised => isBlacklightDisguised;
 
         public bool IsPrismShuffleMarked => isPrismShuffleMarked;
+
+        public bool IsBrickLockShielded => isBrickLockShielded;
 
         public void Initialize(
             BreakoutGameController controller,
@@ -232,6 +236,12 @@ namespace GetBricked.Gameplay
             RefreshPrismShuffleVisual();
         }
 
+        internal void SetBrickLockShielded(bool shielded)
+        {
+            isBrickLockShielded = shielded && definition != null && definition.IsBreakable;
+            RefreshBrickLockVisual();
+        }
+
         private void ApplyVisualStyle(ThemeVisualStyle visualStyle)
         {
             spriteRenderer ??= GetComponentInChildren<SpriteRenderer>();
@@ -249,6 +259,7 @@ namespace GetBricked.Gameplay
             glowRenderer?.ApplyStyle(visualStyle);
             RefreshVisual();
             RefreshPrismShuffleVisual();
+            RefreshBrickLockVisual();
         }
 
         public void SetVisibilityMultiplier(float multiplier)
@@ -418,6 +429,7 @@ namespace GetBricked.Gameplay
             UpdateFlicker(forceRefresh: false);
             UpdateJellyWobble();
             UpdatePrismShufflePulse();
+            RefreshBrickLockVisual();
         }
 
         private void OnCollisionEnter2D(Collision2D collision)
@@ -452,6 +464,12 @@ namespace GetBricked.Gameplay
                 return;
             }
 
+            if (isBrickLockShielded)
+            {
+                gameController?.HandleBrickLockBlocked(this, scoringBall);
+                return;
+            }
+
             if (gameController != null && gameController.TryHandleSolarShot(scoringBall, this))
             {
                 return;
@@ -464,6 +482,12 @@ namespace GetBricked.Gameplay
         {
             if (isPendingRemoval || definition == null || !definition.IsBreakable)
             {
+                return;
+            }
+
+            if (isBrickLockShielded)
+            {
+                gameController?.HandleBrickLockBlocked(this, scoringBall);
                 return;
             }
 
@@ -480,6 +504,12 @@ namespace GetBricked.Gameplay
                 return;
             }
 
+            if (isBrickLockShielded)
+            {
+                gameController?.HandleBrickLockBlocked(this);
+                return;
+            }
+
             RevealBlacklightDisguise();
             isPendingRemoval = true;
             hitPointsRemaining = 0;
@@ -490,6 +520,12 @@ namespace GetBricked.Gameplay
         {
             if (isPendingRemoval || definition == null || !definition.IsBreakable)
             {
+                return;
+            }
+
+            if (isBrickLockShielded)
+            {
+                gameController?.HandleBrickLockBlocked(this, scoringBall);
                 return;
             }
 
@@ -819,6 +855,7 @@ namespace GetBricked.Gameplay
             spriteRenderer.color = resolvedColor;
             glowRenderer?.ApplyColor(resolvedColor);
             RefreshPrismShuffleVisual();
+            RefreshBrickLockVisual();
         }
 
         private void EnsurePrismShuffleRenderer()
@@ -867,6 +904,53 @@ namespace GetBricked.Gameplay
                 : new Color(1f, 0.22f, 0.84f, 0.44f);
             tint.a *= visibilityMultiplier * transitionVisibilityMultiplier * flickerVisibilityMultiplier * ghostVisibilityMultiplier;
             prismShuffleRenderer.color = tint;
+        }
+
+        private void EnsureBrickLockRenderer()
+        {
+            if (brickLockRenderer != null || spriteRenderer == null)
+            {
+                return;
+            }
+
+            var lockObject = new GameObject("Brick Lock Shield");
+            lockObject.transform.SetParent(spriteRenderer.transform, false);
+            lockObject.transform.localPosition = Vector3.zero;
+            lockObject.transform.localRotation = Quaternion.identity;
+            lockObject.transform.localScale = Vector3.one * 1.16f;
+            brickLockRenderer = lockObject.AddComponent<SpriteRenderer>();
+            brickLockRenderer.sharedMaterial = spriteRenderer.sharedMaterial;
+            brickLockRenderer.sortingLayerID = spriteRenderer.sortingLayerID;
+            brickLockRenderer.sortingOrder = spriteRenderer.sortingOrder + 2;
+        }
+
+        private void RefreshBrickLockVisual()
+        {
+            if (!isBrickLockShielded || spriteRenderer == null)
+            {
+                if (brickLockRenderer != null)
+                {
+                    brickLockRenderer.enabled = false;
+                }
+
+                return;
+            }
+
+            EnsureBrickLockRenderer();
+
+            if (brickLockRenderer == null)
+            {
+                return;
+            }
+
+            brickLockRenderer.enabled = true;
+            brickLockRenderer.sprite = spriteRenderer.sprite;
+            brickLockRenderer.sortingLayerID = spriteRenderer.sortingLayerID;
+            brickLockRenderer.sortingOrder = spriteRenderer.sortingOrder + 2;
+            var pulse = 0.72f + (Mathf.Sin(Time.time * 8.5f) * 0.16f);
+            var tint = new Color(0.03f, 0.93f, 0.98f, 0.42f * pulse);
+            tint.a *= visibilityMultiplier * transitionVisibilityMultiplier * flickerVisibilityMultiplier * ghostVisibilityMultiplier;
+            brickLockRenderer.color = tint;
         }
 
         private void PulsePrismShuffleMark()
@@ -987,6 +1071,12 @@ namespace GetBricked.Gameplay
         {
             if (definition == null || !definition.IsBreakable)
             {
+                return;
+            }
+
+            if (isBrickLockShielded)
+            {
+                gameController?.HandleBrickLockBlocked(this, scoringBall);
                 return;
             }
 

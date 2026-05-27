@@ -309,6 +309,13 @@ namespace GetBricked.Gameplay
                 BreakoutLevelGlitchPlanner.DropTideLadderUnlockIntensity,
                 highestCompletedIntensity,
                 ControlAccent));
+            cards.Add(BuildUnlockableGlitchCard(
+                "Brick Lock",
+                "Objective Epic Glitch",
+                "A brick cluster stays shielded until its paired key cluster breaks.",
+                BreakoutLevelGlitchPlanner.BrickLockLadderUnlockIntensity,
+                highestCompletedIntensity,
+                LayoutAccent));
             AppendPlaceholderCards(cards, PlaceholderDrops, highestCompletedIntensity);
             AppendPlaceholderCards(cards, PlaceholderGlitches, highestCompletedIntensity);
             cards.Add(BuildHiddenSlotCard("Future Drop Slot", "Drop", "Hidden", "Future drop signal pending."));
@@ -757,6 +764,11 @@ namespace GetBricked.Gameplay
             }
 
             if (completedIntensity >= BreakoutLevelGlitchPlanner.DropTideLadderUnlockIntensity)
+            {
+                count++;
+            }
+
+            if (completedIntensity >= BreakoutLevelGlitchPlanner.BrickLockLadderUnlockIntensity)
             {
                 count++;
             }

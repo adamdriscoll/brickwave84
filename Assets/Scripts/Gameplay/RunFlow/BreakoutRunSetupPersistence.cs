@@ -173,7 +173,7 @@ namespace GetBricked.Gameplay
             return (LevelGlitchSelection)Mathf.Clamp(
                 persistedSelection,
                 (int)LevelGlitchSelection.Off,
-                (int)LevelGlitchSelection.DropTide);
+                (int)LevelGlitchSelection.BrickLock);
         }
     }
 }

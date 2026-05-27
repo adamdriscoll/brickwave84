@@ -36,6 +36,7 @@ namespace GetBricked.Gameplay
         PrismShuffle = 26,
         CloneStatic = 27,
         DropTide = 28,
+        BrickLock = 29,
     }
 
     internal readonly struct BreakoutLevelGlitchDefinition
@@ -509,6 +510,33 @@ namespace GetBricked.Gameplay
         public float PhaseOffsetSeconds { get; }
     }
 
+    internal readonly struct BreakoutBrickLockSpec
+    {
+        public BreakoutBrickLockSpec(
+            float lockedClusterRow,
+            float lockedClusterColumn,
+            float keyClusterRow,
+            float keyClusterColumn,
+            int clusterRadius)
+        {
+            LockedClusterRow = Mathf.Clamp01(lockedClusterRow);
+            LockedClusterColumn = Mathf.Clamp01(lockedClusterColumn);
+            KeyClusterRow = Mathf.Clamp01(keyClusterRow);
+            KeyClusterColumn = Mathf.Clamp01(keyClusterColumn);
+            ClusterRadius = Mathf.Clamp(clusterRadius, 1, 2);
+        }
+
+        public float LockedClusterRow { get; }
+
+        public float LockedClusterColumn { get; }
+
+        public float KeyClusterRow { get; }
+
+        public float KeyClusterColumn { get; }
+
+        public int ClusterRadius { get; }
+    }
+
     internal sealed class BreakoutLevelGlitchPlan
     {
         public static readonly BreakoutLevelGlitchPlan None = new BreakoutLevelGlitchPlan(
@@ -551,7 +579,8 @@ namespace GetBricked.Gameplay
             BreakoutScoreLeakSpec scoreLeak = default,
             BreakoutPrismShuffleSpec prismShuffle = default,
             BreakoutCloneStaticSpec cloneStatic = default,
-            BreakoutDropTideSpec dropTide = default)
+            BreakoutDropTideSpec dropTide = default,
+            BreakoutBrickLockSpec brickLock = default)
         {
             GlitchType = glitchType;
             Rarity = BreakoutRarityRules.Clamp(rarity);
@@ -581,6 +610,7 @@ namespace GetBricked.Gameplay
             PrismShuffle = prismShuffle;
             CloneStatic = cloneStatic;
             DropTide = dropTide;
+            BrickLock = brickLock;
             ActiveGlitchTypes = activeGlitchTypes != null && activeGlitchTypes.Length > 0
                 ? activeGlitchTypes
                 : glitchType != BreakoutLevelGlitchType.None
@@ -644,6 +674,8 @@ namespace GetBricked.Gameplay
 
         public BreakoutDropTideSpec DropTide { get; }
 
+        public BreakoutBrickLockSpec BrickLock { get; }
+
         public BreakoutLevelGlitchType[] ActiveGlitchTypes { get; }
 
         public bool IsActive => ActiveGlitchTypes.Length > 0;
@@ -691,6 +723,7 @@ namespace GetBricked.Gameplay
         public const int PrismShuffleLadderUnlockIntensity = 26;
         public const int CloneStaticLadderUnlockIntensity = 27;
         public const int DropTideLadderUnlockIntensity = 28;
+        public const int BrickLockLadderUnlockIntensity = 29;
 
         private const float WarpGateScoreMultiplier = 1.35f;
         private const float TurboRailScoreMultiplier = 1.25f;
@@ -720,6 +753,7 @@ namespace GetBricked.Gameplay
         private const float PrismShuffleScoreMultiplier = 1.43f;
         private const float CloneStaticScoreMultiplier = 1.46f;
         private const float DropTideScoreMultiplier = 1.34f;
+        private const float BrickLockScoreMultiplier = 1.47f;
 
         private static readonly BreakoutLevelGlitchDefinition[] GlitchDefinitions =
         {
@@ -863,6 +897,11 @@ namespace GetBricked.Gameplay
                 LevelGlitchSelection.DropTide,
                 BreakoutContentRarity.Epic,
                 DropTideLadderUnlockIntensity),
+            new BreakoutLevelGlitchDefinition(
+                BreakoutLevelGlitchType.BrickLock,
+                LevelGlitchSelection.BrickLock,
+                BreakoutContentRarity.Epic,
+                BrickLockLadderUnlockIntensity),
         };
 
         public static BreakoutLevelGlitchPlan BuildPlan(
@@ -1049,6 +1088,11 @@ namespace GetBricked.Gameplay
                 return BuildDropTidePlan(random, definition.Rarity);
             }
 
+            if (definition.GlitchType == BreakoutLevelGlitchType.BrickLock)
+            {
+                return BuildBrickLockPlan(random, definition.Rarity);
+            }
+
             return BuildWarpGatePlan(random, definition.Rarity);
         }
 
@@ -1169,6 +1213,7 @@ namespace GetBricked.Gameplay
             var prismShuffle = default(BreakoutPrismShuffleSpec);
             var cloneStatic = default(BreakoutCloneStaticSpec);
             var dropTide = default(BreakoutDropTideSpec);
+            var brickLock = default(BreakoutBrickLockSpec);
 
             for (var index = 0; index < definitions.Count; index++)
             {
@@ -1299,6 +1344,11 @@ namespace GetBricked.Gameplay
                 {
                     dropTide = plan.DropTide;
                 }
+
+                if (plan.HasGlitch(BreakoutLevelGlitchType.BrickLock))
+                {
+                    brickLock = plan.BrickLock;
+                }
             }
 
             return new BreakoutLevelGlitchPlan(
@@ -1330,7 +1380,8 @@ namespace GetBricked.Gameplay
                 scoreLeak,
                 prismShuffle,
                 cloneStatic,
-                dropTide);
+                dropTide,
+                brickLock);
         }
 
         private static void MarkGlitchSelectionExclusions(
@@ -1489,6 +1540,19 @@ namespace GetBricked.Gameplay
                 Array.Empty<BreakoutWarpGateSpec>(),
                 default,
                 dropTide: dropTide);
+        }
+
+        private static BreakoutLevelGlitchPlan BuildBrickLockPlan(DeterministicRandomService random, BreakoutContentRarity rarity)
+        {
+            return new BreakoutLevelGlitchPlan(
+                BreakoutLevelGlitchType.BrickLock,
+                rarity,
+                "Brick Lock",
+                $"Brick Lock x{BrickLockScoreMultiplier:0.00}",
+                BrickLockScoreMultiplier,
+                Array.Empty<BreakoutWarpGateSpec>(),
+                default,
+                brickLock: BuildBrickLock(random));
         }
 
         private static BreakoutLevelGlitchPlan BuildStaticWallPlan(DeterministicRandomService random, BreakoutContentRarity rarity)
@@ -2005,6 +2069,18 @@ namespace GetBricked.Gameplay
                 random.Range(0f, 1.55f));
         }
 
+        private static BreakoutBrickLockSpec BuildBrickLock(DeterministicRandomService random)
+        {
+            var lockedRow = random.Range(0.18f, 0.82f);
+            var keyRow = Mathf.Repeat(lockedRow + random.Range(0.32f, 0.68f), 1f);
+            return new BreakoutBrickLockSpec(
+                lockedRow,
+                random.Range(0.22f, 0.78f),
+                keyRow,
+                random.Range(0.22f, 0.78f),
+                random.NextBool() ? 1 : 2);
+        }
+
         internal static float CalculateDropTideReleaseDelay(float elapsedSeconds, BreakoutDropTideSpec spec)
         {
             if (elapsedSeconds < 0f || spec.WaveIntervalSeconds <= 0.001f)
@@ -2200,7 +2276,8 @@ namespace GetBricked.Gameplay
                 || selection == LevelGlitchSelection.ThinAir
                 || selection == LevelGlitchSelection.PrismShuffle
                 || selection == LevelGlitchSelection.CloneStatic
-                || selection == LevelGlitchSelection.DropTide;
+                || selection == LevelGlitchSelection.DropTide
+                || selection == LevelGlitchSelection.BrickLock;
         }
 
         private static BreakoutWarpGateWall ResolveGateWall(DeterministicRandomService random, int index)

@@ -1,5 +1,6 @@
 using GetBricked.Gameplay;
 using GetBricked.Gameplay.Data;
+using System.Collections.Generic;
 using NUnit.Framework;
 using UnityEngine;
 
@@ -665,6 +666,28 @@ public sealed class BreakoutLevelGlitchPlannerTests
         Assert.That(unlockedPlan.DropTide.MinimumHoldSeconds, Is.InRange(0.12f, 0.22f));
     }
 
+    [Test]
+    public void RogueGlitchHeatControlsWhenBrickLockCanUnlock()
+    {
+        var lockedSettings = CreateRogueSettings(
+            rogueIntensity: BreakoutLevelGlitchPlanner.BrickLockLadderUnlockIntensity,
+            levelGlitchSelection: LevelGlitchSelection.BrickLock);
+        var unlockedSettings = CreateRogueSettings(
+            rogueIntensity: BreakoutLevelGlitchPlanner.BrickLockLadderUnlockIntensity + 1,
+            levelGlitchSelection: LevelGlitchSelection.BrickLock);
+
+        var lockedPlan = BreakoutLevelGlitchPlanner.BuildPlan(new DeterministicRandomService(7), lockedSettings, levelIndex: 9);
+        var unlockedPlan = BreakoutLevelGlitchPlanner.BuildPlan(new DeterministicRandomService(7), unlockedSettings, levelIndex: 9);
+
+        Assert.That(lockedPlan.IsActive, Is.False);
+        Assert.That(unlockedPlan.IsActive, Is.True);
+        Assert.That(unlockedPlan.GlitchType, Is.EqualTo(BreakoutLevelGlitchType.BrickLock));
+        Assert.That(unlockedPlan.DisplayName, Is.EqualTo("Brick Lock"));
+        Assert.That(unlockedPlan.Rarity, Is.EqualTo(BreakoutContentRarity.Epic));
+        Assert.That(unlockedPlan.ScoreMultiplier, Is.EqualTo(1.47f).Within(0.0001f));
+        Assert.That(unlockedPlan.BrickLock.ClusterRadius, Is.InRange(1, 2));
+    }
+
 
     [Test]
     public void ForcedWarpGatePlanBuildsSmallPortalSetAndScoreBonus()
@@ -1118,6 +1141,21 @@ public sealed class BreakoutLevelGlitchPlannerTests
     }
 
     [Test]
+    public void SelectedBrickLockAlwaysBuildsBrickLockEvenWhenChanceIsDisabled()
+    {
+        var settings = CreateSettings(
+            levelGlitchesEnabled: true,
+            chanceMultiplier: 0f,
+            levelGlitchSelection: LevelGlitchSelection.BrickLock);
+
+        var plan = BreakoutLevelGlitchPlanner.BuildPlan(new DeterministicRandomService(3), settings, levelIndex: 9);
+
+        Assert.That(plan.IsActive, Is.True);
+        Assert.That(plan.GlitchType, Is.EqualTo(BreakoutLevelGlitchType.BrickLock));
+        Assert.That(plan.HudLabel, Does.Contain("Brick Lock"));
+    }
+
+    [Test]
     public void ScoreLeakPenaltyTricklesFromAccumulatorWithoutDroppingBelowZero()
     {
         var accumulator = 0f;
@@ -1280,6 +1318,97 @@ public sealed class BreakoutLevelGlitchPlannerTests
 
         Assert.That(earlyDelay, Is.EqualTo(0.95f).Within(0.0001f));
         Assert.That(nearWaveDelay, Is.EqualTo(1.3f).Within(0.0001f));
+    }
+
+    [Test]
+    public void BrickLockServiceShieldsClusterAndClearRestoresBricks()
+    {
+        var definition = ScriptableObject.CreateInstance<BrickDefinition>();
+        var brickObjects = new List<GameObject>();
+        var bricks = new List<Brick>();
+
+        try
+        {
+            for (var row = 0; row < 2; row++)
+            {
+                for (var column = 0; column < 3; column++)
+                {
+                    var brickObject = new GameObject($"Brick Lock Test {row}-{column}");
+                    brickObjects.Add(brickObject);
+                    brickObject.AddComponent<BoxCollider2D>();
+                    var visualObject = new GameObject("Visual");
+                    visualObject.transform.SetParent(brickObject.transform, false);
+                    visualObject.AddComponent<SpriteRenderer>();
+                    var brick = brickObject.AddComponent<Brick>();
+                    brick.Initialize(
+                        null,
+                        definition,
+                        1,
+                        new ThemeVisualStyle(Color.white, Color.gray, null),
+                        0f,
+                        Vector2.zero,
+                        row,
+                        column);
+                    bricks.Add(brick);
+                }
+            }
+
+            var service = new BreakoutBrickLockService(bricks);
+            var shieldedCount = service.Arm(new BreakoutBrickLockSpec(0f, 0.5f, 1f, 0.5f, 1), 2, 3);
+
+            Assert.That(shieldedCount, Is.GreaterThan(0));
+            Assert.That(service.ShieldedCount, Is.EqualTo(shieldedCount));
+            Assert.That(service.KeyCount, Is.GreaterThan(0));
+            Assert.That(bricks.FindAll(brick => brick.IsBrickLockShielded).Count, Is.EqualTo(shieldedCount));
+
+            service.Clear();
+
+            Assert.That(bricks.Exists(brick => brick.IsBrickLockShielded), Is.False);
+        }
+        finally
+        {
+            for (var index = 0; index < brickObjects.Count; index++)
+            {
+                Object.DestroyImmediate(brickObjects[index]);
+            }
+
+            Object.DestroyImmediate(definition);
+        }
+    }
+
+    [Test]
+    public void BrickLockShieldBlocksEffectDamage()
+    {
+        var definition = ScriptableObject.CreateInstance<BrickDefinition>();
+        var brickObject = new GameObject("Brick Lock Shield Test");
+        var visualObject = new GameObject("Visual");
+
+        try
+        {
+            brickObject.AddComponent<BoxCollider2D>();
+            visualObject.transform.SetParent(brickObject.transform, false);
+            visualObject.AddComponent<SpriteRenderer>();
+            var brick = brickObject.AddComponent<Brick>();
+            brick.Initialize(
+                null,
+                definition,
+                1,
+                new ThemeVisualStyle(Color.white, Color.gray, null),
+                0f,
+                Vector2.zero);
+
+            brick.SetBrickLockShielded(true);
+            brick.ApplyEffectHit(null, BrickDestructionCause.Laser, 10);
+
+            Assert.That(brick.IsBrickLockShielded, Is.True);
+            Assert.That(brick.IsPendingRemoval, Is.False);
+            Assert.That(brick.HitPointsRemaining, Is.EqualTo(1));
+        }
+        finally
+        {
+            Object.DestroyImmediate(brickObject);
+            Object.DestroyImmediate(definition);
+        }
     }
 
     [Test]
