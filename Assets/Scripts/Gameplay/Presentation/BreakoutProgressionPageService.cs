@@ -288,6 +288,13 @@ namespace GetBricked.Gameplay
                 BreakoutLevelGlitchPlanner.ThinAirLadderUnlockIntensity,
                 highestCompletedIntensity,
                 SplitAccent));
+            cards.Add(BuildUnlockableGlitchCard(
+                "Prism Shuffle",
+                "Precision Epic Glitch",
+                "Marked bricks rotate rebounds into sharper angles.",
+                BreakoutLevelGlitchPlanner.PrismShuffleLadderUnlockIntensity,
+                highestCompletedIntensity,
+                PrecisionAccent));
             AppendPlaceholderCards(cards, PlaceholderDrops, highestCompletedIntensity);
             AppendPlaceholderCards(cards, PlaceholderGlitches, highestCompletedIntensity);
             cards.Add(BuildHiddenSlotCard("Future Drop Slot", "Drop", "Hidden", "Future drop signal pending."));
@@ -721,6 +728,11 @@ namespace GetBricked.Gameplay
             }
 
             if (completedIntensity >= BreakoutLevelGlitchPlanner.ThinAirLadderUnlockIntensity)
+            {
+                count++;
+            }
+
+            if (completedIntensity >= BreakoutLevelGlitchPlanner.PrismShuffleLadderUnlockIntensity)
             {
                 count++;
             }

@@ -183,7 +183,7 @@ namespace GetBricked.Gameplay
                     SelectedLevelGlitch = (LevelGlitchSelection)Mathf.Clamp(
                         (int)SelectedLevelGlitch + direction,
                         (int)LevelGlitchSelection.Off,
-                        (int)LevelGlitchSelection.ThinAir);
+                        (int)LevelGlitchSelection.PrismShuffle);
                     break;
                 case BreakoutRunSetupField.Theme:
                     ThemeId = shiftThemeId != null ? shiftThemeId(ThemeId, direction) : ThemeId;
@@ -360,7 +360,7 @@ namespace GetBricked.Gameplay
             return (LevelGlitchSelection)Mathf.Clamp(
                 (int)selection,
                 (int)LevelGlitchSelection.Off,
-                (int)LevelGlitchSelection.ThinAir);
+                (int)LevelGlitchSelection.PrismShuffle);
         }
 
         private static string BuildLevelGlitchWarningLabel(LevelGlitchSelection selection)
@@ -392,6 +392,7 @@ namespace GetBricked.Gameplay
                 LevelGlitchSelection.ScoreLeak => "Score Leak",
                 LevelGlitchSelection.LaserRain => "Laser Rain",
                 LevelGlitchSelection.ThinAir => "Thin Air",
+                LevelGlitchSelection.PrismShuffle => "Prism Shuffle",
                 _ => "Random glitches",
             };
         }

@@ -594,6 +594,30 @@ public sealed class BreakoutLevelGlitchPlannerTests
         Assert.That(unlockedPlan.ThinAir.WarningSeconds, Is.InRange(0.52f, 0.78f));
     }
 
+    [Test]
+    public void RogueGlitchHeatControlsWhenPrismShuffleCanUnlock()
+    {
+        var lockedSettings = CreateRogueSettings(
+            rogueIntensity: BreakoutLevelGlitchPlanner.PrismShuffleLadderUnlockIntensity,
+            levelGlitchSelection: LevelGlitchSelection.PrismShuffle);
+        var unlockedSettings = CreateRogueSettings(
+            rogueIntensity: BreakoutLevelGlitchPlanner.PrismShuffleLadderUnlockIntensity + 1,
+            levelGlitchSelection: LevelGlitchSelection.PrismShuffle);
+
+        var lockedPlan = BreakoutLevelGlitchPlanner.BuildPlan(new DeterministicRandomService(7), lockedSettings, levelIndex: 9);
+        var unlockedPlan = BreakoutLevelGlitchPlanner.BuildPlan(new DeterministicRandomService(7), unlockedSettings, levelIndex: 9);
+
+        Assert.That(lockedPlan.IsActive, Is.False);
+        Assert.That(unlockedPlan.IsActive, Is.True);
+        Assert.That(unlockedPlan.GlitchType, Is.EqualTo(BreakoutLevelGlitchType.PrismShuffle));
+        Assert.That(unlockedPlan.DisplayName, Is.EqualTo("Prism Shuffle"));
+        Assert.That(unlockedPlan.Rarity, Is.EqualTo(BreakoutContentRarity.Epic));
+        Assert.That(unlockedPlan.ScoreMultiplier, Is.EqualTo(1.43f).Within(0.0001f));
+        Assert.That(unlockedPlan.PrismShuffle.AffectedBrickChance, Is.InRange(0.36f, 0.48f));
+        Assert.That(unlockedPlan.PrismShuffle.RotationDegrees, Is.InRange(11f, 16f));
+        Assert.That(unlockedPlan.PrismShuffle.MinimumHorizontal, Is.InRange(0.54f, 0.68f));
+    }
+
 
     [Test]
     public void ForcedWarpGatePlanBuildsSmallPortalSetAndScoreBonus()
@@ -1002,6 +1026,21 @@ public sealed class BreakoutLevelGlitchPlannerTests
     }
 
     [Test]
+    public void SelectedPrismShuffleAlwaysBuildsPrismShuffleEvenWhenChanceIsDisabled()
+    {
+        var settings = CreateSettings(
+            levelGlitchesEnabled: true,
+            chanceMultiplier: 0f,
+            levelGlitchSelection: LevelGlitchSelection.PrismShuffle);
+
+        var plan = BreakoutLevelGlitchPlanner.BuildPlan(new DeterministicRandomService(3), settings, levelIndex: 9);
+
+        Assert.That(plan.IsActive, Is.True);
+        Assert.That(plan.GlitchType, Is.EqualTo(BreakoutLevelGlitchType.PrismShuffle));
+        Assert.That(plan.HudLabel, Does.Contain("Prism Shuffle"));
+    }
+
+    [Test]
     public void ScoreLeakPenaltyTricklesFromAccumulatorWithoutDroppingBelowZero()
     {
         var accumulator = 0f;
@@ -1024,6 +1063,21 @@ public sealed class BreakoutLevelGlitchPlannerTests
         Assert.That(refracted.x, Is.LessThan(-0.4f));
         Assert.That(refracted.y, Is.GreaterThan(0f));
         Assert.That(refracted.magnitude, Is.EqualTo(1f).Within(0.0001f));
+    }
+
+    [Test]
+    public void PrismShuffleRotatesBrickReboundIntoSharperHorizontalDirection()
+    {
+        var shuffled = Brick.BuildPrismShuffleDirection(
+            new Vector2(0.08f, 1f),
+            Vector2.down,
+            1f,
+            14f,
+            0.58f);
+
+        Assert.That(shuffled.x, Is.GreaterThan(0.57f));
+        Assert.That(shuffled.y, Is.LessThan(0f));
+        Assert.That(shuffled.magnitude, Is.EqualTo(1f).Within(0.0001f));
     }
 
     [Test]

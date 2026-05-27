@@ -264,7 +264,7 @@ Late drop proposals should keep using mechanics the game already teaches: paddle
 | `Score Leak` | Score trickles down between brick breaks. | Heat 23 | Epic | Score glitch | Implemented |
 | `Laser Rain` | Warning lanes fire brief vertical beams that can crack bricks or bounce balls. | Heat 24 | Epic | Hazard glitch | Implemented |
 | `Thin Air` | One side wall opens and closes on a timer. | Heat 25 | Epic | Wall glitch | Implemented |
-| `Prism Shuffle` | Rebounds from marked bricks rotate into sharper angles. | Heat 26 | Epic | Precision glitch | Not implemented (proposal) |
+| `Prism Shuffle` | Rebounds from marked bricks rotate into sharper angles. | Heat 26 | Epic | Precision glitch | Implemented |
 | `Clone Static` | A ghost paddle copies your last movement with a delay. | Heat 27 | Epic | Paddle glitch | Not implemented (proposal) |
 | `Drop Tide` | Capsules fall in waves instead of one at a time. | Heat 28 | Epic | Pickup glitch | Not implemented (proposal) |
 | `Brick Lock` | A random brick cluster shields itself until another cluster breaks. | Heat 29 | Epic | Objective glitch | Not implemented (proposal) |

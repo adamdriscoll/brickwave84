@@ -60,6 +60,7 @@ namespace GetBricked.Gameplay.Data
         ScoreLeak = 24,
         LaserRain = 25,
         ThinAir = 26,
+        PrismShuffle = 27,
     }
 
     public sealed class RunSettings
@@ -242,6 +243,7 @@ namespace GetBricked.Gameplay.Data
             LevelGlitchSelection.ScoreLeak => "Score Leak Armed",
             LevelGlitchSelection.LaserRain => "Laser Rain Armed",
             LevelGlitchSelection.ThinAir => "Thin Air Armed",
+            LevelGlitchSelection.PrismShuffle => "Prism Shuffle Armed",
             _ => "Clean Walls",
         };
 
@@ -252,7 +254,7 @@ namespace GetBricked.Gameplay.Data
             var normalized = (LevelGlitchSelection)Mathf.Clamp(
                 (int)levelGlitchSelection,
                 (int)LevelGlitchSelection.Off,
-                (int)LevelGlitchSelection.ThinAir);
+                (int)LevelGlitchSelection.PrismShuffle);
 
             if (!levelGlitchesEnabled && normalized == LevelGlitchSelection.Random)
             {

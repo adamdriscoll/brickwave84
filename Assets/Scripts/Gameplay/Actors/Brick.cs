@@ -20,6 +20,7 @@ namespace GetBricked.Gameplay
         private BrickDefinition definition;
         private SpriteRenderer spriteRenderer;
         private BreakoutGlowRenderer glowRenderer;
+        private SpriteRenderer prismShuffleRenderer;
         private BoxCollider2D brickCollider;
         private Rigidbody2D brickBody;
         private HingeJoint2D spinJoint;
@@ -51,6 +52,10 @@ namespace GetBricked.Gameplay
         private bool isFlickerColliderVisible = true;
         private bool isGhosted;
         private bool isBlacklightDisguised;
+        private bool isPrismShuffleMarked;
+        private float prismShuffleRotationSign = 1f;
+        private float prismShuffleRotationDegrees;
+        private float prismShuffleMinimumHorizontal;
         private bool hasCompletionOverride;
         private bool countsTowardLevelCompletionOverride;
         private Vector3 visualBaseScale = Vector3.one;
@@ -80,6 +85,8 @@ namespace GetBricked.Gameplay
         public bool IsPendingRemoval => isPendingRemoval;
 
         public bool IsBlacklightDisguised => isBlacklightDisguised;
+
+        public bool IsPrismShuffleMarked => isPrismShuffleMarked;
 
         public void Initialize(
             BreakoutGameController controller,
@@ -204,6 +211,27 @@ namespace GetBricked.Gameplay
             ApplyVisualStyle(themedStyle);
         }
 
+        public void SetPrismShuffleMarked(float rotationSign, float rotationDegrees, float minimumHorizontal)
+        {
+            if (definition == null || !definition.IsBreakable)
+            {
+                return;
+            }
+
+            isPrismShuffleMarked = true;
+            prismShuffleRotationSign = Mathf.Sign(Mathf.Approximately(rotationSign, 0f) ? 1f : rotationSign);
+            prismShuffleRotationDegrees = Mathf.Clamp(rotationDegrees, 6f, 24f);
+            prismShuffleMinimumHorizontal = Mathf.Clamp(minimumHorizontal, 0.32f, 0.82f);
+            EnsurePrismShuffleRenderer();
+            RefreshPrismShuffleVisual();
+        }
+
+        public void ClearPrismShuffleMarked()
+        {
+            isPrismShuffleMarked = false;
+            RefreshPrismShuffleVisual();
+        }
+
         private void ApplyVisualStyle(ThemeVisualStyle visualStyle)
         {
             spriteRenderer ??= GetComponentInChildren<SpriteRenderer>();
@@ -220,6 +248,7 @@ namespace GetBricked.Gameplay
             themedDamagedColor = visualStyle.SecondaryColor;
             glowRenderer?.ApplyStyle(visualStyle);
             RefreshVisual();
+            RefreshPrismShuffleVisual();
         }
 
         public void SetVisibilityMultiplier(float multiplier)
@@ -388,6 +417,7 @@ namespace GetBricked.Gameplay
         {
             UpdateFlicker(forceRefresh: false);
             UpdateJellyWobble();
+            UpdatePrismShufflePulse();
         }
 
         private void OnCollisionEnter2D(Collision2D collision)
@@ -498,6 +528,99 @@ namespace GetBricked.Gameplay
 
             ball.ApplyCollisionResponse(bounceDirection, 0.08f);
             return true;
+        }
+
+        public bool TryApplyPrismShuffleCollisionResponse(BallController ball, Collision2D collision)
+        {
+            if (!isPrismShuffleMarked
+                || ball == null
+                || collision == null
+                || definition == null
+                || !definition.IsBreakable)
+            {
+                return false;
+            }
+
+            var surfaceNormal = collision.contactCount > 0
+                ? collision.GetContact(0).normal
+                : ((Vector2)ball.transform.position - (Vector2)transform.position).normalized;
+            var relativeVelocity = collision.relativeVelocity;
+
+            if (relativeVelocity.sqrMagnitude <= 0.0001f)
+            {
+                relativeVelocity = ball.CurrentVelocity;
+            }
+
+            var shuffleDirection = BuildPrismShuffleDirection(
+                relativeVelocity,
+                surfaceNormal,
+                prismShuffleRotationSign,
+                prismShuffleRotationDegrees,
+                prismShuffleMinimumHorizontal);
+
+            if (shuffleDirection.sqrMagnitude <= 0.0001f)
+            {
+                return false;
+            }
+
+            ball.ApplyCollisionResponse(shuffleDirection, 0.08f);
+            PulsePrismShuffleMark();
+            return true;
+        }
+
+        internal static Vector2 BuildPrismShuffleDirection(
+            Vector2 incomingVelocity,
+            Vector2 surfaceNormal,
+            float rotationSign,
+            float rotationDegrees,
+            float minimumHorizontal)
+        {
+            var incomingDirection = incomingVelocity.sqrMagnitude > 0.001f
+                ? incomingVelocity.normalized
+                : Vector2.down;
+            var resolvedNormal = surfaceNormal.sqrMagnitude > 0.001f
+                ? surfaceNormal.normalized
+                : Vector2.up;
+
+            if (Vector2.Dot(resolvedNormal, incomingDirection) > -0.05f)
+            {
+                resolvedNormal = -resolvedNormal;
+            }
+
+            var reflectedDirection = Vector2.Reflect(incomingDirection, resolvedNormal).normalized;
+            var sign = Mathf.Sign(Mathf.Approximately(rotationSign, 0f) ? reflectedDirection.x : rotationSign);
+            var angle = Mathf.Clamp(rotationDegrees, 0f, 28f) * Mathf.Deg2Rad * sign;
+            var sin = Mathf.Sin(angle);
+            var cos = Mathf.Cos(angle);
+            var rotatedDirection = new Vector2(
+                (reflectedDirection.x * cos) - (reflectedDirection.y * sin),
+                (reflectedDirection.x * sin) + (reflectedDirection.y * cos));
+            var horizontalSign = Mathf.Sign(rotatedDirection.x);
+
+            if (Mathf.Approximately(horizontalSign, 0f))
+            {
+                horizontalSign = sign;
+            }
+
+            var verticalSign = Mathf.Sign(rotatedDirection.y);
+
+            if (Mathf.Approximately(verticalSign, 0f))
+            {
+                verticalSign = Mathf.Sign(reflectedDirection.y);
+            }
+
+            if (Mathf.Approximately(verticalSign, 0f))
+            {
+                verticalSign = 1f;
+            }
+
+            var horizontalMagnitude = Mathf.Clamp(
+                Mathf.Max(Mathf.Abs(rotatedDirection.x), minimumHorizontal),
+                0.08f,
+                0.92f);
+            var verticalMagnitude = Mathf.Sqrt(Mathf.Max(0.01f, 1f - (horizontalMagnitude * horizontalMagnitude)));
+
+            return new Vector2(horizontalMagnitude * horizontalSign, verticalMagnitude * verticalSign).normalized;
         }
 
         internal bool TryGetSpinBounceDirection(
@@ -695,6 +818,78 @@ namespace GetBricked.Gameplay
             resolvedColor.a *= visibilityMultiplier * transitionVisibilityMultiplier * flickerVisibilityMultiplier * ghostVisibilityMultiplier;
             spriteRenderer.color = resolvedColor;
             glowRenderer?.ApplyColor(resolvedColor);
+            RefreshPrismShuffleVisual();
+        }
+
+        private void EnsurePrismShuffleRenderer()
+        {
+            if (prismShuffleRenderer != null || spriteRenderer == null)
+            {
+                return;
+            }
+
+            var markObject = new GameObject("Prism Shuffle Mark");
+            markObject.transform.SetParent(spriteRenderer.transform, false);
+            markObject.transform.localPosition = Vector3.zero;
+            markObject.transform.localRotation = Quaternion.identity;
+            markObject.transform.localScale = Vector3.one * 1.08f;
+            prismShuffleRenderer = markObject.AddComponent<SpriteRenderer>();
+            prismShuffleRenderer.sharedMaterial = spriteRenderer.sharedMaterial;
+            prismShuffleRenderer.sortingLayerID = spriteRenderer.sortingLayerID;
+            prismShuffleRenderer.sortingOrder = spriteRenderer.sortingOrder + 1;
+        }
+
+        private void RefreshPrismShuffleVisual()
+        {
+            if (!isPrismShuffleMarked || spriteRenderer == null)
+            {
+                if (prismShuffleRenderer != null)
+                {
+                    prismShuffleRenderer.enabled = false;
+                }
+
+                return;
+            }
+
+            EnsurePrismShuffleRenderer();
+
+            if (prismShuffleRenderer == null)
+            {
+                return;
+            }
+
+            prismShuffleRenderer.enabled = true;
+            prismShuffleRenderer.sprite = spriteRenderer.sprite;
+            prismShuffleRenderer.sortingLayerID = spriteRenderer.sortingLayerID;
+            prismShuffleRenderer.sortingOrder = spriteRenderer.sortingOrder + 1;
+            var tint = prismShuffleRotationSign > 0f
+                ? new Color(0.03f, 0.93f, 0.98f, 0.44f)
+                : new Color(1f, 0.22f, 0.84f, 0.44f);
+            tint.a *= visibilityMultiplier * transitionVisibilityMultiplier * flickerVisibilityMultiplier * ghostVisibilityMultiplier;
+            prismShuffleRenderer.color = tint;
+        }
+
+        private void PulsePrismShuffleMark()
+        {
+            if (prismShuffleRenderer == null)
+            {
+                return;
+            }
+
+            prismShuffleRenderer.transform.localScale = Vector3.one * 1.18f;
+        }
+
+        private void UpdatePrismShufflePulse()
+        {
+            if (prismShuffleRenderer == null || !prismShuffleRenderer.enabled)
+            {
+                return;
+            }
+
+            prismShuffleRenderer.transform.localScale = Vector3.Lerp(
+                prismShuffleRenderer.transform.localScale,
+                Vector3.one * 1.08f,
+                Mathf.Clamp01(Time.deltaTime * 8f));
         }
 
         private void RevealBlacklightDisguise()

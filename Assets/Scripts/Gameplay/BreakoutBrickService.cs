@@ -63,6 +63,8 @@ namespace GetBricked.Gameplay
         private BreakoutFlickerBricksSpec activeFlickerBricksSpec;
         private bool hasActiveBlacklightBricks;
         private Sprite blacklightDisguiseSprite;
+        private bool hasActivePrismShuffle;
+        private BreakoutPrismShuffleSpec activePrismShuffleSpec;
 
         public BreakoutBrickService(
             BreakoutGameController controller,
@@ -210,6 +212,7 @@ namespace GetBricked.Gameplay
             brick.SetMovementBounds(movementBoundsResolver());
             ApplyActiveFlickerToBrick(brick, row, column, position);
             ApplyActiveBlacklightToBrick(brick);
+            ApplyActivePrismShuffleToBrick(brick, row, column, position);
             bricks.Add(brick);
             return brick;
         }
@@ -669,6 +672,51 @@ namespace GetBricked.Gameplay
             }
         }
 
+        public int ApplyPrismShuffle(BreakoutPrismShuffleSpec spec)
+        {
+            hasActivePrismShuffle = true;
+            activePrismShuffleSpec = spec;
+            var markedCount = 0;
+
+            for (var index = bricks.Count - 1; index >= 0; index--)
+            {
+                var brick = bricks[index];
+
+                if (brick == null)
+                {
+                    bricks.RemoveAt(index);
+                    continue;
+                }
+
+                var state = brick.CaptureState();
+                if (ApplyPrismShuffleToBrick(brick, state.Row, state.Column, state.Position, spec))
+                {
+                    markedCount++;
+                }
+            }
+
+            return markedCount;
+        }
+
+        public void ClearPrismShuffle()
+        {
+            hasActivePrismShuffle = false;
+            activePrismShuffleSpec = default;
+
+            for (var index = bricks.Count - 1; index >= 0; index--)
+            {
+                var brick = bricks[index];
+
+                if (brick == null)
+                {
+                    bricks.RemoveAt(index);
+                    continue;
+                }
+
+                brick.ClearPrismShuffleMarked();
+            }
+        }
+
         internal static Vector2[] BuildSplitBrickOffsets(Vector2 baseBrickSize, BrickDefinition splitDefinition)
         {
             return BuildSplitBrickOffsets(baseBrickSize, splitDefinition, 4);
@@ -745,6 +793,14 @@ namespace GetBricked.Gameplay
             }
         }
 
+        private void ApplyActivePrismShuffleToBrick(Brick brick, int row, int column, Vector2 position)
+        {
+            if (hasActivePrismShuffle)
+            {
+                ApplyPrismShuffleToBrick(brick, row, column, position, activePrismShuffleSpec);
+            }
+        }
+
         private bool ApplyBlacklightToBrick(Brick brick)
         {
             if (brick == null || brick.Definition == null || !brick.Definition.IsBreakable)
@@ -786,6 +842,30 @@ namespace GetBricked.Gameplay
             var cycleSeconds = spec.VisibleSeconds + spec.HiddenSeconds;
             var phaseSeconds = ResolveFlickerRoll(row + 17, column + 31, position, spec.PatternSeed ^ 0x2A3F) * cycleSeconds;
             brick.SetFlicker(spec.VisibleSeconds, spec.HiddenSeconds, spec.HiddenAlpha, phaseSeconds);
+            return true;
+        }
+
+        private static bool ApplyPrismShuffleToBrick(
+            Brick brick,
+            int row,
+            int column,
+            Vector2 position,
+            BreakoutPrismShuffleSpec spec)
+        {
+            if (brick == null || brick.Definition == null || !brick.Definition.IsBreakable)
+            {
+                return false;
+            }
+
+            if (ResolveFlickerRoll(row, column, position, spec.PatternSeed) > spec.AffectedBrickChance)
+            {
+                brick.ClearPrismShuffleMarked();
+                return false;
+            }
+
+            var signRoll = ResolveFlickerRoll(row + 23, column + 41, position, spec.PatternSeed ^ 0x5C1A);
+            var rotationSign = signRoll < 0.5f ? -1f : 1f;
+            brick.SetPrismShuffleMarked(rotationSign, spec.RotationDegrees, spec.MinimumHorizontal);
             return true;
         }
 

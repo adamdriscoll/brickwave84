@@ -3860,6 +3860,12 @@ namespace GetBricked.Gameplay
                 powerUpService?.ShowStatusBanner("PRISM LANES!", new Color(1f, 0.87f, 0.36f, 1f), 2.2f);
             }
 
+            if (activeLevelGlitchPlan.HasGlitch(BreakoutLevelGlitchType.PrismShuffle))
+            {
+                ApplyPrismShuffle(activeLevelGlitchPlan.PrismShuffle);
+                powerUpService?.ShowStatusBanner("PRISM SHUFFLE!", new Color(1f, 0.87f, 0.36f, 1f), 2.2f);
+            }
+
             if (activeLevelGlitchPlan.HasGlitch(BreakoutLevelGlitchType.SwitchbackRails))
             {
                 CreateSwitchbackRails(activeLevelGlitchPlan);
@@ -4005,6 +4011,7 @@ namespace GetBricked.Gameplay
 
             brickService?.ClearFlickerBricks();
             brickService?.ClearBlacklightBricks();
+            brickService?.ClearPrismShuffle();
             ClearGravityPocketFromBalls();
             ClearMagnetStormFromPickups();
             ClearSplitHorizonFromBalls();
@@ -4098,6 +4105,11 @@ namespace GetBricked.Gameplay
         private void ApplyBlacklightBricks()
         {
             brickService?.ApplyBlacklightBricks();
+        }
+
+        private void ApplyPrismShuffle(BreakoutPrismShuffleSpec prismShuffle)
+        {
+            brickService?.ApplyPrismShuffle(prismShuffle);
         }
 
         private void ArmGhostRow(BreakoutGhostRowSpec ghostRow)
@@ -4203,6 +4215,11 @@ namespace GetBricked.Gameplay
             if (activeLevelGlitchPlan.HasGlitch(BreakoutLevelGlitchType.BrickConveyor))
             {
                 brickService.ApplyBrickConveyor(activeLevelGlitchPlan.BrickConveyor);
+            }
+
+            if (activeLevelGlitchPlan.HasGlitch(BreakoutLevelGlitchType.PrismShuffle))
+            {
+                brickService.ApplyPrismShuffle(activeLevelGlitchPlan.PrismShuffle);
             }
         }
 
@@ -6950,6 +6967,7 @@ namespace GetBricked.Gameplay
                 LevelGlitchSelection.ScoreLeak => "Score Leak",
                 LevelGlitchSelection.LaserRain => "Laser Rain",
                 LevelGlitchSelection.ThinAir => "Thin Air",
+                LevelGlitchSelection.PrismShuffle => "Prism Shuffle",
                 _ => "Off",
             };
         }

@@ -33,6 +33,7 @@ namespace GetBricked.Gameplay
         ScoreLeak = 23,
         LaserRain = 24,
         ThinAir = 25,
+        PrismShuffle = 26,
     }
 
     internal readonly struct BreakoutLevelGlitchDefinition
@@ -393,6 +394,25 @@ namespace GetBricked.Gameplay
         public float GraceSeconds { get; }
     }
 
+    internal readonly struct BreakoutPrismShuffleSpec
+    {
+        public BreakoutPrismShuffleSpec(float affectedBrickChance, float rotationDegrees, float minimumHorizontal, int patternSeed)
+        {
+            AffectedBrickChance = Mathf.Clamp(affectedBrickChance, 0.2f, 0.65f);
+            RotationDegrees = Mathf.Clamp(rotationDegrees, 6f, 24f);
+            MinimumHorizontal = Mathf.Clamp(minimumHorizontal, 0.32f, 0.82f);
+            PatternSeed = patternSeed == int.MinValue ? int.MaxValue : Mathf.Abs(patternSeed);
+        }
+
+        public float AffectedBrickChance { get; }
+
+        public float RotationDegrees { get; }
+
+        public float MinimumHorizontal { get; }
+
+        public int PatternSeed { get; }
+    }
+
     internal static class BreakoutScoreLeakCalculator
     {
         public static int CalculatePenalty(int currentScore, float pointsPerSecond, float deltaSeconds, ref float leakAccumulator)
@@ -494,7 +514,8 @@ namespace GetBricked.Gameplay
             BreakoutGravityPocketSpec[] magnetStormPockets = null,
             BreakoutBrickConveyorSpec brickConveyor = default,
             BreakoutRewindWallSpec rewindWall = default,
-            BreakoutScoreLeakSpec scoreLeak = default)
+            BreakoutScoreLeakSpec scoreLeak = default,
+            BreakoutPrismShuffleSpec prismShuffle = default)
         {
             GlitchType = glitchType;
             Rarity = BreakoutRarityRules.Clamp(rarity);
@@ -521,6 +542,7 @@ namespace GetBricked.Gameplay
             BrickConveyor = brickConveyor;
             RewindWall = rewindWall;
             ScoreLeak = scoreLeak;
+            PrismShuffle = prismShuffle;
             ActiveGlitchTypes = activeGlitchTypes != null && activeGlitchTypes.Length > 0
                 ? activeGlitchTypes
                 : glitchType != BreakoutLevelGlitchType.None
@@ -578,6 +600,8 @@ namespace GetBricked.Gameplay
 
         public BreakoutScoreLeakSpec ScoreLeak { get; }
 
+        public BreakoutPrismShuffleSpec PrismShuffle { get; }
+
         public BreakoutLevelGlitchType[] ActiveGlitchTypes { get; }
 
         public bool IsActive => ActiveGlitchTypes.Length > 0;
@@ -622,6 +646,7 @@ namespace GetBricked.Gameplay
         public const int ScoreLeakLadderUnlockIntensity = 23;
         public const int LaserRainLadderUnlockIntensity = 24;
         public const int ThinAirLadderUnlockIntensity = 25;
+        public const int PrismShuffleLadderUnlockIntensity = 26;
 
         private const float WarpGateScoreMultiplier = 1.35f;
         private const float TurboRailScoreMultiplier = 1.25f;
@@ -648,6 +673,7 @@ namespace GetBricked.Gameplay
         private const float ScoreLeakScoreMultiplier = 1.42f;
         private const float LaserRainScoreMultiplier = 1.44f;
         private const float ThinAirScoreMultiplier = 1.45f;
+        private const float PrismShuffleScoreMultiplier = 1.43f;
 
         private static readonly BreakoutLevelGlitchDefinition[] GlitchDefinitions =
         {
@@ -776,6 +802,11 @@ namespace GetBricked.Gameplay
                 LevelGlitchSelection.ThinAir,
                 BreakoutContentRarity.Epic,
                 ThinAirLadderUnlockIntensity),
+            new BreakoutLevelGlitchDefinition(
+                BreakoutLevelGlitchType.PrismShuffle,
+                LevelGlitchSelection.PrismShuffle,
+                BreakoutContentRarity.Epic,
+                PrismShuffleLadderUnlockIntensity),
         };
 
         public static BreakoutLevelGlitchPlan BuildPlan(
@@ -947,6 +978,11 @@ namespace GetBricked.Gameplay
                 return BuildThinAirPlan(random, definition.Rarity);
             }
 
+            if (definition.GlitchType == BreakoutLevelGlitchType.PrismShuffle)
+            {
+                return BuildPrismShufflePlan(random, definition.Rarity);
+            }
+
             return BuildWarpGatePlan(random, definition.Rarity);
         }
 
@@ -1064,6 +1100,7 @@ namespace GetBricked.Gameplay
             var brickConveyor = default(BreakoutBrickConveyorSpec);
             var rewindWall = default(BreakoutRewindWallSpec);
             var scoreLeak = default(BreakoutScoreLeakSpec);
+            var prismShuffle = default(BreakoutPrismShuffleSpec);
 
             for (var index = 0; index < definitions.Count; index++)
             {
@@ -1179,6 +1216,11 @@ namespace GetBricked.Gameplay
                 {
                     scoreLeak = plan.ScoreLeak;
                 }
+
+                if (plan.HasGlitch(BreakoutLevelGlitchType.PrismShuffle))
+                {
+                    prismShuffle = plan.PrismShuffle;
+                }
             }
 
             return new BreakoutLevelGlitchPlan(
@@ -1207,7 +1249,8 @@ namespace GetBricked.Gameplay
                 magnetStormPockets,
                 brickConveyor,
                 rewindWall,
-                scoreLeak);
+                scoreLeak,
+                prismShuffle);
         }
 
         private static void MarkGlitchSelectionExclusions(
@@ -1587,6 +1630,19 @@ namespace GetBricked.Gameplay
                 thinAir: BuildThinAir(random));
         }
 
+        private static BreakoutLevelGlitchPlan BuildPrismShufflePlan(DeterministicRandomService random, BreakoutContentRarity rarity)
+        {
+            return new BreakoutLevelGlitchPlan(
+                BreakoutLevelGlitchType.PrismShuffle,
+                rarity,
+                "Prism Shuffle",
+                $"Prism Shuffle x{PrismShuffleScoreMultiplier:0.00}",
+                PrismShuffleScoreMultiplier,
+                Array.Empty<BreakoutWarpGateSpec>(),
+                default,
+                prismShuffle: BuildPrismShuffle(random));
+        }
+
         public static float GetGlitchChance(RunSettings settings, int levelIndex)
         {
             if (settings == null)
@@ -1817,6 +1873,15 @@ namespace GetBricked.Gameplay
                 random.Range(0f, 4.25f));
         }
 
+        private static BreakoutPrismShuffleSpec BuildPrismShuffle(DeterministicRandomService random)
+        {
+            return new BreakoutPrismShuffleSpec(
+                random.Range(0.36f, 0.48f),
+                random.Range(11f, 16f),
+                random.Range(0.54f, 0.68f),
+                random.Range(1, int.MaxValue));
+        }
+
         private static BreakoutSplitHorizonSpec BuildSplitHorizon(DeterministicRandomService random)
         {
             return new BreakoutSplitHorizonSpec(
@@ -1991,7 +2056,8 @@ namespace GetBricked.Gameplay
                 || selection == LevelGlitchSelection.RewindWall
                 || selection == LevelGlitchSelection.ScoreLeak
                 || selection == LevelGlitchSelection.LaserRain
-                || selection == LevelGlitchSelection.ThinAir;
+                || selection == LevelGlitchSelection.ThinAir
+                || selection == LevelGlitchSelection.PrismShuffle;
         }
 
         private static BreakoutWarpGateWall ResolveGateWall(DeterministicRandomService random, int index)

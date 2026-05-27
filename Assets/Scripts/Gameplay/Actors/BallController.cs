@@ -701,6 +701,12 @@ namespace GetBricked.Gameplay
                 gameController?.TryApplyBogusBounce(this);
             }
 
+            if (collision.collider.TryGetComponent<Brick>(out var prismShuffleBrick)
+                && prismShuffleBrick.TryApplyPrismShuffleCollisionResponse(this, collision))
+            {
+                return;
+            }
+
             if (collision.collider.TryGetComponent<Brick>(out var spinningBrick)
                 && spinningBrick.TryApplyBallCollisionResponse(this, collision))
             {
