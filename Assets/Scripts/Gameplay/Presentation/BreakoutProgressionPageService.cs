@@ -260,6 +260,13 @@ namespace GetBricked.Gameplay
                 BreakoutLevelGlitchPlanner.BlacklightBricksLadderUnlockIntensity,
                 highestCompletedIntensity,
                 PrecisionAccent));
+            cards.Add(BuildUnlockableGlitchCard(
+                "Rewind Wall",
+                "Layout Epic Glitch",
+                "One optional row rebuilds once after it is cleared.",
+                BreakoutLevelGlitchPlanner.RewindWallLadderUnlockIntensity,
+                highestCompletedIntensity,
+                LayoutAccent));
             AppendPlaceholderCards(cards, PlaceholderDrops, highestCompletedIntensity);
             AppendPlaceholderCards(cards, PlaceholderGlitches, highestCompletedIntensity);
             cards.Add(BuildHiddenSlotCard("Future Drop Slot", "Drop", "Hidden", "Future drop signal pending."));
@@ -673,6 +680,11 @@ namespace GetBricked.Gameplay
             }
 
             if (completedIntensity >= BreakoutLevelGlitchPlanner.BlacklightBricksLadderUnlockIntensity)
+            {
+                count++;
+            }
+
+            if (completedIntensity >= BreakoutLevelGlitchPlanner.RewindWallLadderUnlockIntensity)
             {
                 count++;
             }

@@ -13,7 +13,8 @@ namespace GetBricked.Gameplay
             int row,
             int column,
             int hitPointsRemaining,
-            BreakoutBrickMotionConfig motionConfig)
+            BreakoutBrickMotionConfig motionConfig,
+            bool? countsTowardLevelCompletion = null)
         {
             Definition = definition;
             Position = position;
@@ -21,6 +22,9 @@ namespace GetBricked.Gameplay
             Column = Mathf.Max(0, column);
             HitPointsRemaining = Mathf.Max(0, hitPointsRemaining);
             MotionConfig = motionConfig;
+            CountsTowardLevelCompletion = definition != null
+                && definition.IsBreakable
+                && (countsTowardLevelCompletion ?? definition.CountsTowardLevelCompletion);
         }
 
         public BrickDefinition Definition { get; }
@@ -34,6 +38,8 @@ namespace GetBricked.Gameplay
         public int HitPointsRemaining { get; }
 
         public BreakoutBrickMotionConfig MotionConfig { get; }
+
+        public bool CountsTowardLevelCompletion { get; }
     }
 
     internal sealed class BreakoutBrickService
@@ -148,6 +154,7 @@ namespace GetBricked.Gameplay
 
                 var brick = CreateBrick(state.Position, definition, state.Row, state.Column, state.MotionConfig);
                 brick?.RestoreHitPoints(state.HitPointsRemaining);
+                brick?.SetCountsTowardLevelCompletionOverride(state.CountsTowardLevelCompletion);
 
                 if (brick != null && brick.CountsTowardLevelCompletion)
                 {

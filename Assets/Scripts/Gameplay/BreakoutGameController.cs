@@ -250,6 +250,7 @@ namespace GetBricked.Gameplay
         private BreakoutBrickService brickService;
         private BreakoutRowRewriteService rowRewriteService;
         private BreakoutGhostRowService ghostRowService;
+        private BreakoutRewindWallService rewindWallService;
         private BreakoutPaddleSpawnService paddleSpawnService;
         private BreakoutBallSpawnService ballSpawnService;
         private BreakoutMainMenuService mainMenuService;
@@ -489,6 +490,7 @@ namespace GetBricked.Gameplay
             UpdateMagnetStormInfluence();
             UpdateRowRewriteTimer();
             UpdateGhostRow();
+            UpdateRewindWall();
 
             var keyboard = Keyboard.current;
 
@@ -603,6 +605,7 @@ namespace GetBricked.Gameplay
             }
 
             TryTriggerGhostRow(brick);
+            TryTriggerRewindWall(brick);
             runStatsService?.RegisterBrickDestroyed();
             audioService?.PlayBrickDestroyed(brickDefinition);
 
@@ -3456,6 +3459,7 @@ namespace GetBricked.Gameplay
                 DestroyRuntimeObject);
             rowRewriteService = new BreakoutRowRewriteService(bricks, loadedBrickDefinitions);
             ghostRowService = new BreakoutGhostRowService(bricks);
+            rewindWallService = new BreakoutRewindWallService(bricks);
         }
 
         private Rect ResolveBrickMovementBounds()
@@ -3801,6 +3805,12 @@ namespace GetBricked.Gameplay
                 powerUpService?.ShowStatusBanner("BLACKLIGHT!", new Color(1f, 0.49f, 0.86f, 1f), 2.2f);
             }
 
+            if (activeLevelGlitchPlan.HasGlitch(BreakoutLevelGlitchType.RewindWall))
+            {
+                ArmRewindWall(activeLevelGlitchPlan.RewindWall);
+                powerUpService?.ShowStatusBanner("REWIND WALL!", new Color(0.72f, 0.62f, 1f, 1f), 2.2f);
+            }
+
             if (activeLevelGlitchPlan.HasGlitch(BreakoutLevelGlitchType.CassetteSkip))
             {
                 powerUpService?.ShowStatusBanner("CASSETTE SKIP!", new Color(1f, 0.49f, 0.86f, 1f), 2.2f);
@@ -3832,6 +3842,7 @@ namespace GetBricked.Gameplay
             activeRowRewriteSpec = default;
             cassetteSkipPaddleHits = 0;
             ghostRowService?.Clear();
+            rewindWallService?.Clear();
 
             if (activeWarpGateController != null)
             {
@@ -3943,6 +3954,82 @@ namespace GetBricked.Gameplay
             if (ghostRowService.TryTriggerFromHit(brick))
             {
                 powerUpService?.ShowStatusBanner("ROW PHASE!", new Color(0.72f, 0.62f, 1f, 1f), 1.1f);
+            }
+        }
+
+        private void ArmRewindWall(BreakoutRewindWallSpec rewindWall)
+        {
+            var removedObjectiveCount = rewindWallService?.Arm(rewindWall, currentLevelRowCount) ?? 0;
+
+            if (removedObjectiveCount <= 0)
+            {
+                return;
+            }
+
+            requiredBricksRemaining = Mathf.Max(0, requiredBricksRemaining - removedObjectiveCount);
+            EvaluateLevelCompletion();
+        }
+
+        private void UpdateRewindWall()
+        {
+            if (roundState != RoundState.Playing
+                || activeLevelGlitchPlan == null
+                || !activeLevelGlitchPlan.HasGlitch(BreakoutLevelGlitchType.RewindWall)
+                || rewindWallService == null)
+            {
+                return;
+            }
+
+            if (!rewindWallService.Update(Time.deltaTime, out var showWarning, out var rebuildStates))
+            {
+                if (showWarning)
+                {
+                    powerUpService?.ShowStatusBanner("TAPE REVERSING!", new Color(1f, 0.87f, 0.36f, 1f), 1.1f);
+                }
+
+                return;
+            }
+
+            if (brickService == null || rebuildStates == null || rebuildStates.Length == 0)
+            {
+                return;
+            }
+
+            brickService.BuildBrickWall(rebuildStates);
+            ReapplyMotionGlitchesToNewBricks();
+            powerUpService?.ShowStatusBanner("WALL REBUILT!", new Color(0.72f, 0.62f, 1f, 1f), 1.6f);
+        }
+
+        private void TryTriggerRewindWall(Brick brick)
+        {
+            if (activeLevelGlitchPlan == null
+                || !activeLevelGlitchPlan.HasGlitch(BreakoutLevelGlitchType.RewindWall)
+                || rewindWallService == null)
+            {
+                return;
+            }
+
+            if (rewindWallService.TryRegisterDestroyedBrick(brick))
+            {
+                powerUpService?.ShowStatusBanner("REWIND ARMED!", new Color(1f, 0.87f, 0.36f, 1f), 1.1f);
+            }
+        }
+
+        private void ReapplyMotionGlitchesToNewBricks()
+        {
+            if (brickService == null || activeLevelGlitchPlan == null)
+            {
+                return;
+            }
+
+            if (activeLevelGlitchPlan.HasGlitch(BreakoutLevelGlitchType.DriftRows))
+            {
+                brickService.ApplyRowDrift(activeLevelGlitchPlan.DriftRows);
+            }
+
+            if (activeLevelGlitchPlan.HasGlitch(BreakoutLevelGlitchType.BrickConveyor))
+            {
+                brickService.ApplyBrickConveyor(activeLevelGlitchPlan.BrickConveyor);
             }
         }
 
@@ -6657,6 +6744,7 @@ namespace GetBricked.Gameplay
                 LevelGlitchSelection.MagnetStorm => "Magnet Storm",
                 LevelGlitchSelection.BrickConveyor => "Brick Conveyor",
                 LevelGlitchSelection.BlacklightBricks => "Blacklight Bricks",
+                LevelGlitchSelection.RewindWall => "Rewind Wall",
                 _ => "Off",
             };
         }

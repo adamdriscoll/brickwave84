@@ -47,6 +47,7 @@ namespace GetBricked.Gameplay
             LevelGlitchSelection.MirrorGrid,
             LevelGlitchSelection.PickupPinball,
             LevelGlitchSelection.PrismLanes,
+            LevelGlitchSelection.RewindWall,
             LevelGlitchSelection.RogueGate,
             LevelGlitchSelection.RowRewrite,
             LevelGlitchSelection.SplitHorizon,

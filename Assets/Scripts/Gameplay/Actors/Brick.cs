@@ -51,6 +51,8 @@ namespace GetBricked.Gameplay
         private bool isFlickerColliderVisible = true;
         private bool isGhosted;
         private bool isBlacklightDisguised;
+        private bool hasCompletionOverride;
+        private bool countsTowardLevelCompletionOverride;
         private Vector3 visualBaseScale = Vector3.one;
         private float jellyWobbleTimer;
         private float jellyWobbleDuration;
@@ -62,7 +64,9 @@ namespace GetBricked.Gameplay
 
         public int ScoreValue => definition == null ? 0 : definition.ScoreValue;
 
-        public bool CountsTowardLevelCompletion => definition != null && definition.CountsTowardLevelCompletion;
+        public bool CountsTowardLevelCompletion => definition != null
+            && definition.IsBreakable
+            && (hasCompletionOverride ? countsTowardLevelCompletionOverride : definition.CountsTowardLevelCompletion);
 
         public bool IsExplosive => definition != null && definition.IsExplosive;
 
@@ -113,7 +117,8 @@ namespace GetBricked.Gameplay
                 layoutRow,
                 layoutColumn,
                 hitPointsRemaining,
-                motionConfig);
+                motionConfig,
+                CountsTowardLevelCompletion);
         }
 
         internal void RestoreHitPoints(int restoredHitPoints)
@@ -254,6 +259,12 @@ namespace GetBricked.Gameplay
             ghostVisibilityMultiplier = isGhosted ? Mathf.Clamp01(hiddenAlpha) : 1f;
             RefreshColliderState();
             RefreshVisual();
+        }
+
+        internal void SetCountsTowardLevelCompletionOverride(bool countsTowardLevelCompletion)
+        {
+            hasCompletionOverride = true;
+            countsTowardLevelCompletionOverride = countsTowardLevelCompletion;
         }
 
         public void SetJammerStrength(float strength)

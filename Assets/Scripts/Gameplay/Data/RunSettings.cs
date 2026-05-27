@@ -56,6 +56,7 @@ namespace GetBricked.Gameplay.Data
         MagnetStorm = 20,
         BrickConveyor = 21,
         BlacklightBricks = 22,
+        RewindWall = 23,
     }
 
     public sealed class RunSettings
@@ -234,6 +235,7 @@ namespace GetBricked.Gameplay.Data
             LevelGlitchSelection.MagnetStorm => "Magnet Storm Armed",
             LevelGlitchSelection.BrickConveyor => "Brick Conveyor Armed",
             LevelGlitchSelection.BlacklightBricks => "Blacklight Bricks Armed",
+            LevelGlitchSelection.RewindWall => "Rewind Wall Armed",
             _ => "Clean Walls",
         };
 
@@ -244,7 +246,7 @@ namespace GetBricked.Gameplay.Data
             var normalized = (LevelGlitchSelection)Mathf.Clamp(
                 (int)levelGlitchSelection,
                 (int)LevelGlitchSelection.Off,
-                (int)LevelGlitchSelection.BlacklightBricks);
+                (int)LevelGlitchSelection.RewindWall);
 
             if (!levelGlitchesEnabled && normalized == LevelGlitchSelection.Random)
             {

@@ -165,6 +165,7 @@ public sealed class BreakoutRogueRunTests
             LevelGlitchSelection.MirrorGrid,
             LevelGlitchSelection.PickupPinball,
             LevelGlitchSelection.PrismLanes,
+            LevelGlitchSelection.RewindWall,
             LevelGlitchSelection.RogueGate,
             LevelGlitchSelection.RowRewrite,
             LevelGlitchSelection.SplitHorizon,

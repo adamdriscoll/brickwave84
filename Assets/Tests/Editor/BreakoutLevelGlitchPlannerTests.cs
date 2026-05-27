@@ -501,6 +501,30 @@ public sealed class BreakoutLevelGlitchPlannerTests
         Assert.That(unlockedPlan.ScoreMultiplier, Is.EqualTo(1.36f).Within(0.0001f));
     }
 
+    [Test]
+    public void RogueGlitchHeatControlsWhenRewindWallCanUnlock()
+    {
+        var lockedSettings = CreateRogueSettings(
+            rogueIntensity: BreakoutLevelGlitchPlanner.RewindWallLadderUnlockIntensity,
+            levelGlitchSelection: LevelGlitchSelection.RewindWall);
+        var unlockedSettings = CreateRogueSettings(
+            rogueIntensity: BreakoutLevelGlitchPlanner.RewindWallLadderUnlockIntensity + 1,
+            levelGlitchSelection: LevelGlitchSelection.RewindWall);
+
+        var lockedPlan = BreakoutLevelGlitchPlanner.BuildPlan(new DeterministicRandomService(7), lockedSettings, levelIndex: 9);
+        var unlockedPlan = BreakoutLevelGlitchPlanner.BuildPlan(new DeterministicRandomService(7), unlockedSettings, levelIndex: 9);
+
+        Assert.That(lockedPlan.IsActive, Is.False);
+        Assert.That(unlockedPlan.IsActive, Is.True);
+        Assert.That(unlockedPlan.GlitchType, Is.EqualTo(BreakoutLevelGlitchType.RewindWall));
+        Assert.That(unlockedPlan.DisplayName, Is.EqualTo("Rewind Wall"));
+        Assert.That(unlockedPlan.Rarity, Is.EqualTo(BreakoutContentRarity.Epic));
+        Assert.That(unlockedPlan.ScoreMultiplier, Is.EqualTo(1.37f).Within(0.0001f));
+        Assert.That(unlockedPlan.RewindWall.NormalizedRow, Is.InRange(0.18f, 0.84f));
+        Assert.That(unlockedPlan.RewindWall.RebuildDelaySeconds, Is.InRange(1.65f, 2.65f));
+        Assert.That(unlockedPlan.RewindWall.WarningSeconds, Is.InRange(0.55f, 0.95f));
+    }
+
 
     [Test]
     public void ForcedWarpGatePlanBuildsSmallPortalSetAndScoreBonus()
@@ -846,6 +870,21 @@ public sealed class BreakoutLevelGlitchPlannerTests
         Assert.That(plan.IsActive, Is.True);
         Assert.That(plan.GlitchType, Is.EqualTo(BreakoutLevelGlitchType.BlacklightBricks));
         Assert.That(plan.HudLabel, Does.Contain("Blacklight Bricks"));
+    }
+
+    [Test]
+    public void SelectedRewindWallAlwaysBuildsRewindWallEvenWhenChanceIsDisabled()
+    {
+        var settings = CreateSettings(
+            levelGlitchesEnabled: true,
+            chanceMultiplier: 0f,
+            levelGlitchSelection: LevelGlitchSelection.RewindWall);
+
+        var plan = BreakoutLevelGlitchPlanner.BuildPlan(new DeterministicRandomService(3), settings, levelIndex: 9);
+
+        Assert.That(plan.IsActive, Is.True);
+        Assert.That(plan.GlitchType, Is.EqualTo(BreakoutLevelGlitchType.RewindWall));
+        Assert.That(plan.HudLabel, Does.Contain("Rewind Wall"));
     }
 
     [Test]
