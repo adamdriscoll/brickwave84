@@ -126,7 +126,7 @@ public sealed class BreakoutRogueRunTests
             Assert.That(state.IsDropUnlockSelected(drop), Is.True);
             Assert.That(state.ResolveForcedDrop(new[] { drop, forcedDrop }), Is.EqualTo(forcedDrop));
             Assert.That(state.ForcedDropEnabled, Is.True);
-            Assert.That(state.ForcedLevelGlitchSelection, Is.EqualTo(LevelGlitchSelection.MirrorGrid));
+            Assert.That(state.ForcedLevelGlitchSelection, Is.EqualTo(LevelGlitchSelection.MagnetStorm));
             Assert.That(state.ForcedLevelGlitchEnabled, Is.True);
 
             state.ClearBuild();
@@ -134,7 +134,7 @@ public sealed class BreakoutRogueRunTests
             Assert.That(state.SelectedUpgradeCount, Is.EqualTo(0));
             Assert.That(state.SelectedDropUnlockCount, Is.EqualTo(0));
             Assert.That(state.ForcedDropEnabled, Is.True);
-            Assert.That(state.ForcedLevelGlitchSelection, Is.EqualTo(LevelGlitchSelection.MirrorGrid));
+            Assert.That(state.ForcedLevelGlitchSelection, Is.EqualTo(LevelGlitchSelection.MagnetStorm));
             Assert.That(state.ForcedLevelGlitchEnabled, Is.True);
             Assert.That(state.Intensity, Is.EqualTo(BreakoutRunProgression.MaxRogueIntensity));
         }
@@ -161,6 +161,7 @@ public sealed class BreakoutRogueRunTests
             LevelGlitchSelection.GhostRow,
             LevelGlitchSelection.GravityPocket,
             LevelGlitchSelection.HotCorners,
+            LevelGlitchSelection.LaserRain,
             LevelGlitchSelection.MagnetStorm,
             LevelGlitchSelection.MirrorGrid,
             LevelGlitchSelection.PickupPinball,

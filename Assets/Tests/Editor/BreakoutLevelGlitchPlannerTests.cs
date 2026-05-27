@@ -548,6 +548,27 @@ public sealed class BreakoutLevelGlitchPlannerTests
         Assert.That(unlockedPlan.ScoreLeak.GraceSeconds, Is.InRange(1.15f, 1.75f));
     }
 
+    [Test]
+    public void RogueGlitchHeatControlsWhenLaserRainCanUnlock()
+    {
+        var lockedSettings = CreateRogueSettings(
+            rogueIntensity: BreakoutLevelGlitchPlanner.LaserRainLadderUnlockIntensity,
+            levelGlitchSelection: LevelGlitchSelection.LaserRain);
+        var unlockedSettings = CreateRogueSettings(
+            rogueIntensity: BreakoutLevelGlitchPlanner.LaserRainLadderUnlockIntensity + 1,
+            levelGlitchSelection: LevelGlitchSelection.LaserRain);
+
+        var lockedPlan = BreakoutLevelGlitchPlanner.BuildPlan(new DeterministicRandomService(7), lockedSettings, levelIndex: 9);
+        var unlockedPlan = BreakoutLevelGlitchPlanner.BuildPlan(new DeterministicRandomService(7), unlockedSettings, levelIndex: 9);
+
+        Assert.That(lockedPlan.IsActive, Is.False);
+        Assert.That(unlockedPlan.IsActive, Is.True);
+        Assert.That(unlockedPlan.GlitchType, Is.EqualTo(BreakoutLevelGlitchType.LaserRain));
+        Assert.That(unlockedPlan.DisplayName, Is.EqualTo("Laser Rain"));
+        Assert.That(unlockedPlan.Rarity, Is.EqualTo(BreakoutContentRarity.Epic));
+        Assert.That(unlockedPlan.ScoreMultiplier, Is.EqualTo(1.44f).Within(0.0001f));
+    }
+
 
     [Test]
     public void ForcedWarpGatePlanBuildsSmallPortalSetAndScoreBonus()
@@ -923,6 +944,21 @@ public sealed class BreakoutLevelGlitchPlannerTests
         Assert.That(plan.IsActive, Is.True);
         Assert.That(plan.GlitchType, Is.EqualTo(BreakoutLevelGlitchType.ScoreLeak));
         Assert.That(plan.HudLabel, Does.Contain("Score Leak"));
+    }
+
+    [Test]
+    public void SelectedLaserRainAlwaysBuildsLaserRainEvenWhenChanceIsDisabled()
+    {
+        var settings = CreateSettings(
+            levelGlitchesEnabled: true,
+            chanceMultiplier: 0f,
+            levelGlitchSelection: LevelGlitchSelection.LaserRain);
+
+        var plan = BreakoutLevelGlitchPlanner.BuildPlan(new DeterministicRandomService(3), settings, levelIndex: 9);
+
+        Assert.That(plan.IsActive, Is.True);
+        Assert.That(plan.GlitchType, Is.EqualTo(BreakoutLevelGlitchType.LaserRain));
+        Assert.That(plan.HudLabel, Does.Contain("Laser Rain"));
     }
 
     [Test]

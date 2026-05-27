@@ -262,7 +262,7 @@ Late drop proposals should keep using mechanics the game already teaches: paddle
 | `Blacklight Bricks` | Brick health and special types hide until first contact. | Heat 21 | Epic | Visibility glitch | Implemented |
 | `Rewind Wall` | A broken non-objective row can rebuild once mid-stage. | Heat 22 | Epic | Layout glitch | Implemented |
 | `Score Leak` | Score trickles down between brick breaks. | Heat 23 | Epic | Score glitch | Implemented |
-| `Laser Rain` | Warning lanes fire brief vertical beams that can crack bricks or bounce balls. | Heat 24 | Epic | Hazard glitch | Not implemented (proposal) |
+| `Laser Rain` | Warning lanes fire brief vertical beams that can crack bricks or bounce balls. | Heat 24 | Epic | Hazard glitch | Implemented |
 | `Thin Air` | One side wall opens and closes on a timer. | Heat 25 | Epic | Wall glitch | Not implemented (proposal) |
 | `Prism Shuffle` | Rebounds from marked bricks rotate into sharper angles. | Heat 26 | Epic | Precision glitch | Not implemented (proposal) |
 | `Clone Static` | A ghost paddle copies your last movement with a delay. | Heat 27 | Epic | Paddle glitch | Not implemented (proposal) |

@@ -24,6 +24,18 @@ namespace GetBricked.Gameplay
         private const float MissileExplosionRadius = 1.45f;
         private const float LaserShotCooldownSeconds = 0.3f;
         private const float LaserBeamLifetimeSeconds = 0.16f;
+        private const float LaserRainBaseIntervalSeconds = 1.18f;
+        private const float LaserRainMinimumIntervalSeconds = 0.72f;
+        private const float LaserRainWarningSeconds = 0.46f;
+        private const float LaserRainBeamLifetimeSeconds = 0.2f;
+        private const float LaserRainLaneHalfWidth = 0.18f;
+        private const float LaserRainLaneHorizontalPadding = 0.45f;
+        private const float LaserRainBrickHitPadding = 0.42f;
+        private const float LaserRainBallHitPadding = 0.16f;
+        private const float LaserRainBallSideKick = 0.48f;
+        private const float LaserRainBallVerticalKick = 0.34f;
+        private const float LaserRainBallMinimumVertical = 0.5f;
+        private const int LaserRainMaximumLaneCount = 3;
         private const float ShieldWallYOffset = 0.38f;
         private const float ShieldWallThickness = 0.16f;
         private const float VectorSightPreviewRange = 2.45f;
@@ -147,6 +159,22 @@ namespace GetBricked.Gameplay
             public float RemainingSeconds { get; set; }
         }
 
+        private sealed class PendingLaserRainLane
+        {
+            public PendingLaserRainLane(float worldX, BreakoutLaserRainLaneVisual visual)
+            {
+                WorldX = worldX;
+                Visual = visual;
+                WarningTimer = LaserRainWarningSeconds;
+            }
+
+            public float WorldX { get; }
+
+            public BreakoutLaserRainLaneVisual Visual { get; }
+
+            public float WarningTimer { get; set; }
+        }
+
         [Header("Camera")]
         [SerializeField] private float cameraHalfHeight = 5.2f;
         [SerializeField] private Color backgroundColor = new Color(0.07f, 0.03f, 0.08f, 1f);
@@ -209,6 +237,7 @@ namespace GetBricked.Gameplay
         private readonly List<BallController> activeBalls = new List<BallController>();
         private readonly List<TemporaryBallLifetime> temporaryBallLifetimes = new List<TemporaryBallLifetime>();
         private readonly List<BreakoutMissileProjectile> activeMissiles = new List<BreakoutMissileProjectile>();
+        private readonly List<PendingLaserRainLane> pendingLaserRainLanes = new List<PendingLaserRainLane>();
         private readonly List<SpriteRenderer> wallRenderers = new List<SpriteRenderer>();
         private readonly Dictionary<string, Sprite> runUpgradeSpriteCache = new Dictionary<string, Sprite>(StringComparer.OrdinalIgnoreCase);
         private readonly Dictionary<string, Sprite> powerUpIconSpriteCache = new Dictionary<string, Sprite>(StringComparer.OrdinalIgnoreCase);
@@ -318,6 +347,7 @@ namespace GetBricked.Gameplay
         private BreakoutVectorSightVisual vectorSightVisual;
         private int shieldWallCharges;
         private float laserShotCooldownTimer;
+        private float laserRainStrikeTimer;
         private int availableMissiles;
         private float missileShotCooldownTimer;
         private BreakoutLevelGlitchPlan activeLevelGlitchPlan = BreakoutLevelGlitchPlan.None;
@@ -478,6 +508,7 @@ namespace GetBricked.Gameplay
             RefreshBrickMagnetTargets();
             RefreshCapsuleMagnetTargets();
             UpdateVectorSightVisual();
+            UpdateLaserRain();
             UpdatePickupBanner();
             UpdateAutoSaveBurst();
             UpdateTiltAlarmState();
@@ -3821,6 +3852,12 @@ namespace GetBricked.Gameplay
                 powerUpService?.ShowStatusBanner("SCORE LEAK!", new Color(0.99f, 0.27f, 0.31f, 1f), 2.2f);
             }
 
+            if (activeLevelGlitchPlan.HasGlitch(BreakoutLevelGlitchType.LaserRain))
+            {
+                laserRainStrikeTimer = 0f;
+                powerUpService?.ShowStatusBanner("LASER RAIN!", new Color(1f, 0.16f, 0.66f, 1f), 2.2f);
+            }
+
             if (activeLevelGlitchPlan.HasGlitch(BreakoutLevelGlitchType.CassetteSkip))
             {
                 powerUpService?.ShowStatusBanner("CASSETTE SKIP!", new Color(1f, 0.49f, 0.86f, 1f), 2.2f);
@@ -3852,9 +3889,11 @@ namespace GetBricked.Gameplay
             activeRowRewriteSpec = default;
             scoreLeakGraceTimer = 0f;
             scoreLeakAccumulator = 0f;
+            laserRainStrikeTimer = 0f;
             cassetteSkipPaddleHits = 0;
             ghostRowService?.Clear();
             rewindWallService?.Clear();
+            ClearPendingLaserRainLanes();
 
             if (activeWarpGateController != null)
             {
@@ -6830,6 +6869,7 @@ namespace GetBricked.Gameplay
                 LevelGlitchSelection.BlacklightBricks => "Blacklight Bricks",
                 LevelGlitchSelection.RewindWall => "Rewind Wall",
                 LevelGlitchSelection.ScoreLeak => "Score Leak",
+                LevelGlitchSelection.LaserRain => "Laser Rain",
                 _ => "Off",
             };
         }
@@ -8872,6 +8912,235 @@ namespace GetBricked.Gameplay
             return true;
         }
 
+        private void UpdateLaserRain()
+        {
+            if (!IsGameplaySimulationActive()
+                || activeLevelGlitchPlan == null
+                || !activeLevelGlitchPlan.HasGlitch(BreakoutLevelGlitchType.LaserRain))
+            {
+                ClearPendingLaserRainLanes();
+                laserRainStrikeTimer = 0f;
+                return;
+            }
+
+            var deltaTime = Time.deltaTime;
+
+            for (var index = pendingLaserRainLanes.Count - 1; index >= 0; index--)
+            {
+                var lane = pendingLaserRainLanes[index];
+
+                if (lane == null)
+                {
+                    pendingLaserRainLanes.RemoveAt(index);
+                    continue;
+                }
+
+                lane.WarningTimer -= deltaTime;
+
+                if (lane.WarningTimer > 0f)
+                {
+                    continue;
+                }
+
+                StrikeLaserRainLane(lane.WorldX);
+                pendingLaserRainLanes.RemoveAt(index);
+            }
+
+            laserRainStrikeTimer = Mathf.Max(0f, laserRainStrikeTimer - deltaTime);
+
+            if (laserRainStrikeTimer > 0f)
+            {
+                return;
+            }
+
+            QueueLaserRainVolley();
+            laserRainStrikeTimer = ResolveLaserRainIntervalSeconds();
+        }
+
+        private void QueueLaserRainVolley()
+        {
+            var laneCount = ResolveLaserRainLaneCount();
+            var queuedXs = new List<float>(laneCount);
+
+            for (var index = 0; index < laneCount; index++)
+            {
+                var laneX = ResolveLaserRainLaneX(queuedXs);
+                queuedXs.Add(laneX);
+                pendingLaserRainLanes.Add(new PendingLaserRainLane(laneX, SpawnLaserRainLaneVisual(laneX)));
+            }
+        }
+
+        private void StrikeLaserRainLane(float laneX)
+        {
+            var scoringBall = ResolvePrimaryScoringBall();
+            var hitRadius = LaserRainLaneHalfWidth + LaserRainBrickHitPadding;
+
+            for (var index = bricks.Count - 1; index >= 0; index--)
+            {
+                var brick = bricks[index];
+
+                if (brick == null
+                    || brick.Definition == null
+                    || !brick.Definition.IsBreakable
+                    || brick.IsPendingRemoval)
+                {
+                    continue;
+                }
+
+                if (Mathf.Abs(brick.transform.position.x - laneX) > hitRadius)
+                {
+                    continue;
+                }
+
+                brick.ApplyEffectHit(scoringBall, BrickDestructionCause.Laser, 1);
+            }
+
+            BounceBallsCaughtInLaserRain(laneX);
+        }
+
+        private void BounceBallsCaughtInLaserRain(float laneX)
+        {
+            BounceBallCaughtInLaserRain(serveBall, laneX);
+
+            for (var index = activeBalls.Count - 1; index >= 0; index--)
+            {
+                var ball = activeBalls[index];
+
+                if (ball == null)
+                {
+                    activeBalls.RemoveAt(index);
+                    continue;
+                }
+
+                BounceBallCaughtInLaserRain(ball, laneX);
+            }
+        }
+
+        private void BounceBallCaughtInLaserRain(BallController ball, float laneX)
+        {
+            if (ball == null || !ball.HasLaunched)
+            {
+                return;
+            }
+
+            var ballPosition = (Vector2)ball.transform.position;
+
+            if (Mathf.Abs(ballPosition.x - laneX) > LaserRainLaneHalfWidth + ballRadius + LaserRainBallHitPadding)
+            {
+                return;
+            }
+
+            var currentVelocity = ball.CurrentVelocity;
+            var currentDirection = currentVelocity.sqrMagnitude > 0.001f ? currentVelocity.normalized : Vector2.up;
+            var sideSign = Mathf.Sign(ballPosition.x - laneX);
+
+            if (Mathf.Approximately(sideSign, 0f))
+            {
+                sideSign = Mathf.Sign(currentDirection.x);
+            }
+
+            if (Mathf.Approximately(sideSign, 0f))
+            {
+                sideSign = 1f;
+            }
+
+            var bounceDirection = new Vector2(
+                currentDirection.x + (sideSign * LaserRainBallSideKick),
+                Mathf.Abs(currentDirection.y) + LaserRainBallVerticalKick);
+            ball.ApplyCollisionResponse(bounceDirection, LaserRainBallMinimumVertical);
+        }
+
+        private BreakoutLaserRainLaneVisual SpawnLaserRainLaneVisual(float laneX)
+        {
+            if (effectsRoot == null && runtimeRoot == null)
+            {
+                return null;
+            }
+
+            var laneObject = new GameObject("Laser Rain Lane");
+            laneObject.transform.SetParent(effectsRoot != null ? effectsRoot : runtimeRoot, false);
+            var visual = laneObject.AddComponent<BreakoutLaserRainLaneVisual>();
+            visual.Configure(
+                laneX,
+                arenaBottom + 0.18f,
+                arenaTop - 0.1f,
+                LaserRainLaneHalfWidth * 2f,
+                LaserRainWarningSeconds,
+                LaserRainBeamLifetimeSeconds,
+                additiveLineMaterial,
+                ResolveLaserRainWarningColor(),
+                ResolveLaserBeamCoreColor(),
+                ResolveLaserRainGlowColor());
+            return visual;
+        }
+
+        private void ClearPendingLaserRainLanes()
+        {
+            for (var index = pendingLaserRainLanes.Count - 1; index >= 0; index--)
+            {
+                var lane = pendingLaserRainLanes[index];
+
+                if (lane?.Visual != null)
+                {
+                    DestroyRuntimeObject(lane.Visual.gameObject);
+                }
+            }
+
+            pendingLaserRainLanes.Clear();
+        }
+
+        private float ResolveLaserRainLaneX(List<float> queuedXs)
+        {
+            var minimumX = arenaLeft + LaserRainLaneHorizontalPadding;
+            var maximumX = arenaRight - LaserRainLaneHorizontalPadding;
+
+            if (maximumX <= minimumX)
+            {
+                return (arenaLeft + arenaRight) * 0.5f;
+            }
+
+            for (var attempt = 0; attempt < 8; attempt++)
+            {
+                var candidate = NextGameplayRandomFloat(minimumX, maximumX);
+
+                if (!IsLaserRainLaneTooClose(candidate, queuedXs))
+                {
+                    return candidate;
+                }
+            }
+
+            var fallbackRatio = (queuedXs.Count + 1f) / (queuedXs.Count + 2f);
+            return Mathf.Lerp(minimumX, maximumX, fallbackRatio);
+        }
+
+        private static bool IsLaserRainLaneTooClose(float candidateX, List<float> queuedXs)
+        {
+            if (queuedXs == null)
+            {
+                return false;
+            }
+
+            for (var index = 0; index < queuedXs.Count; index++)
+            {
+                if (Mathf.Abs(candidateX - queuedXs[index]) < LaserRainLaneHalfWidth * 3.2f)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private static int ResolveLaserRainLaneCount()
+        {
+            return Mathf.Clamp(2, 1, LaserRainMaximumLaneCount);
+        }
+
+        private static float ResolveLaserRainIntervalSeconds()
+        {
+            return Mathf.Max(LaserRainMinimumIntervalSeconds, LaserRainBaseIntervalSeconds);
+        }
+
         private bool FireMissile()
         {
             if (!IsGameplaySimulationActive()
@@ -9113,6 +9382,31 @@ namespace GetBricked.Gameplay
                     new Color(0.01f, 0.93f, 0.98f, 1f),
                     new Color(0.01f, 0.93f, 0.98f, 1f),
                     squareSprite).PrimaryColor;
+        }
+
+        private Color ResolveLaserRainWarningColor()
+        {
+            return themeService != null
+                ? themeService.ResolveThemeStyle(
+                    ThemeVisualSlot.PickupHarmful,
+                    new Color(1f, 0.22f, 0.3f, 1f),
+                    new Color(1f, 0.22f, 0.3f, 1f),
+                    squareSprite).PrimaryColor
+                : new Color(1f, 0.22f, 0.3f, 1f);
+        }
+
+        private Color ResolveLaserRainGlowColor()
+        {
+            if (themeService == null)
+            {
+                return new Color(1f, 0.16f, 0.66f, 1f);
+            }
+
+            return themeService.ResolveThemeStyle(
+                ThemeVisualSlot.BrickPrimary,
+                new Color(1f, 0.16f, 0.66f, 1f),
+                new Color(1f, 0.16f, 0.66f, 1f),
+                squareSprite).PrimaryColor;
         }
 
         private BallController ResolvePrimaryScoringBall()

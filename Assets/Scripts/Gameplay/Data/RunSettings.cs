@@ -58,6 +58,7 @@ namespace GetBricked.Gameplay.Data
         BlacklightBricks = 22,
         RewindWall = 23,
         ScoreLeak = 24,
+        LaserRain = 25,
     }
 
     public sealed class RunSettings
@@ -238,6 +239,7 @@ namespace GetBricked.Gameplay.Data
             LevelGlitchSelection.BlacklightBricks => "Blacklight Bricks Armed",
             LevelGlitchSelection.RewindWall => "Rewind Wall Armed",
             LevelGlitchSelection.ScoreLeak => "Score Leak Armed",
+            LevelGlitchSelection.LaserRain => "Laser Rain Armed",
             _ => "Clean Walls",
         };
 
@@ -248,7 +250,7 @@ namespace GetBricked.Gameplay.Data
             var normalized = (LevelGlitchSelection)Mathf.Clamp(
                 (int)levelGlitchSelection,
                 (int)LevelGlitchSelection.Off,
-                (int)LevelGlitchSelection.ScoreLeak);
+                (int)LevelGlitchSelection.LaserRain);
 
             if (!levelGlitchesEnabled && normalized == LevelGlitchSelection.Random)
             {

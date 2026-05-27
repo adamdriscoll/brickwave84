@@ -274,6 +274,13 @@ namespace GetBricked.Gameplay
                 BreakoutLevelGlitchPlanner.ScoreLeakLadderUnlockIntensity,
                 highestCompletedIntensity,
                 DamageAccent));
+            cards.Add(BuildUnlockableGlitchCard(
+                "Laser Rain",
+                "Hazard Epic Glitch",
+                "Warning lanes fire brief vertical beams that crack bricks or bounce balls.",
+                BreakoutLevelGlitchPlanner.LaserRainLadderUnlockIntensity,
+                highestCompletedIntensity,
+                HazardAccent));
             AppendPlaceholderCards(cards, PlaceholderDrops, highestCompletedIntensity);
             AppendPlaceholderCards(cards, PlaceholderGlitches, highestCompletedIntensity);
             cards.Add(BuildHiddenSlotCard("Future Drop Slot", "Drop", "Hidden", "Future drop signal pending."));
@@ -697,6 +704,11 @@ namespace GetBricked.Gameplay
             }
 
             if (completedIntensity >= BreakoutLevelGlitchPlanner.ScoreLeakLadderUnlockIntensity)
+            {
+                count++;
+            }
+
+            if (completedIntensity >= BreakoutLevelGlitchPlanner.LaserRainLadderUnlockIntensity)
             {
                 count++;
             }

@@ -31,6 +31,7 @@ namespace GetBricked.Gameplay
         BlacklightBricks = 21,
         RewindWall = 22,
         ScoreLeak = 23,
+        LaserRain = 24,
     }
 
     internal readonly struct BreakoutLevelGlitchDefinition
@@ -585,6 +586,7 @@ namespace GetBricked.Gameplay
         public const int BlacklightBricksLadderUnlockIntensity = 21;
         public const int RewindWallLadderUnlockIntensity = 22;
         public const int ScoreLeakLadderUnlockIntensity = 23;
+        public const int LaserRainLadderUnlockIntensity = 24;
 
         private const float WarpGateScoreMultiplier = 1.35f;
         private const float TurboRailScoreMultiplier = 1.25f;
@@ -609,6 +611,7 @@ namespace GetBricked.Gameplay
         private const float BlacklightBricksScoreMultiplier = 1.36f;
         private const float RewindWallScoreMultiplier = 1.37f;
         private const float ScoreLeakScoreMultiplier = 1.42f;
+        private const float LaserRainScoreMultiplier = 1.44f;
 
         private static readonly BreakoutLevelGlitchDefinition[] GlitchDefinitions =
         {
@@ -727,6 +730,11 @@ namespace GetBricked.Gameplay
                 LevelGlitchSelection.ScoreLeak,
                 BreakoutContentRarity.Epic,
                 ScoreLeakLadderUnlockIntensity),
+            new BreakoutLevelGlitchDefinition(
+                BreakoutLevelGlitchType.LaserRain,
+                LevelGlitchSelection.LaserRain,
+                BreakoutContentRarity.Epic,
+                LaserRainLadderUnlockIntensity),
         };
 
         public static BreakoutLevelGlitchPlan BuildPlan(
@@ -886,6 +894,11 @@ namespace GetBricked.Gameplay
             if (definition.GlitchType == BreakoutLevelGlitchType.ScoreLeak)
             {
                 return BuildScoreLeakPlan(random, definition.Rarity);
+            }
+
+            if (definition.GlitchType == BreakoutLevelGlitchType.LaserRain)
+            {
+                return BuildLaserRainPlan(definition.Rarity);
             }
 
             return BuildWarpGatePlan(random, definition.Rarity);
@@ -1483,6 +1496,18 @@ namespace GetBricked.Gameplay
                 scoreLeak: scoreLeak);
         }
 
+        private static BreakoutLevelGlitchPlan BuildLaserRainPlan(BreakoutContentRarity rarity)
+        {
+            return new BreakoutLevelGlitchPlan(
+                BreakoutLevelGlitchType.LaserRain,
+                rarity,
+                "Laser Rain",
+                $"Laser Rain x{LaserRainScoreMultiplier:0.00}",
+                LaserRainScoreMultiplier,
+                Array.Empty<BreakoutWarpGateSpec>(),
+                default);
+        }
+
         public static float GetGlitchChance(RunSettings settings, int levelIndex)
         {
             if (settings == null)
@@ -1875,7 +1900,8 @@ namespace GetBricked.Gameplay
                 || selection == LevelGlitchSelection.MagnetStorm
                 || selection == LevelGlitchSelection.BlacklightBricks
                 || selection == LevelGlitchSelection.RewindWall
-                || selection == LevelGlitchSelection.ScoreLeak;
+                || selection == LevelGlitchSelection.ScoreLeak
+                || selection == LevelGlitchSelection.LaserRain;
         }
 
         private static BreakoutWarpGateWall ResolveGateWall(DeterministicRandomService random, int index)
