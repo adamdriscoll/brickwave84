@@ -648,6 +648,11 @@ namespace GetBricked.Gameplay
                 return;
             }
 
+            if (destructionCause == BrickDestructionCause.Impact)
+            {
+                TryApplySpeedSteps(scoringBall);
+            }
+
             ResetScoreLeakOnBrickBreak();
             TryTriggerGhostRow(brick);
             TryTriggerRewindWall(brick);
@@ -1306,8 +1311,9 @@ namespace GetBricked.Gameplay
             return arenaBottom + ShieldWallYOffset + (ShieldWallThickness * 0.5f) + ballRadius + 0.02f;
         }
 
-        public void HandleBallHitPaddle()
+        public void HandleBallHitPaddle(BallController hitBall = null)
         {
+            TryResetSpeedSteps(hitBall);
             runStatsService?.RegisterPaddleHit();
             audioService?.PlayBallHitPaddle();
         }
@@ -1350,6 +1356,7 @@ namespace GetBricked.Gameplay
         {
             runStatsService?.RegisterBrickHit();
             audioService?.PlayBrickHit(brick?.Definition);
+            TryApplySpeedSteps(scoringBall);
             AwardBankBonusIfAvailable(brick != null ? (Vector2)brick.transform.position : Vector2.zero);
             TryTriggerPrismPop(scoringBall, brick != null ? (Vector2)brick.transform.position : Vector2.zero, BrickDestructionCause.Impact);
             TryTriggerGhostRow(brick);
@@ -3851,6 +3858,11 @@ namespace GetBricked.Gameplay
                 powerUpService?.ShowStatusBanner("BRICK LOCK!", new Color(0.03f, 0.93f, 0.98f, 1f), 2.2f);
             }
 
+            if (activeLevelGlitchPlan.HasGlitch(BreakoutLevelGlitchType.SpeedSteps))
+            {
+                powerUpService?.ShowStatusBanner("SPEED STEPS!", new Color(1f, 0.87f, 0.36f, 1f), 2.2f);
+            }
+
             if (activeLevelGlitchPlan.HasGlitch(BreakoutLevelGlitchType.MagnetStorm))
             {
                 CreateMagnetStorm(activeLevelGlitchPlan);
@@ -4057,6 +4069,7 @@ namespace GetBricked.Gameplay
             ClearGravityPocketFromBalls();
             ClearMagnetStormFromPickups();
             ClearSplitHorizonFromBalls();
+            ClearSpeedStepsFromBalls();
         }
 
         private void ArmScoreLeak(BreakoutScoreLeakSpec scoreLeak)
@@ -4259,6 +4272,50 @@ namespace GetBricked.Gameplay
             if (brickLockService.TryRegisterDestroyedBrick(brick))
             {
                 powerUpService?.ShowStatusBanner("LOCK OPEN!", new Color(0.03f, 0.93f, 0.98f, 1f), 1.35f);
+            }
+        }
+
+        private void TryApplySpeedSteps(BallController ball)
+        {
+            if (ball == null
+                || activeLevelGlitchPlan == null
+                || !activeLevelGlitchPlan.HasGlitch(BreakoutLevelGlitchType.SpeedSteps))
+            {
+                return;
+            }
+
+            ball.ApplySpeedStep(
+                activeLevelGlitchPlan.SpeedSteps.StepMultiplierIncrease,
+                activeLevelGlitchPlan.SpeedSteps.MaximumMultiplier);
+        }
+
+        private void TryResetSpeedSteps(BallController ball)
+        {
+            if (ball == null
+                || activeLevelGlitchPlan == null
+                || !activeLevelGlitchPlan.HasGlitch(BreakoutLevelGlitchType.SpeedSteps))
+            {
+                return;
+            }
+
+            ball.ResetSpeedSteps();
+        }
+
+        private void ClearSpeedStepsFromBalls()
+        {
+            serveBall?.ResetSpeedSteps();
+
+            for (var index = activeBalls.Count - 1; index >= 0; index--)
+            {
+                var activeBall = activeBalls[index];
+
+                if (activeBall == null)
+                {
+                    activeBalls.RemoveAt(index);
+                    continue;
+                }
+
+                activeBall.ResetSpeedSteps();
             }
         }
 
@@ -7033,6 +7090,7 @@ namespace GetBricked.Gameplay
                 LevelGlitchSelection.CloneStatic => "Clone Static",
                 LevelGlitchSelection.DropTide => "Drop Tide",
                 LevelGlitchSelection.BrickLock => "Brick Lock",
+                LevelGlitchSelection.SpeedSteps => "Speed Steps",
                 _ => "Off",
             };
         }

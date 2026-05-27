@@ -316,6 +316,13 @@ namespace GetBricked.Gameplay
                 BreakoutLevelGlitchPlanner.BrickLockLadderUnlockIntensity,
                 highestCompletedIntensity,
                 LayoutAccent));
+            cards.Add(BuildUnlockableGlitchCard(
+                "Speed Steps",
+                "Speed Epic Glitch",
+                "Ball speed climbs with each brick hit and resets on paddle contact.",
+                BreakoutLevelGlitchPlanner.SpeedStepsLadderUnlockIntensity,
+                highestCompletedIntensity,
+                SplitAccent));
             AppendPlaceholderCards(cards, PlaceholderDrops, highestCompletedIntensity);
             AppendPlaceholderCards(cards, PlaceholderGlitches, highestCompletedIntensity);
             cards.Add(BuildHiddenSlotCard("Future Drop Slot", "Drop", "Hidden", "Future drop signal pending."));
@@ -769,6 +776,11 @@ namespace GetBricked.Gameplay
             }
 
             if (completedIntensity >= BreakoutLevelGlitchPlanner.BrickLockLadderUnlockIntensity)
+            {
+                count++;
+            }
+
+            if (completedIntensity >= BreakoutLevelGlitchPlanner.SpeedStepsLadderUnlockIntensity)
             {
                 count++;
             }

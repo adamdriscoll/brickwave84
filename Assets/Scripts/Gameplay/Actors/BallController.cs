@@ -24,6 +24,7 @@ namespace GetBricked.Gameplay
         private float sizeMultiplier = 1f;
         private float speedBurstMultiplier = 1f;
         private float speedBurstTimeRemaining;
+        private float speedStepsMultiplier = 1f;
         private float jellySlowMultiplier = 1f;
         private float jellySlowTimeRemaining;
         private bool attachedToPaddle;
@@ -100,6 +101,7 @@ namespace GetBricked.Gameplay
             hasLaunched = false;
             attachedToPaddle = false;
             ClearSpeedBurst();
+            ResetSpeedSteps();
             ClearJellySlow();
             ResetHotPotato();
             ricochetCountSinceLastBrick = 0;
@@ -273,6 +275,7 @@ namespace GetBricked.Gameplay
             attachedToPaddle = true;
             hasLaunched = false;
             ClearSpeedBurst();
+            ResetSpeedSteps();
             ClearJellySlow();
             ResetHotPotato();
             ricochetCountSinceLastBrick = 0;
@@ -432,6 +435,31 @@ namespace GetBricked.Gameplay
             }
         }
 
+        public void ApplySpeedStep(float stepMultiplierIncrease, float maximumMultiplier)
+        {
+            if (ballBody == null || !hasLaunched)
+            {
+                return;
+            }
+
+            var step = Mathf.Max(0f, stepMultiplierIncrease);
+            var cap = Mathf.Max(1f, maximumMultiplier);
+            speedStepsMultiplier = Mathf.Min(cap, Mathf.Max(1f, speedStepsMultiplier) + step);
+            RescaleCurrentVelocityToTargetSpeed();
+        }
+
+        public void ResetSpeedSteps()
+        {
+            if (Mathf.Approximately(speedStepsMultiplier, 1f))
+            {
+                speedStepsMultiplier = 1f;
+                return;
+            }
+
+            speedStepsMultiplier = 1f;
+            RescaleCurrentVelocityToTargetSpeed();
+        }
+
         public void SetWorldPosition(Vector2 worldPosition)
         {
             transform.position = worldPosition;
@@ -447,6 +475,7 @@ namespace GetBricked.Gameplay
             hasLaunched = false;
             attachedToPaddle = false;
             ClearSpeedBurst();
+            ResetSpeedSteps();
             ClearJellySlow();
             ResetHotPotato();
             ricochetCountSinceLastBrick = 0;
@@ -649,7 +678,7 @@ namespace GetBricked.Gameplay
 
             if (collision.collider.TryGetComponent<PaddleController>(out var hitPaddle))
             {
-                gameController?.HandleBallHitPaddle();
+                gameController?.HandleBallHitPaddle(this);
 
                 if (gameController != null && gameController.TryHandleBallPaddleCollision(this, hitPaddle, collision))
                 {
@@ -795,8 +824,19 @@ namespace GetBricked.Gameplay
         {
             return launchSpeed
                 * Mathf.Max(1f, speedBurstMultiplier)
+                * Mathf.Max(1f, speedStepsMultiplier)
                 * Mathf.Max(1f, hotPotatoSpeedMultiplier)
                 * Mathf.Clamp(jellySlowMultiplier, 0.2f, 1f);
+        }
+
+        private void RescaleCurrentVelocityToTargetSpeed()
+        {
+            if (ballBody == null || !hasLaunched || ballBody.linearVelocity.sqrMagnitude <= 0.01f)
+            {
+                return;
+            }
+
+            ballBody.linearVelocity = ballBody.linearVelocity.normalized * GetTargetSpeed();
         }
 
         private float ResolvePaddleFollowOffset()

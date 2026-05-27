@@ -64,6 +64,7 @@ namespace GetBricked.Gameplay.Data
         CloneStatic = 28,
         DropTide = 29,
         BrickLock = 30,
+        SpeedSteps = 31,
     }
 
     public sealed class RunSettings
@@ -250,6 +251,7 @@ namespace GetBricked.Gameplay.Data
             LevelGlitchSelection.CloneStatic => "Clone Static Armed",
             LevelGlitchSelection.DropTide => "Drop Tide Armed",
             LevelGlitchSelection.BrickLock => "Brick Lock Armed",
+            LevelGlitchSelection.SpeedSteps => "Speed Steps Armed",
             _ => "Clean Walls",
         };
 
@@ -260,7 +262,7 @@ namespace GetBricked.Gameplay.Data
             var normalized = (LevelGlitchSelection)Mathf.Clamp(
                 (int)levelGlitchSelection,
                 (int)LevelGlitchSelection.Off,
-                (int)LevelGlitchSelection.BrickLock);
+                (int)LevelGlitchSelection.SpeedSteps);
 
             if (!levelGlitchesEnabled && normalized == LevelGlitchSelection.Random)
             {

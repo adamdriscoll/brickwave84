@@ -59,6 +59,24 @@ public sealed class BreakoutBallSpeedBurstTests
         Assert.That(ball.CurrentSpeed, Is.EqualTo(18.5f).Within(0.001f));
     }
 
+    [Test]
+    public void SpeedStepsClimbUntilReset()
+    {
+        var ball = CreateBall(10f);
+        ball.Launch(Vector2.up);
+
+        ball.ApplySpeedStep(0.06f, 1.18f);
+        ball.ApplySpeedStep(0.06f, 1.18f);
+        ball.ApplySpeedStep(0.06f, 1.18f);
+        ball.ApplySpeedStep(0.06f, 1.18f);
+
+        Assert.That(ball.CurrentSpeed, Is.EqualTo(11.8f).Within(0.001f));
+
+        ball.ResetSpeedSteps();
+
+        Assert.That(ball.CurrentSpeed, Is.EqualTo(10f).Within(0.001f));
+    }
+
     private BallController CreateBall(float speed)
     {
         var ballObject = new GameObject("Speed Burst Test Ball");

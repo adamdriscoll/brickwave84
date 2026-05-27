@@ -688,6 +688,29 @@ public sealed class BreakoutLevelGlitchPlannerTests
         Assert.That(unlockedPlan.BrickLock.ClusterRadius, Is.InRange(1, 2));
     }
 
+    [Test]
+    public void RogueGlitchHeatControlsWhenSpeedStepsCanUnlock()
+    {
+        var lockedSettings = CreateRogueSettings(
+            rogueIntensity: BreakoutLevelGlitchPlanner.SpeedStepsLadderUnlockIntensity,
+            levelGlitchSelection: LevelGlitchSelection.SpeedSteps);
+        var unlockedSettings = CreateRogueSettings(
+            rogueIntensity: BreakoutLevelGlitchPlanner.SpeedStepsLadderUnlockIntensity + 1,
+            levelGlitchSelection: LevelGlitchSelection.SpeedSteps);
+
+        var lockedPlan = BreakoutLevelGlitchPlanner.BuildPlan(new DeterministicRandomService(7), lockedSettings, levelIndex: 9);
+        var unlockedPlan = BreakoutLevelGlitchPlanner.BuildPlan(new DeterministicRandomService(7), unlockedSettings, levelIndex: 9);
+
+        Assert.That(lockedPlan.IsActive, Is.False);
+        Assert.That(unlockedPlan.IsActive, Is.True);
+        Assert.That(unlockedPlan.GlitchType, Is.EqualTo(BreakoutLevelGlitchType.SpeedSteps));
+        Assert.That(unlockedPlan.DisplayName, Is.EqualTo("Speed Steps"));
+        Assert.That(unlockedPlan.Rarity, Is.EqualTo(BreakoutContentRarity.Epic));
+        Assert.That(unlockedPlan.ScoreMultiplier, Is.EqualTo(1.48f).Within(0.0001f));
+        Assert.That(unlockedPlan.SpeedSteps.StepMultiplierIncrease, Is.InRange(0.05f, 0.07f));
+        Assert.That(unlockedPlan.SpeedSteps.MaximumMultiplier, Is.InRange(1.62f, 1.78f));
+    }
+
 
     [Test]
     public void ForcedWarpGatePlanBuildsSmallPortalSetAndScoreBonus()
@@ -1153,6 +1176,21 @@ public sealed class BreakoutLevelGlitchPlannerTests
         Assert.That(plan.IsActive, Is.True);
         Assert.That(plan.GlitchType, Is.EqualTo(BreakoutLevelGlitchType.BrickLock));
         Assert.That(plan.HudLabel, Does.Contain("Brick Lock"));
+    }
+
+    [Test]
+    public void SelectedSpeedStepsAlwaysBuildsSpeedStepsEvenWhenChanceIsDisabled()
+    {
+        var settings = CreateSettings(
+            levelGlitchesEnabled: true,
+            chanceMultiplier: 0f,
+            levelGlitchSelection: LevelGlitchSelection.SpeedSteps);
+
+        var plan = BreakoutLevelGlitchPlanner.BuildPlan(new DeterministicRandomService(3), settings, levelIndex: 9);
+
+        Assert.That(plan.IsActive, Is.True);
+        Assert.That(plan.GlitchType, Is.EqualTo(BreakoutLevelGlitchType.SpeedSteps));
+        Assert.That(plan.HudLabel, Does.Contain("Speed Steps"));
     }
 
     [Test]
