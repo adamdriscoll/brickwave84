@@ -355,6 +355,7 @@ namespace GetBricked.Gameplay
         private float laserRainStrikeTimer;
         private int availableMissiles;
         private float missileShotCooldownTimer;
+        private float activeLevelElapsedSeconds;
         private BreakoutLevelGlitchPlan activeLevelGlitchPlan = BreakoutLevelGlitchPlan.None;
         private BreakoutWarpGateController activeWarpGateController;
         private BreakoutTurboRailSection activeTurboRailSection;
@@ -508,6 +509,7 @@ namespace GetBricked.Gameplay
 
         private void Update()
         {
+            UpdateActiveLevelElapsedSeconds();
             UpdateTimedEffects();
             UpdateCapsuleRoulettePickups();
             UpdateTemporaryBallLifetimes();
@@ -3370,6 +3372,7 @@ namespace GetBricked.Gameplay
 
             ApplyLevelTuning(levelPlan);
             BuildBrickWall(levelPlan);
+            activeLevelElapsedSeconds = 0f;
             ApplyLevelGlitchPlan(levelPlan.GlitchPlan);
             PrepareServe(serveState);
             EvaluateLevelCompletion();
@@ -3818,6 +3821,11 @@ namespace GetBricked.Gameplay
                 powerUpService?.ShowStatusBanner("PICKUP PINBALL!", new Color(1f, 0.87f, 0.36f, 1f), 2.2f);
             }
 
+            if (activeLevelGlitchPlan.HasGlitch(BreakoutLevelGlitchType.DropTide))
+            {
+                powerUpService?.ShowStatusBanner("DROP TIDE!", new Color(1f, 0.87f, 0.36f, 1f), 2.2f);
+            }
+
             if (activeLevelGlitchPlan.HasGlitch(BreakoutLevelGlitchType.MagnetStorm))
             {
                 CreateMagnetStorm(activeLevelGlitchPlan);
@@ -3935,6 +3943,7 @@ namespace GetBricked.Gameplay
         private void ClearLevelGlitches()
         {
             activeLevelGlitchPlan = BreakoutLevelGlitchPlan.None;
+            activeLevelElapsedSeconds = 0f;
             isMirrorGridArmed = false;
             hasMirrorGridTriggered = false;
             mirrorGridInitialRequiredBricks = 0;
@@ -6976,6 +6985,7 @@ namespace GetBricked.Gameplay
                 LevelGlitchSelection.ThinAir => "Thin Air",
                 LevelGlitchSelection.PrismShuffle => "Prism Shuffle",
                 LevelGlitchSelection.CloneStatic => "Clone Static",
+                LevelGlitchSelection.DropTide => "Drop Tide",
                 _ => "Off",
             };
         }
@@ -7181,6 +7191,7 @@ namespace GetBricked.Gameplay
             if (spawnedPickup != null)
             {
                 ApplyTokenStormFallSpeed(spawnedPickup);
+                ApplyDropTideWaveDelay(spawnedPickup);
                 ApplyPickupPinballMotion(spawnedPickup);
                 runStatsService?.RegisterDropDropped(spawnedPickup.Definition);
                 audioService?.PlayPickupDropped();
@@ -7208,6 +7219,12 @@ namespace GetBricked.Gameplay
         {
             return activeLevelGlitchPlan != null
                 && activeLevelGlitchPlan.HasGlitch(BreakoutLevelGlitchType.PickupPinball);
+        }
+
+        private bool IsDropTideActive()
+        {
+            return activeLevelGlitchPlan != null
+                && activeLevelGlitchPlan.HasGlitch(BreakoutLevelGlitchType.DropTide);
         }
 
         private PowerUpDefinition ResolveDeveloperForcedDrop()
@@ -8504,6 +8521,19 @@ namespace GetBricked.Gameplay
             pickup.MultiplyFallSpeed(fallSpeedMultiplier);
         }
 
+        private void ApplyDropTideWaveDelay(PowerUpPickup pickup)
+        {
+            if (pickup == null || !IsDropTideActive())
+            {
+                return;
+            }
+
+            var delaySeconds = BreakoutLevelGlitchPlanner.CalculateDropTideReleaseDelay(
+                activeLevelElapsedSeconds,
+                activeLevelGlitchPlan.DropTide);
+            pickup.DelayFall(delaySeconds);
+        }
+
         private void ApplyPickupPinballMotion(PowerUpPickup pickup)
         {
             if (pickup == null || !IsPickupPinballActive())
@@ -8516,6 +8546,14 @@ namespace GetBricked.Gameplay
                 Rect.MinMaxRect(arenaLeft, arenaBottom, arenaRight, arenaTop),
                 directionSign,
                 activeLevelGlitchPlan.PickupPinball);
+        }
+
+        private void UpdateActiveLevelElapsedSeconds()
+        {
+            if (IsGameplaySimulationActive())
+            {
+                activeLevelElapsedSeconds += Mathf.Max(0f, Time.deltaTime);
+            }
         }
 
         private float GetEffectiveBrickMagnetStrength()

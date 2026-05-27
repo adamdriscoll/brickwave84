@@ -39,6 +39,7 @@ namespace GetBricked.Gameplay
             LevelGlitchSelection.CapsuleRoulette,
             LevelGlitchSelection.CassetteSkip,
             LevelGlitchSelection.CloneStatic,
+            LevelGlitchSelection.DropTide,
             LevelGlitchSelection.DriftRows,
             LevelGlitchSelection.FlickerBricks,
             LevelGlitchSelection.GhostRow,

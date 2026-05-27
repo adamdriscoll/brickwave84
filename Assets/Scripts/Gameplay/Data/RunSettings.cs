@@ -62,6 +62,7 @@ namespace GetBricked.Gameplay.Data
         ThinAir = 26,
         PrismShuffle = 27,
         CloneStatic = 28,
+        DropTide = 29,
     }
 
     public sealed class RunSettings
@@ -246,6 +247,7 @@ namespace GetBricked.Gameplay.Data
             LevelGlitchSelection.ThinAir => "Thin Air Armed",
             LevelGlitchSelection.PrismShuffle => "Prism Shuffle Armed",
             LevelGlitchSelection.CloneStatic => "Clone Static Armed",
+            LevelGlitchSelection.DropTide => "Drop Tide Armed",
             _ => "Clean Walls",
         };
 
@@ -256,7 +258,7 @@ namespace GetBricked.Gameplay.Data
             var normalized = (LevelGlitchSelection)Mathf.Clamp(
                 (int)levelGlitchSelection,
                 (int)LevelGlitchSelection.Off,
-                (int)LevelGlitchSelection.CloneStatic);
+                (int)LevelGlitchSelection.DropTide);
 
             if (!levelGlitchesEnabled && normalized == LevelGlitchSelection.Random)
             {

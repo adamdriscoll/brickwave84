@@ -19,6 +19,7 @@ namespace GetBricked.Gameplay
         private Collider2D pickupCollider;
         private float fallSpeed;
         private float activeFallSpeedMultiplier = 1f;
+        private float fallDelaySeconds;
         private float missThresholdY;
         private float rotationDegreesPerSecond;
         private float currentRotationDegrees;
@@ -48,9 +49,16 @@ namespace GetBricked.Gameplay
 
         public bool UsesHelpfulVisualDisguise { get; private set; }
 
+        internal float FallDelaySeconds => fallDelaySeconds;
+
         public void MultiplyFallSpeed(float multiplier)
         {
             fallSpeed = Mathf.Max(0.1f, fallSpeed * Mathf.Clamp(multiplier, 0.35f, 1.5f));
+        }
+
+        internal void DelayFall(float seconds)
+        {
+            fallDelaySeconds = Mathf.Max(fallDelaySeconds, Mathf.Max(0f, seconds));
         }
 
         public void SetActiveFallSpeedMultiplier(float multiplier)
@@ -105,6 +113,7 @@ namespace GetBricked.Gameplay
             secondaryPayloadDefinition = pickupSecondaryPayloadDefinition;
             UsesHelpfulVisualDisguise = usesHelpfulVisualDisguise;
             fallSpeed = Mathf.Max(0.1f, speed);
+            fallDelaySeconds = 0f;
             missThresholdY = missY;
             currentRotationDegrees = startingRotationDegrees;
             rotationDegreesPerSecond = spinDegreesPerSecond;
@@ -204,7 +213,11 @@ namespace GetBricked.Gameplay
                 return;
             }
 
-            var nextPosition = ResolveNextFixedPosition();
+            var isFallHeld = fallDelaySeconds > 0f;
+            fallDelaySeconds = Mathf.Max(0f, fallDelaySeconds - Time.fixedDeltaTime);
+            var nextPosition = isFallHeld
+                ? (Vector2)transform.position
+                : ResolveNextFixedPosition();
 
             if (pickupBody != null)
             {

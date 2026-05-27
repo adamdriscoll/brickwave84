@@ -44,6 +44,32 @@ public sealed class PowerUpPickupRotationTests
     }
 
     [Test]
+    public void DelayedPickupHoldsPositionUntilWaveRelease()
+    {
+        pickupObject = new GameObject("Pickup");
+        pickupObject.AddComponent<SpriteRenderer>();
+        pickupObject.AddComponent<BoxCollider2D>();
+        pickupObject.AddComponent<Rigidbody2D>();
+
+        var pickup = pickupObject.AddComponent<PowerUpPickup>();
+        pickup.Configure(
+            null,
+            CreatePowerUpDefinition(),
+            speed: 3f,
+            missY: -10f,
+            startingRotationDegrees: 45f,
+            spinDegreesPerSecond: 0f,
+            new ThemeVisualStyle(Color.white, Color.white, null));
+        pickup.DelayFall(Time.fixedDeltaTime * 2f);
+
+        var initialY = pickup.transform.position.y;
+        InvokePrivateMethod(pickup, "FixedUpdate");
+
+        Assert.That(pickup.transform.position.y, Is.EqualTo(initialY).Within(0.0001f));
+        Assert.That(pickup.FallDelaySeconds, Is.GreaterThan(0f));
+    }
+
+    [Test]
     public void ApplyingThemeNormalizesPickupSpriteToTargetWorldSize()
     {
         pickupObject = new GameObject("Pickup");

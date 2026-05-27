@@ -302,6 +302,13 @@ namespace GetBricked.Gameplay
                 BreakoutLevelGlitchPlanner.CloneStaticLadderUnlockIntensity,
                 highestCompletedIntensity,
                 HazardAccent));
+            cards.Add(BuildUnlockableGlitchCard(
+                "Drop Tide",
+                "Pickup Epic Glitch",
+                "Capsules hold briefly, then fall together in waves.",
+                BreakoutLevelGlitchPlanner.DropTideLadderUnlockIntensity,
+                highestCompletedIntensity,
+                ControlAccent));
             AppendPlaceholderCards(cards, PlaceholderDrops, highestCompletedIntensity);
             AppendPlaceholderCards(cards, PlaceholderGlitches, highestCompletedIntensity);
             cards.Add(BuildHiddenSlotCard("Future Drop Slot", "Drop", "Hidden", "Future drop signal pending."));
@@ -745,6 +752,11 @@ namespace GetBricked.Gameplay
             }
 
             if (completedIntensity >= BreakoutLevelGlitchPlanner.CloneStaticLadderUnlockIntensity)
+            {
+                count++;
+            }
+
+            if (completedIntensity >= BreakoutLevelGlitchPlanner.DropTideLadderUnlockIntensity)
             {
                 count++;
             }

@@ -642,6 +642,29 @@ public sealed class BreakoutLevelGlitchPlannerTests
         Assert.That(unlockedPlan.CloneStatic.WidthMultiplier, Is.InRange(0.64f, 0.78f));
     }
 
+    [Test]
+    public void RogueGlitchHeatControlsWhenDropTideCanUnlock()
+    {
+        var lockedSettings = CreateRogueSettings(
+            rogueIntensity: BreakoutLevelGlitchPlanner.DropTideLadderUnlockIntensity,
+            levelGlitchSelection: LevelGlitchSelection.DropTide);
+        var unlockedSettings = CreateRogueSettings(
+            rogueIntensity: BreakoutLevelGlitchPlanner.DropTideLadderUnlockIntensity + 1,
+            levelGlitchSelection: LevelGlitchSelection.DropTide);
+
+        var lockedPlan = BreakoutLevelGlitchPlanner.BuildPlan(new DeterministicRandomService(7), lockedSettings, levelIndex: 9);
+        var unlockedPlan = BreakoutLevelGlitchPlanner.BuildPlan(new DeterministicRandomService(7), unlockedSettings, levelIndex: 9);
+
+        Assert.That(lockedPlan.IsActive, Is.False);
+        Assert.That(unlockedPlan.IsActive, Is.True);
+        Assert.That(unlockedPlan.GlitchType, Is.EqualTo(BreakoutLevelGlitchType.DropTide));
+        Assert.That(unlockedPlan.DisplayName, Is.EqualTo("Drop Tide"));
+        Assert.That(unlockedPlan.Rarity, Is.EqualTo(BreakoutContentRarity.Epic));
+        Assert.That(unlockedPlan.ScoreMultiplier, Is.EqualTo(1.34f).Within(0.0001f));
+        Assert.That(unlockedPlan.DropTide.WaveIntervalSeconds, Is.InRange(1.15f, 1.55f));
+        Assert.That(unlockedPlan.DropTide.MinimumHoldSeconds, Is.InRange(0.12f, 0.22f));
+    }
+
 
     [Test]
     public void ForcedWarpGatePlanBuildsSmallPortalSetAndScoreBonus()
@@ -1080,6 +1103,21 @@ public sealed class BreakoutLevelGlitchPlannerTests
     }
 
     [Test]
+    public void SelectedDropTideAlwaysBuildsDropTideEvenWhenChanceIsDisabled()
+    {
+        var settings = CreateSettings(
+            levelGlitchesEnabled: true,
+            chanceMultiplier: 0f,
+            levelGlitchSelection: LevelGlitchSelection.DropTide);
+
+        var plan = BreakoutLevelGlitchPlanner.BuildPlan(new DeterministicRandomService(3), settings, levelIndex: 9);
+
+        Assert.That(plan.IsActive, Is.True);
+        Assert.That(plan.GlitchType, Is.EqualTo(BreakoutLevelGlitchType.DropTide));
+        Assert.That(plan.HudLabel, Does.Contain("Drop Tide"));
+    }
+
+    [Test]
     public void ScoreLeakPenaltyTricklesFromAccumulatorWithoutDroppingBelowZero()
     {
         var accumulator = 0f;
@@ -1230,6 +1268,18 @@ public sealed class BreakoutLevelGlitchPlannerTests
         Assert.That(pullStep.y, Is.GreaterThan(0f));
         Assert.That(pullStep.magnitude, Is.GreaterThan(0f));
         Assert.That(pullStep.magnitude, Is.LessThanOrEqualTo(3.2f * 1.15f * 0.02f + 0.0001f));
+    }
+
+    [Test]
+    public void DropTideReleaseDelayQuantizesCapsulesToWaveBeats()
+    {
+        var spec = new BreakoutDropTideSpec(1.2f, 0.15f, 0f);
+
+        var earlyDelay = BreakoutLevelGlitchPlanner.CalculateDropTideReleaseDelay(0.25f, spec);
+        var nearWaveDelay = BreakoutLevelGlitchPlanner.CalculateDropTideReleaseDelay(1.1f, spec);
+
+        Assert.That(earlyDelay, Is.EqualTo(0.95f).Within(0.0001f));
+        Assert.That(nearWaveDelay, Is.EqualTo(1.3f).Within(0.0001f));
     }
 
     [Test]
