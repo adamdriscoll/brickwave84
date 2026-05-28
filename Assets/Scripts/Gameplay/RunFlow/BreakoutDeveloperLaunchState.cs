@@ -49,6 +49,7 @@ namespace GetBricked.Gameplay
             LevelGlitchSelection.LaserRain,
             LevelGlitchSelection.MagnetStorm,
             LevelGlitchSelection.MirrorGrid,
+            LevelGlitchSelection.MirrorServe,
             LevelGlitchSelection.PickupPinball,
             LevelGlitchSelection.PrismLanes,
             LevelGlitchSelection.PrismShuffle,

@@ -323,6 +323,13 @@ namespace GetBricked.Gameplay
                 BreakoutLevelGlitchPlanner.SpeedStepsLadderUnlockIntensity,
                 highestCompletedIntensity,
                 SplitAccent));
+            cards.Add(BuildUnlockableGlitchCard(
+                "Mirror Serve",
+                "Serve Epic Glitch",
+                "Fresh serves launch a mirror ball that vanishes after one brick hit.",
+                BreakoutLevelGlitchPlanner.MirrorServeLadderUnlockIntensity,
+                highestCompletedIntensity,
+                SplitAccent));
             AppendPlaceholderCards(cards, PlaceholderDrops, highestCompletedIntensity);
             AppendPlaceholderCards(cards, PlaceholderGlitches, highestCompletedIntensity);
             cards.Add(BuildHiddenSlotCard("Future Drop Slot", "Drop", "Hidden", "Future drop signal pending."));
@@ -781,6 +788,11 @@ namespace GetBricked.Gameplay
             }
 
             if (completedIntensity >= BreakoutLevelGlitchPlanner.SpeedStepsLadderUnlockIntensity)
+            {
+                count++;
+            }
+
+            if (completedIntensity >= BreakoutLevelGlitchPlanner.MirrorServeLadderUnlockIntensity)
             {
                 count++;
             }

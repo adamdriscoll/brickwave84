@@ -38,6 +38,7 @@ namespace GetBricked.Gameplay
         DropTide = 28,
         BrickLock = 29,
         SpeedSteps = 30,
+        MirrorServe = 31,
     }
 
     internal readonly struct BreakoutLevelGlitchDefinition
@@ -743,6 +744,7 @@ namespace GetBricked.Gameplay
         public const int DropTideLadderUnlockIntensity = 28;
         public const int BrickLockLadderUnlockIntensity = 29;
         public const int SpeedStepsLadderUnlockIntensity = 30;
+        public const int MirrorServeLadderUnlockIntensity = 31;
 
         private const float WarpGateScoreMultiplier = 1.35f;
         private const float TurboRailScoreMultiplier = 1.25f;
@@ -774,6 +776,7 @@ namespace GetBricked.Gameplay
         private const float DropTideScoreMultiplier = 1.34f;
         private const float BrickLockScoreMultiplier = 1.47f;
         private const float SpeedStepsScoreMultiplier = 1.48f;
+        private const float MirrorServeScoreMultiplier = 1.36f;
 
         private static readonly BreakoutLevelGlitchDefinition[] GlitchDefinitions =
         {
@@ -927,6 +930,11 @@ namespace GetBricked.Gameplay
                 LevelGlitchSelection.SpeedSteps,
                 BreakoutContentRarity.Epic,
                 SpeedStepsLadderUnlockIntensity),
+            new BreakoutLevelGlitchDefinition(
+                BreakoutLevelGlitchType.MirrorServe,
+                LevelGlitchSelection.MirrorServe,
+                BreakoutContentRarity.Epic,
+                MirrorServeLadderUnlockIntensity),
         };
 
         public static BreakoutLevelGlitchPlan BuildPlan(
@@ -1121,6 +1129,11 @@ namespace GetBricked.Gameplay
             if (definition.GlitchType == BreakoutLevelGlitchType.SpeedSteps)
             {
                 return BuildSpeedStepsPlan(random, definition.Rarity);
+            }
+
+            if (definition.GlitchType == BreakoutLevelGlitchType.MirrorServe)
+            {
+                return BuildMirrorServePlan(definition.Rarity);
             }
 
             return BuildWarpGatePlan(random, definition.Rarity);
@@ -1604,6 +1617,18 @@ namespace GetBricked.Gameplay
                 Array.Empty<BreakoutWarpGateSpec>(),
                 default,
                 speedSteps: speedSteps);
+        }
+
+        private static BreakoutLevelGlitchPlan BuildMirrorServePlan(BreakoutContentRarity rarity)
+        {
+            return new BreakoutLevelGlitchPlan(
+                BreakoutLevelGlitchType.MirrorServe,
+                rarity,
+                "Mirror Serve",
+                $"Mirror Serve x{MirrorServeScoreMultiplier:0.00}",
+                MirrorServeScoreMultiplier,
+                Array.Empty<BreakoutWarpGateSpec>(),
+                default);
         }
 
         private static BreakoutLevelGlitchPlan BuildStaticWallPlan(DeterministicRandomService random, BreakoutContentRarity rarity)
@@ -2336,7 +2361,8 @@ namespace GetBricked.Gameplay
                 || selection == LevelGlitchSelection.CloneStatic
                 || selection == LevelGlitchSelection.DropTide
                 || selection == LevelGlitchSelection.BrickLock
-                || selection == LevelGlitchSelection.SpeedSteps;
+                || selection == LevelGlitchSelection.SpeedSteps
+                || selection == LevelGlitchSelection.MirrorServe;
         }
 
         private static BreakoutWarpGateWall ResolveGateWall(DeterministicRandomService random, int index)

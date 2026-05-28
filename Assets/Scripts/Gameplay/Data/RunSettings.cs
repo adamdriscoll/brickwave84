@@ -65,6 +65,7 @@ namespace GetBricked.Gameplay.Data
         DropTide = 29,
         BrickLock = 30,
         SpeedSteps = 31,
+        MirrorServe = 32,
     }
 
     public sealed class RunSettings
@@ -252,6 +253,7 @@ namespace GetBricked.Gameplay.Data
             LevelGlitchSelection.DropTide => "Drop Tide Armed",
             LevelGlitchSelection.BrickLock => "Brick Lock Armed",
             LevelGlitchSelection.SpeedSteps => "Speed Steps Armed",
+            LevelGlitchSelection.MirrorServe => "Mirror Serve Armed",
             _ => "Clean Walls",
         };
 
@@ -262,7 +264,7 @@ namespace GetBricked.Gameplay.Data
             var normalized = (LevelGlitchSelection)Mathf.Clamp(
                 (int)levelGlitchSelection,
                 (int)LevelGlitchSelection.Off,
-                (int)LevelGlitchSelection.SpeedSteps);
+                (int)LevelGlitchSelection.MirrorServe);
 
             if (!levelGlitchesEnabled && normalized == LevelGlitchSelection.Random)
             {

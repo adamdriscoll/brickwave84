@@ -57,6 +57,8 @@ namespace GetBricked.Gameplay
         private const float DoubleTapCopyBallSizeMultiplier = 0.86f;
         private const float DoubleTapLaunchOffsetMultiplier = 1.2f;
         private const float MicroSparkPopStackThreshold = 4f;
+        private const float MirrorServeMinimumHorizontalDirection = 0.28f;
+        private const float MirrorServeLaunchOffsetMultiplier = 1.35f;
         private const float TurboRailSpeedBurstMultiplier = 1.35f;
         private const float TurboRailSpeedBurstDuration = 4f;
         private const float TurboRailSpeedBurstStackMultiplier = 0.12f;
@@ -237,6 +239,7 @@ namespace GetBricked.Gameplay
         private readonly List<PowerUpDefinition> loadedPowerUpDefinitions = new List<PowerUpDefinition>();
         private readonly List<BallController> activeBalls = new List<BallController>();
         private readonly List<TemporaryBallLifetime> temporaryBallLifetimes = new List<TemporaryBallLifetime>();
+        private readonly List<BallController> mirrorServeBalls = new List<BallController>();
         private readonly List<BreakoutMissileProjectile> activeMissiles = new List<BreakoutMissileProjectile>();
         private readonly List<PendingLaserRainLane> pendingLaserRainLanes = new List<PendingLaserRainLane>();
         private readonly List<SpriteRenderer> wallRenderers = new List<SpriteRenderer>();
@@ -768,6 +771,7 @@ namespace GetBricked.Gameplay
                 explosionCenter,
                 GetEffectiveSpecialBrickEffectMultiplier());
 
+            TryExpireMirrorServeBall(scoringBall);
             EvaluateLevelCompletion();
         }
 
@@ -882,6 +886,7 @@ namespace GetBricked.Gameplay
             }
 
             RemoveTemporaryBallLifetime(lostBall);
+            mirrorServeBalls.Remove(lostBall);
             var isServeBall = lostBall == serveBall;
             if (lostBall == stickyCaughtBall)
             {
@@ -1360,12 +1365,14 @@ namespace GetBricked.Gameplay
             AwardBankBonusIfAvailable(brick != null ? (Vector2)brick.transform.position : Vector2.zero);
             TryTriggerPrismPop(scoringBall, brick != null ? (Vector2)brick.transform.position : Vector2.zero, BrickDestructionCause.Impact);
             TryTriggerGhostRow(brick);
+            TryExpireMirrorServeBall(scoringBall);
         }
 
         public void HandleBrickLockBlocked(Brick brick, BallController scoringBall = null)
         {
             runStatsService?.RegisterBrickHit();
             audioService?.PlayBrickHit(brick?.Definition);
+            TryExpireMirrorServeBall(scoringBall);
 
             if (Time.time < nextBrickLockBlockedBannerTime)
             {
@@ -3227,6 +3234,7 @@ namespace GetBricked.Gameplay
             SetSimulationPaused(false);
             serveBall.Launch();
             SpawnConfiguredServeBalls();
+            SpawnMirrorServeBall();
         }
 
         private void SpawnConfiguredServeBalls()
@@ -3257,6 +3265,52 @@ namespace GetBricked.Gameplay
             }
         }
 
+        private void SpawnMirrorServeBall()
+        {
+            if (!IsMirrorServeActive() || serveBall == null || ballSpawnService == null)
+            {
+                return;
+            }
+
+            var sourceDirection = ResolveBallTravelDirection(serveBall);
+            var mirrorDirection = BuildMirrorServeDirection(sourceDirection);
+            var mirrorBall = CreateBall(false);
+            mirrorBall.SetWorldPosition((Vector2)serveBall.transform.position + (mirrorDirection * ResolveMirrorServeLaunchOffset()));
+            mirrorBall.Launch(mirrorDirection);
+            activeBalls.Add(mirrorBall);
+            mirrorServeBalls.Add(mirrorBall);
+            powerUpService?.ShowStatusBanner("MIRROR SERVE!", new Color(0.01f, 0.93f, 0.98f, 1f), 1.15f);
+        }
+
+        private bool IsMirrorServeActive()
+        {
+            return activeLevelGlitchPlan != null
+                && activeLevelGlitchPlan.HasGlitch(BreakoutLevelGlitchType.MirrorServe);
+        }
+
+        private Vector2 BuildMirrorServeDirection(Vector2 sourceDirection)
+        {
+            var resolvedDirection = sourceDirection.sqrMagnitude > 0.01f ? sourceDirection.normalized : Vector2.up;
+            var mirroredDirection = new Vector2(-resolvedDirection.x, resolvedDirection.y);
+
+            if (Mathf.Abs(mirroredDirection.x) < MirrorServeMinimumHorizontalDirection)
+            {
+                mirroredDirection.x = (NextGameplayRandomBool() ? -1f : 1f) * MirrorServeMinimumHorizontalDirection;
+            }
+
+            if (mirroredDirection.y <= 0.05f)
+            {
+                mirroredDirection.y = Mathf.Max(0.4f, Mathf.Abs(resolvedDirection.y));
+            }
+
+            return mirroredDirection.sqrMagnitude > 0.01f ? mirroredDirection.normalized : Vector2.up;
+        }
+
+        private float ResolveMirrorServeLaunchOffset()
+        {
+            return Mathf.Max(0.04f, ballRadius * MirrorServeLaunchOffsetMultiplier);
+        }
+
         private void PrepareServe(RoundState nextState)
         {
             roundState = nextState;
@@ -3269,6 +3323,7 @@ namespace GetBricked.Gameplay
             EnsureServeBallExists();
             DestroyAdditionalBalls();
             temporaryBallLifetimes.Clear();
+            mirrorServeBalls.Clear();
             activeBalls.Clear();
             serveBall.SetMovementSpeed(GetCurrentBallSpeed());
             RefreshServeBallVisualStyle();
@@ -7091,6 +7146,7 @@ namespace GetBricked.Gameplay
                 LevelGlitchSelection.DropTide => "Drop Tide",
                 LevelGlitchSelection.BrickLock => "Brick Lock",
                 LevelGlitchSelection.SpeedSteps => "Speed Steps",
+                LevelGlitchSelection.MirrorServe => "Mirror Serve",
                 _ => "Off",
             };
         }
@@ -8019,6 +8075,36 @@ namespace GetBricked.Gameplay
             ball.Stop();
             ball.gameObject.SetActive(false);
             DestroyRuntimeObject(ball.gameObject);
+        }
+
+        private bool TryExpireMirrorServeBall(BallController ball)
+        {
+            if (ball == null || !mirrorServeBalls.Remove(ball))
+            {
+                return false;
+            }
+
+            RemoveTemporaryBallLifetime(ball);
+
+            if (CountActiveBallsExcluding(ball) <= 0)
+            {
+                HandleBallLost(ball);
+                return true;
+            }
+
+            if (stickyCaughtBall == ball)
+            {
+                stickyCaughtBall = null;
+                stickyCaughtBallUsesCleanCatch = false;
+                cleanCatchReleaseOffsetNormalized = 0f;
+                cleanCatchReleaseAimMultiplier = 1f;
+            }
+
+            activeBalls.Remove(ball);
+            ball.Stop();
+            ball.gameObject.SetActive(false);
+            DestroyRuntimeObject(ball.gameObject);
+            return true;
         }
 
         private int CountActiveBallsExcluding(BallController excludedBall)

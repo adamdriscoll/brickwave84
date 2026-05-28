@@ -711,6 +711,27 @@ public sealed class BreakoutLevelGlitchPlannerTests
         Assert.That(unlockedPlan.SpeedSteps.MaximumMultiplier, Is.InRange(1.62f, 1.78f));
     }
 
+    [Test]
+    public void RogueGlitchHeatControlsWhenMirrorServeCanUnlock()
+    {
+        var lockedSettings = CreateRogueSettings(
+            rogueIntensity: BreakoutLevelGlitchPlanner.MirrorServeLadderUnlockIntensity,
+            levelGlitchSelection: LevelGlitchSelection.MirrorServe);
+        var unlockedSettings = CreateRogueSettings(
+            rogueIntensity: BreakoutLevelGlitchPlanner.MirrorServeLadderUnlockIntensity + 1,
+            levelGlitchSelection: LevelGlitchSelection.MirrorServe);
+
+        var lockedPlan = BreakoutLevelGlitchPlanner.BuildPlan(new DeterministicRandomService(7), lockedSettings, levelIndex: 9);
+        var unlockedPlan = BreakoutLevelGlitchPlanner.BuildPlan(new DeterministicRandomService(7), unlockedSettings, levelIndex: 9);
+
+        Assert.That(lockedPlan.IsActive, Is.False);
+        Assert.That(unlockedPlan.IsActive, Is.True);
+        Assert.That(unlockedPlan.GlitchType, Is.EqualTo(BreakoutLevelGlitchType.MirrorServe));
+        Assert.That(unlockedPlan.DisplayName, Is.EqualTo("Mirror Serve"));
+        Assert.That(unlockedPlan.Rarity, Is.EqualTo(BreakoutContentRarity.Epic));
+        Assert.That(unlockedPlan.ScoreMultiplier, Is.EqualTo(1.36f).Within(0.0001f));
+    }
+
 
     [Test]
     public void ForcedWarpGatePlanBuildsSmallPortalSetAndScoreBonus()
@@ -1191,6 +1212,21 @@ public sealed class BreakoutLevelGlitchPlannerTests
         Assert.That(plan.IsActive, Is.True);
         Assert.That(plan.GlitchType, Is.EqualTo(BreakoutLevelGlitchType.SpeedSteps));
         Assert.That(plan.HudLabel, Does.Contain("Speed Steps"));
+    }
+
+    [Test]
+    public void SelectedMirrorServeAlwaysBuildsMirrorServeEvenWhenChanceIsDisabled()
+    {
+        var settings = CreateSettings(
+            levelGlitchesEnabled: true,
+            chanceMultiplier: 0f,
+            levelGlitchSelection: LevelGlitchSelection.MirrorServe);
+
+        var plan = BreakoutLevelGlitchPlanner.BuildPlan(new DeterministicRandomService(3), settings, levelIndex: 9);
+
+        Assert.That(plan.IsActive, Is.True);
+        Assert.That(plan.GlitchType, Is.EqualTo(BreakoutLevelGlitchType.MirrorServe));
+        Assert.That(plan.HudLabel, Does.Contain("Mirror Serve"));
     }
 
     [Test]
