@@ -732,6 +732,31 @@ public sealed class BreakoutLevelGlitchPlannerTests
         Assert.That(unlockedPlan.ScoreMultiplier, Is.EqualTo(1.36f).Within(0.0001f));
     }
 
+    [Test]
+    public void RogueGlitchHeatControlsWhenStaticJackpotCanUnlock()
+    {
+        var lockedSettings = CreateRogueSettings(
+            rogueIntensity: BreakoutLevelGlitchPlanner.StaticJackpotLadderUnlockIntensity,
+            levelGlitchSelection: LevelGlitchSelection.StaticJackpot);
+        var unlockedSettings = CreateRogueSettings(
+            rogueIntensity: BreakoutLevelGlitchPlanner.StaticJackpotLadderUnlockIntensity + 1,
+            levelGlitchSelection: LevelGlitchSelection.StaticJackpot);
+
+        var lockedPlan = BreakoutLevelGlitchPlanner.BuildPlan(new DeterministicRandomService(7), lockedSettings, levelIndex: 9);
+        var unlockedPlan = BreakoutLevelGlitchPlanner.BuildPlan(new DeterministicRandomService(7), unlockedSettings, levelIndex: 9);
+
+        Assert.That(lockedPlan.IsActive, Is.False);
+        Assert.That(unlockedPlan.IsActive, Is.True);
+        Assert.That(unlockedPlan.GlitchType, Is.EqualTo(BreakoutLevelGlitchType.StaticJackpot));
+        Assert.That(unlockedPlan.DisplayName, Is.EqualTo("Static Jackpot"));
+        Assert.That(unlockedPlan.Rarity, Is.EqualTo(BreakoutContentRarity.Epic));
+        Assert.That(unlockedPlan.ScoreMultiplier, Is.EqualTo(1.5f).Within(0.0001f));
+        Assert.That(unlockedPlan.StaticJackpot.Zones.Length, Is.EqualTo(3));
+        Assert.That(unlockedPlan.StaticJackpot.BonusScoreMultiplier, Is.InRange(1.65f, 1.85f));
+        Assert.That(unlockedPlan.StaticJackpot.MissSpeedBurstMultiplier, Is.InRange(1.08f, 1.14f));
+        Assert.That(unlockedPlan.StaticJackpot.MissSpeedBurstDurationSeconds, Is.InRange(1.25f, 1.75f));
+    }
+
 
     [Test]
     public void ForcedWarpGatePlanBuildsSmallPortalSetAndScoreBonus()
@@ -1230,6 +1255,21 @@ public sealed class BreakoutLevelGlitchPlannerTests
     }
 
     [Test]
+    public void SelectedStaticJackpotAlwaysBuildsStaticJackpotEvenWhenChanceIsDisabled()
+    {
+        var settings = CreateSettings(
+            levelGlitchesEnabled: true,
+            chanceMultiplier: 0f,
+            levelGlitchSelection: LevelGlitchSelection.StaticJackpot);
+
+        var plan = BreakoutLevelGlitchPlanner.BuildPlan(new DeterministicRandomService(3), settings, levelIndex: 9);
+
+        Assert.That(plan.IsActive, Is.True);
+        Assert.That(plan.GlitchType, Is.EqualTo(BreakoutLevelGlitchType.StaticJackpot));
+        Assert.That(plan.HudLabel, Does.Contain("Static Jackpot"));
+    }
+
+    [Test]
     public void ScoreLeakPenaltyTricklesFromAccumulatorWithoutDroppingBelowZero()
     {
         var accumulator = 0f;
@@ -1392,6 +1432,36 @@ public sealed class BreakoutLevelGlitchPlannerTests
 
         Assert.That(earlyDelay, Is.EqualTo(0.95f).Within(0.0001f));
         Assert.That(nearWaveDelay, Is.EqualTo(1.3f).Within(0.0001f));
+    }
+
+    [Test]
+    public void StaticJackpotCalculatorFindsHitsInsideBonusZones()
+    {
+        var spec = new BreakoutStaticJackpotSpec(
+            new[]
+            {
+                new BreakoutStaticJackpotZoneSpec(0.25f, 0.5f, 0.8f),
+            },
+            1.75f,
+            1.1f,
+            1.5f);
+        var playfield = Rect.MinMaxRect(-4f, -2f, 4f, 6f);
+        var zoneCenter = BreakoutStaticJackpotCalculator.ResolveZoneCenter(playfield, spec.Zones[0]);
+
+        var inside = BreakoutStaticJackpotCalculator.TryFindZone(
+            zoneCenter + new Vector2(0.4f, 0f),
+            playfield,
+            spec,
+            out var zoneIndex);
+        var outside = BreakoutStaticJackpotCalculator.TryFindZone(
+            zoneCenter + new Vector2(1.2f, 0f),
+            playfield,
+            spec,
+            out _);
+
+        Assert.That(inside, Is.True);
+        Assert.That(zoneIndex, Is.EqualTo(0));
+        Assert.That(outside, Is.False);
     }
 
     [Test]

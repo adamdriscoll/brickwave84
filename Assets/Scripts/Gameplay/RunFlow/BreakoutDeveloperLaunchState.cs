@@ -59,6 +59,7 @@ namespace GetBricked.Gameplay
             LevelGlitchSelection.ScoreLeak,
             LevelGlitchSelection.SpeedSteps,
             LevelGlitchSelection.SplitHorizon,
+            LevelGlitchSelection.StaticJackpot,
             LevelGlitchSelection.StaticWall,
             LevelGlitchSelection.SwitchbackRails,
             LevelGlitchSelection.ThinAir,

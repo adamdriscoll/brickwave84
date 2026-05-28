@@ -330,6 +330,13 @@ namespace GetBricked.Gameplay
                 BreakoutLevelGlitchPlanner.MirrorServeLadderUnlockIntensity,
                 highestCompletedIntensity,
                 SplitAccent));
+            cards.Add(BuildUnlockableGlitchCard(
+                "Static Jackpot",
+                "Score Epic Glitch",
+                "Bonus score zones appear, but missed zones speed up the ball.",
+                BreakoutLevelGlitchPlanner.StaticJackpotLadderUnlockIntensity,
+                highestCompletedIntensity,
+                PrecisionAccent));
             AppendPlaceholderCards(cards, PlaceholderDrops, highestCompletedIntensity);
             AppendPlaceholderCards(cards, PlaceholderGlitches, highestCompletedIntensity);
             cards.Add(BuildHiddenSlotCard("Future Drop Slot", "Drop", "Hidden", "Future drop signal pending."));
@@ -793,6 +800,11 @@ namespace GetBricked.Gameplay
             }
 
             if (completedIntensity >= BreakoutLevelGlitchPlanner.MirrorServeLadderUnlockIntensity)
+            {
+                count++;
+            }
+
+            if (completedIntensity >= BreakoutLevelGlitchPlanner.StaticJackpotLadderUnlockIntensity)
             {
                 count++;
             }

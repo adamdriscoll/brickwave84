@@ -68,6 +68,7 @@ namespace GetBricked.Gameplay
         private const float StaticWallThickness = 0.22f;
         private const float StaticWallBottomInset = 1.15f;
         private const float StaticWallTopInset = 0.55f;
+        private const int StaticJackpotZoneSortingOrder = 7;
         private const float ThinAirEscapeMargin = 0.55f;
         private const float GravityPocketArenaHorizontalPadding = 1.35f;
         private const float GravityPocketArenaBottomPadding = 2.1f;
@@ -372,6 +373,7 @@ namespace GetBricked.Gameplay
         private GameObject activeSwitchbackRailField;
         private GameObject activeHotCornerField;
         private GameObject activeSplitHorizonField;
+        private GameObject activeStaticJackpotField;
         private BreakoutMirrorGridVisual activeMirrorGridVisual;
         private bool isMirrorGridArmed;
         private bool hasMirrorGridTriggered;
@@ -671,12 +673,19 @@ namespace GetBricked.Gameplay
             var scoreAward = scoreService != null
                 ? scoreService.BuildBrickScoreAward(brick, scoringBall, destructionCause, BuildScoreContext())
                 : default;
+            var staticJackpotPoints = ResolveStaticJackpotBonusPoints(
+                brick,
+                scoringBall,
+                destructionCause,
+                scoreAward.BasePoints);
             var bankBonusPoints = 0;
             powerUpService?.TryConsumeBankBonus(out bankBonusPoints);
-            score += scoreAward.TotalPoints + bankBonusPoints;
+            score += scoreAward.TotalPoints + staticJackpotPoints + bankBonusPoints;
 
-            var combinedBonusPoints = scoreAward.BonusPoints + bankBonusPoints;
-            var combinedBonusLabel = CombineBonusLabels(scoreAward.BonusLabel, bankBonusPoints > 0 ? "BANK BONUS" : string.Empty);
+            var combinedBonusPoints = scoreAward.BonusPoints + staticJackpotPoints + bankBonusPoints;
+            var combinedBonusLabel = CombineBonusLabels(
+                CombineBonusLabels(scoreAward.BonusLabel, staticJackpotPoints > 0 ? "STATIC JACKPOT" : string.Empty),
+                bankBonusPoints > 0 ? "BANK BONUS" : string.Empty);
 
             if (combinedBonusPoints > 0)
             {
@@ -3881,6 +3890,12 @@ namespace GetBricked.Gameplay
                 powerUpService?.ShowStatusBanner("MIRROR GRID!", new Color(0.72f, 0.62f, 1f, 1f), 2.2f);
             }
 
+            if (activeLevelGlitchPlan.HasGlitch(BreakoutLevelGlitchType.StaticJackpot))
+            {
+                CreateStaticJackpotZones(activeLevelGlitchPlan);
+                powerUpService?.ShowStatusBanner("STATIC JACKPOT!", new Color(1f, 0.87f, 0.36f, 1f), 2.2f);
+            }
+
             if (activeLevelGlitchPlan.HasGlitch(BreakoutLevelGlitchType.GravityPocket))
             {
                 CreateGravityPocket(activeLevelGlitchPlan);
@@ -4110,6 +4125,12 @@ namespace GetBricked.Gameplay
             {
                 DestroyRuntimeObject(activeSplitHorizonField);
                 activeSplitHorizonField = null;
+            }
+
+            if (activeStaticJackpotField != null)
+            {
+                DestroyRuntimeObject(activeStaticJackpotField);
+                activeStaticJackpotField = null;
             }
 
             if (activeMirrorGridVisual != null)
@@ -4474,6 +4495,101 @@ namespace GetBricked.Gameplay
                 squareSprite,
                 additiveSpriteMaterial,
                 Rect.MinMaxRect(arenaLeft, arenaBottom + 0.35f, arenaRight, arenaTop));
+        }
+
+        private void CreateStaticJackpotZones(BreakoutLevelGlitchPlan glitchPlan)
+        {
+            if (glitchPlan == null || circleSprite == null)
+            {
+                return;
+            }
+
+            if (activeStaticJackpotField != null)
+            {
+                DestroyRuntimeObject(activeStaticJackpotField);
+                activeStaticJackpotField = null;
+            }
+
+            activeStaticJackpotField = new GameObject("Static Jackpot Zones");
+            activeStaticJackpotField.transform.SetParent(glitchesRoot != null ? glitchesRoot : runtimeRoot, false);
+            var playfieldBounds = Rect.MinMaxRect(arenaLeft, arenaBottom, arenaRight, arenaTop);
+            var zones = glitchPlan.StaticJackpot.Zones ?? Array.Empty<BreakoutStaticJackpotZoneSpec>();
+
+            for (var index = 0; index < zones.Length; index++)
+            {
+                CreateStaticJackpotZoneVisual(activeStaticJackpotField.transform, playfieldBounds, zones[index], index);
+            }
+        }
+
+        private void CreateStaticJackpotZoneVisual(
+            Transform parent,
+            Rect playfieldBounds,
+            BreakoutStaticJackpotZoneSpec zone,
+            int zoneIndex)
+        {
+            var zoneObject = new GameObject($"Static Jackpot Zone {zoneIndex + 1:00}");
+            zoneObject.transform.SetParent(parent, false);
+            zoneObject.transform.position = BreakoutStaticJackpotCalculator.ResolveZoneCenter(playfieldBounds, zone);
+            var diameter = Mathf.Max(0.1f, zone.Radius * 2f);
+
+            var glowRenderer = CreateStaticJackpotZoneLayer(
+                zoneObject.transform,
+                "Glow",
+                diameter * 1.42f,
+                ResolveStaticJackpotGlowColor(0.18f),
+                StaticJackpotZoneSortingOrder - 1);
+            var coreRenderer = CreateStaticJackpotZoneLayer(
+                zoneObject.transform,
+                "Core",
+                diameter,
+                ResolveStaticJackpotCoreColor(0.28f),
+                StaticJackpotZoneSortingOrder);
+
+            glowRenderer.sharedMaterial = additiveSpriteMaterial != null ? additiveSpriteMaterial : spriteUnlitMaterial;
+            coreRenderer.sharedMaterial = additiveSpriteMaterial != null ? additiveSpriteMaterial : spriteUnlitMaterial;
+        }
+
+        private SpriteRenderer CreateStaticJackpotZoneLayer(
+            Transform parent,
+            string layerName,
+            float diameter,
+            Color color,
+            int sortingOrder)
+        {
+            var layerObject = new GameObject(layerName);
+            layerObject.transform.SetParent(parent, false);
+            layerObject.transform.localScale = new Vector3(diameter, diameter, 1f);
+            var renderer = layerObject.AddComponent<SpriteRenderer>();
+            renderer.sprite = circleSprite;
+            renderer.color = color;
+            renderer.sortingOrder = sortingOrder;
+            return renderer;
+        }
+
+        private Color ResolveStaticJackpotCoreColor(float alpha)
+        {
+            var color = themeService != null
+                ? themeService.ResolveThemeStyle(
+                    ThemeVisualSlot.PickupBurst,
+                    new Color(1f, 0.87f, 0.36f, 1f),
+                    new Color(1f, 0.28f, 0.66f, 1f),
+                    circleSprite).PrimaryColor
+                : new Color(1f, 0.87f, 0.36f, 1f);
+            color.a = Mathf.Clamp01(alpha);
+            return color;
+        }
+
+        private Color ResolveStaticJackpotGlowColor(float alpha)
+        {
+            var color = themeService != null
+                ? themeService.ResolveThemeStyle(
+                    ThemeVisualSlot.BrickPrimary,
+                    new Color(1f, 0.28f, 0.66f, 1f),
+                    new Color(0.03f, 0.93f, 0.98f, 1f),
+                    circleSprite).PrimaryColor
+                : new Color(1f, 0.28f, 0.66f, 1f);
+            color.a = Mathf.Clamp01(alpha);
+            return color;
         }
 
         private void ArmRowRewrite(BreakoutRowRewriteSpec rowRewrite)
@@ -7147,6 +7263,7 @@ namespace GetBricked.Gameplay
                 LevelGlitchSelection.BrickLock => "Brick Lock",
                 LevelGlitchSelection.SpeedSteps => "Speed Steps",
                 LevelGlitchSelection.MirrorServe => "Mirror Serve",
+                LevelGlitchSelection.StaticJackpot => "Static Jackpot",
                 _ => "Off",
             };
         }
@@ -7440,6 +7557,42 @@ namespace GetBricked.Gameplay
                 bonusPoints,
                 "CAPSULE MADNESS",
                 ResolveCapsuleMadnessColor());
+        }
+
+        private int ResolveStaticJackpotBonusPoints(
+            Brick brick,
+            BallController scoringBall,
+            BrickDestructionCause destructionCause,
+            int awardedBasePoints)
+        {
+            if (activeLevelGlitchPlan == null
+                || !activeLevelGlitchPlan.HasGlitch(BreakoutLevelGlitchType.StaticJackpot)
+                || brick == null
+                || awardedBasePoints <= 0)
+            {
+                return 0;
+            }
+
+            var staticJackpot = activeLevelGlitchPlan.StaticJackpot;
+            var playfieldBounds = Rect.MinMaxRect(arenaLeft, arenaBottom, arenaRight, arenaTop);
+
+            if (BreakoutStaticJackpotCalculator.TryFindZone(
+                brick.transform.position,
+                playfieldBounds,
+                staticJackpot,
+                out _))
+            {
+                return Mathf.Max(1, Mathf.RoundToInt(awardedBasePoints * (staticJackpot.BonusScoreMultiplier - 1f)));
+            }
+
+            if (destructionCause == BrickDestructionCause.Impact && scoringBall != null)
+            {
+                scoringBall.ApplySpeedBurst(
+                    staticJackpot.MissSpeedBurstMultiplier,
+                    staticJackpot.MissSpeedBurstDurationSeconds);
+            }
+
+            return 0;
         }
 
         private void AwardBankBonusIfAvailable(Vector2 worldPosition)
