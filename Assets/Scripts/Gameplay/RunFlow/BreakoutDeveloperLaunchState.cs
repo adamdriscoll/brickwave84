@@ -46,6 +46,7 @@ namespace GetBricked.Gameplay
             LevelGlitchSelection.GhostRow,
             LevelGlitchSelection.GravityPocket,
             LevelGlitchSelection.HotCorners,
+            LevelGlitchSelection.JammedRails,
             LevelGlitchSelection.LaserRain,
             LevelGlitchSelection.MagnetStorm,
             LevelGlitchSelection.MirrorGrid,

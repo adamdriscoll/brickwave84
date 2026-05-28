@@ -518,6 +518,7 @@ namespace GetBricked.Gameplay
         {
             UpdateActiveLevelElapsedSeconds();
             UpdateTimedEffects();
+            UpdateJammedRailsPulse();
             UpdateCapsuleRoulettePickups();
             UpdateTemporaryBallLifetimes();
             RefreshBrickMagnetTargets();
@@ -3896,6 +3897,12 @@ namespace GetBricked.Gameplay
                 powerUpService?.ShowStatusBanner("STATIC JACKPOT!", new Color(1f, 0.87f, 0.36f, 1f), 2.2f);
             }
 
+            if (activeLevelGlitchPlan.HasGlitch(BreakoutLevelGlitchType.JammedRails))
+            {
+                UpdateJammedRailsPulse();
+                powerUpService?.ShowStatusBanner("JAMMED RAILS!", new Color(0.99f, 0.27f, 0.31f, 1f), 2.2f);
+            }
+
             if (activeLevelGlitchPlan.HasGlitch(BreakoutLevelGlitchType.GravityPocket))
             {
                 CreateGravityPocket(activeLevelGlitchPlan);
@@ -4146,6 +4153,11 @@ namespace GetBricked.Gameplay
             ClearMagnetStormFromPickups();
             ClearSplitHorizonFromBalls();
             ClearSpeedStepsFromBalls();
+
+            if (paddle != null && activeEffectModifiers.PaddleWidthMultiplier > 0f)
+            {
+                paddle.SetWidthMultiplier(activeEffectModifiers.PaddleWidthMultiplier);
+            }
         }
 
         private void ArmScoreLeak(BreakoutScoreLeakSpec scoreLeak)
@@ -7264,6 +7276,7 @@ namespace GetBricked.Gameplay
                 LevelGlitchSelection.SpeedSteps => "Speed Steps",
                 LevelGlitchSelection.MirrorServe => "Mirror Serve",
                 LevelGlitchSelection.StaticJackpot => "Static Jackpot",
+                LevelGlitchSelection.JammedRails => "Jammed Rails",
                 _ => "Off",
             };
         }
@@ -7692,6 +7705,8 @@ namespace GetBricked.Gameplay
                 TriggerWidePaddleBreakFeedback();
                 return;
             }
+
+            UpdateJammedRailsPulse();
 
             if (activeEffectModifiers.BallSizeMultiplier > BallController.MaximumSizeMultiplier
                 && TryPopMegaBall())
@@ -8898,6 +8913,20 @@ namespace GetBricked.Gameplay
             {
                 activeLevelElapsedSeconds += Mathf.Max(0f, Time.deltaTime);
             }
+        }
+
+        private void UpdateJammedRailsPulse()
+        {
+            if (paddle == null || activeLevelGlitchPlan == null || !activeLevelGlitchPlan.HasGlitch(BreakoutLevelGlitchType.JammedRails))
+            {
+                return;
+            }
+
+            var baseWidthMultiplier = Mathf.Max(0.1f, activeEffectModifiers.PaddleWidthMultiplier);
+            var jammedWidthMultiplier = BreakoutJammedRailsCalculator.CalculateWidthMultiplier(
+                activeLevelElapsedSeconds,
+                activeLevelGlitchPlan.JammedRails);
+            paddle.SetWidthMultiplier(baseWidthMultiplier * jammedWidthMultiplier);
         }
 
         private float GetEffectiveBrickMagnetStrength()

@@ -40,6 +40,7 @@ namespace GetBricked.Gameplay
         SpeedSteps = 30,
         MirrorServe = 31,
         StaticJackpot = 32,
+        JammedRails = 33,
     }
 
     internal readonly struct BreakoutLevelGlitchDefinition
@@ -553,6 +554,46 @@ namespace GetBricked.Gameplay
         public float MaximumMultiplier { get; }
     }
 
+    internal readonly struct BreakoutJammedRailsSpec
+    {
+        public BreakoutJammedRailsSpec(
+            float minimumWidthMultiplier,
+            float maximumWidthMultiplier,
+            float pulseCycleSeconds,
+            float phaseOffsetSeconds)
+        {
+            MinimumWidthMultiplier = Mathf.Clamp(minimumWidthMultiplier, 0.55f, 1f);
+            MaximumWidthMultiplier = Mathf.Clamp(maximumWidthMultiplier, Mathf.Max(MinimumWidthMultiplier, 1f), 1.45f);
+            PulseCycleSeconds = Mathf.Clamp(pulseCycleSeconds, 1.45f, 4.25f);
+            PhaseOffsetSeconds = Mathf.Max(0f, phaseOffsetSeconds);
+        }
+
+        public float MinimumWidthMultiplier { get; }
+
+        public float MaximumWidthMultiplier { get; }
+
+        public float PulseCycleSeconds { get; }
+
+        public float PhaseOffsetSeconds { get; }
+    }
+
+    internal static class BreakoutJammedRailsCalculator
+    {
+        public static float CalculateWidthMultiplier(float elapsedSeconds, BreakoutJammedRailsSpec spec)
+        {
+            if (spec.PulseCycleSeconds <= 0.001f)
+            {
+                return 1f;
+            }
+
+            var phase = Mathf.Repeat(Mathf.Max(0f, elapsedSeconds) + spec.PhaseOffsetSeconds, spec.PulseCycleSeconds)
+                / spec.PulseCycleSeconds;
+            var wave = (Mathf.Sin((phase * Mathf.PI * 2f) - (Mathf.PI * 0.5f)) + 1f) * 0.5f;
+            var easedWave = Mathf.SmoothStep(0f, 1f, wave);
+            return Mathf.Lerp(spec.MinimumWidthMultiplier, spec.MaximumWidthMultiplier, easedWave);
+        }
+    }
+
     internal readonly struct BreakoutStaticJackpotZoneSpec
     {
         public BreakoutStaticJackpotZoneSpec(float normalizedX, float normalizedY, float radius)
@@ -671,6 +712,7 @@ namespace GetBricked.Gameplay
             BreakoutDropTideSpec dropTide = default,
             BreakoutBrickLockSpec brickLock = default,
             BreakoutSpeedStepsSpec speedSteps = default,
+            BreakoutJammedRailsSpec jammedRails = default,
             BreakoutStaticJackpotSpec staticJackpot = default)
         {
             GlitchType = glitchType;
@@ -703,6 +745,7 @@ namespace GetBricked.Gameplay
             DropTide = dropTide;
             BrickLock = brickLock;
             SpeedSteps = speedSteps;
+            JammedRails = jammedRails;
             StaticJackpot = staticJackpot;
             ActiveGlitchTypes = activeGlitchTypes != null && activeGlitchTypes.Length > 0
                 ? activeGlitchTypes
@@ -771,6 +814,8 @@ namespace GetBricked.Gameplay
 
         public BreakoutSpeedStepsSpec SpeedSteps { get; }
 
+        public BreakoutJammedRailsSpec JammedRails { get; }
+
         public BreakoutStaticJackpotSpec StaticJackpot { get; }
 
         public BreakoutLevelGlitchType[] ActiveGlitchTypes { get; }
@@ -824,6 +869,7 @@ namespace GetBricked.Gameplay
         public const int SpeedStepsLadderUnlockIntensity = 30;
         public const int MirrorServeLadderUnlockIntensity = 31;
         public const int StaticJackpotLadderUnlockIntensity = 32;
+        public const int JammedRailsLadderUnlockIntensity = 33;
 
         private const float WarpGateScoreMultiplier = 1.35f;
         private const float TurboRailScoreMultiplier = 1.25f;
@@ -857,6 +903,7 @@ namespace GetBricked.Gameplay
         private const float SpeedStepsScoreMultiplier = 1.48f;
         private const float MirrorServeScoreMultiplier = 1.36f;
         private const float StaticJackpotScoreMultiplier = 1.5f;
+        private const float JammedRailsScoreMultiplier = 1.49f;
 
         private static readonly BreakoutLevelGlitchDefinition[] GlitchDefinitions =
         {
@@ -1020,6 +1067,11 @@ namespace GetBricked.Gameplay
                 LevelGlitchSelection.StaticJackpot,
                 BreakoutContentRarity.Epic,
                 StaticJackpotLadderUnlockIntensity),
+            new BreakoutLevelGlitchDefinition(
+                BreakoutLevelGlitchType.JammedRails,
+                LevelGlitchSelection.JammedRails,
+                BreakoutContentRarity.Epic,
+                JammedRailsLadderUnlockIntensity),
         };
 
         public static BreakoutLevelGlitchPlan BuildPlan(
@@ -1226,6 +1278,11 @@ namespace GetBricked.Gameplay
                 return BuildStaticJackpotPlan(random, definition.Rarity);
             }
 
+            if (definition.GlitchType == BreakoutLevelGlitchType.JammedRails)
+            {
+                return BuildJammedRailsPlan(random, definition.Rarity);
+            }
+
             return BuildWarpGatePlan(random, definition.Rarity);
         }
 
@@ -1348,6 +1405,7 @@ namespace GetBricked.Gameplay
             var dropTide = default(BreakoutDropTideSpec);
             var brickLock = default(BreakoutBrickLockSpec);
             var speedSteps = default(BreakoutSpeedStepsSpec);
+            var jammedRails = default(BreakoutJammedRailsSpec);
             var staticJackpot = default(BreakoutStaticJackpotSpec);
 
             for (var index = 0; index < definitions.Count; index++)
@@ -1490,6 +1548,11 @@ namespace GetBricked.Gameplay
                     speedSteps = plan.SpeedSteps;
                 }
 
+                if (plan.HasGlitch(BreakoutLevelGlitchType.JammedRails))
+                {
+                    jammedRails = plan.JammedRails;
+                }
+
                 if (plan.HasGlitch(BreakoutLevelGlitchType.StaticJackpot))
                 {
                     staticJackpot = plan.StaticJackpot;
@@ -1528,6 +1591,7 @@ namespace GetBricked.Gameplay
                 dropTide,
                 brickLock,
                 speedSteps,
+                jammedRails,
                 staticJackpot);
         }
 
@@ -1740,6 +1804,20 @@ namespace GetBricked.Gameplay
                 Array.Empty<BreakoutWarpGateSpec>(),
                 default,
                 staticJackpot: staticJackpot);
+        }
+
+        private static BreakoutLevelGlitchPlan BuildJammedRailsPlan(DeterministicRandomService random, BreakoutContentRarity rarity)
+        {
+            var jammedRails = BuildJammedRails(random);
+            return new BreakoutLevelGlitchPlan(
+                BreakoutLevelGlitchType.JammedRails,
+                rarity,
+                "Jammed Rails",
+                $"Jammed Rails {jammedRails.MinimumWidthMultiplier:0.00}-{jammedRails.MaximumWidthMultiplier:0.00}x x{JammedRailsScoreMultiplier:0.00}",
+                JammedRailsScoreMultiplier,
+                Array.Empty<BreakoutWarpGateSpec>(),
+                default,
+                jammedRails: jammedRails);
         }
 
         private static BreakoutLevelGlitchPlan BuildStaticWallPlan(DeterministicRandomService random, BreakoutContentRarity rarity)
@@ -2298,6 +2376,15 @@ namespace GetBricked.Gameplay
                 random.Range(1.25f, 1.75f));
         }
 
+        private static BreakoutJammedRailsSpec BuildJammedRails(DeterministicRandomService random)
+        {
+            return new BreakoutJammedRailsSpec(
+                random.Range(0.68f, 0.76f),
+                random.Range(1.22f, 1.34f),
+                random.Range(2.05f, 2.85f),
+                random.Range(0f, 2.85f));
+        }
+
         internal static float CalculateDropTideReleaseDelay(float elapsedSeconds, BreakoutDropTideSpec spec)
         {
             if (elapsedSeconds < 0f || spec.WaveIntervalSeconds <= 0.001f)
@@ -2497,7 +2584,8 @@ namespace GetBricked.Gameplay
                 || selection == LevelGlitchSelection.BrickLock
                 || selection == LevelGlitchSelection.SpeedSteps
                 || selection == LevelGlitchSelection.MirrorServe
-                || selection == LevelGlitchSelection.StaticJackpot;
+                || selection == LevelGlitchSelection.StaticJackpot
+                || selection == LevelGlitchSelection.JammedRails;
         }
 
         private static BreakoutWarpGateWall ResolveGateWall(DeterministicRandomService random, int index)

@@ -757,6 +757,30 @@ public sealed class BreakoutLevelGlitchPlannerTests
         Assert.That(unlockedPlan.StaticJackpot.MissSpeedBurstDurationSeconds, Is.InRange(1.25f, 1.75f));
     }
 
+    [Test]
+    public void RogueGlitchHeatControlsWhenJammedRailsCanUnlock()
+    {
+        var lockedSettings = CreateRogueSettings(
+            rogueIntensity: BreakoutLevelGlitchPlanner.JammedRailsLadderUnlockIntensity,
+            levelGlitchSelection: LevelGlitchSelection.JammedRails);
+        var unlockedSettings = CreateRogueSettings(
+            rogueIntensity: BreakoutLevelGlitchPlanner.JammedRailsLadderUnlockIntensity + 1,
+            levelGlitchSelection: LevelGlitchSelection.JammedRails);
+
+        var lockedPlan = BreakoutLevelGlitchPlanner.BuildPlan(new DeterministicRandomService(7), lockedSettings, levelIndex: 9);
+        var unlockedPlan = BreakoutLevelGlitchPlanner.BuildPlan(new DeterministicRandomService(7), unlockedSettings, levelIndex: 9);
+
+        Assert.That(lockedPlan.IsActive, Is.False);
+        Assert.That(unlockedPlan.IsActive, Is.True);
+        Assert.That(unlockedPlan.GlitchType, Is.EqualTo(BreakoutLevelGlitchType.JammedRails));
+        Assert.That(unlockedPlan.DisplayName, Is.EqualTo("Jammed Rails"));
+        Assert.That(unlockedPlan.Rarity, Is.EqualTo(BreakoutContentRarity.Epic));
+        Assert.That(unlockedPlan.ScoreMultiplier, Is.EqualTo(1.49f).Within(0.0001f));
+        Assert.That(unlockedPlan.JammedRails.MinimumWidthMultiplier, Is.InRange(0.68f, 0.76f));
+        Assert.That(unlockedPlan.JammedRails.MaximumWidthMultiplier, Is.InRange(1.22f, 1.34f));
+        Assert.That(unlockedPlan.JammedRails.PulseCycleSeconds, Is.InRange(2.05f, 2.85f));
+    }
+
 
     [Test]
     public void ForcedWarpGatePlanBuildsSmallPortalSetAndScoreBonus()
@@ -1270,6 +1294,21 @@ public sealed class BreakoutLevelGlitchPlannerTests
     }
 
     [Test]
+    public void SelectedJammedRailsAlwaysBuildsJammedRailsEvenWhenChanceIsDisabled()
+    {
+        var settings = CreateSettings(
+            levelGlitchesEnabled: true,
+            chanceMultiplier: 0f,
+            levelGlitchSelection: LevelGlitchSelection.JammedRails);
+
+        var plan = BreakoutLevelGlitchPlanner.BuildPlan(new DeterministicRandomService(3), settings, levelIndex: 9);
+
+        Assert.That(plan.IsActive, Is.True);
+        Assert.That(plan.GlitchType, Is.EqualTo(BreakoutLevelGlitchType.JammedRails));
+        Assert.That(plan.HudLabel, Does.Contain("Jammed Rails"));
+    }
+
+    [Test]
     public void ScoreLeakPenaltyTricklesFromAccumulatorWithoutDroppingBelowZero()
     {
         var accumulator = 0f;
@@ -1282,6 +1321,20 @@ public sealed class BreakoutLevelGlitchPlannerTests
         Assert.That(secondPenalty, Is.EqualTo(1));
         Assert.That(cappedPenalty, Is.EqualTo(1));
         Assert.That(accumulator, Is.GreaterThanOrEqualTo(0f));
+    }
+
+    [Test]
+    public void JammedRailsCalculatorPulsesBetweenNarrowAndWideWidths()
+    {
+        var spec = new BreakoutJammedRailsSpec(0.7f, 1.3f, 2f, 0f);
+
+        var narrow = BreakoutJammedRailsCalculator.CalculateWidthMultiplier(0f, spec);
+        var neutral = BreakoutJammedRailsCalculator.CalculateWidthMultiplier(0.5f, spec);
+        var wide = BreakoutJammedRailsCalculator.CalculateWidthMultiplier(1f, spec);
+
+        Assert.That(narrow, Is.EqualTo(0.7f).Within(0.0001f));
+        Assert.That(neutral, Is.EqualTo(1f).Within(0.0001f));
+        Assert.That(wide, Is.EqualTo(1.3f).Within(0.0001f));
     }
 
     [Test]

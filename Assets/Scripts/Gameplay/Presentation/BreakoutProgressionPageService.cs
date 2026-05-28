@@ -337,6 +337,13 @@ namespace GetBricked.Gameplay
                 BreakoutLevelGlitchPlanner.StaticJackpotLadderUnlockIntensity,
                 highestCompletedIntensity,
                 PrecisionAccent));
+            cards.Add(BuildUnlockableGlitchCard(
+                "Jammed Rails",
+                "Paddle Epic Glitch",
+                "Paddle width pulses between wide and narrow during the stage.",
+                BreakoutLevelGlitchPlanner.JammedRailsLadderUnlockIntensity,
+                highestCompletedIntensity,
+                HazardAccent));
             AppendPlaceholderCards(cards, PlaceholderDrops, highestCompletedIntensity);
             AppendPlaceholderCards(cards, PlaceholderGlitches, highestCompletedIntensity);
             cards.Add(BuildHiddenSlotCard("Future Drop Slot", "Drop", "Hidden", "Future drop signal pending."));
@@ -805,6 +812,11 @@ namespace GetBricked.Gameplay
             }
 
             if (completedIntensity >= BreakoutLevelGlitchPlanner.StaticJackpotLadderUnlockIntensity)
+            {
+                count++;
+            }
+
+            if (completedIntensity >= BreakoutLevelGlitchPlanner.JammedRailsLadderUnlockIntensity)
             {
                 count++;
             }
