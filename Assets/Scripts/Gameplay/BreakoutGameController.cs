@@ -369,6 +369,7 @@ namespace GetBricked.Gameplay
         private BreakoutThinAirWallSection activeThinAirWallSection;
         private BreakoutGravityPocketVisual activeGravityPocketVisual;
         private readonly List<BreakoutGravityPocketVisual> activeMagnetStormVisuals = new List<BreakoutGravityPocketVisual>();
+        private float gravitySwapPullSign = 1f;
         private GameObject activePrismLaneField;
         private GameObject activeSwitchbackRailField;
         private GameObject activeHotCornerField;
@@ -1338,6 +1339,7 @@ namespace GetBricked.Gameplay
             runStatsService?.RegisterWallHit();
             audioService?.PlayBallHitWall();
             powerUpService?.ChargeBankBonusFromWallBounce();
+            TryFlipGravitySwapPolarity();
         }
 
         public bool TryApplyBogusBounce(BallController ball)
@@ -3909,6 +3911,12 @@ namespace GetBricked.Gameplay
                 powerUpService?.ShowStatusBanner("GRAVITY POCKET!", new Color(0.03f, 0.93f, 0.98f, 1f), 2.2f);
             }
 
+            if (activeLevelGlitchPlan.HasGlitch(BreakoutLevelGlitchType.GravitySwap))
+            {
+                CreateGravityPocket(activeLevelGlitchPlan);
+                powerUpService?.ShowStatusBanner("GRAVITY SWAP!", new Color(1f, 0.49f, 0.86f, 1f), 2.2f);
+            }
+
             if (activeLevelGlitchPlan.HasGlitch(BreakoutLevelGlitchType.TokenStorm))
             {
                 powerUpService?.ShowStatusBanner("TOKEN STORM!", new Color(1f, 0.87f, 0.36f, 1f), 2.2f);
@@ -4070,6 +4078,7 @@ namespace GetBricked.Gameplay
             scoreLeakAccumulator = 0f;
             laserRainStrikeTimer = 0f;
             cassetteSkipPaddleHits = 0;
+            gravitySwapPullSign = 1f;
             ghostRowService?.Clear();
             rewindWallService?.Clear();
             brickLockService?.Clear();
@@ -5236,6 +5245,20 @@ namespace GetBricked.Gameplay
             ApplyGravityPocketToBalls();
         }
 
+        private void TryFlipGravitySwapPolarity()
+        {
+            if (activeLevelGlitchPlan == null
+                || !activeLevelGlitchPlan.HasGlitch(BreakoutLevelGlitchType.GravitySwap)
+                || activeGravityPocketVisual == null)
+            {
+                return;
+            }
+
+            gravitySwapPullSign = gravitySwapPullSign > 0f ? -1f : 1f;
+            activeGravityPocketVisual.SetPullDirectionSign(gravitySwapPullSign);
+            ApplyGravityPocketToBalls();
+        }
+
         private void CreateMagnetStorm(BreakoutLevelGlitchPlan glitchPlan)
         {
             if (glitchPlan == null || circleSprite == null || glitchPlan.MagnetStormPockets.Length <= 0)
@@ -5334,7 +5357,8 @@ namespace GetBricked.Gameplay
         {
             if (activeGravityPocketVisual == null
                 || activeLevelGlitchPlan == null
-                || !activeLevelGlitchPlan.HasGlitch(BreakoutLevelGlitchType.GravityPocket))
+                || (!activeLevelGlitchPlan.HasGlitch(BreakoutLevelGlitchType.GravityPocket)
+                    && !activeLevelGlitchPlan.HasGlitch(BreakoutLevelGlitchType.GravitySwap)))
             {
                 return;
             }
@@ -5420,14 +5444,21 @@ namespace GetBricked.Gameplay
             var bestInfluence = 0f;
 
             if (activeLevelGlitchPlan != null
-                && activeLevelGlitchPlan.HasGlitch(BreakoutLevelGlitchType.GravityPocket)
+                && (activeLevelGlitchPlan.HasGlitch(BreakoutLevelGlitchType.GravityPocket)
+                    || activeLevelGlitchPlan.HasGlitch(BreakoutLevelGlitchType.GravitySwap))
                 && activeGravityPocketVisual != null)
             {
+                var pocketStrength = activeLevelGlitchPlan.GravityPocket.Strength;
+                if (activeLevelGlitchPlan.HasGlitch(BreakoutLevelGlitchType.GravitySwap))
+                {
+                    pocketStrength *= gravitySwapPullSign;
+                }
+
                 TryUseStrongerPocket(
                     worldPosition,
                     activeGravityPocketVisual.transform.position,
                     activeLevelGlitchPlan.GravityPocket.Radius,
-                    activeLevelGlitchPlan.GravityPocket.Strength,
+                    pocketStrength,
                     ref centerPoint,
                     ref radius,
                     ref strength,
@@ -5474,7 +5505,7 @@ namespace GetBricked.Gameplay
             ref float bestStrength,
             ref float bestInfluence)
         {
-            if (pocketRadius <= 0.001f || pocketStrength <= 0.001f)
+            if (pocketRadius <= 0.001f || Mathf.Abs(pocketStrength) <= 0.001f)
             {
                 return;
             }
@@ -5487,7 +5518,7 @@ namespace GetBricked.Gameplay
             }
 
             var falloff = 1f - Mathf.Clamp01(distance / pocketRadius);
-            var influence = pocketStrength * Mathf.Lerp(0.35f, 1f, falloff);
+            var influence = Mathf.Abs(pocketStrength) * Mathf.Lerp(0.35f, 1f, falloff);
 
             if (influence <= bestInfluence)
             {
@@ -7277,6 +7308,7 @@ namespace GetBricked.Gameplay
                 LevelGlitchSelection.MirrorServe => "Mirror Serve",
                 LevelGlitchSelection.StaticJackpot => "Static Jackpot",
                 LevelGlitchSelection.JammedRails => "Jammed Rails",
+                LevelGlitchSelection.GravitySwap => "Gravity Swap",
                 _ => "Off",
             };
         }

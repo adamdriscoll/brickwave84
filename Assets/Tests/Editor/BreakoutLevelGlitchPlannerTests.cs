@@ -781,6 +781,30 @@ public sealed class BreakoutLevelGlitchPlannerTests
         Assert.That(unlockedPlan.JammedRails.PulseCycleSeconds, Is.InRange(2.05f, 2.85f));
     }
 
+    [Test]
+    public void RogueGlitchHeatControlsWhenGravitySwapCanUnlock()
+    {
+        var lockedSettings = CreateRogueSettings(
+            rogueIntensity: BreakoutLevelGlitchPlanner.GravitySwapLadderUnlockIntensity,
+            levelGlitchSelection: LevelGlitchSelection.GravitySwap);
+        var unlockedSettings = CreateRogueSettings(
+            rogueIntensity: BreakoutLevelGlitchPlanner.GravitySwapLadderUnlockIntensity + 1,
+            levelGlitchSelection: LevelGlitchSelection.GravitySwap);
+
+        var lockedPlan = BreakoutLevelGlitchPlanner.BuildPlan(new DeterministicRandomService(7), lockedSettings, levelIndex: 9);
+        var unlockedPlan = BreakoutLevelGlitchPlanner.BuildPlan(new DeterministicRandomService(7), unlockedSettings, levelIndex: 9);
+
+        Assert.That(lockedPlan.IsActive, Is.False);
+        Assert.That(unlockedPlan.IsActive, Is.True);
+        Assert.That(unlockedPlan.GlitchType, Is.EqualTo(BreakoutLevelGlitchType.GravitySwap));
+        Assert.That(unlockedPlan.DisplayName, Is.EqualTo("Gravity Swap"));
+        Assert.That(unlockedPlan.Rarity, Is.EqualTo(BreakoutContentRarity.Epic));
+        Assert.That(unlockedPlan.ScoreMultiplier, Is.EqualTo(1.51f).Within(0.0001f));
+        Assert.That(unlockedPlan.GravityPocket.Radius, Is.InRange(2.05f, 2.55f));
+        Assert.That(unlockedPlan.GravityPocket.Strength, Is.InRange(0.62f, 0.82f));
+        Assert.That(unlockedPlan.GravityPocket.DriftSpeed, Is.InRange(0.2f, 0.3f));
+    }
+
 
     [Test]
     public void ForcedWarpGatePlanBuildsSmallPortalSetAndScoreBonus()
@@ -1309,6 +1333,21 @@ public sealed class BreakoutLevelGlitchPlannerTests
     }
 
     [Test]
+    public void SelectedGravitySwapAlwaysBuildsGravitySwapEvenWhenChanceIsDisabled()
+    {
+        var settings = CreateSettings(
+            levelGlitchesEnabled: true,
+            chanceMultiplier: 0f,
+            levelGlitchSelection: LevelGlitchSelection.GravitySwap);
+
+        var plan = BreakoutLevelGlitchPlanner.BuildPlan(new DeterministicRandomService(3), settings, levelIndex: 9);
+
+        Assert.That(plan.IsActive, Is.True);
+        Assert.That(plan.GlitchType, Is.EqualTo(BreakoutLevelGlitchType.GravitySwap));
+        Assert.That(plan.HudLabel, Does.Contain("Gravity Swap"));
+    }
+
+    [Test]
     public void ScoreLeakPenaltyTricklesFromAccumulatorWithoutDroppingBelowZero()
     {
         var accumulator = 0f;
@@ -1335,6 +1374,21 @@ public sealed class BreakoutLevelGlitchPlannerTests
         Assert.That(narrow, Is.EqualTo(0.7f).Within(0.0001f));
         Assert.That(neutral, Is.EqualTo(1f).Within(0.0001f));
         Assert.That(wide, Is.EqualTo(1.3f).Within(0.0001f));
+    }
+
+    [Test]
+    public void GravityPocketDirectionCanRepelAfterSwap()
+    {
+        var currentDirection = new UnityEngine.Vector2(0f, 1f);
+        var pullVector = new UnityEngine.Vector2(1f, 0f);
+
+        var attracted = BallController.BuildGravityPocketDirection(currentDirection, pullVector, 2f, 0.8f, 0.02f);
+        var repelled = BallController.BuildGravityPocketDirection(currentDirection, pullVector, 2f, -0.8f, 0.02f);
+
+        Assert.That(attracted.x, Is.GreaterThan(0f));
+        Assert.That(repelled.x, Is.LessThan(0f));
+        Assert.That(attracted.y, Is.GreaterThan(0f));
+        Assert.That(repelled.y, Is.GreaterThan(0f));
     }
 
     [Test]

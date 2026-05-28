@@ -117,7 +117,7 @@ public sealed class BreakoutRogueRunTests
             state.ToggleCurrentDropUnlock(new[] { drop });
             state.AdjustField(BreakoutDeveloperLaunchField.ForcedDrop, 1, null, new[] { drop, forcedDrop });
             state.ToggleForcedDrop();
-            state.AdjustField(BreakoutDeveloperLaunchField.ForcedGlitch, 14, null, null);
+            state.AdjustField(BreakoutDeveloperLaunchField.ForcedGlitch, 15, null, null);
             state.ToggleForcedLevelGlitch();
 
             Assert.That(state.SelectedUpgradeCount, Is.EqualTo(1));
@@ -163,6 +163,7 @@ public sealed class BreakoutRogueRunTests
             LevelGlitchSelection.FlickerBricks,
             LevelGlitchSelection.GhostRow,
             LevelGlitchSelection.GravityPocket,
+            LevelGlitchSelection.GravitySwap,
             LevelGlitchSelection.HotCorners,
             LevelGlitchSelection.JammedRails,
             LevelGlitchSelection.LaserRain,

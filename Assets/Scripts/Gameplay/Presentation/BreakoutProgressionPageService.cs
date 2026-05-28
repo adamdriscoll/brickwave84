@@ -344,6 +344,13 @@ namespace GetBricked.Gameplay
                 BreakoutLevelGlitchPlanner.JammedRailsLadderUnlockIntensity,
                 highestCompletedIntensity,
                 HazardAccent));
+            cards.Add(BuildUnlockableGlitchCard(
+                "Gravity Swap",
+                "Gravity Epic Glitch",
+                "The gravity pocket flips pull direction after each wall bounce.",
+                BreakoutLevelGlitchPlanner.GravitySwapLadderUnlockIntensity,
+                highestCompletedIntensity,
+                SplitAccent));
             AppendPlaceholderCards(cards, PlaceholderDrops, highestCompletedIntensity);
             AppendPlaceholderCards(cards, PlaceholderGlitches, highestCompletedIntensity);
             cards.Add(BuildHiddenSlotCard("Future Drop Slot", "Drop", "Hidden", "Future drop signal pending."));
@@ -817,6 +824,11 @@ namespace GetBricked.Gameplay
             }
 
             if (completedIntensity >= BreakoutLevelGlitchPlanner.JammedRailsLadderUnlockIntensity)
+            {
+                count++;
+            }
+
+            if (completedIntensity >= BreakoutLevelGlitchPlanner.GravitySwapLadderUnlockIntensity)
             {
                 count++;
             }

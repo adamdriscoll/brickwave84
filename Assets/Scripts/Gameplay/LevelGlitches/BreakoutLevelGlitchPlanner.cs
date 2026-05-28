@@ -41,6 +41,7 @@ namespace GetBricked.Gameplay
         MirrorServe = 31,
         StaticJackpot = 32,
         JammedRails = 33,
+        GravitySwap = 34,
     }
 
     internal readonly struct BreakoutLevelGlitchDefinition
@@ -870,6 +871,7 @@ namespace GetBricked.Gameplay
         public const int MirrorServeLadderUnlockIntensity = 31;
         public const int StaticJackpotLadderUnlockIntensity = 32;
         public const int JammedRailsLadderUnlockIntensity = 33;
+        public const int GravitySwapLadderUnlockIntensity = 34;
 
         private const float WarpGateScoreMultiplier = 1.35f;
         private const float TurboRailScoreMultiplier = 1.25f;
@@ -904,6 +906,7 @@ namespace GetBricked.Gameplay
         private const float MirrorServeScoreMultiplier = 1.36f;
         private const float StaticJackpotScoreMultiplier = 1.5f;
         private const float JammedRailsScoreMultiplier = 1.49f;
+        private const float GravitySwapScoreMultiplier = 1.51f;
 
         private static readonly BreakoutLevelGlitchDefinition[] GlitchDefinitions =
         {
@@ -1072,6 +1075,11 @@ namespace GetBricked.Gameplay
                 LevelGlitchSelection.JammedRails,
                 BreakoutContentRarity.Epic,
                 JammedRailsLadderUnlockIntensity),
+            new BreakoutLevelGlitchDefinition(
+                BreakoutLevelGlitchType.GravitySwap,
+                LevelGlitchSelection.GravitySwap,
+                BreakoutContentRarity.Epic,
+                GravitySwapLadderUnlockIntensity),
         };
 
         public static BreakoutLevelGlitchPlan BuildPlan(
@@ -1283,6 +1291,11 @@ namespace GetBricked.Gameplay
                 return BuildJammedRailsPlan(random, definition.Rarity);
             }
 
+            if (definition.GlitchType == BreakoutLevelGlitchType.GravitySwap)
+            {
+                return BuildGravitySwapPlan(random, definition.Rarity);
+            }
+
             return BuildWarpGatePlan(random, definition.Rarity);
         }
 
@@ -1439,6 +1452,11 @@ namespace GetBricked.Gameplay
                 }
 
                 if (plan.HasGlitch(BreakoutLevelGlitchType.GravityPocket))
+                {
+                    gravityPocket = plan.GravityPocket;
+                }
+
+                if (plan.HasGlitch(BreakoutLevelGlitchType.GravitySwap))
                 {
                     gravityPocket = plan.GravityPocket;
                 }
@@ -1635,6 +1653,14 @@ namespace GetBricked.Gameplay
             {
                 selectedTypes.Add(BreakoutLevelGlitchType.ThinAir);
             }
+            else if (selectedType == BreakoutLevelGlitchType.GravityPocket)
+            {
+                selectedTypes.Add(BreakoutLevelGlitchType.GravitySwap);
+            }
+            else if (selectedType == BreakoutLevelGlitchType.GravitySwap)
+            {
+                selectedTypes.Add(BreakoutLevelGlitchType.GravityPocket);
+            }
         }
 
         private static BreakoutLevelGlitchPlan BuildWarpGatePlan(DeterministicRandomService random, BreakoutContentRarity rarity)
@@ -1698,6 +1724,20 @@ namespace GetBricked.Gameplay
                 default,
                 default,
                 BuildGravityPocket(random));
+        }
+
+        private static BreakoutLevelGlitchPlan BuildGravitySwapPlan(DeterministicRandomService random, BreakoutContentRarity rarity)
+        {
+            return new BreakoutLevelGlitchPlan(
+                BreakoutLevelGlitchType.GravitySwap,
+                rarity,
+                "Gravity Swap",
+                $"Gravity Swap x{GravitySwapScoreMultiplier:0.00}",
+                GravitySwapScoreMultiplier,
+                Array.Empty<BreakoutWarpGateSpec>(),
+                default,
+                default,
+                BuildGravitySwap(random));
         }
 
         private static BreakoutLevelGlitchPlan BuildTokenStormPlan(BreakoutContentRarity rarity)
@@ -2176,6 +2216,17 @@ namespace GetBricked.Gameplay
                 random.Range(0f, Mathf.PI * 2f));
         }
 
+        private static BreakoutGravityPocketSpec BuildGravitySwap(DeterministicRandomService random)
+        {
+            return new BreakoutGravityPocketSpec(
+                random.Range(0.24f, 0.76f),
+                random.Range(0.32f, 0.8f),
+                random.Range(2.05f, 2.55f),
+                random.Range(0.62f, 0.82f),
+                random.Range(0.2f, 0.3f),
+                random.Range(0f, Mathf.PI * 2f));
+        }
+
         private static BreakoutGravityPocketSpec[] BuildMagnetStormPockets(DeterministicRandomService random)
         {
             const int pocketCount = 3;
@@ -2585,7 +2636,8 @@ namespace GetBricked.Gameplay
                 || selection == LevelGlitchSelection.SpeedSteps
                 || selection == LevelGlitchSelection.MirrorServe
                 || selection == LevelGlitchSelection.StaticJackpot
-                || selection == LevelGlitchSelection.JammedRails;
+                || selection == LevelGlitchSelection.JammedRails
+                || selection == LevelGlitchSelection.GravitySwap;
         }
 
         private static BreakoutWarpGateWall ResolveGateWall(DeterministicRandomService random, int index)

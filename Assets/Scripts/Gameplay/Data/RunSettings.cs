@@ -68,6 +68,7 @@ namespace GetBricked.Gameplay.Data
         MirrorServe = 32,
         StaticJackpot = 33,
         JammedRails = 34,
+        GravitySwap = 35,
     }
 
     public sealed class RunSettings
@@ -258,6 +259,7 @@ namespace GetBricked.Gameplay.Data
             LevelGlitchSelection.MirrorServe => "Mirror Serve Armed",
             LevelGlitchSelection.StaticJackpot => "Static Jackpot Armed",
             LevelGlitchSelection.JammedRails => "Jammed Rails Armed",
+            LevelGlitchSelection.GravitySwap => "Gravity Swap Armed",
             _ => "Clean Walls",
         };
 
@@ -268,7 +270,7 @@ namespace GetBricked.Gameplay.Data
             var normalized = (LevelGlitchSelection)Mathf.Clamp(
                 (int)levelGlitchSelection,
                 (int)LevelGlitchSelection.Off,
-                (int)LevelGlitchSelection.JammedRails);
+                (int)LevelGlitchSelection.GravitySwap);
 
             if (!levelGlitchesEnabled && normalized == LevelGlitchSelection.Random)
             {

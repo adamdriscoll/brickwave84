@@ -45,6 +45,7 @@ namespace GetBricked.Gameplay
             LevelGlitchSelection.FlickerBricks,
             LevelGlitchSelection.GhostRow,
             LevelGlitchSelection.GravityPocket,
+            LevelGlitchSelection.GravitySwap,
             LevelGlitchSelection.HotCorners,
             LevelGlitchSelection.JammedRails,
             LevelGlitchSelection.LaserRain,

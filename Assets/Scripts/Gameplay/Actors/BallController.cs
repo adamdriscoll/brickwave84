@@ -236,7 +236,7 @@ namespace GetBricked.Gameplay
         {
             gravityPocketPoint = centerPoint;
             gravityPocketRadius = Mathf.Max(0f, radius);
-            gravityPocketStrength = gravityPocketRadius > 0.001f ? Mathf.Clamp01(strength) : 0f;
+            gravityPocketStrength = gravityPocketRadius > 0.001f ? Mathf.Clamp(strength, -1f, 1f) : 0f;
         }
 
         public void SetSplitHorizon(float horizonY, float bendDegrees, float cooldownSeconds)
@@ -890,7 +890,7 @@ namespace GetBricked.Gameplay
 
         private void ApplyGravityPocket()
         {
-            if (ballBody == null || gravityPocketStrength <= 0.001f || gravityPocketRadius <= 0.001f)
+            if (ballBody == null || Mathf.Abs(gravityPocketStrength) <= 0.001f || gravityPocketRadius <= 0.001f)
             {
                 return;
             }
@@ -906,9 +906,12 @@ namespace GetBricked.Gameplay
             var currentDirection = ballBody.linearVelocity.sqrMagnitude > 0.01f
                 ? ballBody.linearVelocity.normalized
                 : lastTravelDirection.normalized;
-            var falloff = 1f - Mathf.Clamp01(distance / gravityPocketRadius);
-            var bendFactor = gravityPocketStrength * Mathf.Lerp(0.35f, 1f, falloff) * Time.fixedDeltaTime * 4.9f;
-            var curvedDirection = (currentDirection + (pullVector.normalized * bendFactor)).normalized;
+            var curvedDirection = BuildGravityPocketDirection(
+                currentDirection,
+                pullVector,
+                gravityPocketRadius,
+                gravityPocketStrength,
+                Time.fixedDeltaTime);
 
             if (curvedDirection.sqrMagnitude <= 0.0001f)
             {
@@ -917,6 +920,28 @@ namespace GetBricked.Gameplay
 
             lastTravelDirection = curvedDirection;
             ballBody.linearVelocity = curvedDirection * GetTargetSpeed();
+        }
+
+        internal static Vector2 BuildGravityPocketDirection(
+            Vector2 currentDirection,
+            Vector2 pullVector,
+            float radius,
+            float strength,
+            float deltaTime)
+        {
+            if (pullVector.sqrMagnitude <= 0.0001f
+                || radius <= 0.001f
+                || Mathf.Abs(strength) <= 0.001f
+                || deltaTime <= 0.0001f)
+            {
+                return currentDirection.sqrMagnitude > 0.001f ? currentDirection.normalized : Vector2.up;
+            }
+
+            var distance = pullVector.magnitude;
+            var falloff = 1f - Mathf.Clamp01(distance / radius);
+            var bendFactor = Mathf.Abs(strength) * Mathf.Lerp(0.35f, 1f, falloff) * deltaTime * 4.9f;
+            var pocketDirection = strength >= 0f ? pullVector.normalized : -pullVector.normalized;
+            return (currentDirection.normalized + (pocketDirection * bendFactor)).normalized;
         }
 
         private void ApplySplitHorizon()

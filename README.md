@@ -272,7 +272,7 @@ Late drop proposals should keep using mechanics the game already teaches: paddle
 | `Mirror Serve` | Fresh serves launch a mirror ball that vanishes after one brick hit. | Heat 31 | Epic | Serve glitch | Implemented |
 | `Static Jackpot` | Bonus score zones appear, but missing them speeds the ball. | Heat 32 | Epic | Score glitch | Implemented |
 | `Jammed Rails` | Paddle width pulses between wide and narrow during the stage. | Heat 33 | Epic | Paddle glitch | Implemented |
-| `Gravity Swap` | The gravity pocket flips pull direction after each wall bounce. | Heat 34 | Epic | Gravity glitch | Not implemented (proposal) |
+| `Gravity Swap` | The gravity pocket flips pull direction after each wall bounce. | Heat 34 | Epic | Gravity glitch | Implemented |
 | `VHS Tear` | A horizontal tear line deflects balls crossing it. | Heat 35 | Epic | Trajectory glitch | Not implemented (proposal) |
 | `Capsule Blackout` | Catching any capsule briefly hides the next wave of drops. | Heat 36 | Epic | Pickup glitch | Not implemented (proposal) |
 | `Brickquake` | Brick clusters nudge out of alignment after heavy hits. | Heat 37 | Epic | Layout glitch | Not implemented (proposal) |

@@ -23,6 +23,7 @@ namespace GetBricked.Gameplay
         private float radius = 1f;
         private float phase;
         private float driftSpeed = 0.24f;
+        private float pullDirectionSign = 1f;
 
         public void Configure(
             Sprite circleSprite,
@@ -91,6 +92,12 @@ namespace GetBricked.Gameplay
             UpdateVisuals(0f);
         }
 
+        public void SetPullDirectionSign(float directionSign)
+        {
+            pullDirectionSign = Mathf.Sign(Mathf.Approximately(directionSign, 0f) ? 1f : directionSign);
+            UpdateVisuals(Time.time);
+        }
+
         private void Update()
         {
             Tick(Time.time);
@@ -128,19 +135,24 @@ namespace GetBricked.Gameplay
 
             if (outerRingTransform != null)
             {
-                outerRingTransform.localRotation = Quaternion.Euler(0f, 0f, -time * RingRotationRate);
+                outerRingTransform.localRotation = Quaternion.Euler(0f, 0f, -time * RingRotationRate * pullDirectionSign);
             }
 
             if (innerRingTransform != null)
             {
-                innerRingTransform.localRotation = Quaternion.Euler(0f, 0f, time * RingRotationRate * 1.6f);
+                innerRingTransform.localRotation = Quaternion.Euler(0f, 0f, time * RingRotationRate * 1.6f * pullDirectionSign);
             }
 
             if (sweepTransform != null)
             {
-                sweepTransform.localRotation = Quaternion.Euler(0f, 0f, time * RingRotationRate * 2.2f);
+                sweepTransform.localRotation = Quaternion.Euler(0f, 0f, time * RingRotationRate * 2.2f * pullDirectionSign);
                 sweepTransform.localScale = new Vector3(radius * Mathf.Lerp(0.07f, 0.13f, smoothPulse), radius * 1.05f, 1f);
             }
+
+            var repelling = pullDirectionSign < 0f;
+            SetTint(pullFieldRenderer, repelling ? new Color(1f, 0.22f, 0.84f, 0.18f) : new Color(0.03f, 0.93f, 0.98f, 0.18f));
+            SetTint(outerRingRenderer, repelling ? new Color(0.03f, 0.93f, 0.98f, 0.64f) : new Color(1f, 0.22f, 0.84f, 0.64f));
+            SetTint(sweepRenderer, repelling ? new Color(1f, 0.87f, 0.36f, 0.58f) : new Color(0.03f, 0.93f, 0.98f, 0.58f));
 
             SetAlpha(pullFieldRenderer, Mathf.Lerp(0.1f, 0.26f, smoothPulse));
             SetAlpha(outerRingRenderer, Mathf.Lerp(0.34f, 0.72f, 1f - smoothPulse));
@@ -192,6 +204,18 @@ namespace GetBricked.Gameplay
             var color = renderer.color;
             color.a = Mathf.Clamp01(alpha);
             renderer.color = color;
+        }
+
+        private static void SetTint(SpriteRenderer renderer, Color tint)
+        {
+            if (renderer == null)
+            {
+                return;
+            }
+
+            var color = renderer.color;
+            tint.a = color.a;
+            renderer.color = tint;
         }
 
         private static Vector2 ResolveDriftAmplitude(Vector2 origin, Rect bounds, float pocketRadius)
