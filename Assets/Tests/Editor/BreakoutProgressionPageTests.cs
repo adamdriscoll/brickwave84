@@ -107,6 +107,7 @@ public sealed class BreakoutProgressionPageTests
         var turboTax = view.Cards.First(card => card.Title == "Turbo Tax");
         var warpJam = view.Cards.First(card => card.Title == "Warp Jam");
         var neonFlood = view.Cards.First(card => card.Title == "Neon Flood");
+        var lockstepRows = view.Cards.First(card => card.Title == "Lockstep Rows");
 
         Assert.That(view.LadderLines, Has.Some.Contains("Heat 06"));
         Assert.That(view.LadderLines.Any(line => line.Contains("Paddle")), Is.False);
@@ -137,6 +138,7 @@ public sealed class BreakoutProgressionPageTests
         Assert.That(turboTax.UnlockHint, Does.Contain("Heat 38"));
         Assert.That(warpJam.UnlockHint, Does.Contain("Heat 39"));
         Assert.That(neonFlood.UnlockHint, Does.Contain("Heat 40"));
+        Assert.That(lockstepRows.UnlockHint, Does.Contain("Heat 41"));
     }
 
     [Test]
@@ -292,6 +294,10 @@ public sealed class BreakoutProgressionPageTests
         Assert.That(neonFlood.UnlockHint, Does.Contain("Heat 40"));
         Assert.That(neonFlood.Description, Does.Contain("combo spikes"));
         Assert.That(neonFlood.Family, Does.Contain("Epic"));
+        var lockstepRows = view.Cards.First(card => card.Title == "Lockstep Rows");
+        Assert.That(lockstepRows.UnlockHint, Does.Contain("Heat 41"));
+        Assert.That(lockstepRows.Description, Does.Contain("Rows move only"));
+        Assert.That(lockstepRows.Family, Does.Contain("Epic"));
         Assert.That(solarShot.UnlockHint, Does.Contain("Heat 36"));
         Assert.That(solarShot.Description, Does.Contain("burns away"));
         Assert.That(wrapRail.UnlockHint, Does.Contain("Heat 37"));

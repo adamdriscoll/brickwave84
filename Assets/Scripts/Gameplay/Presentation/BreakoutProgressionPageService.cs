@@ -393,6 +393,13 @@ namespace GetBricked.Gameplay
                 BreakoutLevelGlitchPlanner.NeonFloodLadderUnlockIntensity,
                 highestCompletedIntensity,
                 ControlAccent));
+            cards.Add(BuildUnlockableGlitchCard(
+                "Lockstep Rows",
+                "Layout Epic Glitch",
+                "Rows move only when the paddle moves.",
+                BreakoutLevelGlitchPlanner.LockstepRowsLadderUnlockIntensity,
+                highestCompletedIntensity,
+                LayoutAccent));
             AppendPlaceholderCards(cards, PlaceholderDrops, highestCompletedIntensity);
             AppendPlaceholderCards(cards, PlaceholderGlitches, highestCompletedIntensity);
             cards.Add(BuildHiddenSlotCard("Future Drop Slot", "Drop", "Hidden", "Future drop signal pending."));
@@ -901,6 +908,11 @@ namespace GetBricked.Gameplay
             }
 
             if (completedIntensity >= BreakoutLevelGlitchPlanner.NeonFloodLadderUnlockIntensity)
+            {
+                count++;
+            }
+
+            if (completedIntensity >= BreakoutLevelGlitchPlanner.LockstepRowsLadderUnlockIntensity)
             {
                 count++;
             }

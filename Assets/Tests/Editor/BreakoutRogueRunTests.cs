@@ -169,6 +169,7 @@ public sealed class BreakoutRogueRunTests
             LevelGlitchSelection.HotCorners,
             LevelGlitchSelection.JammedRails,
             LevelGlitchSelection.LaserRain,
+            LevelGlitchSelection.LockstepRows,
             LevelGlitchSelection.MagnetStorm,
             LevelGlitchSelection.MirrorGrid,
             LevelGlitchSelection.MirrorServe,

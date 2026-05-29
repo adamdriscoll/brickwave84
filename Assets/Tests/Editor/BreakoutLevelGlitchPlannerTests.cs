@@ -952,6 +952,30 @@ public sealed class BreakoutLevelGlitchPlannerTests
     }
 
     [Test]
+    public void RogueGlitchHeatControlsWhenLockstepRowsCanUnlock()
+    {
+        var lockedSettings = CreateRogueSettings(
+            rogueIntensity: BreakoutLevelGlitchPlanner.LockstepRowsLadderUnlockIntensity,
+            levelGlitchSelection: LevelGlitchSelection.LockstepRows);
+        var unlockedSettings = CreateRogueSettings(
+            rogueIntensity: BreakoutLevelGlitchPlanner.LockstepRowsLadderUnlockIntensity + 1,
+            levelGlitchSelection: LevelGlitchSelection.LockstepRows);
+
+        var lockedPlan = BreakoutLevelGlitchPlanner.BuildPlan(new DeterministicRandomService(7), lockedSettings, levelIndex: 9);
+        var unlockedPlan = BreakoutLevelGlitchPlanner.BuildPlan(new DeterministicRandomService(7), unlockedSettings, levelIndex: 9);
+
+        Assert.That(lockedPlan.IsActive, Is.False);
+        Assert.That(unlockedPlan.IsActive, Is.True);
+        Assert.That(unlockedPlan.GlitchType, Is.EqualTo(BreakoutLevelGlitchType.LockstepRows));
+        Assert.That(unlockedPlan.DisplayName, Is.EqualTo("Lockstep Rows"));
+        Assert.That(unlockedPlan.Rarity, Is.EqualTo(BreakoutContentRarity.Epic));
+        Assert.That(unlockedPlan.ScoreMultiplier, Is.EqualTo(1.43f).Within(0.0001f));
+        Assert.That(unlockedPlan.LockstepRows.PaddleDeltaMultiplier, Is.InRange(0.44f, 0.62f));
+        Assert.That(Mathf.Abs(unlockedPlan.LockstepRows.StartingDirectionSign), Is.EqualTo(1f).Within(0.0001f));
+        Assert.That(unlockedPlan.LockstepRows.MaximumStep, Is.InRange(0.12f, 0.2f));
+    }
+
+    [Test]
     public void NeonFloodCalculatorRequiresComboSpikeAndCooldown()
     {
         var spec = new BreakoutNeonFloodSpec(4, 1.65f, 0.42f, 0.88f, 1.16f);
@@ -1746,6 +1770,62 @@ public sealed class BreakoutLevelGlitchPlannerTests
         Assert.That(thirdRow.x, Is.EqualTo(-1f).Within(0.0001f));
         Assert.That(fourthRow.x, Is.EqualTo(1f).Within(0.0001f));
         Assert.That(firstRow.y, Is.Zero);
+    }
+
+    [Test]
+    public void LockstepRowsAlternateHorizontalDirectionByRow()
+    {
+        var firstRow = BreakoutBrickService.ResolveLockstepDirectionForRow(0, 1f);
+        var secondRow = BreakoutBrickService.ResolveLockstepDirectionForRow(1, 1f);
+        var thirdRow = BreakoutBrickService.ResolveLockstepDirectionForRow(2, -1f);
+
+        Assert.That(firstRow.x, Is.EqualTo(1f).Within(0.0001f));
+        Assert.That(secondRow.x, Is.EqualTo(-1f).Within(0.0001f));
+        Assert.That(thirdRow.x, Is.EqualTo(-1f).Within(0.0001f));
+        Assert.That(firstRow.y, Is.Zero);
+    }
+
+    [Test]
+    public void LockstepRowsMoveOnlyFromPaddleDelta()
+    {
+        var definition = ScriptableObject.CreateInstance<BrickDefinition>();
+        var root = new GameObject("Lockstep Rows Test Root");
+        var bricks = new List<Brick>();
+
+        try
+        {
+            var service = new BreakoutBrickService(
+                null,
+                bricks,
+                root.transform,
+                new Vector2(1f, 0.5f),
+                Vector2.zero,
+                null,
+                null,
+                null,
+                () => null,
+                () => Rect.MinMaxRect(-3f, -2f, 3f, 2f),
+                _ => new ThemeVisualStyle(Color.white, Color.gray, null),
+                go => Object.DestroyImmediate(go));
+            var firstRowBrick = service.CreateBrick(Vector2.zero, definition, 0, 0, default);
+            var secondRowBrick = service.CreateBrick(new Vector2(0f, -0.7f), definition, 1, 0, default);
+            var firstStart = (Vector2)firstRowBrick.transform.position;
+            var secondStart = (Vector2)secondRowBrick.transform.position;
+            var spec = new BreakoutLockstepRowsSpec(0.5f, 1f, 0.15f);
+
+            var stillCount = service.ApplyLockstepRows(0f, spec);
+            var shiftedCount = service.ApplyLockstepRows(1f, spec);
+
+            Assert.That(stillCount, Is.Zero);
+            Assert.That(shiftedCount, Is.EqualTo(2));
+            Assert.That(firstRowBrick.transform.position.x - firstStart.x, Is.EqualTo(0.15f).Within(0.0001f));
+            Assert.That(secondRowBrick.transform.position.x - secondStart.x, Is.EqualTo(-0.15f).Within(0.0001f));
+        }
+        finally
+        {
+            Object.DestroyImmediate(root);
+            Object.DestroyImmediate(definition);
+        }
     }
 
     [Test]

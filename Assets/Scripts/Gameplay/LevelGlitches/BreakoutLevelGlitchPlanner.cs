@@ -48,6 +48,7 @@ namespace GetBricked.Gameplay
         TurboTax = 38,
         WarpJam = 39,
         NeonFlood = 40,
+        LockstepRows = 41,
     }
 
     internal readonly struct BreakoutLevelGlitchDefinition
@@ -321,6 +322,22 @@ namespace GetBricked.Gameplay
         public float StartingDirectionSign { get; }
 
         public float WrapPadding { get; }
+    }
+
+    internal readonly struct BreakoutLockstepRowsSpec
+    {
+        public BreakoutLockstepRowsSpec(float paddleDeltaMultiplier, float startingDirectionSign, float maximumStep)
+        {
+            PaddleDeltaMultiplier = Mathf.Clamp(paddleDeltaMultiplier, 0.1f, 1.4f);
+            StartingDirectionSign = Mathf.Sign(Mathf.Approximately(startingDirectionSign, 0f) ? 1f : startingDirectionSign);
+            MaximumStep = Mathf.Clamp(maximumStep, 0.02f, 0.35f);
+        }
+
+        public float PaddleDeltaMultiplier { get; }
+
+        public float StartingDirectionSign { get; }
+
+        public float MaximumStep { get; }
     }
 
     internal readonly struct BreakoutHotCornersSpec
@@ -893,7 +910,8 @@ namespace GetBricked.Gameplay
             BreakoutBrickquakeSpec brickquake = default,
             BreakoutTurboTaxSpec turboTax = default,
             BreakoutWarpJamSpec warpJam = default,
-            BreakoutNeonFloodSpec neonFlood = default)
+            BreakoutNeonFloodSpec neonFlood = default,
+            BreakoutLockstepRowsSpec lockstepRows = default)
         {
             GlitchType = glitchType;
             Rarity = BreakoutRarityRules.Clamp(rarity);
@@ -933,6 +951,7 @@ namespace GetBricked.Gameplay
             TurboTax = turboTax;
             WarpJam = warpJam;
             NeonFlood = neonFlood;
+            LockstepRows = lockstepRows;
             ActiveGlitchTypes = activeGlitchTypes != null && activeGlitchTypes.Length > 0
                 ? activeGlitchTypes
                 : glitchType != BreakoutLevelGlitchType.None
@@ -1016,6 +1035,8 @@ namespace GetBricked.Gameplay
 
         public BreakoutNeonFloodSpec NeonFlood { get; }
 
+        public BreakoutLockstepRowsSpec LockstepRows { get; }
+
         public BreakoutLevelGlitchType[] ActiveGlitchTypes { get; }
 
         public bool IsActive => ActiveGlitchTypes.Length > 0;
@@ -1075,6 +1096,7 @@ namespace GetBricked.Gameplay
         public const int TurboTaxLadderUnlockIntensity = 38;
         public const int WarpJamLadderUnlockIntensity = 39;
         public const int NeonFloodLadderUnlockIntensity = 40;
+        public const int LockstepRowsLadderUnlockIntensity = 41;
 
         private const float WarpGateScoreMultiplier = 1.35f;
         private const float TurboRailScoreMultiplier = 1.25f;
@@ -1117,6 +1139,7 @@ namespace GetBricked.Gameplay
         private const float WarpJamScoreMultiplier = 1.54f;
         private const float WarpJamWrongExitChance = 0.36f;
         private const float NeonFloodScoreMultiplier = 1.41f;
+        private const float LockstepRowsScoreMultiplier = 1.43f;
 
         private static readonly BreakoutLevelGlitchDefinition[] GlitchDefinitions =
         {
@@ -1320,6 +1343,11 @@ namespace GetBricked.Gameplay
                 LevelGlitchSelection.NeonFlood,
                 BreakoutContentRarity.Epic,
                 NeonFloodLadderUnlockIntensity),
+            new BreakoutLevelGlitchDefinition(
+                BreakoutLevelGlitchType.LockstepRows,
+                LevelGlitchSelection.LockstepRows,
+                BreakoutContentRarity.Epic,
+                LockstepRowsLadderUnlockIntensity),
         };
 
         public static BreakoutLevelGlitchPlan BuildPlan(
@@ -1566,6 +1594,11 @@ namespace GetBricked.Gameplay
                 return BuildNeonFloodPlan(definition.Rarity);
             }
 
+            if (definition.GlitchType == BreakoutLevelGlitchType.LockstepRows)
+            {
+                return BuildLockstepRowsPlan(random, definition.Rarity);
+            }
+
             return BuildWarpGatePlan(random, definition.Rarity);
         }
 
@@ -1696,6 +1729,7 @@ namespace GetBricked.Gameplay
             var turboTax = default(BreakoutTurboTaxSpec);
             var warpJam = default(BreakoutWarpJamSpec);
             var neonFlood = default(BreakoutNeonFloodSpec);
+            var lockstepRows = default(BreakoutLockstepRowsSpec);
 
             for (var index = 0; index < definitions.Count; index++)
             {
@@ -1882,6 +1916,11 @@ namespace GetBricked.Gameplay
                 {
                     neonFlood = plan.NeonFlood;
                 }
+
+                if (plan.HasGlitch(BreakoutLevelGlitchType.LockstepRows))
+                {
+                    lockstepRows = plan.LockstepRows;
+                }
             }
 
             return new BreakoutLevelGlitchPlan(
@@ -1923,7 +1962,8 @@ namespace GetBricked.Gameplay
                 brickquake,
                 turboTax,
                 warpJam,
-                neonFlood);
+                neonFlood,
+                lockstepRows);
         }
 
         private static void MarkGlitchSelectionExclusions(
@@ -1980,6 +2020,21 @@ namespace GetBricked.Gameplay
             else if (selectedType == BreakoutLevelGlitchType.GravitySwap)
             {
                 selectedTypes.Add(BreakoutLevelGlitchType.GravityPocket);
+            }
+            else if (selectedType == BreakoutLevelGlitchType.DriftRows)
+            {
+                selectedTypes.Add(BreakoutLevelGlitchType.BrickConveyor);
+                selectedTypes.Add(BreakoutLevelGlitchType.LockstepRows);
+            }
+            else if (selectedType == BreakoutLevelGlitchType.BrickConveyor)
+            {
+                selectedTypes.Add(BreakoutLevelGlitchType.DriftRows);
+                selectedTypes.Add(BreakoutLevelGlitchType.LockstepRows);
+            }
+            else if (selectedType == BreakoutLevelGlitchType.LockstepRows)
+            {
+                selectedTypes.Add(BreakoutLevelGlitchType.DriftRows);
+                selectedTypes.Add(BreakoutLevelGlitchType.BrickConveyor);
             }
         }
 
@@ -2432,6 +2487,19 @@ namespace GetBricked.Gameplay
                 brickConveyor: BuildBrickConveyor(random));
         }
 
+        private static BreakoutLevelGlitchPlan BuildLockstepRowsPlan(DeterministicRandomService random, BreakoutContentRarity rarity)
+        {
+            return new BreakoutLevelGlitchPlan(
+                BreakoutLevelGlitchType.LockstepRows,
+                rarity,
+                "Lockstep Rows",
+                $"Lockstep Rows x{LockstepRowsScoreMultiplier:0.00}",
+                LockstepRowsScoreMultiplier,
+                Array.Empty<BreakoutWarpGateSpec>(),
+                default,
+                lockstepRows: BuildLockstepRows(random));
+        }
+
         private static BreakoutLevelGlitchPlan BuildBlacklightBricksPlan(BreakoutContentRarity rarity)
         {
             return new BreakoutLevelGlitchPlan(
@@ -2882,6 +2950,14 @@ namespace GetBricked.Gameplay
                 random.Range(0.35f, 0.65f));
         }
 
+        private static BreakoutLockstepRowsSpec BuildLockstepRows(DeterministicRandomService random)
+        {
+            return new BreakoutLockstepRowsSpec(
+                random.Range(0.44f, 0.62f),
+                random.NextBool() ? 1f : -1f,
+                random.Range(0.12f, 0.2f));
+        }
+
         private static BreakoutBrickquakeSpec BuildBrickquake(DeterministicRandomService random)
         {
             return new BreakoutBrickquakeSpec(
@@ -3066,7 +3142,8 @@ namespace GetBricked.Gameplay
                 || selection == LevelGlitchSelection.Brickquake
                 || selection == LevelGlitchSelection.TurboTax
                 || selection == LevelGlitchSelection.WarpJam
-                || selection == LevelGlitchSelection.NeonFlood;
+                || selection == LevelGlitchSelection.NeonFlood
+                || selection == LevelGlitchSelection.LockstepRows;
         }
 
         private static BreakoutWarpGateWall ResolveGateWall(DeterministicRandomService random, int index)

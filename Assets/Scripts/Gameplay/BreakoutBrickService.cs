@@ -431,6 +431,54 @@ namespace GetBricked.Gameplay
             return conveyorCount;
         }
 
+        public int ApplyLockstepRows(float paddleDeltaX, BreakoutLockstepRowsSpec spec)
+        {
+            if (Mathf.Abs(paddleDeltaX) <= 0.0001f)
+            {
+                return 0;
+            }
+
+            var shiftedCount = 0;
+            var bounds = movementBoundsResolver();
+            var clampedPaddleDelta = Mathf.Clamp(
+                paddleDeltaX * spec.PaddleDeltaMultiplier,
+                -spec.MaximumStep,
+                spec.MaximumStep);
+
+            if (Mathf.Abs(clampedPaddleDelta) <= 0.0001f)
+            {
+                return 0;
+            }
+
+            for (var index = bricks.Count - 1; index >= 0; index--)
+            {
+                var brick = bricks[index];
+
+                if (brick == null)
+                {
+                    bricks.RemoveAt(index);
+                    continue;
+                }
+
+                if (brick.Definition == null || brick.IsPendingRemoval)
+                {
+                    continue;
+                }
+
+                var row = brick.CaptureState().Row;
+                var direction = ResolveLockstepDirectionForRow(row, spec.StartingDirectionSign);
+                var previousPosition = (Vector2)brick.transform.position;
+                brick.NudgeLayout(new Vector2(clampedPaddleDelta * direction.x, 0f), bounds);
+
+                if (((Vector2)brick.transform.position - previousPosition).sqrMagnitude > 0.000001f)
+                {
+                    shiftedCount++;
+                }
+            }
+
+            return shiftedCount;
+        }
+
         public int ApplyBrickquake(
             Vector2 epicenter,
             BreakoutBrickquakeSpec spec,
@@ -522,6 +570,12 @@ namespace GetBricked.Gameplay
         {
             var sign = Mathf.Sign(Mathf.Approximately(startingDirectionSign, 0f) ? 1f : startingDirectionSign);
             return new Vector2((((Mathf.Max(0, row) / 2) & 1) == 0 ? sign : -sign), 0f);
+        }
+
+        internal static Vector2 ResolveLockstepDirectionForRow(int row, float startingDirectionSign)
+        {
+            var sign = Mathf.Sign(Mathf.Approximately(startingDirectionSign, 0f) ? 1f : startingDirectionSign);
+            return new Vector2(((Mathf.Max(0, row) & 1) == 0 ? sign : -sign), 0f);
         }
 
         internal static Vector2 BuildBrickquakeNudge(

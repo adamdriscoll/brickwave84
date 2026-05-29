@@ -75,6 +75,7 @@ namespace GetBricked.Gameplay.Data
         TurboTax = 39,
         WarpJam = 40,
         NeonFlood = 41,
+        LockstepRows = 42,
     }
 
     public sealed class RunSettings
@@ -272,6 +273,7 @@ namespace GetBricked.Gameplay.Data
             LevelGlitchSelection.TurboTax => "Turbo Tax Armed",
             LevelGlitchSelection.WarpJam => "Warp Jam Armed",
             LevelGlitchSelection.NeonFlood => "Neon Flood Armed",
+            LevelGlitchSelection.LockstepRows => "Lockstep Rows Armed",
             _ => "Clean Walls",
         };
 
@@ -282,7 +284,7 @@ namespace GetBricked.Gameplay.Data
             var normalized = (LevelGlitchSelection)Mathf.Clamp(
                     (int)levelGlitchSelection,
                     (int)LevelGlitchSelection.Off,
-                    (int)LevelGlitchSelection.NeonFlood);
+                    (int)LevelGlitchSelection.LockstepRows);
 
             if (!levelGlitchesEnabled && normalized == LevelGlitchSelection.Random)
             {

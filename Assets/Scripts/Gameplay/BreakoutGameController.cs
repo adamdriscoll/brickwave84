@@ -364,6 +364,8 @@ namespace GetBricked.Gameplay
         private float missileShotCooldownTimer;
         private float activeLevelElapsedSeconds;
         private BreakoutLevelGlitchPlan activeLevelGlitchPlan = BreakoutLevelGlitchPlan.None;
+        private bool hasLockstepRowsPaddleAnchor;
+        private float lockstepRowsLastPaddleX;
         private float nextBrickLockBlockedBannerTime;
         private float nextBrickquakeTriggerTime;
         private BreakoutWarpGateController activeWarpGateController;
@@ -543,6 +545,7 @@ namespace GetBricked.Gameplay
             UpdateMenuAttractMode();
             UpdateGravityPocketInfluence();
             UpdateMagnetStormInfluence();
+            UpdateLockstepRows();
             UpdateRowRewriteTimer();
             UpdateGhostRow();
             UpdateRewindWall();
@@ -4041,6 +4044,12 @@ namespace GetBricked.Gameplay
                 powerUpService?.ShowStatusBanner("BRICK CONVEYOR!", new Color(0.72f, 0.62f, 1f, 1f), 2.2f);
             }
 
+            if (activeLevelGlitchPlan.HasGlitch(BreakoutLevelGlitchType.LockstepRows))
+            {
+                ArmLockstepRows();
+                powerUpService?.ShowStatusBanner("LOCKSTEP ROWS!", new Color(0.72f, 0.62f, 1f, 1f), 2.2f);
+            }
+
             if (activeLevelGlitchPlan.HasGlitch(BreakoutLevelGlitchType.StaticWall))
             {
                 CreateStaticWall(activeLevelGlitchPlan);
@@ -4155,6 +4164,8 @@ namespace GetBricked.Gameplay
             hasShownRowRewriteWarning = false;
             rowRewriteTimer = 0f;
             activeRowRewriteSpec = default;
+            hasLockstepRowsPaddleAnchor = false;
+            lockstepRowsLastPaddleX = 0f;
             scoreLeakGraceTimer = 0f;
             scoreLeakAccumulator = 0f;
             lastNeonFloodTriggerTime = float.NegativeInfinity;
@@ -4339,6 +4350,44 @@ namespace GetBricked.Gameplay
             brickService?.ApplyBrickConveyor(brickConveyor);
         }
 
+        private void ArmLockstepRows()
+        {
+            hasLockstepRowsPaddleAnchor = paddle != null;
+            lockstepRowsLastPaddleX = paddle != null ? paddle.transform.position.x : 0f;
+        }
+
+        private void UpdateLockstepRows()
+        {
+            if (paddle == null
+                || brickService == null
+                || activeLevelGlitchPlan == null
+                || !activeLevelGlitchPlan.HasGlitch(BreakoutLevelGlitchType.LockstepRows))
+            {
+                hasLockstepRowsPaddleAnchor = false;
+                return;
+            }
+
+            var currentPaddleX = paddle.transform.position.x;
+
+            if (!IsGameplaySimulationActive())
+            {
+                lockstepRowsLastPaddleX = currentPaddleX;
+                hasLockstepRowsPaddleAnchor = true;
+                return;
+            }
+
+            if (!hasLockstepRowsPaddleAnchor)
+            {
+                lockstepRowsLastPaddleX = currentPaddleX;
+                hasLockstepRowsPaddleAnchor = true;
+                return;
+            }
+
+            var paddleDeltaX = currentPaddleX - lockstepRowsLastPaddleX;
+            lockstepRowsLastPaddleX = currentPaddleX;
+            brickService.ApplyLockstepRows(paddleDeltaX, activeLevelGlitchPlan.LockstepRows);
+        }
+
         private void ApplyFlickerBricks(BreakoutFlickerBricksSpec flickerBricks)
         {
             brickService?.ApplyFlickerBricks(flickerBricks);
@@ -4521,6 +4570,11 @@ namespace GetBricked.Gameplay
             if (activeLevelGlitchPlan.HasGlitch(BreakoutLevelGlitchType.BrickConveyor))
             {
                 brickService.ApplyBrickConveyor(activeLevelGlitchPlan.BrickConveyor);
+            }
+
+            if (activeLevelGlitchPlan.HasGlitch(BreakoutLevelGlitchType.LockstepRows))
+            {
+                hasLockstepRowsPaddleAnchor = false;
             }
 
             if (activeLevelGlitchPlan.HasGlitch(BreakoutLevelGlitchType.PrismShuffle))
@@ -7452,6 +7506,7 @@ namespace GetBricked.Gameplay
                 LevelGlitchSelection.TurboTax => "Turbo Tax",
                 LevelGlitchSelection.WarpJam => "Warp Jam",
                 LevelGlitchSelection.NeonFlood => "Neon Flood",
+                LevelGlitchSelection.LockstepRows => "Lockstep Rows",
                 _ => "Off",
             };
         }
