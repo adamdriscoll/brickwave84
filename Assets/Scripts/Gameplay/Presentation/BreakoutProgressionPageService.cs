@@ -372,6 +372,13 @@ namespace GetBricked.Gameplay
                 BreakoutLevelGlitchPlanner.BrickquakeLadderUnlockIntensity,
                 highestCompletedIntensity,
                 LayoutAccent));
+            cards.Add(BuildUnlockableGlitchCard(
+                "Turbo Tax",
+                "Score Epic Glitch",
+                "Fast brick breaks pay bonus score; slow hits mint hazards.",
+                BreakoutLevelGlitchPlanner.TurboTaxLadderUnlockIntensity,
+                highestCompletedIntensity,
+                DamageAccent));
             AppendPlaceholderCards(cards, PlaceholderDrops, highestCompletedIntensity);
             AppendPlaceholderCards(cards, PlaceholderGlitches, highestCompletedIntensity);
             cards.Add(BuildHiddenSlotCard("Future Drop Slot", "Drop", "Hidden", "Future drop signal pending."));
@@ -865,6 +872,11 @@ namespace GetBricked.Gameplay
             }
 
             if (completedIntensity >= BreakoutLevelGlitchPlanner.BrickquakeLadderUnlockIntensity)
+            {
+                count++;
+            }
+
+            if (completedIntensity >= BreakoutLevelGlitchPlanner.TurboTaxLadderUnlockIntensity)
             {
                 count++;
             }

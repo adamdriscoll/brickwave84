@@ -104,6 +104,7 @@ public sealed class BreakoutProgressionPageTests
         var cloneStatic = view.Cards.First(card => card.Title == "Clone Static");
         var capsuleBlackout = view.Cards.First(card => card.Title == "Capsule Blackout");
         var brickquake = view.Cards.First(card => card.Title == "Brickquake");
+        var turboTax = view.Cards.First(card => card.Title == "Turbo Tax");
 
         Assert.That(view.LadderLines, Has.Some.Contains("Heat 06"));
         Assert.That(view.LadderLines.Any(line => line.Contains("Paddle")), Is.False);
@@ -131,6 +132,7 @@ public sealed class BreakoutProgressionPageTests
         Assert.That(cloneStatic.UnlockHint, Does.Contain("Heat 27"));
         Assert.That(capsuleBlackout.UnlockHint, Does.Contain("Heat 36"));
         Assert.That(brickquake.UnlockHint, Does.Contain("Heat 37"));
+        Assert.That(turboTax.UnlockHint, Does.Contain("Heat 38"));
     }
 
     [Test]
@@ -190,6 +192,7 @@ public sealed class BreakoutProgressionPageTests
         var vhsTear = view.Cards.First(card => card.Title == "VHS Tear");
         var capsuleBlackout = view.Cards.First(card => card.Title == "Capsule Blackout");
         var brickquake = view.Cards.First(card => card.Title == "Brickquake");
+        var turboTax = view.Cards.First(card => card.Title == "Turbo Tax");
 
         Assert.That(turboRail.UnlockHint, Does.Contain("Heat 01"));
         Assert.That(mirrorGrid.UnlockHint, Does.Contain("Heat 02"));
@@ -274,6 +277,9 @@ public sealed class BreakoutProgressionPageTests
         Assert.That(brickquake.UnlockHint, Does.Contain("Heat 37"));
         Assert.That(brickquake.Description, Does.Contain("Heavy impacts"));
         Assert.That(brickquake.Family, Does.Contain("Epic"));
+        Assert.That(turboTax.UnlockHint, Does.Contain("Heat 38"));
+        Assert.That(turboTax.Description, Does.Contain("Fast brick breaks"));
+        Assert.That(turboTax.Family, Does.Contain("Epic"));
         Assert.That(solarShot.UnlockHint, Does.Contain("Heat 36"));
         Assert.That(solarShot.Description, Does.Contain("burns away"));
         Assert.That(wrapRail.UnlockHint, Does.Contain("Heat 37"));

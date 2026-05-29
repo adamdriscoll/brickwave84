@@ -183,7 +183,7 @@ namespace GetBricked.Gameplay
                     SelectedLevelGlitch = (LevelGlitchSelection)Mathf.Clamp(
                         (int)SelectedLevelGlitch + direction,
                         (int)LevelGlitchSelection.Off,
-                        (int)LevelGlitchSelection.Brickquake);
+                        (int)LevelGlitchSelection.TurboTax);
                     break;
                 case BreakoutRunSetupField.Theme:
                     ThemeId = shiftThemeId != null ? shiftThemeId(ThemeId, direction) : ThemeId;
@@ -360,7 +360,7 @@ namespace GetBricked.Gameplay
                 return (LevelGlitchSelection)Mathf.Clamp(
                     (int)selection,
                     (int)LevelGlitchSelection.Off,
-                    (int)LevelGlitchSelection.Brickquake);
+                    (int)LevelGlitchSelection.TurboTax);
         }
 
         private static string BuildLevelGlitchWarningLabel(LevelGlitchSelection selection)
@@ -404,6 +404,7 @@ namespace GetBricked.Gameplay
                 LevelGlitchSelection.VhsTear => "VHS Tear",
                 LevelGlitchSelection.CapsuleBlackout => "Capsule Blackout",
                 LevelGlitchSelection.Brickquake => "Brickquake",
+                LevelGlitchSelection.TurboTax => "Turbo Tax",
                 _ => "Random glitches",
             };
         }

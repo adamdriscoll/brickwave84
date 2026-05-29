@@ -878,6 +878,31 @@ public sealed class BreakoutLevelGlitchPlannerTests
         Assert.That(unlockedPlan.Brickquake.HeavySpeedThreshold, Is.InRange(9.8f, 11.8f));
     }
 
+    [Test]
+    public void RogueGlitchHeatControlsWhenTurboTaxCanUnlock()
+    {
+        var lockedSettings = CreateRogueSettings(
+            rogueIntensity: BreakoutLevelGlitchPlanner.TurboTaxLadderUnlockIntensity,
+            levelGlitchSelection: LevelGlitchSelection.TurboTax);
+        var unlockedSettings = CreateRogueSettings(
+            rogueIntensity: BreakoutLevelGlitchPlanner.TurboTaxLadderUnlockIntensity + 1,
+            levelGlitchSelection: LevelGlitchSelection.TurboTax);
+
+        var lockedPlan = BreakoutLevelGlitchPlanner.BuildPlan(new DeterministicRandomService(7), lockedSettings, levelIndex: 9);
+        var unlockedPlan = BreakoutLevelGlitchPlanner.BuildPlan(new DeterministicRandomService(7), unlockedSettings, levelIndex: 9);
+
+        Assert.That(lockedPlan.IsActive, Is.False);
+        Assert.That(unlockedPlan.IsActive, Is.True);
+        Assert.That(unlockedPlan.GlitchType, Is.EqualTo(BreakoutLevelGlitchType.TurboTax));
+        Assert.That(unlockedPlan.DisplayName, Is.EqualTo("Turbo Tax"));
+        Assert.That(unlockedPlan.Rarity, Is.EqualTo(BreakoutContentRarity.Epic));
+        Assert.That(unlockedPlan.ScoreMultiplier, Is.EqualTo(1f).Within(0.0001f));
+        Assert.That(unlockedPlan.TurboTax.HighSpeedThresholdMultiplier, Is.EqualTo(1.18f).Within(0.0001f));
+        Assert.That(unlockedPlan.TurboTax.HighSpeedScoreMultiplier, Is.EqualTo(1.42f).Within(0.0001f));
+        Assert.That(unlockedPlan.TurboTax.SlowSpeedThresholdMultiplier, Is.EqualTo(0.95f).Within(0.0001f));
+        Assert.That(unlockedPlan.TurboTax.SlowHazardDropChance, Is.EqualTo(0.42f).Within(0.0001f));
+    }
+
 
     [Test]
     public void ForcedWarpGatePlanBuildsSmallPortalSetAndScoreBonus()
@@ -1463,6 +1488,35 @@ public sealed class BreakoutLevelGlitchPlannerTests
         Assert.That(plan.IsActive, Is.True);
         Assert.That(plan.GlitchType, Is.EqualTo(BreakoutLevelGlitchType.Brickquake));
         Assert.That(plan.HudLabel, Does.Contain("Brickquake"));
+    }
+
+    [Test]
+    public void SelectedTurboTaxAlwaysBuildsTurboTaxEvenWhenChanceIsDisabled()
+    {
+        var settings = CreateSettings(
+            levelGlitchesEnabled: true,
+            chanceMultiplier: 0f,
+            levelGlitchSelection: LevelGlitchSelection.TurboTax);
+
+        var plan = BreakoutLevelGlitchPlanner.BuildPlan(new DeterministicRandomService(3), settings, levelIndex: 9);
+
+        Assert.That(plan.IsActive, Is.True);
+        Assert.That(plan.GlitchType, Is.EqualTo(BreakoutLevelGlitchType.TurboTax));
+        Assert.That(plan.HudLabel, Does.Contain("Turbo Tax"));
+    }
+
+    [Test]
+    public void TurboTaxCalculatorPaysFastBreaksAndFlagsSlowHazards()
+    {
+        var spec = new BreakoutTurboTaxSpec(1.18f, 1.42f, 0.95f, 0.42f);
+
+        var fastBonus = BreakoutTurboTaxCalculator.CalculateHighSpeedBonusPoints(100, 10f, 8f, spec);
+        var normalBonus = BreakoutTurboTaxCalculator.CalculateHighSpeedBonusPoints(100, 8f, 8f, spec);
+
+        Assert.That(fastBonus, Is.EqualTo(42));
+        Assert.That(normalBonus, Is.Zero);
+        Assert.That(BreakoutTurboTaxCalculator.ShouldRollSlowHazardDrop(7.5f, 8f, spec), Is.True);
+        Assert.That(BreakoutTurboTaxCalculator.ShouldRollSlowHazardDrop(8.2f, 8f, spec), Is.False);
     }
 
     [Test]

@@ -72,6 +72,7 @@ namespace GetBricked.Gameplay.Data
         VhsTear = 36,
         CapsuleBlackout = 37,
         Brickquake = 38,
+        TurboTax = 39,
     }
 
     public sealed class RunSettings
@@ -266,6 +267,7 @@ namespace GetBricked.Gameplay.Data
             LevelGlitchSelection.VhsTear => "VHS Tear Armed",
             LevelGlitchSelection.CapsuleBlackout => "Capsule Blackout Armed",
             LevelGlitchSelection.Brickquake => "Brickquake Armed",
+            LevelGlitchSelection.TurboTax => "Turbo Tax Armed",
             _ => "Clean Walls",
         };
 
@@ -276,7 +278,7 @@ namespace GetBricked.Gameplay.Data
             var normalized = (LevelGlitchSelection)Mathf.Clamp(
                     (int)levelGlitchSelection,
                     (int)LevelGlitchSelection.Off,
-                    (int)LevelGlitchSelection.Brickquake);
+                    (int)LevelGlitchSelection.TurboTax);
 
             if (!levelGlitchesEnabled && normalized == LevelGlitchSelection.Random)
             {

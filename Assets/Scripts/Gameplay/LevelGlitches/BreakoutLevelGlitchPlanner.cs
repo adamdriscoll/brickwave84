@@ -45,6 +45,7 @@ namespace GetBricked.Gameplay
         VhsTear = 35,
         CapsuleBlackout = 36,
         Brickquake = 37,
+        TurboTax = 38,
     }
 
     internal readonly struct BreakoutLevelGlitchDefinition
@@ -592,6 +593,57 @@ namespace GetBricked.Gameplay
         public float CooldownSeconds { get; }
     }
 
+    internal readonly struct BreakoutTurboTaxSpec
+    {
+        public BreakoutTurboTaxSpec(
+            float highSpeedThresholdMultiplier,
+            float highSpeedScoreMultiplier,
+            float slowSpeedThresholdMultiplier,
+            float slowHazardDropChance)
+        {
+            HighSpeedThresholdMultiplier = Mathf.Clamp(highSpeedThresholdMultiplier, 1.02f, 1.85f);
+            HighSpeedScoreMultiplier = Mathf.Clamp(highSpeedScoreMultiplier, 1.05f, 2.4f);
+            SlowSpeedThresholdMultiplier = Mathf.Clamp(slowSpeedThresholdMultiplier, 0.45f, 1.15f);
+            SlowHazardDropChance = Mathf.Clamp01(slowHazardDropChance);
+        }
+
+        public float HighSpeedThresholdMultiplier { get; }
+
+        public float HighSpeedScoreMultiplier { get; }
+
+        public float SlowSpeedThresholdMultiplier { get; }
+
+        public float SlowHazardDropChance { get; }
+    }
+
+    internal static class BreakoutTurboTaxCalculator
+    {
+        public static int CalculateHighSpeedBonusPoints(int awardedBasePoints, float scoringSpeed, float baseBallSpeed, BreakoutTurboTaxSpec spec)
+        {
+            if (awardedBasePoints <= 0 || !IsHighSpeedBreak(scoringSpeed, baseBallSpeed, spec))
+            {
+                return 0;
+            }
+
+            return Mathf.Max(1, Mathf.RoundToInt(awardedBasePoints * (spec.HighSpeedScoreMultiplier - 1f)));
+        }
+
+        public static bool ShouldRollSlowHazardDrop(float scoringSpeed, float baseBallSpeed, BreakoutTurboTaxSpec spec)
+        {
+            return scoringSpeed > 0.01f
+                && baseBallSpeed > 0.01f
+                && scoringSpeed <= baseBallSpeed * spec.SlowSpeedThresholdMultiplier
+                && spec.SlowHazardDropChance > 0f;
+        }
+
+        public static bool IsHighSpeedBreak(float scoringSpeed, float baseBallSpeed, BreakoutTurboTaxSpec spec)
+        {
+            return scoringSpeed > 0.01f
+                && baseBallSpeed > 0.01f
+                && scoringSpeed >= baseBallSpeed * spec.HighSpeedThresholdMultiplier;
+        }
+    }
+
     internal readonly struct BreakoutSpeedStepsSpec
     {
         public BreakoutSpeedStepsSpec(float stepMultiplierIncrease, float maximumMultiplier)
@@ -790,7 +842,8 @@ namespace GetBricked.Gameplay
             BreakoutStaticJackpotSpec staticJackpot = default,
             BreakoutVhsTearSpec vhsTear = default,
             BreakoutCapsuleBlackoutSpec capsuleBlackout = default,
-            BreakoutBrickquakeSpec brickquake = default)
+            BreakoutBrickquakeSpec brickquake = default,
+            BreakoutTurboTaxSpec turboTax = default)
         {
             GlitchType = glitchType;
             Rarity = BreakoutRarityRules.Clamp(rarity);
@@ -827,6 +880,7 @@ namespace GetBricked.Gameplay
             VhsTear = vhsTear;
             CapsuleBlackout = capsuleBlackout;
             Brickquake = brickquake;
+            TurboTax = turboTax;
             ActiveGlitchTypes = activeGlitchTypes != null && activeGlitchTypes.Length > 0
                 ? activeGlitchTypes
                 : glitchType != BreakoutLevelGlitchType.None
@@ -904,6 +958,8 @@ namespace GetBricked.Gameplay
 
         public BreakoutBrickquakeSpec Brickquake { get; }
 
+        public BreakoutTurboTaxSpec TurboTax { get; }
+
         public BreakoutLevelGlitchType[] ActiveGlitchTypes { get; }
 
         public bool IsActive => ActiveGlitchTypes.Length > 0;
@@ -960,6 +1016,7 @@ namespace GetBricked.Gameplay
         public const int VhsTearLadderUnlockIntensity = 35;
         public const int CapsuleBlackoutLadderUnlockIntensity = 36;
         public const int BrickquakeLadderUnlockIntensity = 37;
+        public const int TurboTaxLadderUnlockIntensity = 38;
 
         private const float WarpGateScoreMultiplier = 1.35f;
         private const float TurboRailScoreMultiplier = 1.25f;
@@ -998,6 +1055,7 @@ namespace GetBricked.Gameplay
         private const float VhsTearScoreMultiplier = 1.52f;
         private const float CapsuleBlackoutScoreMultiplier = 1.38f;
         private const float BrickquakeScoreMultiplier = 1.53f;
+        private const float TurboTaxHighSpeedScoreMultiplier = 1.42f;
 
         private static readonly BreakoutLevelGlitchDefinition[] GlitchDefinitions =
         {
@@ -1186,6 +1244,11 @@ namespace GetBricked.Gameplay
                 LevelGlitchSelection.Brickquake,
                 BreakoutContentRarity.Epic,
                 BrickquakeLadderUnlockIntensity),
+            new BreakoutLevelGlitchDefinition(
+                BreakoutLevelGlitchType.TurboTax,
+                LevelGlitchSelection.TurboTax,
+                BreakoutContentRarity.Epic,
+                TurboTaxLadderUnlockIntensity),
         };
 
         public static BreakoutLevelGlitchPlan BuildPlan(
@@ -1417,6 +1480,11 @@ namespace GetBricked.Gameplay
                 return BuildBrickquakePlan(random, definition.Rarity);
             }
 
+            if (definition.GlitchType == BreakoutLevelGlitchType.TurboTax)
+            {
+                return BuildTurboTaxPlan(definition.Rarity);
+            }
+
             return BuildWarpGatePlan(random, definition.Rarity);
         }
 
@@ -1544,6 +1612,7 @@ namespace GetBricked.Gameplay
             var vhsTear = default(BreakoutVhsTearSpec);
             var capsuleBlackout = default(BreakoutCapsuleBlackoutSpec);
             var brickquake = default(BreakoutBrickquakeSpec);
+            var turboTax = default(BreakoutTurboTaxSpec);
 
             for (var index = 0; index < definitions.Count; index++)
             {
@@ -1714,6 +1783,11 @@ namespace GetBricked.Gameplay
                 {
                     brickquake = plan.Brickquake;
                 }
+
+                if (plan.HasGlitch(BreakoutLevelGlitchType.TurboTax))
+                {
+                    turboTax = plan.TurboTax;
+                }
             }
 
             return new BreakoutLevelGlitchPlan(
@@ -1752,7 +1826,8 @@ namespace GetBricked.Gameplay
                 staticJackpot,
                 vhsTear,
                 capsuleBlackout,
-                brickquake);
+                brickquake,
+                turboTax);
         }
 
         private static void MarkGlitchSelectionExclusions(
@@ -2041,6 +2116,20 @@ namespace GetBricked.Gameplay
                 Array.Empty<BreakoutWarpGateSpec>(),
                 default,
                 brickquake: brickquake);
+        }
+
+        private static BreakoutLevelGlitchPlan BuildTurboTaxPlan(BreakoutContentRarity rarity)
+        {
+            var turboTax = new BreakoutTurboTaxSpec(1.18f, TurboTaxHighSpeedScoreMultiplier, 0.95f, 0.42f);
+            return new BreakoutLevelGlitchPlan(
+                BreakoutLevelGlitchType.TurboTax,
+                rarity,
+                "Turbo Tax",
+                $"Turbo Tax >{turboTax.HighSpeedThresholdMultiplier:0.00}x pays x{turboTax.HighSpeedScoreMultiplier:0.00}",
+                1f,
+                Array.Empty<BreakoutWarpGateSpec>(),
+                default,
+                turboTax: turboTax);
         }
 
         private static BreakoutLevelGlitchPlan BuildStaticWallPlan(DeterministicRandomService random, BreakoutContentRarity rarity)
@@ -2843,7 +2932,8 @@ namespace GetBricked.Gameplay
                 || selection == LevelGlitchSelection.GravitySwap
                 || selection == LevelGlitchSelection.VhsTear
                 || selection == LevelGlitchSelection.CapsuleBlackout
-                || selection == LevelGlitchSelection.Brickquake;
+                || selection == LevelGlitchSelection.Brickquake
+                || selection == LevelGlitchSelection.TurboTax;
         }
 
         private static BreakoutWarpGateWall ResolveGateWall(DeterministicRandomService random, int index)

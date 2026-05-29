@@ -684,13 +684,19 @@ namespace GetBricked.Gameplay
                 scoringBall,
                 destructionCause,
                 scoreAward.BasePoints);
+            var turboTaxBonusPoints = ResolveTurboTaxBonusPoints(
+                scoringBall,
+                destructionCause,
+                scoreAward.BasePoints);
             var bankBonusPoints = 0;
             powerUpService?.TryConsumeBankBonus(out bankBonusPoints);
-            score += scoreAward.TotalPoints + staticJackpotPoints + bankBonusPoints;
+            score += scoreAward.TotalPoints + staticJackpotPoints + turboTaxBonusPoints + bankBonusPoints;
 
-            var combinedBonusPoints = scoreAward.BonusPoints + staticJackpotPoints + bankBonusPoints;
+            var combinedBonusPoints = scoreAward.BonusPoints + staticJackpotPoints + turboTaxBonusPoints + bankBonusPoints;
             var combinedBonusLabel = CombineBonusLabels(
-                CombineBonusLabels(scoreAward.BonusLabel, staticJackpotPoints > 0 ? "STATIC JACKPOT" : string.Empty),
+                CombineBonusLabels(
+                    CombineBonusLabels(scoreAward.BonusLabel, staticJackpotPoints > 0 ? "STATIC JACKPOT" : string.Empty),
+                    turboTaxBonusPoints > 0 ? "TURBO TAX" : string.Empty),
                 bankBonusPoints > 0 ? "BANK BONUS" : string.Empty);
 
             if (combinedBonusPoints > 0)
@@ -706,6 +712,7 @@ namespace GetBricked.Gameplay
             scoreService?.RegisterBrickScoreEvent(scoringBall, scoreAward.BasePoints > 0, Time.time);
             TryTriggerPrismPop(scoringBall, explosionCenter, destructionCause);
             TrySpawnPickup(brick);
+            TrySpawnTurboTaxHazardPickup(brick, scoringBall, destructionCause);
 
             if (brick.CountsTowardLevelCompletion)
             {
@@ -7429,6 +7436,7 @@ namespace GetBricked.Gameplay
                 LevelGlitchSelection.VhsTear => "VHS Tear",
                 LevelGlitchSelection.CapsuleBlackout => "Capsule Blackout",
                 LevelGlitchSelection.Brickquake => "Brickquake",
+                LevelGlitchSelection.TurboTax => "Turbo Tax",
                 _ => "Off",
             };
         }
@@ -7644,6 +7652,133 @@ namespace GetBricked.Gameplay
             ApplyVisualEffectState();
         }
 
+        private void TrySpawnTurboTaxHazardPickup(Brick brick, BallController scoringBall, BrickDestructionCause destructionCause)
+        {
+            if (brick == null
+                || scoringBall == null
+                || powerUpService == null
+                || activeLevelGlitchPlan == null
+                || !activeLevelGlitchPlan.HasGlitch(BreakoutLevelGlitchType.TurboTax)
+                || destructionCause != BrickDestructionCause.Impact)
+            {
+                return;
+            }
+
+            var turboTax = activeLevelGlitchPlan.TurboTax;
+
+            if (!BreakoutTurboTaxCalculator.ShouldRollSlowHazardDrop(scoringBall.CurrentSpeed, ballSpeed, turboTax)
+                || NextGameplayRandomFloat(0f, 1f) > turboTax.SlowHazardDropChance
+                || !TryResolveTurboTaxHazardDrop(out var hazardDrop))
+            {
+                return;
+            }
+
+            var spawnedPickup = powerUpService.TrySpawnPickup(
+                brick,
+                activeRunSettings,
+                activeRunState,
+                1f,
+                NextGameplayRandomFloat,
+                pickupsRoot,
+                arenaBottom,
+                themeService,
+                this,
+                hazardDrop,
+                loadedPowerUpDefinitions,
+                GetEffectivePickupFallSpeedMultiplier(),
+                IsCapsuleRouletteActive());
+
+            if (spawnedPickup == null)
+            {
+                return;
+            }
+
+            ApplyTokenStormFallSpeed(spawnedPickup);
+            ApplyDropTideWaveDelay(spawnedPickup);
+            ApplyPickupPinballMotion(spawnedPickup);
+            ApplyCapsuleBlackout(spawnedPickup);
+            runStatsService?.RegisterDropDropped(spawnedPickup.Definition);
+            audioService?.PlayPickupDropped();
+            ApplyVisualEffectState();
+        }
+
+        private bool TryResolveTurboTaxHazardDrop(out PowerUpDefinition hazardDrop)
+        {
+            hazardDrop = null;
+
+            if (TryResolveTurboTaxHazardDrop(requireUnlocked: true, out hazardDrop))
+            {
+                return true;
+            }
+
+            return TryResolveTurboTaxHazardDrop(requireUnlocked: false, out hazardDrop);
+        }
+
+        private bool TryResolveTurboTaxHazardDrop(bool requireUnlocked, out PowerUpDefinition hazardDrop)
+        {
+            hazardDrop = null;
+
+            if (loadedPowerUpDefinitions.Count == 0)
+            {
+                return false;
+            }
+
+            var totalWeight = 0f;
+
+            for (var index = 0; index < loadedPowerUpDefinitions.Count; index++)
+            {
+                var definition = loadedPowerUpDefinitions[index];
+
+                if (!IsTurboTaxHazardCandidate(definition, requireUnlocked))
+                {
+                    continue;
+                }
+
+                totalWeight += BreakoutRarityRules.GetDropWeightMultiplier(definition.Rarity);
+            }
+
+            if (totalWeight <= 0f)
+            {
+                return false;
+            }
+
+            var roll = NextGameplayRandomFloat(0f, totalWeight);
+
+            for (var index = 0; index < loadedPowerUpDefinitions.Count; index++)
+            {
+                var definition = loadedPowerUpDefinitions[index];
+
+                if (!IsTurboTaxHazardCandidate(definition, requireUnlocked))
+                {
+                    continue;
+                }
+
+                roll -= BreakoutRarityRules.GetDropWeightMultiplier(definition.Rarity);
+
+                if (roll <= 0f)
+                {
+                    hazardDrop = definition;
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private bool IsTurboTaxHazardCandidate(PowerUpDefinition definition, bool requireUnlocked)
+        {
+            if (definition == null
+                || definition.IsBeneficial
+                || definition.EffectType == PowerUpEffectType.RandomMixedDrop)
+            {
+                return false;
+            }
+
+            return !requireUnlocked
+                || activeRunState == null
+                || activeRunState.IsDropUnlocked(definition);
+        }
+
         private void UpdateCapsuleRoulettePickups()
         {
             powerUpService?.UpdateCapsuleRoulettePickups(
@@ -7765,6 +7900,26 @@ namespace GetBricked.Gameplay
             }
 
             return 0;
+        }
+
+        private int ResolveTurboTaxBonusPoints(
+            BallController scoringBall,
+            BrickDestructionCause destructionCause,
+            int awardedBasePoints)
+        {
+            if (activeLevelGlitchPlan == null
+                || !activeLevelGlitchPlan.HasGlitch(BreakoutLevelGlitchType.TurboTax)
+                || destructionCause != BrickDestructionCause.Impact
+                || scoringBall == null)
+            {
+                return 0;
+            }
+
+            return BreakoutTurboTaxCalculator.CalculateHighSpeedBonusPoints(
+                awardedBasePoints,
+                scoringBall.CurrentSpeed,
+                ballSpeed,
+                activeLevelGlitchPlan.TurboTax);
         }
 
         private void AwardBankBonusIfAvailable(Vector2 worldPosition)
