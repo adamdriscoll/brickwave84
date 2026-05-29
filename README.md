@@ -275,7 +275,7 @@ Late drop proposals should keep using mechanics the game already teaches: paddle
 | `Gravity Swap` | The gravity pocket flips pull direction after each wall bounce. | Heat 34 | Epic | Gravity glitch | Implemented |
 | `VHS Tear` | A horizontal tear line deflects balls crossing it. | Heat 35 | Epic | Trajectory glitch | Implemented |
 | `Capsule Blackout` | Catching any capsule briefly hides the next wave of drops. | Heat 36 | Epic | Pickup glitch | Implemented |
-| `Brickquake` | Brick clusters nudge out of alignment after heavy hits. | Heat 37 | Epic | Layout glitch | Not implemented (proposal) |
+| `Brickquake` | Brick clusters nudge out of alignment after heavy hits. | Heat 37 | Epic | Layout glitch | Implemented |
 | `Turbo Tax` | High-speed brick breaks pay more, but slow hits add hazard drops. | Heat 38 | Epic | Score glitch | Not implemented (proposal) |
 | `Warp Jam` | Gates sometimes spit the ball out of the wrong linked exit. | Heat 39 | Epic | Warp glitch | Not implemented (proposal) |
 | `Neon Flood` | Helpful and harmful capsules spawn together after combo spikes. | Heat 40 | Epic | Pickup glitch | Not implemented (proposal) |

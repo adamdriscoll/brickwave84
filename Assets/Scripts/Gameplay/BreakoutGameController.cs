@@ -365,6 +365,7 @@ namespace GetBricked.Gameplay
         private float activeLevelElapsedSeconds;
         private BreakoutLevelGlitchPlan activeLevelGlitchPlan = BreakoutLevelGlitchPlan.None;
         private float nextBrickLockBlockedBannerTime;
+        private float nextBrickquakeTriggerTime;
         private BreakoutWarpGateController activeWarpGateController;
         private BreakoutTurboRailSection activeTurboRailSection;
         private BreakoutStaticWallSection activeStaticWallSection;
@@ -784,6 +785,7 @@ namespace GetBricked.Gameplay
                 brickDefinition,
                 explosionCenter,
                 GetEffectiveSpecialBrickEffectMultiplier());
+            TryTriggerBrickquake(explosionCenter, scoringBall, destructionCause);
 
             TryExpireMirrorServeBall(scoringBall);
             EvaluateLevelCompletion();
@@ -1380,6 +1382,7 @@ namespace GetBricked.Gameplay
             AwardBankBonusIfAvailable(brick != null ? (Vector2)brick.transform.position : Vector2.zero);
             TryTriggerPrismPop(scoringBall, brick != null ? (Vector2)brick.transform.position : Vector2.zero, BrickDestructionCause.Impact);
             TryTriggerGhostRow(brick);
+            TryTriggerBrickquake(brick != null ? (Vector2)brick.transform.position : Vector2.zero, scoringBall, BrickDestructionCause.Impact);
             TryExpireMirrorServeBall(scoringBall);
         }
 
@@ -1396,6 +1399,44 @@ namespace GetBricked.Gameplay
 
             nextBrickLockBlockedBannerTime = Time.time + 0.85f;
             powerUpService?.ShowStatusBanner("LOCKED!", new Color(0.03f, 0.93f, 0.98f, 1f), 0.9f);
+        }
+
+        private void TryTriggerBrickquake(Vector2 epicenter, BallController scoringBall, BrickDestructionCause destructionCause)
+        {
+            if (brickService == null
+                || activeLevelGlitchPlan == null
+                || !activeLevelGlitchPlan.HasGlitch(BreakoutLevelGlitchType.Brickquake)
+                || Time.time < nextBrickquakeTriggerTime
+                || !IsBrickquakeHeavyHit(scoringBall, destructionCause, activeLevelGlitchPlan.Brickquake))
+            {
+                return;
+            }
+
+            var spec = activeLevelGlitchPlan.Brickquake;
+            var nudgedCount = brickService.ApplyBrickquake(epicenter, spec, NextGameplayRandomFloat);
+
+            if (nudgedCount <= 0)
+            {
+                return;
+            }
+
+            nextBrickquakeTriggerTime = Time.time + spec.CooldownSeconds;
+            SpawnExplosionVisual(epicenter, Mathf.Max(0.65f, spec.Radius * 0.42f));
+            powerUpService?.ShowStatusBanner("BRICKQUAKE!", new Color(1f, 0.49f, 0.15f, 1f), 1.05f);
+        }
+
+        private static bool IsBrickquakeHeavyHit(
+            BallController scoringBall,
+            BrickDestructionCause destructionCause,
+            BreakoutBrickquakeSpec spec)
+        {
+            if (destructionCause != BrickDestructionCause.Impact)
+            {
+                return true;
+            }
+
+            return scoringBall != null
+                && (scoringBall.IsExplosiveBall || scoringBall.CurrentSpeed >= spec.HeavySpeedThreshold);
         }
 
         public void HandlePickupCaught(PowerUpPickup pickup)
@@ -3937,6 +3978,11 @@ namespace GetBricked.Gameplay
                 powerUpService?.ShowStatusBanner("CAPSULE BLACKOUT!", new Color(1f, 0.87f, 0.36f, 1f), 2.2f);
             }
 
+            if (activeLevelGlitchPlan.HasGlitch(BreakoutLevelGlitchType.Brickquake))
+            {
+                powerUpService?.ShowStatusBanner("BRICKQUAKE!", new Color(1f, 0.49f, 0.15f, 1f), 2.2f);
+            }
+
             if (activeLevelGlitchPlan.HasGlitch(BreakoutLevelGlitchType.PickupPinball))
             {
                 powerUpService?.ShowStatusBanner("PICKUP PINBALL!", new Color(1f, 0.87f, 0.36f, 1f), 2.2f);
@@ -4093,6 +4139,7 @@ namespace GetBricked.Gameplay
             scoreLeakGraceTimer = 0f;
             scoreLeakAccumulator = 0f;
             laserRainStrikeTimer = 0f;
+            nextBrickquakeTriggerTime = 0f;
             cassetteSkipPaddleHits = 0;
             gravitySwapPullSign = 1f;
             ghostRowService?.Clear();
@@ -7381,6 +7428,7 @@ namespace GetBricked.Gameplay
                 LevelGlitchSelection.GravitySwap => "Gravity Swap",
                 LevelGlitchSelection.VhsTear => "VHS Tear",
                 LevelGlitchSelection.CapsuleBlackout => "Capsule Blackout",
+                LevelGlitchSelection.Brickquake => "Brickquake",
                 _ => "Off",
             };
         }

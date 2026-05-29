@@ -186,6 +186,42 @@ namespace GetBricked.Gameplay
             brickBody.WakeUp();
         }
 
+        internal void NudgeLayout(Vector2 offset, Rect movementBounds)
+        {
+            if (offset.sqrMagnitude <= 0.000001f)
+            {
+                return;
+            }
+
+            var targetPosition = (Vector2)transform.position + offset;
+
+            if (movementBounds.width > 0.01f && movementBounds.height > 0.01f)
+            {
+                var halfSize = new Vector2(
+                    Mathf.Abs(transform.lossyScale.x) * 0.5f,
+                    Mathf.Abs(transform.lossyScale.y) * 0.5f);
+                targetPosition = new Vector2(
+                    Mathf.Clamp(targetPosition.x, movementBounds.xMin + halfSize.x, movementBounds.xMax - halfSize.x),
+                    Mathf.Clamp(targetPosition.y, movementBounds.yMin + halfSize.y, movementBounds.yMax - halfSize.y));
+            }
+
+            transform.position = targetPosition;
+
+            if (brickBody == null)
+            {
+                return;
+            }
+
+            brickBody.position = targetPosition;
+
+            if (spinJoint != null)
+            {
+                spinJoint.connectedAnchor = targetPosition;
+            }
+
+            brickBody.WakeUp();
+        }
+
         public void ApplyTheme(ThemeVisualStyle visualStyle)
         {
             themedStyle = visualStyle;

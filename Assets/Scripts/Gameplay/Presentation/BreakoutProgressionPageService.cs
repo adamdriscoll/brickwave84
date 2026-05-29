@@ -365,6 +365,13 @@ namespace GetBricked.Gameplay
                 BreakoutLevelGlitchPlanner.CapsuleBlackoutLadderUnlockIntensity,
                 highestCompletedIntensity,
                 ControlAccent));
+            cards.Add(BuildUnlockableGlitchCard(
+                "Brickquake",
+                "Layout Epic Glitch",
+                "Heavy impacts nudge nearby brick clusters out of alignment.",
+                BreakoutLevelGlitchPlanner.BrickquakeLadderUnlockIntensity,
+                highestCompletedIntensity,
+                LayoutAccent));
             AppendPlaceholderCards(cards, PlaceholderDrops, highestCompletedIntensity);
             AppendPlaceholderCards(cards, PlaceholderGlitches, highestCompletedIntensity);
             cards.Add(BuildHiddenSlotCard("Future Drop Slot", "Drop", "Hidden", "Future drop signal pending."));
@@ -853,6 +860,11 @@ namespace GetBricked.Gameplay
             }
 
             if (completedIntensity >= BreakoutLevelGlitchPlanner.CapsuleBlackoutLadderUnlockIntensity)
+            {
+                count++;
+            }
+
+            if (completedIntensity >= BreakoutLevelGlitchPlanner.BrickquakeLadderUnlockIntensity)
             {
                 count++;
             }

@@ -47,6 +47,19 @@ namespace GetBricked.Gameplay
         private const int BrickSortingOrder = 5;
         private const string BlacklightBrickSpriteResourcePath = "Sprites/blacklight-brick";
 
+        private readonly struct BrickquakeCandidate
+        {
+            public BrickquakeCandidate(Brick brick, float distanceSquared)
+            {
+                Brick = brick;
+                DistanceSquared = distanceSquared;
+            }
+
+            public Brick Brick { get; }
+
+            public float DistanceSquared { get; }
+        }
+
         private readonly BreakoutGameController controller;
         private readonly IList<Brick> bricks;
         private readonly Transform bricksRoot;
@@ -418,6 +431,87 @@ namespace GetBricked.Gameplay
             return conveyorCount;
         }
 
+        public int ApplyBrickquake(
+            Vector2 epicenter,
+            BreakoutBrickquakeSpec spec,
+            Func<float, float, float> randomRange = null)
+        {
+            if (bricks.Count == 0 || spec.Radius <= 0.01f || spec.MaxAffectedBricks <= 0)
+            {
+                return 0;
+            }
+
+            var candidates = new List<BrickquakeCandidate>();
+            var radiusSquared = spec.Radius * spec.Radius;
+
+            for (var index = bricks.Count - 1; index >= 0; index--)
+            {
+                var brick = bricks[index];
+
+                if (brick == null)
+                {
+                    bricks.RemoveAt(index);
+                    continue;
+                }
+
+                if (brick.Definition == null || brick.IsPendingRemoval)
+                {
+                    continue;
+                }
+
+                var distanceSquared = ((Vector2)brick.transform.position - epicenter).sqrMagnitude;
+
+                if (distanceSquared <= radiusSquared)
+                {
+                    candidates.Add(new BrickquakeCandidate(brick, distanceSquared));
+                }
+            }
+
+            if (candidates.Count == 0)
+            {
+                return 0;
+            }
+
+            candidates.Sort((left, right) => left.DistanceSquared.CompareTo(right.DistanceSquared));
+            var bounds = movementBoundsResolver();
+            var nudgedCount = 0;
+            var affectedCount = Mathf.Min(spec.MaxAffectedBricks, candidates.Count);
+
+            for (var index = 0; index < affectedCount; index++)
+            {
+                var brick = candidates[index].Brick;
+
+                if (brick == null)
+                {
+                    continue;
+                }
+
+                var angleRoll = ResolveBrickquakeRandom(randomRange, 0f, 1f);
+                var magnitudeRoll = ResolveBrickquakeRandom(randomRange, 0f, 1f);
+                var offset = BuildBrickquakeNudge(
+                    epicenter,
+                    brick.transform.position,
+                    spec,
+                    angleRoll,
+                    magnitudeRoll);
+
+                if (offset.sqrMagnitude <= 0.000001f)
+                {
+                    continue;
+                }
+
+                var beforePosition = (Vector2)brick.transform.position;
+                brick.NudgeLayout(offset, bounds);
+
+                if (((Vector2)brick.transform.position - beforePosition).sqrMagnitude > 0.000001f)
+                {
+                    nudgedCount++;
+                }
+            }
+
+            return nudgedCount;
+        }
+
         internal static Vector2 ResolveDriftDirectionForRow(int row, float startingDirectionSign)
         {
             var sign = Mathf.Sign(Mathf.Approximately(startingDirectionSign, 0f) ? 1f : startingDirectionSign);
@@ -428,6 +522,34 @@ namespace GetBricked.Gameplay
         {
             var sign = Mathf.Sign(Mathf.Approximately(startingDirectionSign, 0f) ? 1f : startingDirectionSign);
             return new Vector2((((Mathf.Max(0, row) / 2) & 1) == 0 ? sign : -sign), 0f);
+        }
+
+        internal static Vector2 BuildBrickquakeNudge(
+            Vector2 epicenter,
+            Vector2 brickPosition,
+            BreakoutBrickquakeSpec spec,
+            float angleRoll,
+            float magnitudeRoll)
+        {
+            var radialOffset = brickPosition - epicenter;
+            var distance = radialOffset.magnitude;
+            var radius = Mathf.Max(0.01f, spec.Radius);
+            var distanceFactor = Mathf.Clamp01(1f - (distance / radius));
+            var outward = radialOffset.sqrMagnitude > 0.0001f
+                ? radialOffset.normalized
+                : Vector2.right;
+            var angle = Mathf.Repeat(angleRoll, 1f) * Mathf.PI * 2f;
+            var jitter = new Vector2(Mathf.Cos(angle), Mathf.Sin(angle));
+            var direction = Vector2.Lerp(jitter, outward, 0.58f).normalized;
+
+            if (direction.sqrMagnitude <= 0.0001f)
+            {
+                direction = outward;
+            }
+
+            var magnitude = Mathf.Lerp(spec.MinimumOffset, spec.MaximumOffset, Mathf.Clamp01(magnitudeRoll));
+            magnitude *= Mathf.Lerp(0.55f, 1f, distanceFactor);
+            return direction * magnitude;
         }
 
         public int RewriteRow(int rowIndex, BreakoutProceduralBrickCell[] rowCells)
@@ -881,6 +1003,16 @@ namespace GetBricked.Gameplay
                 hash ^= hash >> 16;
                 return (hash & 0x7fffffff) / (float)int.MaxValue;
             }
+        }
+
+        private static float ResolveBrickquakeRandom(Func<float, float, float> randomRange, float minInclusive, float maxInclusive)
+        {
+            if (randomRange == null)
+            {
+                return UnityEngine.Random.Range(minInclusive, maxInclusive);
+            }
+
+            return randomRange(minInclusive, maxInclusive);
         }
 
         private Vector2 ClampBrickPositionToMovementBounds(Vector2 position, BrickDefinition definition)

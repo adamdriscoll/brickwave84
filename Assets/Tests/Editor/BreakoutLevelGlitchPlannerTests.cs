@@ -853,6 +853,31 @@ public sealed class BreakoutLevelGlitchPlannerTests
         Assert.That(unlockedPlan.CapsuleBlackout.VisibilityMultiplier, Is.EqualTo(0.03f).Within(0.0001f));
     }
 
+    [Test]
+    public void RogueGlitchHeatControlsWhenBrickquakeCanUnlock()
+    {
+        var lockedSettings = CreateRogueSettings(
+            rogueIntensity: BreakoutLevelGlitchPlanner.BrickquakeLadderUnlockIntensity,
+            levelGlitchSelection: LevelGlitchSelection.Brickquake);
+        var unlockedSettings = CreateRogueSettings(
+            rogueIntensity: BreakoutLevelGlitchPlanner.BrickquakeLadderUnlockIntensity + 1,
+            levelGlitchSelection: LevelGlitchSelection.Brickquake);
+
+        var lockedPlan = BreakoutLevelGlitchPlanner.BuildPlan(new DeterministicRandomService(7), lockedSettings, levelIndex: 9);
+        var unlockedPlan = BreakoutLevelGlitchPlanner.BuildPlan(new DeterministicRandomService(7), unlockedSettings, levelIndex: 9);
+
+        Assert.That(lockedPlan.IsActive, Is.False);
+        Assert.That(unlockedPlan.IsActive, Is.True);
+        Assert.That(unlockedPlan.GlitchType, Is.EqualTo(BreakoutLevelGlitchType.Brickquake));
+        Assert.That(unlockedPlan.DisplayName, Is.EqualTo("Brickquake"));
+        Assert.That(unlockedPlan.Rarity, Is.EqualTo(BreakoutContentRarity.Epic));
+        Assert.That(unlockedPlan.ScoreMultiplier, Is.EqualTo(1.53f).Within(0.0001f));
+        Assert.That(unlockedPlan.Brickquake.Radius, Is.InRange(1.85f, 2.45f));
+        Assert.That(unlockedPlan.Brickquake.MaximumOffset, Is.InRange(0.26f, 0.36f));
+        Assert.That(unlockedPlan.Brickquake.MaxAffectedBricks, Is.InRange(4, 7));
+        Assert.That(unlockedPlan.Brickquake.HeavySpeedThreshold, Is.InRange(9.8f, 11.8f));
+    }
+
 
     [Test]
     public void ForcedWarpGatePlanBuildsSmallPortalSetAndScoreBonus()
@@ -1426,6 +1451,21 @@ public sealed class BreakoutLevelGlitchPlannerTests
     }
 
     [Test]
+    public void SelectedBrickquakeAlwaysBuildsBrickquakeEvenWhenChanceIsDisabled()
+    {
+        var settings = CreateSettings(
+            levelGlitchesEnabled: true,
+            chanceMultiplier: 0f,
+            levelGlitchSelection: LevelGlitchSelection.Brickquake);
+
+        var plan = BreakoutLevelGlitchPlanner.BuildPlan(new DeterministicRandomService(3), settings, levelIndex: 9);
+
+        Assert.That(plan.IsActive, Is.True);
+        Assert.That(plan.GlitchType, Is.EqualTo(BreakoutLevelGlitchType.Brickquake));
+        Assert.That(plan.HudLabel, Does.Contain("Brickquake"));
+    }
+
+    [Test]
     public void ScoreLeakPenaltyTricklesFromAccumulatorWithoutDroppingBelowZero()
     {
         var accumulator = 0f;
@@ -1564,6 +1604,74 @@ public sealed class BreakoutLevelGlitchPlannerTests
         Assert.That(thirdRow.x, Is.EqualTo(-1f).Within(0.0001f));
         Assert.That(fourthRow.x, Is.EqualTo(1f).Within(0.0001f));
         Assert.That(firstRow.y, Is.Zero);
+    }
+
+    [Test]
+    public void BrickquakeNudgePushesClusterBricksWithinConfiguredOffset()
+    {
+        var spec = new BreakoutBrickquakeSpec(
+            radius: 2f,
+            minimumOffset: 0.1f,
+            maximumOffset: 0.3f,
+            maxAffectedBricks: 4,
+            heavySpeedThreshold: 10f,
+            cooldownSeconds: 0.5f);
+
+        var offset = BreakoutBrickService.BuildBrickquakeNudge(
+            Vector2.zero,
+            new Vector2(1f, 0f),
+            spec,
+            angleRoll: 0.25f,
+            magnitudeRoll: 1f);
+
+        Assert.That(offset.x, Is.GreaterThan(0f));
+        Assert.That(offset.y, Is.GreaterThan(0f));
+        Assert.That(offset.magnitude, Is.GreaterThan(0.1f));
+        Assert.That(offset.magnitude, Is.LessThanOrEqualTo(0.3f + 0.0001f));
+    }
+
+    [Test]
+    public void BrickquakeServiceNudgesNearestBricksOnly()
+    {
+        var definition = ScriptableObject.CreateInstance<BrickDefinition>();
+        var root = new GameObject("Brickquake Test Root");
+        var bricks = new List<Brick>();
+
+        try
+        {
+            var service = new BreakoutBrickService(
+                null,
+                bricks,
+                root.transform,
+                new Vector2(1f, 0.5f),
+                Vector2.zero,
+                null,
+                null,
+                null,
+                () => null,
+                () => Rect.MinMaxRect(-2f, -2f, 2f, 2f),
+                _ => new ThemeVisualStyle(Color.white, Color.gray, null),
+                go => Object.DestroyImmediate(go));
+            var nearBrick = service.CreateBrick(Vector2.zero, definition, 0, 0, default);
+            var secondBrick = service.CreateBrick(new Vector2(0.8f, 0f), definition, 0, 1, default);
+            var farBrick = service.CreateBrick(new Vector2(3f, 0f), definition, 0, 2, default);
+            var nearStart = (Vector2)nearBrick.transform.position;
+            var secondStart = (Vector2)secondBrick.transform.position;
+            var farStart = (Vector2)farBrick.transform.position;
+            var spec = new BreakoutBrickquakeSpec(0.75f, 0.12f, 0.12f, 1, 10f, 0.5f);
+
+            var nudgedCount = service.ApplyBrickquake(Vector2.zero, spec, (min, _) => min);
+
+            Assert.That(nudgedCount, Is.EqualTo(1));
+            Assert.That(((Vector2)nearBrick.transform.position - nearStart).magnitude, Is.GreaterThan(0.01f));
+            Assert.That((Vector2)secondBrick.transform.position, Is.EqualTo(secondStart));
+            Assert.That((Vector2)farBrick.transform.position, Is.EqualTo(farStart));
+        }
+        finally
+        {
+            Object.DestroyImmediate(root);
+            Object.DestroyImmediate(definition);
+        }
     }
 
     [Test]

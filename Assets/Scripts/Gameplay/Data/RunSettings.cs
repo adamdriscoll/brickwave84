@@ -71,6 +71,7 @@ namespace GetBricked.Gameplay.Data
         GravitySwap = 35,
         VhsTear = 36,
         CapsuleBlackout = 37,
+        Brickquake = 38,
     }
 
     public sealed class RunSettings
@@ -264,6 +265,7 @@ namespace GetBricked.Gameplay.Data
             LevelGlitchSelection.GravitySwap => "Gravity Swap Armed",
             LevelGlitchSelection.VhsTear => "VHS Tear Armed",
             LevelGlitchSelection.CapsuleBlackout => "Capsule Blackout Armed",
+            LevelGlitchSelection.Brickquake => "Brickquake Armed",
             _ => "Clean Walls",
         };
 
@@ -274,7 +276,7 @@ namespace GetBricked.Gameplay.Data
             var normalized = (LevelGlitchSelection)Mathf.Clamp(
                     (int)levelGlitchSelection,
                     (int)LevelGlitchSelection.Off,
-                    (int)LevelGlitchSelection.CapsuleBlackout);
+                    (int)LevelGlitchSelection.Brickquake);
 
             if (!levelGlitchesEnabled && normalized == LevelGlitchSelection.Random)
             {

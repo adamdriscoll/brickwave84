@@ -44,6 +44,7 @@ namespace GetBricked.Gameplay
         GravitySwap = 34,
         VhsTear = 35,
         CapsuleBlackout = 36,
+        Brickquake = 37,
     }
 
     internal readonly struct BreakoutLevelGlitchDefinition
@@ -560,6 +561,37 @@ namespace GetBricked.Gameplay
         public int ClusterRadius { get; }
     }
 
+    internal readonly struct BreakoutBrickquakeSpec
+    {
+        public BreakoutBrickquakeSpec(
+            float radius,
+            float minimumOffset,
+            float maximumOffset,
+            int maxAffectedBricks,
+            float heavySpeedThreshold,
+            float cooldownSeconds)
+        {
+            Radius = Mathf.Clamp(radius, 0.75f, 3.2f);
+            MinimumOffset = Mathf.Clamp(minimumOffset, 0.03f, 0.4f);
+            MaximumOffset = Mathf.Clamp(maximumOffset, MinimumOffset, 0.52f);
+            MaxAffectedBricks = Mathf.Clamp(maxAffectedBricks, 2, 12);
+            HeavySpeedThreshold = Mathf.Clamp(heavySpeedThreshold, 7f, 18f);
+            CooldownSeconds = Mathf.Clamp(cooldownSeconds, 0.08f, 2.2f);
+        }
+
+        public float Radius { get; }
+
+        public float MinimumOffset { get; }
+
+        public float MaximumOffset { get; }
+
+        public int MaxAffectedBricks { get; }
+
+        public float HeavySpeedThreshold { get; }
+
+        public float CooldownSeconds { get; }
+    }
+
     internal readonly struct BreakoutSpeedStepsSpec
     {
         public BreakoutSpeedStepsSpec(float stepMultiplierIncrease, float maximumMultiplier)
@@ -757,7 +789,8 @@ namespace GetBricked.Gameplay
             BreakoutJammedRailsSpec jammedRails = default,
             BreakoutStaticJackpotSpec staticJackpot = default,
             BreakoutVhsTearSpec vhsTear = default,
-            BreakoutCapsuleBlackoutSpec capsuleBlackout = default)
+            BreakoutCapsuleBlackoutSpec capsuleBlackout = default,
+            BreakoutBrickquakeSpec brickquake = default)
         {
             GlitchType = glitchType;
             Rarity = BreakoutRarityRules.Clamp(rarity);
@@ -793,6 +826,7 @@ namespace GetBricked.Gameplay
             StaticJackpot = staticJackpot;
             VhsTear = vhsTear;
             CapsuleBlackout = capsuleBlackout;
+            Brickquake = brickquake;
             ActiveGlitchTypes = activeGlitchTypes != null && activeGlitchTypes.Length > 0
                 ? activeGlitchTypes
                 : glitchType != BreakoutLevelGlitchType.None
@@ -868,6 +902,8 @@ namespace GetBricked.Gameplay
 
         public BreakoutCapsuleBlackoutSpec CapsuleBlackout { get; }
 
+        public BreakoutBrickquakeSpec Brickquake { get; }
+
         public BreakoutLevelGlitchType[] ActiveGlitchTypes { get; }
 
         public bool IsActive => ActiveGlitchTypes.Length > 0;
@@ -923,6 +959,7 @@ namespace GetBricked.Gameplay
         public const int GravitySwapLadderUnlockIntensity = 34;
         public const int VhsTearLadderUnlockIntensity = 35;
         public const int CapsuleBlackoutLadderUnlockIntensity = 36;
+        public const int BrickquakeLadderUnlockIntensity = 37;
 
         private const float WarpGateScoreMultiplier = 1.35f;
         private const float TurboRailScoreMultiplier = 1.25f;
@@ -960,6 +997,7 @@ namespace GetBricked.Gameplay
         private const float GravitySwapScoreMultiplier = 1.51f;
         private const float VhsTearScoreMultiplier = 1.52f;
         private const float CapsuleBlackoutScoreMultiplier = 1.38f;
+        private const float BrickquakeScoreMultiplier = 1.53f;
 
         private static readonly BreakoutLevelGlitchDefinition[] GlitchDefinitions =
         {
@@ -1143,6 +1181,11 @@ namespace GetBricked.Gameplay
                 LevelGlitchSelection.CapsuleBlackout,
                 BreakoutContentRarity.Epic,
                 CapsuleBlackoutLadderUnlockIntensity),
+            new BreakoutLevelGlitchDefinition(
+                BreakoutLevelGlitchType.Brickquake,
+                LevelGlitchSelection.Brickquake,
+                BreakoutContentRarity.Epic,
+                BrickquakeLadderUnlockIntensity),
         };
 
         public static BreakoutLevelGlitchPlan BuildPlan(
@@ -1369,6 +1412,11 @@ namespace GetBricked.Gameplay
                 return BuildCapsuleBlackoutPlan(definition.Rarity);
             }
 
+            if (definition.GlitchType == BreakoutLevelGlitchType.Brickquake)
+            {
+                return BuildBrickquakePlan(random, definition.Rarity);
+            }
+
             return BuildWarpGatePlan(random, definition.Rarity);
         }
 
@@ -1495,6 +1543,7 @@ namespace GetBricked.Gameplay
             var staticJackpot = default(BreakoutStaticJackpotSpec);
             var vhsTear = default(BreakoutVhsTearSpec);
             var capsuleBlackout = default(BreakoutCapsuleBlackoutSpec);
+            var brickquake = default(BreakoutBrickquakeSpec);
 
             for (var index = 0; index < definitions.Count; index++)
             {
@@ -1660,6 +1709,11 @@ namespace GetBricked.Gameplay
                 {
                     capsuleBlackout = plan.CapsuleBlackout;
                 }
+
+                if (plan.HasGlitch(BreakoutLevelGlitchType.Brickquake))
+                {
+                    brickquake = plan.Brickquake;
+                }
             }
 
             return new BreakoutLevelGlitchPlan(
@@ -1697,7 +1751,8 @@ namespace GetBricked.Gameplay
                 jammedRails,
                 staticJackpot,
                 vhsTear,
-                capsuleBlackout);
+                capsuleBlackout,
+                brickquake);
         }
 
         private static void MarkGlitchSelectionExclusions(
@@ -1972,6 +2027,20 @@ namespace GetBricked.Gameplay
                 Array.Empty<BreakoutWarpGateSpec>(),
                 default,
                 capsuleBlackout: new BreakoutCapsuleBlackoutSpec(2.4f, 1.45f, 0.03f));
+        }
+
+        private static BreakoutLevelGlitchPlan BuildBrickquakePlan(DeterministicRandomService random, BreakoutContentRarity rarity)
+        {
+            var brickquake = BuildBrickquake(random);
+            return new BreakoutLevelGlitchPlan(
+                BreakoutLevelGlitchType.Brickquake,
+                rarity,
+                "Brickquake",
+                $"Brickquake x{BrickquakeScoreMultiplier:0.00}",
+                BrickquakeScoreMultiplier,
+                Array.Empty<BreakoutWarpGateSpec>(),
+                default,
+                brickquake: brickquake);
         }
 
         private static BreakoutLevelGlitchPlan BuildStaticWallPlan(DeterministicRandomService random, BreakoutContentRarity rarity)
@@ -2593,6 +2662,17 @@ namespace GetBricked.Gameplay
                 random.Range(0.35f, 0.65f));
         }
 
+        private static BreakoutBrickquakeSpec BuildBrickquake(DeterministicRandomService random)
+        {
+            return new BreakoutBrickquakeSpec(
+                random.Range(1.85f, 2.45f),
+                random.Range(0.1f, 0.16f),
+                random.Range(0.26f, 0.36f),
+                random.Range(4, 8),
+                random.Range(9.8f, 11.8f),
+                random.Range(0.42f, 0.64f));
+        }
+
         private static BreakoutWarpGateSpec[] BuildRogueGate(DeterministicRandomService random)
         {
             return new[]
@@ -2762,7 +2842,8 @@ namespace GetBricked.Gameplay
                 || selection == LevelGlitchSelection.JammedRails
                 || selection == LevelGlitchSelection.GravitySwap
                 || selection == LevelGlitchSelection.VhsTear
-                || selection == LevelGlitchSelection.CapsuleBlackout;
+                || selection == LevelGlitchSelection.CapsuleBlackout
+                || selection == LevelGlitchSelection.Brickquake;
         }
 
         private static BreakoutWarpGateWall ResolveGateWall(DeterministicRandomService random, int index)
