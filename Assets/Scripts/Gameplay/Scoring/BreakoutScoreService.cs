@@ -28,11 +28,12 @@ namespace GetBricked.Gameplay
 
     internal readonly struct BrickScoreAward
     {
-        public BrickScoreAward(int basePoints, int bonusPoints, string bonusLabel)
+        public BrickScoreAward(int basePoints, int bonusPoints, string bonusLabel, int slamChainCount = 0)
         {
             BasePoints = basePoints;
             BonusPoints = bonusPoints;
             BonusLabel = bonusLabel ?? string.Empty;
+            SlamChainCount = Mathf.Max(0, slamChainCount);
         }
 
         public int BasePoints { get; }
@@ -42,6 +43,8 @@ namespace GetBricked.Gameplay
         public int TotalPoints => BasePoints + BonusPoints;
 
         public string BonusLabel { get; }
+
+        public int SlamChainCount { get; }
     }
 
     internal sealed class BreakoutScoreService : IBreakoutScoreService
@@ -74,9 +77,10 @@ namespace GetBricked.Gameplay
                 ? scoringBall.CurrentSpeed
                 : context.DisplayedBallSpeed;
             var awardedBasePoints = Mathf.Max(1, Mathf.RoundToInt(baseScore * GetScoreMultiplierForSpeed(scoringSpeed, context.BaseBallSpeed)));
+            var projectedSlamChainCount = GetProjectedSlamChainCount(context.CurrentTimeSeconds);
             var comboBonuses = new List<ScoreComboBonus>(3);
             TryAddScoreMultiplierBonus(awardedBasePoints, context.ScoreMultiplier, comboBonuses);
-            TryAddSlamChainBonus(awardedBasePoints, context.CurrentTimeSeconds, comboBonuses);
+            TryAddSlamChainBonus(awardedBasePoints, projectedSlamChainCount, comboBonuses);
             TryAddBankShotBonus(awardedBasePoints, scoringBall, destructionCause, comboBonuses);
             TryAddPartySplitBonus(awardedBasePoints, scoringBall, context, comboBonuses);
 
@@ -91,7 +95,7 @@ namespace GetBricked.Gameplay
                     : $"{bonusLabels} + {comboBonuses[index].Label}";
             }
 
-            return new BrickScoreAward(awardedBasePoints, bonusPoints, bonusLabels);
+            return new BrickScoreAward(awardedBasePoints, bonusPoints, bonusLabels, projectedSlamChainCount);
         }
 
         public float GetScoreMultiplierForSpeed(float speed, float baseBallSpeed)
@@ -210,10 +214,8 @@ namespace GetBricked.Gameplay
             comboBonuses.Add(new ScoreComboBonus("SCORE SURGE", bonusPoints));
         }
 
-        private void TryAddSlamChainBonus(int awardedBasePoints, float currentTimeSeconds, List<ScoreComboBonus> comboBonuses)
+        private static void TryAddSlamChainBonus(int awardedBasePoints, int projectedChainCount, List<ScoreComboBonus> comboBonuses)
         {
-            var projectedChainCount = GetProjectedSlamChainCount(currentTimeSeconds);
-
             if (projectedChainCount < 2)
             {
                 return;

@@ -106,6 +106,7 @@ public sealed class BreakoutProgressionPageTests
         var brickquake = view.Cards.First(card => card.Title == "Brickquake");
         var turboTax = view.Cards.First(card => card.Title == "Turbo Tax");
         var warpJam = view.Cards.First(card => card.Title == "Warp Jam");
+        var neonFlood = view.Cards.First(card => card.Title == "Neon Flood");
 
         Assert.That(view.LadderLines, Has.Some.Contains("Heat 06"));
         Assert.That(view.LadderLines.Any(line => line.Contains("Paddle")), Is.False);
@@ -135,6 +136,7 @@ public sealed class BreakoutProgressionPageTests
         Assert.That(brickquake.UnlockHint, Does.Contain("Heat 37"));
         Assert.That(turboTax.UnlockHint, Does.Contain("Heat 38"));
         Assert.That(warpJam.UnlockHint, Does.Contain("Heat 39"));
+        Assert.That(neonFlood.UnlockHint, Does.Contain("Heat 40"));
     }
 
     [Test]
@@ -196,6 +198,7 @@ public sealed class BreakoutProgressionPageTests
         var brickquake = view.Cards.First(card => card.Title == "Brickquake");
         var turboTax = view.Cards.First(card => card.Title == "Turbo Tax");
         var warpJam = view.Cards.First(card => card.Title == "Warp Jam");
+        var neonFlood = view.Cards.First(card => card.Title == "Neon Flood");
 
         Assert.That(turboRail.UnlockHint, Does.Contain("Heat 01"));
         Assert.That(mirrorGrid.UnlockHint, Does.Contain("Heat 02"));
@@ -286,6 +289,9 @@ public sealed class BreakoutProgressionPageTests
         Assert.That(warpJam.UnlockHint, Does.Contain("Heat 39"));
         Assert.That(warpJam.Description, Does.Contain("wrong linked exit"));
         Assert.That(warpJam.Family, Does.Contain("Epic"));
+        Assert.That(neonFlood.UnlockHint, Does.Contain("Heat 40"));
+        Assert.That(neonFlood.Description, Does.Contain("combo spikes"));
+        Assert.That(neonFlood.Family, Does.Contain("Epic"));
         Assert.That(solarShot.UnlockHint, Does.Contain("Heat 36"));
         Assert.That(solarShot.Description, Does.Contain("burns away"));
         Assert.That(wrapRail.UnlockHint, Does.Contain("Heat 37"));

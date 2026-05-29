@@ -172,6 +172,7 @@ public sealed class BreakoutRogueRunTests
             LevelGlitchSelection.MagnetStorm,
             LevelGlitchSelection.MirrorGrid,
             LevelGlitchSelection.MirrorServe,
+            LevelGlitchSelection.NeonFlood,
             LevelGlitchSelection.PickupPinball,
             LevelGlitchSelection.PrismLanes,
             LevelGlitchSelection.PrismShuffle,

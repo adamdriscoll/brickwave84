@@ -47,6 +47,7 @@ namespace GetBricked.Gameplay
         Brickquake = 37,
         TurboTax = 38,
         WarpJam = 39,
+        NeonFlood = 40,
     }
 
     internal readonly struct BreakoutLevelGlitchDefinition
@@ -627,6 +628,42 @@ namespace GetBricked.Gameplay
         public float SlowHazardDropChance { get; }
     }
 
+    internal readonly struct BreakoutNeonFloodSpec
+    {
+        public BreakoutNeonFloodSpec(
+            int slamChainThreshold,
+            float cooldownSeconds,
+            float pickupOffset,
+            float helpfulFallSpeedMultiplier,
+            float harmfulFallSpeedMultiplier)
+        {
+            SlamChainThreshold = Mathf.Clamp(slamChainThreshold, 2, 12);
+            CooldownSeconds = Mathf.Clamp(cooldownSeconds, 0.1f, 8f);
+            PickupOffset = Mathf.Clamp(pickupOffset, 0.12f, 1.2f);
+            HelpfulFallSpeedMultiplier = Mathf.Clamp(helpfulFallSpeedMultiplier, 0.35f, 1.5f);
+            HarmfulFallSpeedMultiplier = Mathf.Clamp(harmfulFallSpeedMultiplier, 0.35f, 1.5f);
+        }
+
+        public int SlamChainThreshold { get; }
+
+        public float CooldownSeconds { get; }
+
+        public float PickupOffset { get; }
+
+        public float HelpfulFallSpeedMultiplier { get; }
+
+        public float HarmfulFallSpeedMultiplier { get; }
+    }
+
+    internal static class BreakoutNeonFloodCalculator
+    {
+        public static bool ShouldTrigger(int slamChainCount, float currentTimeSeconds, float lastTriggerTimeSeconds, BreakoutNeonFloodSpec spec)
+        {
+            return slamChainCount >= spec.SlamChainThreshold
+                && currentTimeSeconds - lastTriggerTimeSeconds >= spec.CooldownSeconds;
+        }
+    }
+
     internal static class BreakoutTurboTaxCalculator
     {
         public static int CalculateHighSpeedBonusPoints(int awardedBasePoints, float scoringSpeed, float baseBallSpeed, BreakoutTurboTaxSpec spec)
@@ -855,7 +892,8 @@ namespace GetBricked.Gameplay
             BreakoutCapsuleBlackoutSpec capsuleBlackout = default,
             BreakoutBrickquakeSpec brickquake = default,
             BreakoutTurboTaxSpec turboTax = default,
-            BreakoutWarpJamSpec warpJam = default)
+            BreakoutWarpJamSpec warpJam = default,
+            BreakoutNeonFloodSpec neonFlood = default)
         {
             GlitchType = glitchType;
             Rarity = BreakoutRarityRules.Clamp(rarity);
@@ -894,6 +932,7 @@ namespace GetBricked.Gameplay
             Brickquake = brickquake;
             TurboTax = turboTax;
             WarpJam = warpJam;
+            NeonFlood = neonFlood;
             ActiveGlitchTypes = activeGlitchTypes != null && activeGlitchTypes.Length > 0
                 ? activeGlitchTypes
                 : glitchType != BreakoutLevelGlitchType.None
@@ -975,6 +1014,8 @@ namespace GetBricked.Gameplay
 
         public BreakoutWarpJamSpec WarpJam { get; }
 
+        public BreakoutNeonFloodSpec NeonFlood { get; }
+
         public BreakoutLevelGlitchType[] ActiveGlitchTypes { get; }
 
         public bool IsActive => ActiveGlitchTypes.Length > 0;
@@ -1033,6 +1074,7 @@ namespace GetBricked.Gameplay
         public const int BrickquakeLadderUnlockIntensity = 37;
         public const int TurboTaxLadderUnlockIntensity = 38;
         public const int WarpJamLadderUnlockIntensity = 39;
+        public const int NeonFloodLadderUnlockIntensity = 40;
 
         private const float WarpGateScoreMultiplier = 1.35f;
         private const float TurboRailScoreMultiplier = 1.25f;
@@ -1074,6 +1116,7 @@ namespace GetBricked.Gameplay
         private const float TurboTaxHighSpeedScoreMultiplier = 1.42f;
         private const float WarpJamScoreMultiplier = 1.54f;
         private const float WarpJamWrongExitChance = 0.36f;
+        private const float NeonFloodScoreMultiplier = 1.41f;
 
         private static readonly BreakoutLevelGlitchDefinition[] GlitchDefinitions =
         {
@@ -1272,6 +1315,11 @@ namespace GetBricked.Gameplay
                 LevelGlitchSelection.WarpJam,
                 BreakoutContentRarity.Epic,
                 WarpJamLadderUnlockIntensity),
+            new BreakoutLevelGlitchDefinition(
+                BreakoutLevelGlitchType.NeonFlood,
+                LevelGlitchSelection.NeonFlood,
+                BreakoutContentRarity.Epic,
+                NeonFloodLadderUnlockIntensity),
         };
 
         public static BreakoutLevelGlitchPlan BuildPlan(
@@ -1513,6 +1561,11 @@ namespace GetBricked.Gameplay
                 return BuildWarpJamPlan(random, definition.Rarity);
             }
 
+            if (definition.GlitchType == BreakoutLevelGlitchType.NeonFlood)
+            {
+                return BuildNeonFloodPlan(definition.Rarity);
+            }
+
             return BuildWarpGatePlan(random, definition.Rarity);
         }
 
@@ -1642,6 +1695,7 @@ namespace GetBricked.Gameplay
             var brickquake = default(BreakoutBrickquakeSpec);
             var turboTax = default(BreakoutTurboTaxSpec);
             var warpJam = default(BreakoutWarpJamSpec);
+            var neonFlood = default(BreakoutNeonFloodSpec);
 
             for (var index = 0; index < definitions.Count; index++)
             {
@@ -1823,6 +1877,11 @@ namespace GetBricked.Gameplay
                     warpGates = plan.WarpGates;
                     warpJam = plan.WarpJam;
                 }
+
+                if (plan.HasGlitch(BreakoutLevelGlitchType.NeonFlood))
+                {
+                    neonFlood = plan.NeonFlood;
+                }
             }
 
             return new BreakoutLevelGlitchPlan(
@@ -1863,7 +1922,8 @@ namespace GetBricked.Gameplay
                 capsuleBlackout,
                 brickquake,
                 turboTax,
-                warpJam);
+                warpJam,
+                neonFlood);
         }
 
         private static void MarkGlitchSelectionExclusions(
@@ -1960,6 +2020,20 @@ namespace GetBricked.Gameplay
                 BuildWarpGates(random, gateCount),
                 default,
                 warpJam: new BreakoutWarpJamSpec(WarpJamWrongExitChance));
+        }
+
+        private static BreakoutLevelGlitchPlan BuildNeonFloodPlan(BreakoutContentRarity rarity)
+        {
+            var neonFlood = new BreakoutNeonFloodSpec(4, 1.65f, 0.42f, 0.88f, 1.16f);
+            return new BreakoutLevelGlitchPlan(
+                BreakoutLevelGlitchType.NeonFlood,
+                rarity,
+                "Neon Flood",
+                $"Neon Flood {neonFlood.SlamChainThreshold}+ x{NeonFloodScoreMultiplier:0.00}",
+                NeonFloodScoreMultiplier,
+                Array.Empty<BreakoutWarpGateSpec>(),
+                default,
+                neonFlood: neonFlood);
         }
 
         private static BreakoutLevelGlitchPlan BuildTurboRailPlan(DeterministicRandomService random, BreakoutContentRarity rarity)
@@ -2991,7 +3065,8 @@ namespace GetBricked.Gameplay
                 || selection == LevelGlitchSelection.CapsuleBlackout
                 || selection == LevelGlitchSelection.Brickquake
                 || selection == LevelGlitchSelection.TurboTax
-                || selection == LevelGlitchSelection.WarpJam;
+                || selection == LevelGlitchSelection.WarpJam
+                || selection == LevelGlitchSelection.NeonFlood;
         }
 
         private static BreakoutWarpGateWall ResolveGateWall(DeterministicRandomService random, int index)

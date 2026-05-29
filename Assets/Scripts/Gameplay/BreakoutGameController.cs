@@ -390,6 +390,7 @@ namespace GetBricked.Gameplay
         private BreakoutRowRewriteSpec activeRowRewriteSpec;
         private float scoreLeakGraceTimer;
         private float scoreLeakAccumulator;
+        private float lastNeonFloodTriggerTime = float.NegativeInfinity;
         private int cassetteSkipPaddleHits;
         private int currentLevelRowCount;
         private int currentLevelColumnCount;
@@ -713,6 +714,7 @@ namespace GetBricked.Gameplay
             TryTriggerPrismPop(scoringBall, explosionCenter, destructionCause);
             TrySpawnPickup(brick);
             TrySpawnTurboTaxHazardPickup(brick, scoringBall, destructionCause);
+            TryTriggerNeonFlood(brick, scoreAward.SlamChainCount);
 
             if (brick.CountsTowardLevelCompletion)
             {
@@ -3980,6 +3982,11 @@ namespace GetBricked.Gameplay
                 powerUpService?.ShowStatusBanner("TOKEN STORM!", new Color(1f, 0.87f, 0.36f, 1f), 2.2f);
             }
 
+            if (activeLevelGlitchPlan.HasGlitch(BreakoutLevelGlitchType.NeonFlood))
+            {
+                powerUpService?.ShowStatusBanner("NEON FLOOD!", new Color(0.03f, 0.93f, 0.98f, 1f), 2.2f);
+            }
+
             if (activeLevelGlitchPlan.HasGlitch(BreakoutLevelGlitchType.CapsuleRoulette))
             {
                 powerUpService?.ShowStatusBanner("CAPSULE ROULETTE!", new Color(1f, 0.87f, 0.36f, 1f), 2.2f);
@@ -4150,6 +4157,7 @@ namespace GetBricked.Gameplay
             activeRowRewriteSpec = default;
             scoreLeakGraceTimer = 0f;
             scoreLeakAccumulator = 0f;
+            lastNeonFloodTriggerTime = float.NegativeInfinity;
             laserRainStrikeTimer = 0f;
             nextBrickquakeTriggerTime = 0f;
             cassetteSkipPaddleHits = 0;
@@ -7443,6 +7451,7 @@ namespace GetBricked.Gameplay
                 LevelGlitchSelection.Brickquake => "Brickquake",
                 LevelGlitchSelection.TurboTax => "Turbo Tax",
                 LevelGlitchSelection.WarpJam => "Warp Jam",
+                LevelGlitchSelection.NeonFlood => "Neon Flood",
                 _ => "Off",
             };
         }
@@ -7706,6 +7715,157 @@ namespace GetBricked.Gameplay
             runStatsService?.RegisterDropDropped(spawnedPickup.Definition);
             audioService?.PlayPickupDropped();
             ApplyVisualEffectState();
+        }
+
+        private void TryTriggerNeonFlood(Brick brick, int slamChainCount)
+        {
+            if (brick == null
+                || powerUpService == null
+                || activeLevelGlitchPlan == null
+                || !activeLevelGlitchPlan.HasGlitch(BreakoutLevelGlitchType.NeonFlood)
+                || !BreakoutNeonFloodCalculator.ShouldTrigger(
+                    slamChainCount,
+                    Time.time,
+                    lastNeonFloodTriggerTime,
+                    activeLevelGlitchPlan.NeonFlood)
+                || !TryResolveNeonFloodDrop(isHelpful: true, out var helpfulDrop)
+                || !TryResolveNeonFloodDrop(isHelpful: false, out var harmfulDrop))
+            {
+                return;
+            }
+
+            var neonFlood = activeLevelGlitchPlan.NeonFlood;
+            var origin = (Vector2)brick.transform.position;
+            var helpfulFirst = NextGameplayRandomFloat(0f, 1f) < 0.5f;
+            var helpfulOffset = new Vector2(helpfulFirst ? -neonFlood.PickupOffset : neonFlood.PickupOffset, 0f);
+            var harmfulOffset = -helpfulOffset;
+            var baseFallSpeedMultiplier = GetEffectivePickupFallSpeedMultiplier();
+
+            var helpfulPickup = SpawnNeonFloodPickup(
+                origin + helpfulOffset,
+                helpfulDrop,
+                baseFallSpeedMultiplier * neonFlood.HelpfulFallSpeedMultiplier);
+            var harmfulPickup = SpawnNeonFloodPickup(
+                origin + harmfulOffset,
+                harmfulDrop,
+                baseFallSpeedMultiplier * neonFlood.HarmfulFallSpeedMultiplier);
+
+            if (helpfulPickup == null && harmfulPickup == null)
+            {
+                return;
+            }
+
+            lastNeonFloodTriggerTime = Time.time;
+            powerUpService.ShowStatusBanner("NEON FLOOD!", new Color(0.03f, 0.93f, 0.98f, 1f), 1.35f);
+            audioService?.PlayPickupDropped();
+            ApplyVisualEffectState();
+        }
+
+        private PowerUpPickup SpawnNeonFloodPickup(Vector2 position, PowerUpDefinition definition, float pickupFallSpeedMultiplier)
+        {
+            var pickup = powerUpService.SpawnForcedPickup(
+                position,
+                definition,
+                loadedPowerUpDefinitions,
+                activeRunSettings,
+                activeRunState,
+                NextGameplayRandomFloat,
+                pickupsRoot,
+                arenaBottom,
+                themeService,
+                this,
+                pickupFallSpeedMultiplier,
+                IsCapsuleRouletteActive());
+
+            if (pickup == null)
+            {
+                return null;
+            }
+
+            ApplyTokenStormFallSpeed(pickup);
+            ApplyDropTideWaveDelay(pickup);
+            ApplyPickupPinballMotion(pickup);
+            ApplyCapsuleBlackout(pickup);
+            runStatsService?.RegisterDropDropped(pickup.Definition);
+            return pickup;
+        }
+
+        private bool TryResolveNeonFloodDrop(bool isHelpful, out PowerUpDefinition drop)
+        {
+            drop = null;
+
+            if (TryResolveNeonFloodDrop(isHelpful, requireUnlocked: true, out drop))
+            {
+                return true;
+            }
+
+            return TryResolveNeonFloodDrop(isHelpful, requireUnlocked: false, out drop);
+        }
+
+        private bool TryResolveNeonFloodDrop(bool isHelpful, bool requireUnlocked, out PowerUpDefinition drop)
+        {
+            drop = null;
+
+            if (loadedPowerUpDefinitions.Count == 0)
+            {
+                return false;
+            }
+
+            var totalWeight = 0f;
+
+            for (var index = 0; index < loadedPowerUpDefinitions.Count; index++)
+            {
+                var definition = loadedPowerUpDefinitions[index];
+
+                if (!IsNeonFloodDropCandidate(definition, isHelpful, requireUnlocked))
+                {
+                    continue;
+                }
+
+                totalWeight += BreakoutRarityRules.GetDropWeightMultiplier(definition.Rarity);
+            }
+
+            if (totalWeight <= 0f)
+            {
+                return false;
+            }
+
+            var roll = NextGameplayRandomFloat(0f, totalWeight);
+
+            for (var index = 0; index < loadedPowerUpDefinitions.Count; index++)
+            {
+                var definition = loadedPowerUpDefinitions[index];
+
+                if (!IsNeonFloodDropCandidate(definition, isHelpful, requireUnlocked))
+                {
+                    continue;
+                }
+
+                roll -= BreakoutRarityRules.GetDropWeightMultiplier(definition.Rarity);
+
+                if (roll <= 0f)
+                {
+                    drop = definition;
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private bool IsNeonFloodDropCandidate(PowerUpDefinition definition, bool isHelpful, bool requireUnlocked)
+        {
+            if (definition == null
+                || definition.IsBeneficial != isHelpful
+                || definition.EffectType == PowerUpEffectType.RandomMixedDrop
+                || definition.EffectType == PowerUpEffectType.RandomHarmfulDrop)
+            {
+                return false;
+            }
+
+            return !requireUnlocked
+                || activeRunState == null
+                || activeRunState.IsDropUnlocked(definition);
         }
 
         private bool TryResolveTurboTaxHazardDrop(out PowerUpDefinition hazardDrop)

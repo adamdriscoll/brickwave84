@@ -927,6 +927,41 @@ public sealed class BreakoutLevelGlitchPlannerTests
     }
 
     [Test]
+    public void RogueGlitchHeatControlsWhenNeonFloodCanUnlock()
+    {
+        var lockedSettings = CreateRogueSettings(
+            rogueIntensity: BreakoutLevelGlitchPlanner.NeonFloodLadderUnlockIntensity,
+            levelGlitchSelection: LevelGlitchSelection.NeonFlood);
+        var unlockedSettings = CreateRogueSettings(
+            rogueIntensity: BreakoutLevelGlitchPlanner.NeonFloodLadderUnlockIntensity + 1,
+            levelGlitchSelection: LevelGlitchSelection.NeonFlood);
+
+        var lockedPlan = BreakoutLevelGlitchPlanner.BuildPlan(new DeterministicRandomService(7), lockedSettings, levelIndex: 9);
+        var unlockedPlan = BreakoutLevelGlitchPlanner.BuildPlan(new DeterministicRandomService(7), unlockedSettings, levelIndex: 9);
+
+        Assert.That(lockedPlan.IsActive, Is.False);
+        Assert.That(unlockedPlan.IsActive, Is.True);
+        Assert.That(unlockedPlan.GlitchType, Is.EqualTo(BreakoutLevelGlitchType.NeonFlood));
+        Assert.That(unlockedPlan.DisplayName, Is.EqualTo("Neon Flood"));
+        Assert.That(unlockedPlan.Rarity, Is.EqualTo(BreakoutContentRarity.Epic));
+        Assert.That(unlockedPlan.ScoreMultiplier, Is.EqualTo(1.41f).Within(0.0001f));
+        Assert.That(unlockedPlan.NeonFlood.SlamChainThreshold, Is.EqualTo(4));
+        Assert.That(unlockedPlan.NeonFlood.CooldownSeconds, Is.EqualTo(1.65f).Within(0.0001f));
+        Assert.That(unlockedPlan.NeonFlood.HelpfulFallSpeedMultiplier, Is.LessThan(1f));
+        Assert.That(unlockedPlan.NeonFlood.HarmfulFallSpeedMultiplier, Is.GreaterThan(1f));
+    }
+
+    [Test]
+    public void NeonFloodCalculatorRequiresComboSpikeAndCooldown()
+    {
+        var spec = new BreakoutNeonFloodSpec(4, 1.65f, 0.42f, 0.88f, 1.16f);
+
+        Assert.That(BreakoutNeonFloodCalculator.ShouldTrigger(3, 10f, 0f, spec), Is.False);
+        Assert.That(BreakoutNeonFloodCalculator.ShouldTrigger(4, 10f, 9f, spec), Is.False);
+        Assert.That(BreakoutNeonFloodCalculator.ShouldTrigger(4, 10f, 8f, spec), Is.True);
+    }
+
+    [Test]
     public void WarpJamRoutingCanOverrideLinkedExit()
     {
         var jammedIndex = BreakoutWarpGateController.ResolveWarpJamPortalIndex(

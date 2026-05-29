@@ -386,6 +386,13 @@ namespace GetBricked.Gameplay
                 BreakoutLevelGlitchPlanner.WarpJamLadderUnlockIntensity,
                 highestCompletedIntensity,
                 HazardAccent));
+            cards.Add(BuildUnlockableGlitchCard(
+                "Neon Flood",
+                "Pickup Epic Glitch",
+                "Helpful and harmful capsules spawn together after combo spikes.",
+                BreakoutLevelGlitchPlanner.NeonFloodLadderUnlockIntensity,
+                highestCompletedIntensity,
+                ControlAccent));
             AppendPlaceholderCards(cards, PlaceholderDrops, highestCompletedIntensity);
             AppendPlaceholderCards(cards, PlaceholderGlitches, highestCompletedIntensity);
             cards.Add(BuildHiddenSlotCard("Future Drop Slot", "Drop", "Hidden", "Future drop signal pending."));
@@ -889,6 +896,11 @@ namespace GetBricked.Gameplay
             }
 
             if (completedIntensity >= BreakoutLevelGlitchPlanner.WarpJamLadderUnlockIntensity)
+            {
+                count++;
+            }
+
+            if (completedIntensity >= BreakoutLevelGlitchPlanner.NeonFloodLadderUnlockIntensity)
             {
                 count++;
             }

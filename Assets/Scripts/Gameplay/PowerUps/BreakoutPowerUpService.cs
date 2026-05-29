@@ -720,6 +720,82 @@ namespace GetBricked.Gameplay
             return pickup;
         }
 
+        public PowerUpPickup SpawnForcedPickup(
+            Vector2 position,
+            PowerUpDefinition forcedDropDefinition,
+            IReadOnlyList<PowerUpDefinition> forcedDropCandidatePool,
+            RunSettings activeRunSettings,
+            BreakoutRunState activeRunState,
+            System.Func<float, float, float> nextGameplayRandomFloat,
+            Transform pickupsRoot,
+            float arenaBottom,
+            BreakoutThemeService themeService,
+            BreakoutGameController controller,
+            float pickupFallSpeedMultiplier = 1f,
+            bool enableCapsuleRoulette = false)
+        {
+            if (forcedDropDefinition == null)
+            {
+                return null;
+            }
+
+            var dropTable = BuildForcedDropCandidateTable(forcedDropDefinition, forcedDropCandidatePool, activeRunSettings);
+            var selectedPowerUp = forcedDropDefinition;
+            var visualPowerUp = selectedPowerUp;
+            var usesHelpfulVisualDisguise = false;
+            PowerUpDefinition primaryPayloadDefinition = null;
+            PowerUpDefinition secondaryPayloadDefinition = null;
+
+            if (selectedPowerUp.EffectType == PowerUpEffectType.RandomHarmfulDrop
+                && !TryResolveRandomHarmfulDrop(
+                    selectedPowerUp,
+                    dropTable,
+                    activeRunSettings,
+                    activeRunState,
+                    nextGameplayRandomFloat,
+                    true,
+                    out selectedPowerUp,
+                    out visualPowerUp,
+                    out usesHelpfulVisualDisguise))
+            {
+                return null;
+            }
+
+            if (selectedPowerUp.EffectType == PowerUpEffectType.RandomMixedDrop
+                && !TryResolveRandomMixedDrop(
+                    selectedPowerUp,
+                    dropTable,
+                    activeRunSettings,
+                    activeRunState,
+                    nextGameplayRandomFloat,
+                    true,
+                    out primaryPayloadDefinition,
+                    out secondaryPayloadDefinition))
+            {
+                return null;
+            }
+
+            var pickup = CreatePickup(
+                position,
+                selectedPowerUp,
+                visualPowerUp,
+                usesHelpfulVisualDisguise,
+                primaryPayloadDefinition,
+                secondaryPayloadDefinition,
+                pickupsRoot,
+                arenaBottom,
+                themeService,
+                controller,
+                pickupFallSpeedMultiplier);
+
+            if (enableCapsuleRoulette)
+            {
+                TryAddCapsuleRouletteState(pickup, dropTable, activeRunSettings, activeRunState);
+            }
+
+            return pickup;
+        }
+
         private static PowerUpDefinition SelectDropFromTable(
             BreakoutPowerUpDropCandidate[] dropTable,
             RunSettings activeRunSettings,

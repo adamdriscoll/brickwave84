@@ -1397,6 +1397,50 @@ public sealed class BreakoutGameControllerPowerUpTests
     }
 
     [Test]
+    public void NeonFloodSpawnsHelpfulAndHarmfulCapsulesAfterSlamChainSpike()
+    {
+        var controller = CreateControllerHarness(out var paddle);
+        var scoringBall = CreateBallHarness(controller, paddle);
+        var bricks = GetPrivateField<List<Brick>>(controller, "bricks");
+        var balls = GetPrivateField<List<BallController>>(controller, "activeBalls");
+        var loadedPowerUps = GetPrivateField<List<PowerUpDefinition>>(controller, "loadedPowerUpDefinitions");
+        var pickupsRoot = new GameObject("Neon Flood Pickups").transform;
+        runtimeObjects.Add(pickupsRoot.gameObject);
+        var helpfulDrop = CreatePowerUp("Wide Paddle", PowerUpEffectType.PaddleWidthMultiplier, true, 10f, 1.2f);
+        var harmfulDrop = CreatePowerUp("Narrow Paddle", PowerUpEffectType.PaddleWidthMultiplier, false, 10f, 0.7f);
+        var plan = new BreakoutLevelGlitchPlan(
+            BreakoutLevelGlitchType.NeonFlood,
+            BreakoutContentRarity.Epic,
+            "Neon Flood",
+            "Neon Flood 4+ x1.41",
+            1.41f,
+            Array.Empty<BreakoutWarpGateSpec>(),
+            default,
+            neonFlood: new BreakoutNeonFloodSpec(4, 1.65f, 0.42f, 0.88f, 1.16f));
+
+        balls.Add(scoringBall);
+        loadedPowerUps.Add(helpfulDrop);
+        loadedPowerUps.Add(harmfulDrop);
+        SetPrivateField(controller, "pickupsRoot", pickupsRoot);
+        SetPrivateField(controller, "gameplayRandom", new DeterministicRandomService(4));
+        SetPrivateField(controller, "activeLevelGlitchPlan", plan);
+
+        for (var index = 0; index < 4; index++)
+        {
+            var brick = CreateBrickHarness(controller, $"Flood Brick {index}", 100, new Vector2(index, 1f));
+            bricks.Add(brick);
+            controller.HandleBrickDestroyed(brick, scoringBall, BrickDestructionCause.Impact);
+        }
+
+        var powerUpService = GetPrivateField<object>(controller, "powerUpService");
+        var activePickups = GetPropertyValue<List<PowerUpPickup>>(powerUpService, "ActivePickups");
+
+        Assert.That(activePickups.Count, Is.EqualTo(2));
+        Assert.That(activePickups.Exists(pickup => pickup.Definition == helpfulDrop), Is.True);
+        Assert.That(activePickups.Exists(pickup => pickup.Definition == harmfulDrop), Is.True);
+    }
+
+    [Test]
     public void RicochetKillsAwardBankShotBonusAndResetBallChain()
     {
         var controller = CreateControllerHarness(out var paddle);

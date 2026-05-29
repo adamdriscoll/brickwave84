@@ -55,6 +55,7 @@ public sealed class BreakoutScoreServiceTests
         Assert.That(award.BasePoints, Is.EqualTo(100));
         Assert.That(award.BonusPoints, Is.EqualTo(20));
         Assert.That(award.BonusLabel, Is.EqualTo("SLAM CHAIN"));
+        Assert.That(award.SlamChainCount, Is.EqualTo(2));
     }
 
     [Test]
