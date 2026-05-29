@@ -183,6 +183,7 @@ public sealed class BreakoutProgressionPageTests
         var cabinetJackpot = view.Cards.First(card => card.Title == "Cabinet Jackpot");
         var finalBreakthru = view.Cards.First(card => card.Title == "Final Breakthru");
         var staticJackpot = view.Cards.First(card => card.Title == "Static Jackpot");
+        var vhsTear = view.Cards.First(card => card.Title == "VHS Tear");
 
         Assert.That(turboRail.UnlockHint, Does.Contain("Heat 01"));
         Assert.That(mirrorGrid.UnlockHint, Does.Contain("Heat 02"));
@@ -258,6 +259,9 @@ public sealed class BreakoutProgressionPageTests
         Assert.That(staticJackpot.UnlockHint, Does.Contain("Heat 32"));
         Assert.That(staticJackpot.Description, Does.Contain("Bonus score zones"));
         Assert.That(staticJackpot.Family, Does.Contain("Epic"));
+        Assert.That(vhsTear.UnlockHint, Does.Contain("Heat 35"));
+        Assert.That(vhsTear.Description, Does.Contain("tear line deflects"));
+        Assert.That(vhsTear.Family, Does.Contain("Epic"));
         Assert.That(solarShot.UnlockHint, Does.Contain("Heat 36"));
         Assert.That(solarShot.Description, Does.Contain("burns away"));
         Assert.That(wrapRail.UnlockHint, Does.Contain("Heat 37"));

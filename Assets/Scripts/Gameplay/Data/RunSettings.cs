@@ -69,6 +69,7 @@ namespace GetBricked.Gameplay.Data
         StaticJackpot = 33,
         JammedRails = 34,
         GravitySwap = 35,
+        VhsTear = 36,
     }
 
     public sealed class RunSettings
@@ -260,6 +261,7 @@ namespace GetBricked.Gameplay.Data
             LevelGlitchSelection.StaticJackpot => "Static Jackpot Armed",
             LevelGlitchSelection.JammedRails => "Jammed Rails Armed",
             LevelGlitchSelection.GravitySwap => "Gravity Swap Armed",
+            LevelGlitchSelection.VhsTear => "VHS Tear Armed",
             _ => "Clean Walls",
         };
 
@@ -270,7 +272,7 @@ namespace GetBricked.Gameplay.Data
             var normalized = (LevelGlitchSelection)Mathf.Clamp(
                 (int)levelGlitchSelection,
                 (int)LevelGlitchSelection.Off,
-                (int)LevelGlitchSelection.GravitySwap);
+                (int)LevelGlitchSelection.VhsTear);
 
             if (!levelGlitchesEnabled && normalized == LevelGlitchSelection.Random)
             {

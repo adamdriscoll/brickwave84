@@ -78,6 +78,8 @@ namespace GetBricked.Gameplay
         private const float SplitHorizonLineThickness = 0.08f;
         private const float SplitHorizonGlowThickness = 0.34f;
         private const float SplitHorizonCooldownSeconds = 0.13f;
+        private const float VhsTearLineThickness = 0.12f;
+        private const float VhsTearTriggerThickness = 0.34f;
         private const float SwitchbackRailThickness = 0.22f;
         private const float SwitchbackRailBottomInset = 1.55f;
         private const float SwitchbackRailTopInset = 0.95f;
@@ -374,6 +376,7 @@ namespace GetBricked.Gameplay
         private GameObject activeSwitchbackRailField;
         private GameObject activeHotCornerField;
         private GameObject activeSplitHorizonField;
+        private GameObject activeVhsTearField;
         private GameObject activeStaticJackpotField;
         private BreakoutMirrorGridVisual activeMirrorGridVisual;
         private bool isMirrorGridArmed;
@@ -4060,6 +4063,12 @@ namespace GetBricked.Gameplay
                 CreateSplitHorizon(activeLevelGlitchPlan);
                 powerUpService?.ShowStatusBanner("SPLIT HORIZON!", new Color(0.03f, 0.93f, 0.98f, 1f), 2.2f);
             }
+
+            if (activeLevelGlitchPlan.HasGlitch(BreakoutLevelGlitchType.VhsTear))
+            {
+                CreateVhsTear(activeLevelGlitchPlan);
+                powerUpService?.ShowStatusBanner("VHS TEAR!", new Color(1f, 0.22f, 0.84f, 1f), 2.2f);
+            }
         }
 
         private void ClearLevelGlitches()
@@ -4141,6 +4150,12 @@ namespace GetBricked.Gameplay
             {
                 DestroyRuntimeObject(activeSplitHorizonField);
                 activeSplitHorizonField = null;
+            }
+
+            if (activeVhsTearField != null)
+            {
+                DestroyRuntimeObject(activeVhsTearField);
+                activeVhsTearField = null;
             }
 
             if (activeStaticJackpotField != null)
@@ -5020,6 +5035,39 @@ namespace GetBricked.Gameplay
             ApplySplitHorizonToBalls();
         }
 
+        private void CreateVhsTear(BreakoutLevelGlitchPlan glitchPlan)
+        {
+            if (glitchPlan == null || squareSprite == null)
+            {
+                return;
+            }
+
+            activeVhsTearField = new GameObject("VHS Tear");
+            activeVhsTearField.transform.SetParent(glitchesRoot != null ? glitchesRoot : runtimeRoot, false);
+            activeVhsTearField.transform.position = new Vector2(0f, ResolveVhsTearY(glitchPlan.VhsTear));
+
+            var width = Mathf.Max(1f, arenaRight - arenaLeft);
+            var collider = activeVhsTearField.AddComponent<BoxCollider2D>();
+            collider.isTrigger = true;
+            collider.size = new Vector2(width, VhsTearTriggerThickness);
+
+            var visual = activeVhsTearField.AddComponent<BreakoutVhsTearVisual>();
+            visual.Configure(
+                squareSprite,
+                spriteUnlitMaterial,
+                additiveSpriteMaterial,
+                width,
+                VhsTearLineThickness,
+                glitchPlan.VhsTear.JitterStrength);
+
+            var tear = activeVhsTearField.AddComponent<BreakoutVhsTearSection>();
+            tear.Configure(
+                glitchPlan.VhsTear.DeflectionDegrees,
+                glitchPlan.VhsTear.JitterStrength,
+                glitchPlan.VhsTear.CooldownSeconds,
+                visual);
+        }
+
         private void CreateSplitHorizonLayer(
             string layerName,
             Transform root,
@@ -5046,6 +5094,20 @@ namespace GetBricked.Gameplay
         {
             var minY = arenaBottom + 1.45f;
             var maxY = arenaTop - 1.65f;
+
+            if (maxY <= minY)
+            {
+                minY = arenaBottom;
+                maxY = arenaTop;
+            }
+
+            return Mathf.Lerp(minY, maxY, spec.NormalizedY);
+        }
+
+        private float ResolveVhsTearY(BreakoutVhsTearSpec spec)
+        {
+            var minY = arenaBottom + 1.65f;
+            var maxY = arenaTop - 1.45f;
 
             if (maxY <= minY)
             {
@@ -7309,6 +7371,7 @@ namespace GetBricked.Gameplay
                 LevelGlitchSelection.StaticJackpot => "Static Jackpot",
                 LevelGlitchSelection.JammedRails => "Jammed Rails",
                 LevelGlitchSelection.GravitySwap => "Gravity Swap",
+                LevelGlitchSelection.VhsTear => "VHS Tear",
                 _ => "Off",
             };
         }

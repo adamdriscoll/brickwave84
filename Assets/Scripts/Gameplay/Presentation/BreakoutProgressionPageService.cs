@@ -351,6 +351,13 @@ namespace GetBricked.Gameplay
                 BreakoutLevelGlitchPlanner.GravitySwapLadderUnlockIntensity,
                 highestCompletedIntensity,
                 SplitAccent));
+            cards.Add(BuildUnlockableGlitchCard(
+                "VHS Tear",
+                "Trajectory Epic Glitch",
+                "A horizontal tear line deflects balls crossing it.",
+                BreakoutLevelGlitchPlanner.VhsTearLadderUnlockIntensity,
+                highestCompletedIntensity,
+                DamageAccent));
             AppendPlaceholderCards(cards, PlaceholderDrops, highestCompletedIntensity);
             AppendPlaceholderCards(cards, PlaceholderGlitches, highestCompletedIntensity);
             cards.Add(BuildHiddenSlotCard("Future Drop Slot", "Drop", "Hidden", "Future drop signal pending."));
@@ -829,6 +836,11 @@ namespace GetBricked.Gameplay
             }
 
             if (completedIntensity >= BreakoutLevelGlitchPlanner.GravitySwapLadderUnlockIntensity)
+            {
+                count++;
+            }
+
+            if (completedIntensity >= BreakoutLevelGlitchPlanner.VhsTearLadderUnlockIntensity)
             {
                 count++;
             }

@@ -67,6 +67,7 @@ namespace GetBricked.Gameplay
             LevelGlitchSelection.ThinAir,
             LevelGlitchSelection.TokenStorm,
             LevelGlitchSelection.TurboRail,
+            LevelGlitchSelection.VhsTear,
             LevelGlitchSelection.WarpGates,
         };
 

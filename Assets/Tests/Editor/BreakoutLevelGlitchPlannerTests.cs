@@ -805,6 +805,30 @@ public sealed class BreakoutLevelGlitchPlannerTests
         Assert.That(unlockedPlan.GravityPocket.DriftSpeed, Is.InRange(0.2f, 0.3f));
     }
 
+    [Test]
+    public void RogueGlitchHeatControlsWhenVhsTearCanUnlock()
+    {
+        var lockedSettings = CreateRogueSettings(
+            rogueIntensity: BreakoutLevelGlitchPlanner.VhsTearLadderUnlockIntensity,
+            levelGlitchSelection: LevelGlitchSelection.VhsTear);
+        var unlockedSettings = CreateRogueSettings(
+            rogueIntensity: BreakoutLevelGlitchPlanner.VhsTearLadderUnlockIntensity + 1,
+            levelGlitchSelection: LevelGlitchSelection.VhsTear);
+
+        var lockedPlan = BreakoutLevelGlitchPlanner.BuildPlan(new DeterministicRandomService(7), lockedSettings, levelIndex: 9);
+        var unlockedPlan = BreakoutLevelGlitchPlanner.BuildPlan(new DeterministicRandomService(7), unlockedSettings, levelIndex: 9);
+
+        Assert.That(lockedPlan.IsActive, Is.False);
+        Assert.That(unlockedPlan.IsActive, Is.True);
+        Assert.That(unlockedPlan.GlitchType, Is.EqualTo(BreakoutLevelGlitchType.VhsTear));
+        Assert.That(unlockedPlan.DisplayName, Is.EqualTo("VHS Tear"));
+        Assert.That(unlockedPlan.Rarity, Is.EqualTo(BreakoutContentRarity.Epic));
+        Assert.That(unlockedPlan.ScoreMultiplier, Is.EqualTo(1.52f).Within(0.0001f));
+        Assert.That(unlockedPlan.VhsTear.NormalizedY, Is.InRange(0.36f, 0.68f));
+        Assert.That(unlockedPlan.VhsTear.DeflectionDegrees, Is.InRange(14f, 22f));
+        Assert.That(unlockedPlan.VhsTear.JitterStrength, Is.InRange(0.18f, 0.34f));
+    }
+
 
     [Test]
     public void ForcedWarpGatePlanBuildsSmallPortalSetAndScoreBonus()
@@ -1348,6 +1372,21 @@ public sealed class BreakoutLevelGlitchPlannerTests
     }
 
     [Test]
+    public void SelectedVhsTearAlwaysBuildsVhsTearEvenWhenChanceIsDisabled()
+    {
+        var settings = CreateSettings(
+            levelGlitchesEnabled: true,
+            chanceMultiplier: 0f,
+            levelGlitchSelection: LevelGlitchSelection.VhsTear);
+
+        var plan = BreakoutLevelGlitchPlanner.BuildPlan(new DeterministicRandomService(3), settings, levelIndex: 9);
+
+        Assert.That(plan.IsActive, Is.True);
+        Assert.That(plan.GlitchType, Is.EqualTo(BreakoutLevelGlitchType.VhsTear));
+        Assert.That(plan.HudLabel, Does.Contain("VHS Tear"));
+    }
+
+    [Test]
     public void ScoreLeakPenaltyTricklesFromAccumulatorWithoutDroppingBelowZero()
     {
         var accumulator = 0f;
@@ -1429,6 +1468,21 @@ public sealed class BreakoutLevelGlitchPlannerTests
         Assert.That(refracted.x, Is.GreaterThan(0.15f));
         Assert.That(refracted.y, Is.GreaterThan(0f));
         Assert.That(refracted.magnitude, Is.EqualTo(1f).Within(0.0001f));
+    }
+
+    [Test]
+    public void VhsTearDeflectsCrossingBallWithoutFlippingVerticalTravel()
+    {
+        var deflected = BreakoutVhsTearSection.BuildDeflectedDirection(
+            new UnityEngine.Vector2(0.04f, -1f),
+            worldX: 1.2f,
+            tearPhase: 0.25f,
+            tearDeflectionDegrees: 18f,
+            tearJitterStrength: 0.25f);
+
+        Assert.That(Mathf.Abs(deflected.x), Is.GreaterThan(0.34f));
+        Assert.That(deflected.y, Is.LessThan(0f));
+        Assert.That(deflected.magnitude, Is.EqualTo(1f).Within(0.0001f));
     }
 
     [Test]

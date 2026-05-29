@@ -42,6 +42,7 @@ namespace GetBricked.Gameplay
         StaticJackpot = 32,
         JammedRails = 33,
         GravitySwap = 34,
+        VhsTear = 35,
     }
 
     internal readonly struct BreakoutLevelGlitchDefinition
@@ -634,6 +635,29 @@ namespace GetBricked.Gameplay
         public float MissSpeedBurstDurationSeconds { get; }
     }
 
+    internal readonly struct BreakoutVhsTearSpec
+    {
+        public BreakoutVhsTearSpec(
+            float normalizedY,
+            float deflectionDegrees,
+            float jitterStrength,
+            float cooldownSeconds)
+        {
+            NormalizedY = Mathf.Clamp01(normalizedY);
+            DeflectionDegrees = Mathf.Clamp(deflectionDegrees, 8f, 26f);
+            JitterStrength = Mathf.Clamp(jitterStrength, 0.08f, 0.42f);
+            CooldownSeconds = Mathf.Clamp(cooldownSeconds, 0.06f, 0.28f);
+        }
+
+        public float NormalizedY { get; }
+
+        public float DeflectionDegrees { get; }
+
+        public float JitterStrength { get; }
+
+        public float CooldownSeconds { get; }
+    }
+
     internal static class BreakoutStaticJackpotCalculator
     {
         public static bool TryFindZone(
@@ -714,7 +738,8 @@ namespace GetBricked.Gameplay
             BreakoutBrickLockSpec brickLock = default,
             BreakoutSpeedStepsSpec speedSteps = default,
             BreakoutJammedRailsSpec jammedRails = default,
-            BreakoutStaticJackpotSpec staticJackpot = default)
+            BreakoutStaticJackpotSpec staticJackpot = default,
+            BreakoutVhsTearSpec vhsTear = default)
         {
             GlitchType = glitchType;
             Rarity = BreakoutRarityRules.Clamp(rarity);
@@ -748,6 +773,7 @@ namespace GetBricked.Gameplay
             SpeedSteps = speedSteps;
             JammedRails = jammedRails;
             StaticJackpot = staticJackpot;
+            VhsTear = vhsTear;
             ActiveGlitchTypes = activeGlitchTypes != null && activeGlitchTypes.Length > 0
                 ? activeGlitchTypes
                 : glitchType != BreakoutLevelGlitchType.None
@@ -819,6 +845,8 @@ namespace GetBricked.Gameplay
 
         public BreakoutStaticJackpotSpec StaticJackpot { get; }
 
+        public BreakoutVhsTearSpec VhsTear { get; }
+
         public BreakoutLevelGlitchType[] ActiveGlitchTypes { get; }
 
         public bool IsActive => ActiveGlitchTypes.Length > 0;
@@ -872,6 +900,7 @@ namespace GetBricked.Gameplay
         public const int StaticJackpotLadderUnlockIntensity = 32;
         public const int JammedRailsLadderUnlockIntensity = 33;
         public const int GravitySwapLadderUnlockIntensity = 34;
+        public const int VhsTearLadderUnlockIntensity = 35;
 
         private const float WarpGateScoreMultiplier = 1.35f;
         private const float TurboRailScoreMultiplier = 1.25f;
@@ -907,6 +936,7 @@ namespace GetBricked.Gameplay
         private const float StaticJackpotScoreMultiplier = 1.5f;
         private const float JammedRailsScoreMultiplier = 1.49f;
         private const float GravitySwapScoreMultiplier = 1.51f;
+        private const float VhsTearScoreMultiplier = 1.52f;
 
         private static readonly BreakoutLevelGlitchDefinition[] GlitchDefinitions =
         {
@@ -1080,6 +1110,11 @@ namespace GetBricked.Gameplay
                 LevelGlitchSelection.GravitySwap,
                 BreakoutContentRarity.Epic,
                 GravitySwapLadderUnlockIntensity),
+            new BreakoutLevelGlitchDefinition(
+                BreakoutLevelGlitchType.VhsTear,
+                LevelGlitchSelection.VhsTear,
+                BreakoutContentRarity.Epic,
+                VhsTearLadderUnlockIntensity),
         };
 
         public static BreakoutLevelGlitchPlan BuildPlan(
@@ -1296,6 +1331,11 @@ namespace GetBricked.Gameplay
                 return BuildGravitySwapPlan(random, definition.Rarity);
             }
 
+            if (definition.GlitchType == BreakoutLevelGlitchType.VhsTear)
+            {
+                return BuildVhsTearPlan(random, definition.Rarity);
+            }
+
             return BuildWarpGatePlan(random, definition.Rarity);
         }
 
@@ -1420,6 +1460,7 @@ namespace GetBricked.Gameplay
             var speedSteps = default(BreakoutSpeedStepsSpec);
             var jammedRails = default(BreakoutJammedRailsSpec);
             var staticJackpot = default(BreakoutStaticJackpotSpec);
+            var vhsTear = default(BreakoutVhsTearSpec);
 
             for (var index = 0; index < definitions.Count; index++)
             {
@@ -1575,6 +1616,11 @@ namespace GetBricked.Gameplay
                 {
                     staticJackpot = plan.StaticJackpot;
                 }
+
+                if (plan.HasGlitch(BreakoutLevelGlitchType.VhsTear))
+                {
+                    vhsTear = plan.VhsTear;
+                }
             }
 
             return new BreakoutLevelGlitchPlan(
@@ -1610,7 +1656,8 @@ namespace GetBricked.Gameplay
                 brickLock,
                 speedSteps,
                 jammedRails,
-                staticJackpot);
+                staticJackpot,
+                vhsTear);
         }
 
         private static void MarkGlitchSelectionExclusions(
@@ -1858,6 +1905,20 @@ namespace GetBricked.Gameplay
                 Array.Empty<BreakoutWarpGateSpec>(),
                 default,
                 jammedRails: jammedRails);
+        }
+
+        private static BreakoutLevelGlitchPlan BuildVhsTearPlan(DeterministicRandomService random, BreakoutContentRarity rarity)
+        {
+            var vhsTear = BuildVhsTear(random);
+            return new BreakoutLevelGlitchPlan(
+                BreakoutLevelGlitchType.VhsTear,
+                rarity,
+                "VHS Tear",
+                $"VHS Tear {vhsTear.DeflectionDegrees:0}deg x{VhsTearScoreMultiplier:0.00}",
+                VhsTearScoreMultiplier,
+                Array.Empty<BreakoutWarpGateSpec>(),
+                default,
+                vhsTear: vhsTear);
         }
 
         private static BreakoutLevelGlitchPlan BuildStaticWallPlan(DeterministicRandomService random, BreakoutContentRarity rarity)
@@ -2436,6 +2497,15 @@ namespace GetBricked.Gameplay
                 random.Range(0f, 2.85f));
         }
 
+        private static BreakoutVhsTearSpec BuildVhsTear(DeterministicRandomService random)
+        {
+            return new BreakoutVhsTearSpec(
+                random.Range(0.36f, 0.68f),
+                random.Range(14f, 22f),
+                random.Range(0.18f, 0.34f),
+                random.Range(0.1f, 0.18f));
+        }
+
         internal static float CalculateDropTideReleaseDelay(float elapsedSeconds, BreakoutDropTideSpec spec)
         {
             if (elapsedSeconds < 0f || spec.WaveIntervalSeconds <= 0.001f)
@@ -2637,7 +2707,8 @@ namespace GetBricked.Gameplay
                 || selection == LevelGlitchSelection.MirrorServe
                 || selection == LevelGlitchSelection.StaticJackpot
                 || selection == LevelGlitchSelection.JammedRails
-                || selection == LevelGlitchSelection.GravitySwap;
+                || selection == LevelGlitchSelection.GravitySwap
+                || selection == LevelGlitchSelection.VhsTear;
         }
 
         private static BreakoutWarpGateWall ResolveGateWall(DeterministicRandomService random, int index)

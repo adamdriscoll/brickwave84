@@ -185,6 +185,7 @@ public sealed class BreakoutRogueRunTests
             LevelGlitchSelection.ThinAir,
             LevelGlitchSelection.TokenStorm,
             LevelGlitchSelection.TurboRail,
+            LevelGlitchSelection.VhsTear,
             LevelGlitchSelection.WarpGates,
         };
 
