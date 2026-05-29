@@ -358,6 +358,13 @@ namespace GetBricked.Gameplay
                 BreakoutLevelGlitchPlanner.VhsTearLadderUnlockIntensity,
                 highestCompletedIntensity,
                 DamageAccent));
+            cards.Add(BuildUnlockableGlitchCard(
+                "Capsule Blackout",
+                "Pickup Epic Glitch",
+                "Catching any capsule briefly hides the next wave of drops.",
+                BreakoutLevelGlitchPlanner.CapsuleBlackoutLadderUnlockIntensity,
+                highestCompletedIntensity,
+                ControlAccent));
             AppendPlaceholderCards(cards, PlaceholderDrops, highestCompletedIntensity);
             AppendPlaceholderCards(cards, PlaceholderGlitches, highestCompletedIntensity);
             cards.Add(BuildHiddenSlotCard("Future Drop Slot", "Drop", "Hidden", "Future drop signal pending."));
@@ -841,6 +848,11 @@ namespace GetBricked.Gameplay
             }
 
             if (completedIntensity >= BreakoutLevelGlitchPlanner.VhsTearLadderUnlockIntensity)
+            {
+                count++;
+            }
+
+            if (completedIntensity >= BreakoutLevelGlitchPlanner.CapsuleBlackoutLadderUnlockIntensity)
             {
                 count++;
             }

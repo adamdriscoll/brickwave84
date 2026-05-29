@@ -1416,6 +1416,8 @@ namespace GetBricked.Gameplay
                 AwardCapsuleMadnessPickupBonus(pickupPosition);
             }
 
+            TriggerCapsuleBlackoutFromPickupCatch();
+
             var primaryDefinition = pickup.PrimaryPayloadDefinition != null
                 ? pickup.PrimaryPayloadDefinition
                 : pickup.Definition;
@@ -3930,6 +3932,11 @@ namespace GetBricked.Gameplay
                 powerUpService?.ShowStatusBanner("CAPSULE ROULETTE!", new Color(1f, 0.87f, 0.36f, 1f), 2.2f);
             }
 
+            if (activeLevelGlitchPlan.HasGlitch(BreakoutLevelGlitchType.CapsuleBlackout))
+            {
+                powerUpService?.ShowStatusBanner("CAPSULE BLACKOUT!", new Color(1f, 0.87f, 0.36f, 1f), 2.2f);
+            }
+
             if (activeLevelGlitchPlan.HasGlitch(BreakoutLevelGlitchType.PickupPinball))
             {
                 powerUpService?.ShowStatusBanner("PICKUP PINBALL!", new Color(1f, 0.87f, 0.36f, 1f), 2.2f);
@@ -4092,6 +4099,7 @@ namespace GetBricked.Gameplay
             rewindWallService?.Clear();
             brickLockService?.Clear();
             ClearPendingLaserRainLanes();
+            powerUpService?.ClearCapsuleBlackout();
             paddle?.SetCloneStaticPaddleEnabled(false);
 
             if (activeWarpGateController != null)
@@ -7372,6 +7380,7 @@ namespace GetBricked.Gameplay
                 LevelGlitchSelection.JammedRails => "Jammed Rails",
                 LevelGlitchSelection.GravitySwap => "Gravity Swap",
                 LevelGlitchSelection.VhsTear => "VHS Tear",
+                LevelGlitchSelection.CapsuleBlackout => "Capsule Blackout",
                 _ => "Off",
             };
         }
@@ -7579,6 +7588,7 @@ namespace GetBricked.Gameplay
                 ApplyTokenStormFallSpeed(spawnedPickup);
                 ApplyDropTideWaveDelay(spawnedPickup);
                 ApplyPickupPinballMotion(spawnedPickup);
+                ApplyCapsuleBlackout(spawnedPickup);
                 runStatsService?.RegisterDropDropped(spawnedPickup.Definition);
                 audioService?.PlayPickupDropped();
             }
@@ -7611,6 +7621,12 @@ namespace GetBricked.Gameplay
         {
             return activeLevelGlitchPlan != null
                 && activeLevelGlitchPlan.HasGlitch(BreakoutLevelGlitchType.DropTide);
+        }
+
+        private bool IsCapsuleBlackoutActive()
+        {
+            return activeLevelGlitchPlan != null
+                && activeLevelGlitchPlan.HasGlitch(BreakoutLevelGlitchType.CapsuleBlackout);
         }
 
         private PowerUpDefinition ResolveDeveloperForcedDrop()
@@ -9000,6 +9016,27 @@ namespace GetBricked.Gameplay
                 Rect.MinMaxRect(arenaLeft, arenaBottom, arenaRight, arenaTop),
                 directionSign,
                 activeLevelGlitchPlan.PickupPinball);
+        }
+
+        private void TriggerCapsuleBlackoutFromPickupCatch()
+        {
+            if (!IsCapsuleBlackoutActive())
+            {
+                return;
+            }
+
+            powerUpService?.TriggerCapsuleBlackout(activeLevelGlitchPlan.CapsuleBlackout);
+            powerUpService?.ShowStatusBanner("DROP BLACKOUT!", new Color(1f, 0.87f, 0.36f, 1f), 1.15f);
+        }
+
+        private void ApplyCapsuleBlackout(PowerUpPickup pickup)
+        {
+            if (pickup == null || !IsCapsuleBlackoutActive())
+            {
+                return;
+            }
+
+            powerUpService?.ApplyCapsuleBlackoutToPickup(pickup);
         }
 
         private void UpdateActiveLevelElapsedSeconds()

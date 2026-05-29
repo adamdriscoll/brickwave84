@@ -43,6 +43,7 @@ namespace GetBricked.Gameplay
         JammedRails = 33,
         GravitySwap = 34,
         VhsTear = 35,
+        CapsuleBlackout = 36,
     }
 
     internal readonly struct BreakoutLevelGlitchDefinition
@@ -516,6 +517,22 @@ namespace GetBricked.Gameplay
         public float PhaseOffsetSeconds { get; }
     }
 
+    internal readonly struct BreakoutCapsuleBlackoutSpec
+    {
+        public BreakoutCapsuleBlackoutSpec(float triggerWindowSeconds, float hiddenDurationSeconds, float visibilityMultiplier)
+        {
+            TriggerWindowSeconds = Mathf.Clamp(triggerWindowSeconds, 0.45f, 4f);
+            HiddenDurationSeconds = Mathf.Clamp(hiddenDurationSeconds, 0.35f, 3f);
+            VisibilityMultiplier = Mathf.Clamp(visibilityMultiplier, 0.01f, 0.55f);
+        }
+
+        public float TriggerWindowSeconds { get; }
+
+        public float HiddenDurationSeconds { get; }
+
+        public float VisibilityMultiplier { get; }
+    }
+
     internal readonly struct BreakoutBrickLockSpec
     {
         public BreakoutBrickLockSpec(
@@ -739,7 +756,8 @@ namespace GetBricked.Gameplay
             BreakoutSpeedStepsSpec speedSteps = default,
             BreakoutJammedRailsSpec jammedRails = default,
             BreakoutStaticJackpotSpec staticJackpot = default,
-            BreakoutVhsTearSpec vhsTear = default)
+            BreakoutVhsTearSpec vhsTear = default,
+            BreakoutCapsuleBlackoutSpec capsuleBlackout = default)
         {
             GlitchType = glitchType;
             Rarity = BreakoutRarityRules.Clamp(rarity);
@@ -774,6 +792,7 @@ namespace GetBricked.Gameplay
             JammedRails = jammedRails;
             StaticJackpot = staticJackpot;
             VhsTear = vhsTear;
+            CapsuleBlackout = capsuleBlackout;
             ActiveGlitchTypes = activeGlitchTypes != null && activeGlitchTypes.Length > 0
                 ? activeGlitchTypes
                 : glitchType != BreakoutLevelGlitchType.None
@@ -847,6 +866,8 @@ namespace GetBricked.Gameplay
 
         public BreakoutVhsTearSpec VhsTear { get; }
 
+        public BreakoutCapsuleBlackoutSpec CapsuleBlackout { get; }
+
         public BreakoutLevelGlitchType[] ActiveGlitchTypes { get; }
 
         public bool IsActive => ActiveGlitchTypes.Length > 0;
@@ -901,6 +922,7 @@ namespace GetBricked.Gameplay
         public const int JammedRailsLadderUnlockIntensity = 33;
         public const int GravitySwapLadderUnlockIntensity = 34;
         public const int VhsTearLadderUnlockIntensity = 35;
+        public const int CapsuleBlackoutLadderUnlockIntensity = 36;
 
         private const float WarpGateScoreMultiplier = 1.35f;
         private const float TurboRailScoreMultiplier = 1.25f;
@@ -937,6 +959,7 @@ namespace GetBricked.Gameplay
         private const float JammedRailsScoreMultiplier = 1.49f;
         private const float GravitySwapScoreMultiplier = 1.51f;
         private const float VhsTearScoreMultiplier = 1.52f;
+        private const float CapsuleBlackoutScoreMultiplier = 1.38f;
 
         private static readonly BreakoutLevelGlitchDefinition[] GlitchDefinitions =
         {
@@ -1115,6 +1138,11 @@ namespace GetBricked.Gameplay
                 LevelGlitchSelection.VhsTear,
                 BreakoutContentRarity.Epic,
                 VhsTearLadderUnlockIntensity),
+            new BreakoutLevelGlitchDefinition(
+                BreakoutLevelGlitchType.CapsuleBlackout,
+                LevelGlitchSelection.CapsuleBlackout,
+                BreakoutContentRarity.Epic,
+                CapsuleBlackoutLadderUnlockIntensity),
         };
 
         public static BreakoutLevelGlitchPlan BuildPlan(
@@ -1336,6 +1364,11 @@ namespace GetBricked.Gameplay
                 return BuildVhsTearPlan(random, definition.Rarity);
             }
 
+            if (definition.GlitchType == BreakoutLevelGlitchType.CapsuleBlackout)
+            {
+                return BuildCapsuleBlackoutPlan(definition.Rarity);
+            }
+
             return BuildWarpGatePlan(random, definition.Rarity);
         }
 
@@ -1461,6 +1494,7 @@ namespace GetBricked.Gameplay
             var jammedRails = default(BreakoutJammedRailsSpec);
             var staticJackpot = default(BreakoutStaticJackpotSpec);
             var vhsTear = default(BreakoutVhsTearSpec);
+            var capsuleBlackout = default(BreakoutCapsuleBlackoutSpec);
 
             for (var index = 0; index < definitions.Count; index++)
             {
@@ -1621,6 +1655,11 @@ namespace GetBricked.Gameplay
                 {
                     vhsTear = plan.VhsTear;
                 }
+
+                if (plan.HasGlitch(BreakoutLevelGlitchType.CapsuleBlackout))
+                {
+                    capsuleBlackout = plan.CapsuleBlackout;
+                }
             }
 
             return new BreakoutLevelGlitchPlan(
@@ -1657,7 +1696,8 @@ namespace GetBricked.Gameplay
                 speedSteps,
                 jammedRails,
                 staticJackpot,
-                vhsTear);
+                vhsTear,
+                capsuleBlackout);
         }
 
         private static void MarkGlitchSelectionExclusions(
@@ -1919,6 +1959,19 @@ namespace GetBricked.Gameplay
                 Array.Empty<BreakoutWarpGateSpec>(),
                 default,
                 vhsTear: vhsTear);
+        }
+
+        private static BreakoutLevelGlitchPlan BuildCapsuleBlackoutPlan(BreakoutContentRarity rarity)
+        {
+            return new BreakoutLevelGlitchPlan(
+                BreakoutLevelGlitchType.CapsuleBlackout,
+                rarity,
+                "Capsule Blackout",
+                $"Capsule Blackout x{CapsuleBlackoutScoreMultiplier:0.00}",
+                CapsuleBlackoutScoreMultiplier,
+                Array.Empty<BreakoutWarpGateSpec>(),
+                default,
+                capsuleBlackout: new BreakoutCapsuleBlackoutSpec(2.4f, 1.45f, 0.03f));
         }
 
         private static BreakoutLevelGlitchPlan BuildStaticWallPlan(DeterministicRandomService random, BreakoutContentRarity rarity)
@@ -2708,7 +2761,8 @@ namespace GetBricked.Gameplay
                 || selection == LevelGlitchSelection.StaticJackpot
                 || selection == LevelGlitchSelection.JammedRails
                 || selection == LevelGlitchSelection.GravitySwap
-                || selection == LevelGlitchSelection.VhsTear;
+                || selection == LevelGlitchSelection.VhsTear
+                || selection == LevelGlitchSelection.CapsuleBlackout;
         }
 
         private static BreakoutWarpGateWall ResolveGateWall(DeterministicRandomService random, int index)

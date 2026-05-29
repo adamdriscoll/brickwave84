@@ -829,6 +829,30 @@ public sealed class BreakoutLevelGlitchPlannerTests
         Assert.That(unlockedPlan.VhsTear.JitterStrength, Is.InRange(0.18f, 0.34f));
     }
 
+    [Test]
+    public void RogueGlitchHeatControlsWhenCapsuleBlackoutCanUnlock()
+    {
+        var lockedSettings = CreateRogueSettings(
+            rogueIntensity: BreakoutLevelGlitchPlanner.CapsuleBlackoutLadderUnlockIntensity,
+            levelGlitchSelection: LevelGlitchSelection.CapsuleBlackout);
+        var unlockedSettings = CreateRogueSettings(
+            rogueIntensity: BreakoutLevelGlitchPlanner.CapsuleBlackoutLadderUnlockIntensity + 1,
+            levelGlitchSelection: LevelGlitchSelection.CapsuleBlackout);
+
+        var lockedPlan = BreakoutLevelGlitchPlanner.BuildPlan(new DeterministicRandomService(7), lockedSettings, levelIndex: 9);
+        var unlockedPlan = BreakoutLevelGlitchPlanner.BuildPlan(new DeterministicRandomService(7), unlockedSettings, levelIndex: 9);
+
+        Assert.That(lockedPlan.IsActive, Is.False);
+        Assert.That(unlockedPlan.IsActive, Is.True);
+        Assert.That(unlockedPlan.GlitchType, Is.EqualTo(BreakoutLevelGlitchType.CapsuleBlackout));
+        Assert.That(unlockedPlan.DisplayName, Is.EqualTo("Capsule Blackout"));
+        Assert.That(unlockedPlan.Rarity, Is.EqualTo(BreakoutContentRarity.Epic));
+        Assert.That(unlockedPlan.ScoreMultiplier, Is.EqualTo(1.38f).Within(0.0001f));
+        Assert.That(unlockedPlan.CapsuleBlackout.TriggerWindowSeconds, Is.EqualTo(2.4f).Within(0.0001f));
+        Assert.That(unlockedPlan.CapsuleBlackout.HiddenDurationSeconds, Is.EqualTo(1.45f).Within(0.0001f));
+        Assert.That(unlockedPlan.CapsuleBlackout.VisibilityMultiplier, Is.EqualTo(0.03f).Within(0.0001f));
+    }
+
 
     [Test]
     public void ForcedWarpGatePlanBuildsSmallPortalSetAndScoreBonus()
@@ -1384,6 +1408,21 @@ public sealed class BreakoutLevelGlitchPlannerTests
         Assert.That(plan.IsActive, Is.True);
         Assert.That(plan.GlitchType, Is.EqualTo(BreakoutLevelGlitchType.VhsTear));
         Assert.That(plan.HudLabel, Does.Contain("VHS Tear"));
+    }
+
+    [Test]
+    public void SelectedCapsuleBlackoutAlwaysBuildsCapsuleBlackoutEvenWhenChanceIsDisabled()
+    {
+        var settings = CreateSettings(
+            levelGlitchesEnabled: true,
+            chanceMultiplier: 0f,
+            levelGlitchSelection: LevelGlitchSelection.CapsuleBlackout);
+
+        var plan = BreakoutLevelGlitchPlanner.BuildPlan(new DeterministicRandomService(3), settings, levelIndex: 9);
+
+        Assert.That(plan.IsActive, Is.True);
+        Assert.That(plan.GlitchType, Is.EqualTo(BreakoutLevelGlitchType.CapsuleBlackout));
+        Assert.That(plan.HudLabel, Does.Contain("Capsule Blackout"));
     }
 
     [Test]

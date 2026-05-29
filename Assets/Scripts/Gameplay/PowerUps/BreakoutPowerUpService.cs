@@ -507,6 +507,8 @@ namespace GetBricked.Gameplay
         private PowerUpDefinition brickBloomDefinition;
         private PowerUpDefinition doubleTapDefinition;
         private float bogusBounceWildAngleDegrees;
+        private float capsuleBlackoutHiddenDurationSeconds;
+        private float capsuleBlackoutVisibilityMultiplier = 1f;
 
         public BreakoutPowerUpService(Vector2 pickupSize, float pickupFallSpeed, float multiBallSpreadAngle, Material pickupMaterial)
         {
@@ -530,6 +532,10 @@ namespace GetBricked.Gameplay
 
         public bool IsCapsuleMadnessActive => CapsuleMadnessTimer > 0f;
 
+        public float CapsuleBlackoutTimer { get; private set; }
+
+        public bool IsCapsuleBlackoutArmed => CapsuleBlackoutTimer > 0f;
+
         public int BankBonusChargePoints { get; private set; }
 
         public int SolarShotCharges { get; private set; }
@@ -552,6 +558,11 @@ namespace GetBricked.Gameplay
             if (CapsuleMadnessTimer > 0f)
             {
                 CapsuleMadnessTimer = Mathf.Max(0f, CapsuleMadnessTimer - deltaTime);
+            }
+
+            if (CapsuleBlackoutTimer > 0f)
+            {
+                CapsuleBlackoutTimer = Mathf.Max(0f, CapsuleBlackoutTimer - deltaTime);
             }
 
             if (ActiveTimedEffects.Count == 0)
@@ -1075,6 +1086,30 @@ namespace GetBricked.Gameplay
             UpdateCapsuleMadnessThresholdArming();
         }
 
+        public void TriggerCapsuleBlackout(BreakoutCapsuleBlackoutSpec spec)
+        {
+            CapsuleBlackoutTimer = Mathf.Max(CapsuleBlackoutTimer, spec.TriggerWindowSeconds);
+            capsuleBlackoutHiddenDurationSeconds = spec.HiddenDurationSeconds;
+            capsuleBlackoutVisibilityMultiplier = spec.VisibilityMultiplier;
+        }
+
+        public void ApplyCapsuleBlackoutToPickup(PowerUpPickup pickup)
+        {
+            if (pickup == null || CapsuleBlackoutTimer <= 0f)
+            {
+                return;
+            }
+
+            pickup.SetCapsuleBlackout(capsuleBlackoutHiddenDurationSeconds, capsuleBlackoutVisibilityMultiplier);
+        }
+
+        public void ClearCapsuleBlackout()
+        {
+            CapsuleBlackoutTimer = 0f;
+            capsuleBlackoutHiddenDurationSeconds = 0f;
+            capsuleBlackoutVisibilityMultiplier = 1f;
+        }
+
         public void UpdateCapsuleRoulettePickups(
             bool isPlaying,
             float deltaTime,
@@ -1203,6 +1238,7 @@ namespace GetBricked.Gameplay
             capsuleRouletteStates.Clear();
             CapsuleMadnessTimer = 0f;
             capsuleMadnessThresholdArmed = true;
+            ClearCapsuleBlackout();
         }
 
         public void ClearTimedEffects()

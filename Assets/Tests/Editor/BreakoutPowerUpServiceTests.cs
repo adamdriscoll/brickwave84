@@ -869,6 +869,37 @@ public sealed class BreakoutPowerUpServiceTests
     }
 
     [Test]
+    public void CapsuleBlackoutHidesSpawnedPickupDuringArmedWindow()
+    {
+        var service = CreateService();
+        var powerUp = CreatePowerUp("Wide Paddle", PowerUpEffectType.PaddleWidthMultiplier, true, 10f, 1.2f);
+        var brick = CreateBrick(CreateBrickDefinition(dropChance: 1f, powerUp));
+        var pickupsRoot = CreateRuntimeRoot("Pickups");
+
+        var pickup = service.TrySpawnPickup(
+            brick,
+            activeRunSettings: null,
+            activeRunState: null,
+            effectiveDropChanceMultiplier: 1f,
+            nextGameplayRandomFloat: (_, _) => 0f,
+            pickupsRoot,
+            arenaBottom: -4f,
+            themeService: null,
+            controller: null);
+
+        service.TriggerCapsuleBlackout(new BreakoutCapsuleBlackoutSpec(2.4f, 1.45f, 0.03f));
+        service.ApplyCapsuleBlackoutToPickup(pickup);
+        pickup.SetVisibilityMultiplier(0.5f);
+
+        Assert.That(service.IsCapsuleBlackoutArmed, Is.True);
+        Assert.That(pickup.GetComponent<SpriteRenderer>().color.a, Is.EqualTo(0.015f).Within(0.001f));
+
+        service.UpdateTimedEffects(isPlaying: true, deltaTime: 2.5f, modifiersChanged: null);
+
+        Assert.That(service.IsCapsuleBlackoutArmed, Is.False);
+    }
+
+    [Test]
     public void TrySpawnPickupReturnsNullWhenDropDoesNotPassChance()
     {
         var service = CreateService();

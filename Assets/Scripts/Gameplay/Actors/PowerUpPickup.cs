@@ -36,6 +36,8 @@ namespace GetBricked.Gameplay
         private float magnetStormStrength;
         private Vector3 targetVisualScale = Vector3.one;
         private float visibilityMultiplier = 1f;
+        private float blackoutVisibilityMultiplier = 1f;
+        private float blackoutTimer;
         private bool pinballEnabled;
         private bool isResolved;
 
@@ -148,6 +150,8 @@ namespace GetBricked.Gameplay
             pinballBrickCooldownTimer = 0f;
             lastPinballBrick = null;
             SetMagnetStormPocket(Vector2.zero, 0f, 0f);
+            blackoutVisibilityMultiplier = 1f;
+            blackoutTimer = 0f;
             ApplyTheme(visualStyle);
         }
 
@@ -163,9 +167,9 @@ namespace GetBricked.Gameplay
             spriteRenderer.sprite = visualStyle.Sprite;
             NormalizeVisualScale();
             var resolvedColor = visualStyle.PrimaryColor;
-            resolvedColor.a *= visibilityMultiplier;
+            resolvedColor.a *= ResolveEffectiveVisibilityMultiplier();
             spriteRenderer.color = resolvedColor;
-            glowRenderer?.ApplyStyle(visualStyle);
+            glowRenderer?.ApplyColor(resolvedColor);
         }
 
         public void ApplyRoulettePayload(
@@ -195,15 +199,34 @@ namespace GetBricked.Gameplay
         public void SetVisibilityMultiplier(float multiplier)
         {
             visibilityMultiplier = Mathf.Clamp(multiplier, 0.15f, 1f);
+            ApplyCurrentVisibilityMultiplier();
+        }
 
+        internal void SetCapsuleBlackout(float durationSeconds, float blackoutMultiplier)
+        {
+            blackoutTimer = Mathf.Max(0f, durationSeconds);
+            blackoutVisibilityMultiplier = blackoutTimer > 0f
+                ? Mathf.Clamp(blackoutMultiplier, 0.01f, 1f)
+                : 1f;
+            ApplyCurrentVisibilityMultiplier();
+        }
+
+        private void ApplyCurrentVisibilityMultiplier()
+        {
             if (spriteRenderer == null)
             {
                 return;
             }
 
             var color = spriteRenderer.color;
-            color.a = visibilityMultiplier;
+            color.a = ResolveEffectiveVisibilityMultiplier();
             spriteRenderer.color = color;
+            glowRenderer?.ApplyColor(color);
+        }
+
+        private float ResolveEffectiveVisibilityMultiplier()
+        {
+            return Mathf.Clamp01(visibilityMultiplier * blackoutVisibilityMultiplier);
         }
 
         private void FixedUpdate()
@@ -212,6 +235,8 @@ namespace GetBricked.Gameplay
             {
                 return;
             }
+
+            UpdateCapsuleBlackout(Time.fixedDeltaTime);
 
             var isFallHeld = fallDelaySeconds > 0f;
             fallDelaySeconds = Mathf.Max(0f, fallDelaySeconds - Time.fixedDeltaTime);
@@ -261,6 +286,24 @@ namespace GetBricked.Gameplay
         {
             TryCatch(other);
             TryHandlePinballBounce(other);
+        }
+
+        private void UpdateCapsuleBlackout(float deltaTime)
+        {
+            if (blackoutTimer <= 0f)
+            {
+                return;
+            }
+
+            blackoutTimer = Mathf.Max(0f, blackoutTimer - deltaTime);
+
+            if (blackoutTimer > 0f)
+            {
+                return;
+            }
+
+            blackoutVisibilityMultiplier = 1f;
+            ApplyCurrentVisibilityMultiplier();
         }
 
         private void OnTriggerStay2D(Collider2D other)

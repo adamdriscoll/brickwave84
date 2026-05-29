@@ -70,6 +70,7 @@ namespace GetBricked.Gameplay.Data
         JammedRails = 34,
         GravitySwap = 35,
         VhsTear = 36,
+        CapsuleBlackout = 37,
     }
 
     public sealed class RunSettings
@@ -262,6 +263,7 @@ namespace GetBricked.Gameplay.Data
             LevelGlitchSelection.JammedRails => "Jammed Rails Armed",
             LevelGlitchSelection.GravitySwap => "Gravity Swap Armed",
             LevelGlitchSelection.VhsTear => "VHS Tear Armed",
+            LevelGlitchSelection.CapsuleBlackout => "Capsule Blackout Armed",
             _ => "Clean Walls",
         };
 
@@ -270,9 +272,9 @@ namespace GetBricked.Gameplay.Data
             LevelGlitchSelection levelGlitchSelection)
         {
             var normalized = (LevelGlitchSelection)Mathf.Clamp(
-                (int)levelGlitchSelection,
-                (int)LevelGlitchSelection.Off,
-                (int)LevelGlitchSelection.VhsTear);
+                    (int)levelGlitchSelection,
+                    (int)LevelGlitchSelection.Off,
+                    (int)LevelGlitchSelection.CapsuleBlackout);
 
             if (!levelGlitchesEnabled && normalized == LevelGlitchSelection.Random)
             {
