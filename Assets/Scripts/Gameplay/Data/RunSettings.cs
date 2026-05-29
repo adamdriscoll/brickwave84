@@ -73,6 +73,7 @@ namespace GetBricked.Gameplay.Data
         CapsuleBlackout = 37,
         Brickquake = 38,
         TurboTax = 39,
+        WarpJam = 40,
     }
 
     public sealed class RunSettings
@@ -268,6 +269,7 @@ namespace GetBricked.Gameplay.Data
             LevelGlitchSelection.CapsuleBlackout => "Capsule Blackout Armed",
             LevelGlitchSelection.Brickquake => "Brickquake Armed",
             LevelGlitchSelection.TurboTax => "Turbo Tax Armed",
+            LevelGlitchSelection.WarpJam => "Warp Jam Armed",
             _ => "Clean Walls",
         };
 
@@ -278,7 +280,7 @@ namespace GetBricked.Gameplay.Data
             var normalized = (LevelGlitchSelection)Mathf.Clamp(
                     (int)levelGlitchSelection,
                     (int)LevelGlitchSelection.Off,
-                    (int)LevelGlitchSelection.TurboTax);
+                    (int)LevelGlitchSelection.WarpJam);
 
             if (!levelGlitchesEnabled && normalized == LevelGlitchSelection.Random)
             {

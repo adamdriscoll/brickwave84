@@ -903,6 +903,59 @@ public sealed class BreakoutLevelGlitchPlannerTests
         Assert.That(unlockedPlan.TurboTax.SlowHazardDropChance, Is.EqualTo(0.42f).Within(0.0001f));
     }
 
+    [Test]
+    public void RogueGlitchHeatControlsWhenWarpJamCanUnlock()
+    {
+        var lockedSettings = CreateRogueSettings(
+            rogueIntensity: BreakoutLevelGlitchPlanner.WarpJamLadderUnlockIntensity,
+            levelGlitchSelection: LevelGlitchSelection.WarpJam);
+        var unlockedSettings = CreateRogueSettings(
+            rogueIntensity: BreakoutLevelGlitchPlanner.WarpJamLadderUnlockIntensity + 1,
+            levelGlitchSelection: LevelGlitchSelection.WarpJam);
+
+        var lockedPlan = BreakoutLevelGlitchPlanner.BuildPlan(new DeterministicRandomService(7), lockedSettings, levelIndex: 9);
+        var unlockedPlan = BreakoutLevelGlitchPlanner.BuildPlan(new DeterministicRandomService(7), unlockedSettings, levelIndex: 9);
+
+        Assert.That(lockedPlan.IsActive, Is.False);
+        Assert.That(unlockedPlan.IsActive, Is.True);
+        Assert.That(unlockedPlan.GlitchType, Is.EqualTo(BreakoutLevelGlitchType.WarpJam));
+        Assert.That(unlockedPlan.DisplayName, Is.EqualTo("Warp Jam"));
+        Assert.That(unlockedPlan.Rarity, Is.EqualTo(BreakoutContentRarity.Epic));
+        Assert.That(unlockedPlan.ScoreMultiplier, Is.EqualTo(1.54f).Within(0.0001f));
+        Assert.That(unlockedPlan.WarpGates.Length, Is.InRange(3, 4));
+        Assert.That(unlockedPlan.WarpJam.WrongExitChance, Is.EqualTo(0.36f).Within(0.0001f));
+    }
+
+    [Test]
+    public void WarpJamRoutingCanOverrideLinkedExit()
+    {
+        var jammedIndex = BreakoutWarpGateController.ResolveWarpJamPortalIndex(
+            sourceIndex: 0,
+            linkedTargetIndex: 1,
+            portalCount: 4,
+            wrongExitChance: 0.36f,
+            chanceRoll: 0.1f,
+            candidateRoll: 0.75f);
+        var cleanIndex = BreakoutWarpGateController.ResolveWarpJamPortalIndex(
+            sourceIndex: 0,
+            linkedTargetIndex: 1,
+            portalCount: 4,
+            wrongExitChance: 0.36f,
+            chanceRoll: 0.9f,
+            candidateRoll: 0.75f);
+        var noAlternateIndex = BreakoutWarpGateController.ResolveWarpJamPortalIndex(
+            sourceIndex: 0,
+            linkedTargetIndex: 1,
+            portalCount: 2,
+            wrongExitChance: 1f,
+            chanceRoll: 0f,
+            candidateRoll: 0f);
+
+        Assert.That(jammedIndex, Is.EqualTo(3));
+        Assert.That(cleanIndex, Is.EqualTo(1));
+        Assert.That(noAlternateIndex, Is.EqualTo(1));
+    }
+
 
     [Test]
     public void ForcedWarpGatePlanBuildsSmallPortalSetAndScoreBonus()

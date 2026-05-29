@@ -277,7 +277,7 @@ Late drop proposals should keep using mechanics the game already teaches: paddle
 | `Capsule Blackout` | Catching any capsule briefly hides the next wave of drops. | Heat 36 | Epic | Pickup glitch | Implemented |
 | `Brickquake` | Brick clusters nudge out of alignment after heavy hits. | Heat 37 | Epic | Layout glitch | Implemented |
 | `Turbo Tax` | High-speed brick breaks pay more, but slow hits add hazard drops. | Heat 38 | Epic | Score glitch | Implemented |
-| `Warp Jam` | Gates sometimes spit the ball out of the wrong linked exit. | Heat 39 | Epic | Warp glitch | Not implemented (proposal) |
+| `Warp Jam` | Gates sometimes spit the ball out of the wrong linked exit. | Heat 39 | Epic | Warp glitch | Implemented |
 | `Neon Flood` | Helpful and harmful capsules spawn together after combo spikes. | Heat 40 | Epic | Pickup glitch | Not implemented (proposal) |
 | `Lockstep Rows` | Rows move only when the paddle moves, punishing over-correction. | Heat 41 | Epic | Layout glitch | Not implemented (proposal) |
 | `Static Serve` | Each serve starts with a different rail rule until first brick break. | Heat 42 | Epic | Serve glitch | Not implemented (proposal) |

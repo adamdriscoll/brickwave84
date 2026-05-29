@@ -190,6 +190,7 @@ public sealed class BreakoutRogueRunTests
             LevelGlitchSelection.TurboTax,
             LevelGlitchSelection.VhsTear,
             LevelGlitchSelection.WarpGates,
+            LevelGlitchSelection.WarpJam,
         };
 
         Assert.That(state.ForcedLevelGlitchSelection, Is.EqualTo(expected[0]));

@@ -46,6 +46,7 @@ namespace GetBricked.Gameplay
         CapsuleBlackout = 36,
         Brickquake = 37,
         TurboTax = 38,
+        WarpJam = 39,
     }
 
     internal readonly struct BreakoutLevelGlitchDefinition
@@ -89,6 +90,16 @@ namespace GetBricked.Gameplay
         public BreakoutWarpGateWall Wall { get; }
 
         public float NormalizedPosition { get; }
+    }
+
+    internal readonly struct BreakoutWarpJamSpec
+    {
+        public BreakoutWarpJamSpec(float wrongExitChance)
+        {
+            WrongExitChance = Mathf.Clamp01(wrongExitChance);
+        }
+
+        public float WrongExitChance { get; }
     }
 
     internal readonly struct BreakoutTurboRailSpec
@@ -843,7 +854,8 @@ namespace GetBricked.Gameplay
             BreakoutVhsTearSpec vhsTear = default,
             BreakoutCapsuleBlackoutSpec capsuleBlackout = default,
             BreakoutBrickquakeSpec brickquake = default,
-            BreakoutTurboTaxSpec turboTax = default)
+            BreakoutTurboTaxSpec turboTax = default,
+            BreakoutWarpJamSpec warpJam = default)
         {
             GlitchType = glitchType;
             Rarity = BreakoutRarityRules.Clamp(rarity);
@@ -881,6 +893,7 @@ namespace GetBricked.Gameplay
             CapsuleBlackout = capsuleBlackout;
             Brickquake = brickquake;
             TurboTax = turboTax;
+            WarpJam = warpJam;
             ActiveGlitchTypes = activeGlitchTypes != null && activeGlitchTypes.Length > 0
                 ? activeGlitchTypes
                 : glitchType != BreakoutLevelGlitchType.None
@@ -960,6 +973,8 @@ namespace GetBricked.Gameplay
 
         public BreakoutTurboTaxSpec TurboTax { get; }
 
+        public BreakoutWarpJamSpec WarpJam { get; }
+
         public BreakoutLevelGlitchType[] ActiveGlitchTypes { get; }
 
         public bool IsActive => ActiveGlitchTypes.Length > 0;
@@ -1017,6 +1032,7 @@ namespace GetBricked.Gameplay
         public const int CapsuleBlackoutLadderUnlockIntensity = 36;
         public const int BrickquakeLadderUnlockIntensity = 37;
         public const int TurboTaxLadderUnlockIntensity = 38;
+        public const int WarpJamLadderUnlockIntensity = 39;
 
         private const float WarpGateScoreMultiplier = 1.35f;
         private const float TurboRailScoreMultiplier = 1.25f;
@@ -1056,6 +1072,8 @@ namespace GetBricked.Gameplay
         private const float CapsuleBlackoutScoreMultiplier = 1.38f;
         private const float BrickquakeScoreMultiplier = 1.53f;
         private const float TurboTaxHighSpeedScoreMultiplier = 1.42f;
+        private const float WarpJamScoreMultiplier = 1.54f;
+        private const float WarpJamWrongExitChance = 0.36f;
 
         private static readonly BreakoutLevelGlitchDefinition[] GlitchDefinitions =
         {
@@ -1249,6 +1267,11 @@ namespace GetBricked.Gameplay
                 LevelGlitchSelection.TurboTax,
                 BreakoutContentRarity.Epic,
                 TurboTaxLadderUnlockIntensity),
+            new BreakoutLevelGlitchDefinition(
+                BreakoutLevelGlitchType.WarpJam,
+                LevelGlitchSelection.WarpJam,
+                BreakoutContentRarity.Epic,
+                WarpJamLadderUnlockIntensity),
         };
 
         public static BreakoutLevelGlitchPlan BuildPlan(
@@ -1485,6 +1508,11 @@ namespace GetBricked.Gameplay
                 return BuildTurboTaxPlan(definition.Rarity);
             }
 
+            if (definition.GlitchType == BreakoutLevelGlitchType.WarpJam)
+            {
+                return BuildWarpJamPlan(random, definition.Rarity);
+            }
+
             return BuildWarpGatePlan(random, definition.Rarity);
         }
 
@@ -1613,6 +1641,7 @@ namespace GetBricked.Gameplay
             var capsuleBlackout = default(BreakoutCapsuleBlackoutSpec);
             var brickquake = default(BreakoutBrickquakeSpec);
             var turboTax = default(BreakoutTurboTaxSpec);
+            var warpJam = default(BreakoutWarpJamSpec);
 
             for (var index = 0; index < definitions.Count; index++)
             {
@@ -1788,6 +1817,12 @@ namespace GetBricked.Gameplay
                 {
                     turboTax = plan.TurboTax;
                 }
+
+                if (plan.HasGlitch(BreakoutLevelGlitchType.WarpJam))
+                {
+                    warpGates = plan.WarpGates;
+                    warpJam = plan.WarpJam;
+                }
             }
 
             return new BreakoutLevelGlitchPlan(
@@ -1827,7 +1862,8 @@ namespace GetBricked.Gameplay
                 vhsTear,
                 capsuleBlackout,
                 brickquake,
-                turboTax);
+                turboTax,
+                warpJam);
         }
 
         private static void MarkGlitchSelectionExclusions(
@@ -1844,10 +1880,17 @@ namespace GetBricked.Gameplay
             if (selectedType == BreakoutLevelGlitchType.WarpGates)
             {
                 selectedTypes.Add(BreakoutLevelGlitchType.RogueGate);
+                selectedTypes.Add(BreakoutLevelGlitchType.WarpJam);
             }
             else if (selectedType == BreakoutLevelGlitchType.RogueGate)
             {
                 selectedTypes.Add(BreakoutLevelGlitchType.WarpGates);
+                selectedTypes.Add(BreakoutLevelGlitchType.WarpJam);
+            }
+            else if (selectedType == BreakoutLevelGlitchType.WarpJam)
+            {
+                selectedTypes.Add(BreakoutLevelGlitchType.WarpGates);
+                selectedTypes.Add(BreakoutLevelGlitchType.RogueGate);
             }
             else if (selectedType == BreakoutLevelGlitchType.RowRewrite)
             {
@@ -1903,6 +1946,20 @@ namespace GetBricked.Gameplay
                 RogueGateScoreMultiplier,
                 BuildRogueGate(random),
                 default);
+        }
+
+        private static BreakoutLevelGlitchPlan BuildWarpJamPlan(DeterministicRandomService random, BreakoutContentRarity rarity)
+        {
+            var gateCount = random.Range(3, 5);
+            return new BreakoutLevelGlitchPlan(
+                BreakoutLevelGlitchType.WarpJam,
+                rarity,
+                "Warp Jam",
+                $"Warp Jam {WarpJamWrongExitChance * 100f:0}% x{WarpJamScoreMultiplier:0.00}",
+                WarpJamScoreMultiplier,
+                BuildWarpGates(random, gateCount),
+                default,
+                warpJam: new BreakoutWarpJamSpec(WarpJamWrongExitChance));
         }
 
         private static BreakoutLevelGlitchPlan BuildTurboRailPlan(DeterministicRandomService random, BreakoutContentRarity rarity)
@@ -2933,7 +2990,8 @@ namespace GetBricked.Gameplay
                 || selection == LevelGlitchSelection.VhsTear
                 || selection == LevelGlitchSelection.CapsuleBlackout
                 || selection == LevelGlitchSelection.Brickquake
-                || selection == LevelGlitchSelection.TurboTax;
+                || selection == LevelGlitchSelection.TurboTax
+                || selection == LevelGlitchSelection.WarpJam;
         }
 
         private static BreakoutWarpGateWall ResolveGateWall(DeterministicRandomService random, int index)

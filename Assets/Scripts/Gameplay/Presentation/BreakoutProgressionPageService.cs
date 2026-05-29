@@ -379,6 +379,13 @@ namespace GetBricked.Gameplay
                 BreakoutLevelGlitchPlanner.TurboTaxLadderUnlockIntensity,
                 highestCompletedIntensity,
                 DamageAccent));
+            cards.Add(BuildUnlockableGlitchCard(
+                "Warp Jam",
+                "Warp Epic Glitch",
+                "Gates sometimes spit the ball out of the wrong linked exit.",
+                BreakoutLevelGlitchPlanner.WarpJamLadderUnlockIntensity,
+                highestCompletedIntensity,
+                HazardAccent));
             AppendPlaceholderCards(cards, PlaceholderDrops, highestCompletedIntensity);
             AppendPlaceholderCards(cards, PlaceholderGlitches, highestCompletedIntensity);
             cards.Add(BuildHiddenSlotCard("Future Drop Slot", "Drop", "Hidden", "Future drop signal pending."));
@@ -877,6 +884,11 @@ namespace GetBricked.Gameplay
             }
 
             if (completedIntensity >= BreakoutLevelGlitchPlanner.TurboTaxLadderUnlockIntensity)
+            {
+                count++;
+            }
+
+            if (completedIntensity >= BreakoutLevelGlitchPlanner.WarpJamLadderUnlockIntensity)
             {
                 count++;
             }

@@ -72,6 +72,7 @@ namespace GetBricked.Gameplay
             LevelGlitchSelection.TurboTax,
             LevelGlitchSelection.VhsTear,
             LevelGlitchSelection.WarpGates,
+            LevelGlitchSelection.WarpJam,
         };
 
         private readonly HashSet<string> selectedUpgradeIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);

@@ -14,13 +14,15 @@ namespace GetBricked.Gameplay
         private BreakoutGameController gameController;
         private Func<BreakoutWarpGateSpec, Vector2> resolvePortalPosition;
         private Func<BreakoutWarpGateSpec, Vector2> resolveExitPosition;
+        private BreakoutWarpJamSpec warpJam;
         private bool isRogueGate;
 
         public int PortalCount => portals.Count;
 
-        public void Configure(BreakoutGameController controller)
+        public void Configure(BreakoutGameController controller, BreakoutWarpJamSpec warpJamSpec = default)
         {
             gameController = controller;
+            warpJam = warpJamSpec;
             isRogueGate = false;
             resolvePortalPosition = null;
             resolveExitPosition = null;
@@ -32,6 +34,7 @@ namespace GetBricked.Gameplay
             Func<BreakoutWarpGateSpec, Vector2> exitPositionResolver)
         {
             gameController = controller;
+            warpJam = default;
             isRogueGate = true;
             resolvePortalPosition = portalPositionResolver;
             resolveExitPosition = exitPositionResolver;
@@ -70,7 +73,7 @@ namespace GetBricked.Gameplay
                 return false;
             }
 
-            var target = SelectTargetPortal(source);
+            var target = ApplyWarpJam(source, SelectTargetPortal(source));
 
             if (target == null)
             {
@@ -183,6 +186,71 @@ namespace GetBricked.Gameplay
                 0,
                 candidates.Count - 1);
             return candidates[randomIndex];
+        }
+
+        private BreakoutWarpGatePortal ApplyWarpJam(BreakoutWarpGatePortal source, BreakoutWarpGatePortal linkedTarget)
+        {
+            if (linkedTarget == null || warpJam.WrongExitChance <= 0f)
+            {
+                return linkedTarget;
+            }
+
+            var sourceIndex = portals.IndexOf(source);
+            var linkedTargetIndex = portals.IndexOf(linkedTarget);
+            var jammedIndex = ResolveWarpJamPortalIndex(
+                sourceIndex,
+                linkedTargetIndex,
+                portals.Count,
+                warpJam.WrongExitChance,
+                NextRandomFloat(0f, 1f),
+                NextRandomFloat(0f, 1f));
+
+            return jammedIndex >= 0 && jammedIndex < portals.Count && portals[jammedIndex] != null
+                ? portals[jammedIndex]
+                : linkedTarget;
+        }
+
+        internal static int ResolveWarpJamPortalIndex(
+            int sourceIndex,
+            int linkedTargetIndex,
+            int portalCount,
+            float wrongExitChance,
+            float chanceRoll,
+            float candidateRoll)
+        {
+            if (portalCount < 3
+                || sourceIndex < 0
+                || sourceIndex >= portalCount
+                || linkedTargetIndex < 0
+                || linkedTargetIndex >= portalCount
+                || Mathf.Clamp01(chanceRoll) > Mathf.Clamp01(wrongExitChance))
+            {
+                return linkedTargetIndex;
+            }
+
+            var candidateCount = portalCount - 2;
+            var selectedCandidate = Mathf.Clamp(
+                Mathf.FloorToInt(Mathf.Clamp01(candidateRoll) * candidateCount),
+                0,
+                candidateCount - 1);
+            var candidateIndex = 0;
+
+            for (var index = 0; index < portalCount; index++)
+            {
+                if (index == sourceIndex || index == linkedTargetIndex)
+                {
+                    continue;
+                }
+
+                if (candidateIndex == selectedCandidate)
+                {
+                    return index;
+                }
+
+                candidateIndex++;
+            }
+
+            return linkedTargetIndex;
         }
 
         private Vector2 BuildExitDirection(BreakoutWarpGatePortal target, Vector2 incomingVelocity)

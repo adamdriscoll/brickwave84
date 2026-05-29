@@ -3922,7 +3922,12 @@ namespace GetBricked.Gameplay
 
             runStatsService?.RegisterGlitchEncountered();
 
-            if (activeLevelGlitchPlan.HasGlitch(BreakoutLevelGlitchType.WarpGates))
+            if (activeLevelGlitchPlan.HasGlitch(BreakoutLevelGlitchType.WarpJam))
+            {
+                CreateWarpGates(activeLevelGlitchPlan);
+                powerUpService?.ShowStatusBanner("WARP JAM!", new Color(1f, 0.49f, 0.86f, 1f), 2.2f);
+            }
+            else if (activeLevelGlitchPlan.HasGlitch(BreakoutLevelGlitchType.WarpGates))
             {
                 CreateWarpGates(activeLevelGlitchPlan);
                 powerUpService?.ShowStatusBanner("WARP GATES!", new Color(0.03f, 0.93f, 0.98f, 1f), 2.2f);
@@ -4766,7 +4771,7 @@ namespace GetBricked.Gameplay
             gateRoot.transform.SetParent(glitchesRoot != null ? glitchesRoot : runtimeRoot, false);
 
             activeWarpGateController = gateRoot.AddComponent<BreakoutWarpGateController>();
-            activeWarpGateController.Configure(this);
+            activeWarpGateController.Configure(this, glitchPlan.WarpJam);
 
             for (var index = 0; index < glitchPlan.WarpGates.Length; index++)
             {
@@ -7437,6 +7442,7 @@ namespace GetBricked.Gameplay
                 LevelGlitchSelection.CapsuleBlackout => "Capsule Blackout",
                 LevelGlitchSelection.Brickquake => "Brickquake",
                 LevelGlitchSelection.TurboTax => "Turbo Tax",
+                LevelGlitchSelection.WarpJam => "Warp Jam",
                 _ => "Off",
             };
         }
