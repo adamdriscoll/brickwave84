@@ -407,6 +407,13 @@ namespace GetBricked.Gameplay
                 BreakoutLevelGlitchPlanner.StaticServeLadderUnlockIntensity,
                 highestCompletedIntensity,
                 HazardAccent));
+            cards.Add(BuildUnlockableGlitchCard(
+                "Meltdown Core",
+                "Objective Epic Glitch",
+                "A glowing core brick overclocks the wall until it breaks.",
+                BreakoutLevelGlitchPlanner.MeltdownCoreLadderUnlockIntensity,
+                highestCompletedIntensity,
+                DamageAccent));
             AppendPlaceholderCards(cards, PlaceholderDrops, highestCompletedIntensity);
             AppendPlaceholderCards(cards, PlaceholderGlitches, highestCompletedIntensity);
             cards.Add(BuildHiddenSlotCard("Future Drop Slot", "Drop", "Hidden", "Future drop signal pending."));
@@ -925,6 +932,11 @@ namespace GetBricked.Gameplay
             }
 
             if (completedIntensity >= BreakoutLevelGlitchPlanner.StaticServeLadderUnlockIntensity)
+            {
+                count++;
+            }
+
+            if (completedIntensity >= BreakoutLevelGlitchPlanner.MeltdownCoreLadderUnlockIntensity)
             {
                 count++;
             }

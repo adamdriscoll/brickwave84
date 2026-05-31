@@ -65,6 +65,7 @@ namespace GetBricked.Gameplay
         private const float TurboRailSpeedBurstMaximumMultiplier = 1.85f;
         private const float TurboRailSpeedBurstStackDuration = 1.25f;
         private const float TurboRailSpeedBurstMaximumDuration = 7.5f;
+        private const float MeltdownCorePulseRadius = 0.95f;
         private const int StaticServeRuleCount = 3;
         private const float StaticWallThickness = 0.22f;
         private const float StaticWallBottomInset = 1.15f;
@@ -376,6 +377,8 @@ namespace GetBricked.Gameplay
         private float lockstepRowsLastPaddleX;
         private float nextBrickLockBlockedBannerTime;
         private float nextBrickquakeTriggerTime;
+        private float nextMeltdownCoreBannerTime;
+        private Brick activeMeltdownCoreBrick;
         private BreakoutWarpGateController activeWarpGateController;
         private BreakoutTurboRailSection activeTurboRailSection;
         private BreakoutStaticWallSection activeStaticWallSection;
@@ -667,6 +670,7 @@ namespace GetBricked.Gameplay
                 && scoringBall.IsExplosiveBall
                 && destructionCause == BrickDestructionCause.Impact;
             var explosionCenter = (Vector2)brick.transform.position;
+            var wasMeltdownCore = brick == activeMeltdownCoreBrick;
 
             if (brickService == null || !brickService.RemoveBrick(brick))
             {
@@ -676,6 +680,15 @@ namespace GetBricked.Gameplay
             if (destructionCause == BrickDestructionCause.Impact)
             {
                 TryApplySpeedSteps(scoringBall);
+            }
+
+            if (wasMeltdownCore)
+            {
+                TryClearMeltdownCore(brick);
+            }
+            else
+            {
+                TryApplyMeltdownCoreOverclock(brick, scoringBall);
             }
 
             ResetScoreLeakOnBrickBreak();
@@ -808,6 +821,7 @@ namespace GetBricked.Gameplay
                 brickDefinition,
                 explosionCenter,
                 GetEffectiveSpecialBrickEffectMultiplier());
+            RefreshMeltdownCoreMarks();
             TryTriggerBrickquake(explosionCenter, scoringBall, destructionCause);
 
             TryExpireMirrorServeBall(scoringBall);
@@ -1402,6 +1416,7 @@ namespace GetBricked.Gameplay
             runStatsService?.RegisterBrickHit();
             audioService?.PlayBrickHit(brick?.Definition);
             TryApplySpeedSteps(scoringBall);
+            TryApplyMeltdownCoreOverclock(brick, scoringBall);
             AwardBankBonusIfAvailable(brick != null ? (Vector2)brick.transform.position : Vector2.zero);
             TryTriggerPrismPop(scoringBall, brick != null ? (Vector2)brick.transform.position : Vector2.zero, BrickDestructionCause.Impact);
             TryTriggerGhostRow(brick);
@@ -4033,6 +4048,12 @@ namespace GetBricked.Gameplay
                 powerUpService?.ShowStatusBanner("BRICK LOCK!", new Color(0.03f, 0.93f, 0.98f, 1f), 2.2f);
             }
 
+            if (activeLevelGlitchPlan.HasGlitch(BreakoutLevelGlitchType.MeltdownCore))
+            {
+                ArmMeltdownCore(activeLevelGlitchPlan.MeltdownCore);
+                powerUpService?.ShowStatusBanner("MELTDOWN CORE!", new Color(1f, 0.49f, 0.15f, 1f), 2.2f);
+            }
+
             if (activeLevelGlitchPlan.HasGlitch(BreakoutLevelGlitchType.SpeedSteps))
             {
                 powerUpService?.ShowStatusBanner("SPEED STEPS!", new Color(1f, 0.87f, 0.36f, 1f), 2.2f);
@@ -4188,6 +4209,8 @@ namespace GetBricked.Gameplay
             lastNeonFloodTriggerTime = float.NegativeInfinity;
             laserRainStrikeTimer = 0f;
             nextBrickquakeTriggerTime = 0f;
+            nextMeltdownCoreBannerTime = 0f;
+            activeMeltdownCoreBrick = null;
             cassetteSkipPaddleHits = 0;
             lastStaticServeRuleIndex = -1;
             gravitySwapPullSign = 1f;
@@ -4279,6 +4302,7 @@ namespace GetBricked.Gameplay
             brickService?.ClearFlickerBricks();
             brickService?.ClearBlacklightBricks();
             brickService?.ClearPrismShuffle();
+            ClearMeltdownCoreMarks();
             ClearGravityPocketFromBalls();
             ClearMagnetStormFromPickups();
             ClearSplitHorizonFromBalls();
@@ -4428,6 +4452,147 @@ namespace GetBricked.Gameplay
             brickLockService?.Arm(brickLock, currentLevelRowCount, currentLevelColumnCount);
         }
 
+        private void ArmMeltdownCore(BreakoutMeltdownCoreSpec meltdownCore)
+        {
+            activeMeltdownCoreBrick = ResolveMeltdownCoreBrick(meltdownCore);
+            nextMeltdownCoreBannerTime = 0f;
+            RefreshMeltdownCoreMarks();
+        }
+
+        private Brick ResolveMeltdownCoreBrick(BreakoutMeltdownCoreSpec meltdownCore)
+        {
+            Brick bestBrick = null;
+            var bestDistanceSquared = float.PositiveInfinity;
+            var maxRow = Mathf.Max(1, currentLevelRowCount - 1);
+            var maxColumn = Mathf.Max(1, currentLevelColumnCount - 1);
+            var targetRow = meltdownCore.TargetRow * maxRow;
+            var targetColumn = meltdownCore.TargetColumn * maxColumn;
+
+            for (var index = bricks.Count - 1; index >= 0; index--)
+            {
+                var brick = bricks[index];
+
+                if (brick == null)
+                {
+                    bricks.RemoveAt(index);
+                    continue;
+                }
+
+                if (!IsMeltdownCoreCandidate(brick))
+                {
+                    continue;
+                }
+
+                var state = brick.CaptureState();
+                var rowDistance = state.Row - targetRow;
+                var columnDistance = state.Column - targetColumn;
+                var distanceSquared = (rowDistance * rowDistance) + (columnDistance * columnDistance);
+
+                if (distanceSquared >= bestDistanceSquared)
+                {
+                    continue;
+                }
+
+                bestDistanceSquared = distanceSquared;
+                bestBrick = brick;
+            }
+
+            return bestBrick;
+        }
+
+        private static bool IsMeltdownCoreCandidate(Brick brick)
+        {
+            return brick != null
+                && brick.Definition != null
+                && brick.Definition.IsBreakable
+                && brick.CountsTowardLevelCompletion;
+        }
+
+        private void RefreshMeltdownCoreMarks()
+        {
+            if (activeLevelGlitchPlan == null
+                || !activeLevelGlitchPlan.HasGlitch(BreakoutLevelGlitchType.MeltdownCore)
+                || activeMeltdownCoreBrick == null)
+            {
+                ClearMeltdownCoreMarks();
+                return;
+            }
+
+            for (var index = bricks.Count - 1; index >= 0; index--)
+            {
+                var brick = bricks[index];
+
+                if (brick == null)
+                {
+                    bricks.RemoveAt(index);
+                    continue;
+                }
+
+                if (brick == activeMeltdownCoreBrick)
+                {
+                    brick.SetMeltdownCore(true);
+                    continue;
+                }
+
+                brick.SetMeltdownOverclocked(brick.Definition != null && brick.Definition.IsBreakable);
+            }
+        }
+
+        private void ClearMeltdownCoreMarks()
+        {
+            for (var index = bricks.Count - 1; index >= 0; index--)
+            {
+                var brick = bricks[index];
+
+                if (brick == null)
+                {
+                    bricks.RemoveAt(index);
+                    continue;
+                }
+
+                brick.ClearMeltdownState();
+            }
+        }
+
+        private void TryApplyMeltdownCoreOverclock(Brick brick, BallController scoringBall)
+        {
+            if (brick == null
+                || scoringBall == null
+                || brick.Definition == null
+                || !brick.Definition.IsBreakable
+                || activeMeltdownCoreBrick == null
+                || activeLevelGlitchPlan == null
+                || !activeLevelGlitchPlan.HasGlitch(BreakoutLevelGlitchType.MeltdownCore)
+                || brick == activeMeltdownCoreBrick)
+            {
+                return;
+            }
+
+            var meltdownCore = activeLevelGlitchPlan.MeltdownCore;
+            scoringBall.ApplySpeedBurst(meltdownCore.SpeedBurstMultiplier, meltdownCore.SpeedBurstDurationSeconds);
+
+            if (Time.time < nextMeltdownCoreBannerTime)
+            {
+                return;
+            }
+
+            nextMeltdownCoreBannerTime = Time.time + meltdownCore.BannerCooldownSeconds;
+            powerUpService?.ShowStatusBanner("WALL OVERCLOCK!", new Color(1f, 0.49f, 0.15f, 1f), 0.9f);
+        }
+
+        private void TryClearMeltdownCore(Brick brick)
+        {
+            if (brick == null || brick != activeMeltdownCoreBrick)
+            {
+                return;
+            }
+
+            activeMeltdownCoreBrick = null;
+            ClearMeltdownCoreMarks();
+            SpawnExplosionVisual(brick.transform.position, MeltdownCorePulseRadius);
+            powerUpService?.ShowStatusBanner("CORE COOLED!", new Color(1f, 0.87f, 0.36f, 1f), 1.35f);
+        }
+
         private void ArmGhostRow(BreakoutGhostRowSpec ghostRow)
         {
             ghostRowService?.Arm(ghostRow, currentLevelRowCount);
@@ -4498,6 +4663,7 @@ namespace GetBricked.Gameplay
 
             brickService.BuildBrickWall(rebuildStates);
             ReapplyMotionGlitchesToNewBricks();
+            RefreshMeltdownCoreMarks();
             powerUpService?.ShowStatusBanner("WALL REBUILT!", new Color(0.72f, 0.62f, 1f, 1f), 1.6f);
         }
 
@@ -4600,6 +4766,11 @@ namespace GetBricked.Gameplay
             if (activeLevelGlitchPlan.HasGlitch(BreakoutLevelGlitchType.PrismShuffle))
             {
                 brickService.ApplyPrismShuffle(activeLevelGlitchPlan.PrismShuffle);
+            }
+
+            if (activeLevelGlitchPlan.HasGlitch(BreakoutLevelGlitchType.MeltdownCore))
+            {
+                RefreshMeltdownCoreMarks();
             }
         }
 
@@ -7691,6 +7862,7 @@ namespace GetBricked.Gameplay
                 LevelGlitchSelection.NeonFlood => "Neon Flood",
                 LevelGlitchSelection.LockstepRows => "Lockstep Rows",
                 LevelGlitchSelection.StaticServe => "Static Serve",
+                LevelGlitchSelection.MeltdownCore => "Meltdown Core",
                 _ => "Off",
             };
         }

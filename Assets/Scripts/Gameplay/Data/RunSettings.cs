@@ -77,6 +77,7 @@ namespace GetBricked.Gameplay.Data
         NeonFlood = 41,
         LockstepRows = 42,
         StaticServe = 43,
+        MeltdownCore = 44,
     }
 
     public sealed class RunSettings
@@ -276,6 +277,7 @@ namespace GetBricked.Gameplay.Data
             LevelGlitchSelection.NeonFlood => "Neon Flood Armed",
             LevelGlitchSelection.LockstepRows => "Lockstep Rows Armed",
             LevelGlitchSelection.StaticServe => "Static Serve Armed",
+            LevelGlitchSelection.MeltdownCore => "Meltdown Core Armed",
             _ => "Clean Walls",
         };
 
@@ -286,7 +288,7 @@ namespace GetBricked.Gameplay.Data
             var normalized = (LevelGlitchSelection)Mathf.Clamp(
                     (int)levelGlitchSelection,
                     (int)LevelGlitchSelection.Off,
-                    (int)LevelGlitchSelection.StaticServe);
+                    (int)LevelGlitchSelection.MeltdownCore);
 
             if (!levelGlitchesEnabled && normalized == LevelGlitchSelection.Random)
             {

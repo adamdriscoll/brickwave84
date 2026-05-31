@@ -53,6 +53,7 @@ namespace GetBricked.Gameplay
             LevelGlitchSelection.LaserRain,
             LevelGlitchSelection.LockstepRows,
             LevelGlitchSelection.MagnetStorm,
+            LevelGlitchSelection.MeltdownCore,
             LevelGlitchSelection.MirrorGrid,
             LevelGlitchSelection.MirrorServe,
             LevelGlitchSelection.NeonFlood,

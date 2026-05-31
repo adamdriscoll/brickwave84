@@ -22,6 +22,8 @@ namespace GetBricked.Gameplay
         private BreakoutGlowRenderer glowRenderer;
         private SpriteRenderer prismShuffleRenderer;
         private SpriteRenderer brickLockRenderer;
+        private SpriteRenderer meltdownCoreRenderer;
+        private SpriteRenderer meltdownOverclockRenderer;
         private BoxCollider2D brickCollider;
         private Rigidbody2D brickBody;
         private HingeJoint2D spinJoint;
@@ -55,6 +57,8 @@ namespace GetBricked.Gameplay
         private bool isBlacklightDisguised;
         private bool isPrismShuffleMarked;
         private bool isBrickLockShielded;
+        private bool isMeltdownCore;
+        private bool isMeltdownOverclocked;
         private float prismShuffleRotationSign = 1f;
         private float prismShuffleRotationDegrees;
         private float prismShuffleMinimumHorizontal;
@@ -91,6 +95,10 @@ namespace GetBricked.Gameplay
         public bool IsPrismShuffleMarked => isPrismShuffleMarked;
 
         public bool IsBrickLockShielded => isBrickLockShielded;
+
+        public bool IsMeltdownCore => isMeltdownCore;
+
+        public bool IsMeltdownOverclocked => isMeltdownOverclocked;
 
         public void Initialize(
             BreakoutGameController controller,
@@ -276,6 +284,31 @@ namespace GetBricked.Gameplay
         {
             isBrickLockShielded = shielded && definition != null && definition.IsBreakable;
             RefreshBrickLockVisual();
+        }
+
+        internal void SetMeltdownCore(bool isCore)
+        {
+            isMeltdownCore = isCore && definition != null && definition.IsBreakable;
+
+            if (isMeltdownCore)
+            {
+                isMeltdownOverclocked = false;
+            }
+
+            RefreshMeltdownVisuals();
+        }
+
+        internal void SetMeltdownOverclocked(bool overclocked)
+        {
+            isMeltdownOverclocked = overclocked && !isMeltdownCore && definition != null && definition.IsBreakable;
+            RefreshMeltdownVisuals();
+        }
+
+        internal void ClearMeltdownState()
+        {
+            isMeltdownCore = false;
+            isMeltdownOverclocked = false;
+            RefreshMeltdownVisuals();
         }
 
         private void ApplyVisualStyle(ThemeVisualStyle visualStyle)
@@ -466,6 +499,7 @@ namespace GetBricked.Gameplay
             UpdateJellyWobble();
             UpdatePrismShufflePulse();
             RefreshBrickLockVisual();
+            RefreshMeltdownVisuals();
         }
 
         private void OnCollisionEnter2D(Collision2D collision)
@@ -892,6 +926,7 @@ namespace GetBricked.Gameplay
             glowRenderer?.ApplyColor(resolvedColor);
             RefreshPrismShuffleVisual();
             RefreshBrickLockVisual();
+            RefreshMeltdownVisuals();
         }
 
         private void EnsurePrismShuffleRenderer()
@@ -987,6 +1022,110 @@ namespace GetBricked.Gameplay
             var tint = new Color(0.03f, 0.93f, 0.98f, 0.42f * pulse);
             tint.a *= visibilityMultiplier * transitionVisibilityMultiplier * flickerVisibilityMultiplier * ghostVisibilityMultiplier;
             brickLockRenderer.color = tint;
+        }
+
+        private void EnsureMeltdownCoreRenderer()
+        {
+            if (meltdownCoreRenderer != null || spriteRenderer == null)
+            {
+                return;
+            }
+
+            var coreObject = new GameObject("Meltdown Core Mark");
+            coreObject.transform.SetParent(spriteRenderer.transform, false);
+            coreObject.transform.localPosition = Vector3.zero;
+            coreObject.transform.localRotation = Quaternion.identity;
+            coreObject.transform.localScale = Vector3.one * 1.28f;
+            meltdownCoreRenderer = coreObject.AddComponent<SpriteRenderer>();
+            meltdownCoreRenderer.sharedMaterial = spriteRenderer.sharedMaterial;
+            meltdownCoreRenderer.sortingLayerID = spriteRenderer.sortingLayerID;
+            meltdownCoreRenderer.sortingOrder = spriteRenderer.sortingOrder + 3;
+        }
+
+        private void EnsureMeltdownOverclockRenderer()
+        {
+            if (meltdownOverclockRenderer != null || spriteRenderer == null)
+            {
+                return;
+            }
+
+            var overclockObject = new GameObject("Meltdown Overclock Mark");
+            overclockObject.transform.SetParent(spriteRenderer.transform, false);
+            overclockObject.transform.localPosition = Vector3.zero;
+            overclockObject.transform.localRotation = Quaternion.identity;
+            overclockObject.transform.localScale = Vector3.one * 1.1f;
+            meltdownOverclockRenderer = overclockObject.AddComponent<SpriteRenderer>();
+            meltdownOverclockRenderer.sharedMaterial = spriteRenderer.sharedMaterial;
+            meltdownOverclockRenderer.sortingLayerID = spriteRenderer.sortingLayerID;
+            meltdownOverclockRenderer.sortingOrder = spriteRenderer.sortingOrder + 1;
+        }
+
+        private void RefreshMeltdownVisuals()
+        {
+            RefreshMeltdownCoreVisual();
+            RefreshMeltdownOverclockVisual();
+        }
+
+        private void RefreshMeltdownCoreVisual()
+        {
+            if (!isMeltdownCore || spriteRenderer == null)
+            {
+                if (meltdownCoreRenderer != null)
+                {
+                    meltdownCoreRenderer.enabled = false;
+                }
+
+                return;
+            }
+
+            EnsureMeltdownCoreRenderer();
+
+            if (meltdownCoreRenderer == null)
+            {
+                return;
+            }
+
+            meltdownCoreRenderer.enabled = true;
+            meltdownCoreRenderer.sprite = spriteRenderer.sprite;
+            meltdownCoreRenderer.sortingLayerID = spriteRenderer.sortingLayerID;
+            meltdownCoreRenderer.sortingOrder = spriteRenderer.sortingOrder + 3;
+            var pulse = 0.78f + (Mathf.Sin(Time.time * 10.5f) * 0.2f);
+            meltdownCoreRenderer.transform.localScale = Vector3.one * Mathf.Lerp(1.18f, 1.36f, pulse);
+            var tint = Color.Lerp(
+                new Color(1f, 0.24f, 0.18f, 0.68f),
+                new Color(1f, 0.88f, 0.34f, 0.84f),
+                pulse);
+            tint.a *= visibilityMultiplier * transitionVisibilityMultiplier * flickerVisibilityMultiplier * ghostVisibilityMultiplier;
+            meltdownCoreRenderer.color = tint;
+        }
+
+        private void RefreshMeltdownOverclockVisual()
+        {
+            if (!isMeltdownOverclocked || spriteRenderer == null)
+            {
+                if (meltdownOverclockRenderer != null)
+                {
+                    meltdownOverclockRenderer.enabled = false;
+                }
+
+                return;
+            }
+
+            EnsureMeltdownOverclockRenderer();
+
+            if (meltdownOverclockRenderer == null)
+            {
+                return;
+            }
+
+            meltdownOverclockRenderer.enabled = true;
+            meltdownOverclockRenderer.sprite = spriteRenderer.sprite;
+            meltdownOverclockRenderer.sortingLayerID = spriteRenderer.sortingLayerID;
+            meltdownOverclockRenderer.sortingOrder = spriteRenderer.sortingOrder + 1;
+            var pulse = 0.72f + (Mathf.Sin(Time.time * 7.25f) * 0.14f);
+            var tint = new Color(1f, 0.35f, 0.16f, 0.26f * pulse);
+            tint.a *= visibilityMultiplier * transitionVisibilityMultiplier * flickerVisibilityMultiplier * ghostVisibilityMultiplier;
+            meltdownOverclockRenderer.color = tint;
         }
 
         private void PulsePrismShuffleMark()

@@ -998,6 +998,31 @@ public sealed class BreakoutLevelGlitchPlannerTests
     }
 
     [Test]
+    public void RogueGlitchHeatControlsWhenMeltdownCoreCanUnlock()
+    {
+        var lockedSettings = CreateRogueSettings(
+            rogueIntensity: BreakoutLevelGlitchPlanner.MeltdownCoreLadderUnlockIntensity,
+            levelGlitchSelection: LevelGlitchSelection.MeltdownCore);
+        var unlockedSettings = CreateRogueSettings(
+            rogueIntensity: BreakoutLevelGlitchPlanner.MeltdownCoreLadderUnlockIntensity + 1,
+            levelGlitchSelection: LevelGlitchSelection.MeltdownCore);
+
+        var lockedPlan = BreakoutLevelGlitchPlanner.BuildPlan(new DeterministicRandomService(7), lockedSettings, levelIndex: 9);
+        var unlockedPlan = BreakoutLevelGlitchPlanner.BuildPlan(new DeterministicRandomService(7), unlockedSettings, levelIndex: 9);
+
+        Assert.That(lockedPlan.IsActive, Is.False);
+        Assert.That(unlockedPlan.IsActive, Is.True);
+        Assert.That(unlockedPlan.GlitchType, Is.EqualTo(BreakoutLevelGlitchType.MeltdownCore));
+        Assert.That(unlockedPlan.DisplayName, Is.EqualTo("Meltdown Core"));
+        Assert.That(unlockedPlan.Rarity, Is.EqualTo(BreakoutContentRarity.Epic));
+        Assert.That(unlockedPlan.ScoreMultiplier, Is.EqualTo(1.55f).Within(0.0001f));
+        Assert.That(unlockedPlan.MeltdownCore.TargetRow, Is.InRange(0.2f, 0.72f));
+        Assert.That(unlockedPlan.MeltdownCore.TargetColumn, Is.InRange(0.18f, 0.82f));
+        Assert.That(unlockedPlan.MeltdownCore.SpeedBurstMultiplier, Is.InRange(1.12f, 1.2f));
+        Assert.That(unlockedPlan.MeltdownCore.SpeedBurstDurationSeconds, Is.InRange(1.4f, 2.1f));
+    }
+
+    [Test]
     public void NeonFloodCalculatorRequiresComboSpikeAndCooldown()
     {
         var spec = new BreakoutNeonFloodSpec(4, 1.65f, 0.42f, 0.88f, 1.16f);
@@ -1655,6 +1680,21 @@ public sealed class BreakoutLevelGlitchPlannerTests
     }
 
     [Test]
+    public void SelectedMeltdownCoreAlwaysBuildsMeltdownCoreEvenWhenChanceIsDisabled()
+    {
+        var settings = CreateSettings(
+            levelGlitchesEnabled: true,
+            chanceMultiplier: 0f,
+            levelGlitchSelection: LevelGlitchSelection.MeltdownCore);
+
+        var plan = BreakoutLevelGlitchPlanner.BuildPlan(new DeterministicRandomService(3), settings, levelIndex: 9);
+
+        Assert.That(plan.IsActive, Is.True);
+        Assert.That(plan.GlitchType, Is.EqualTo(BreakoutLevelGlitchType.MeltdownCore));
+        Assert.That(plan.HudLabel, Does.Contain("Meltdown Core"));
+    }
+
+    [Test]
     public void TurboTaxCalculatorPaysFastBreaksAndFlagsSlowHazards()
     {
         var spec = new BreakoutTurboTaxSpec(1.18f, 1.42f, 0.95f, 0.42f);
@@ -2123,6 +2163,41 @@ public sealed class BreakoutLevelGlitchPlannerTests
     }
 
     [Test]
+    public void MeltdownCoreStateSeparatesCoreFromOverclockedBricks()
+    {
+        var definition = ScriptableObject.CreateInstance<BrickDefinition>();
+        var coreObject = new GameObject("Meltdown Core Test");
+        var overclockedObject = new GameObject("Meltdown Overclock Test");
+
+        try
+        {
+            var core = CreateTestBrick(coreObject, definition, row: 0, column: 0);
+            var overclocked = CreateTestBrick(overclockedObject, definition, row: 0, column: 1);
+
+            core.SetMeltdownCore(true);
+            core.SetMeltdownOverclocked(true);
+            overclocked.SetMeltdownOverclocked(true);
+
+            Assert.That(core.IsMeltdownCore, Is.True);
+            Assert.That(core.IsMeltdownOverclocked, Is.False);
+            Assert.That(overclocked.IsMeltdownCore, Is.False);
+            Assert.That(overclocked.IsMeltdownOverclocked, Is.True);
+
+            core.ClearMeltdownState();
+            overclocked.ClearMeltdownState();
+
+            Assert.That(core.IsMeltdownCore, Is.False);
+            Assert.That(overclocked.IsMeltdownOverclocked, Is.False);
+        }
+        finally
+        {
+            Object.DestroyImmediate(coreObject);
+            Object.DestroyImmediate(overclockedObject);
+            Object.DestroyImmediate(definition);
+        }
+    }
+
+    [Test]
     public void BrickFlickerDisablesColliderWhenHidden()
     {
         var definition = ScriptableObject.CreateInstance<BrickDefinition>();
@@ -2442,6 +2517,25 @@ public sealed class BreakoutLevelGlitchPlannerTests
             levelGlitchesEnabled: levelGlitchesEnabled,
             levelGlitchChanceMultiplier: chanceMultiplier,
             levelGlitchSelection: levelGlitchSelection);
+    }
+
+    private static Brick CreateTestBrick(GameObject brickObject, BrickDefinition definition, int row, int column)
+    {
+        brickObject.AddComponent<BoxCollider2D>();
+        var visualObject = new GameObject("Visual");
+        visualObject.transform.SetParent(brickObject.transform, false);
+        visualObject.AddComponent<SpriteRenderer>();
+        var brick = brickObject.AddComponent<Brick>();
+        brick.Initialize(
+            null,
+            definition,
+            1,
+            new ThemeVisualStyle(Color.white, Color.gray, null),
+            0f,
+            Vector2.zero,
+            row,
+            column);
+        return brick;
     }
 
     private static RunSettings CreateRogueSettings(

@@ -108,6 +108,7 @@ public sealed class BreakoutProgressionPageTests
         var warpJam = view.Cards.First(card => card.Title == "Warp Jam");
         var neonFlood = view.Cards.First(card => card.Title == "Neon Flood");
         var lockstepRows = view.Cards.First(card => card.Title == "Lockstep Rows");
+        var meltdownCore = view.Cards.First(card => card.Title == "Meltdown Core");
 
         Assert.That(view.LadderLines, Has.Some.Contains("Heat 06"));
         Assert.That(view.LadderLines.Any(line => line.Contains("Paddle")), Is.False);
@@ -139,6 +140,7 @@ public sealed class BreakoutProgressionPageTests
         Assert.That(warpJam.UnlockHint, Does.Contain("Heat 39"));
         Assert.That(neonFlood.UnlockHint, Does.Contain("Heat 40"));
         Assert.That(lockstepRows.UnlockHint, Does.Contain("Heat 41"));
+        Assert.That(meltdownCore.UnlockHint, Does.Contain("Heat 44"));
     }
 
     [Test]
@@ -201,6 +203,7 @@ public sealed class BreakoutProgressionPageTests
         var turboTax = view.Cards.First(card => card.Title == "Turbo Tax");
         var warpJam = view.Cards.First(card => card.Title == "Warp Jam");
         var neonFlood = view.Cards.First(card => card.Title == "Neon Flood");
+        var meltdownCore = view.Cards.First(card => card.Title == "Meltdown Core");
 
         Assert.That(turboRail.UnlockHint, Does.Contain("Heat 01"));
         Assert.That(mirrorGrid.UnlockHint, Does.Contain("Heat 02"));
@@ -294,6 +297,9 @@ public sealed class BreakoutProgressionPageTests
         Assert.That(neonFlood.UnlockHint, Does.Contain("Heat 40"));
         Assert.That(neonFlood.Description, Does.Contain("combo spikes"));
         Assert.That(neonFlood.Family, Does.Contain("Epic"));
+        Assert.That(meltdownCore.UnlockHint, Does.Contain("Heat 44"));
+        Assert.That(meltdownCore.Description, Does.Contain("overclocks the wall"));
+        Assert.That(meltdownCore.Family, Does.Contain("Epic"));
         var lockstepRows = view.Cards.First(card => card.Title == "Lockstep Rows");
         Assert.That(lockstepRows.UnlockHint, Does.Contain("Heat 41"));
         Assert.That(lockstepRows.Description, Does.Contain("Rows move only"));

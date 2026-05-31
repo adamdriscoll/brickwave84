@@ -171,6 +171,7 @@ public sealed class BreakoutRogueRunTests
             LevelGlitchSelection.LaserRain,
             LevelGlitchSelection.LockstepRows,
             LevelGlitchSelection.MagnetStorm,
+            LevelGlitchSelection.MeltdownCore,
             LevelGlitchSelection.MirrorGrid,
             LevelGlitchSelection.MirrorServe,
             LevelGlitchSelection.NeonFlood,

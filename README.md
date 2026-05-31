@@ -282,7 +282,7 @@ Late drop proposals should keep using mechanics the game already teaches: paddle
 | `Lockstep Rows` | Rows move only when the paddle moves, punishing over-correction. | Heat 41 | Epic | Layout glitch | Implemented |
 | `Static Serve` | Each serve starts with a different rail rule until first brick break. | Heat 42 | Epic | Serve glitch | Implemented |
 | `Blind Bank` | Wall-bounce aim previews vanish, but bank shots score extra. | Heat 43 | Epic | Precision glitch | Not implemented (proposal) |
-| `Meltdown Core` | One glowing core brick overclocks every remaining brick until destroyed. | Heat 44 | Epic | Objective glitch | Not implemented (proposal) |
+| `Meltdown Core` | One glowing core brick overclocks every remaining brick until destroyed. | Heat 44 | Epic | Objective glitch | Implemented |
 | `Phase Storm` | Balls and select bricks phase on alternating beats. | Heat 45 | Epic | Phase glitch | Not implemented (proposal) |
 | `Score Switch` | Score target and clear-all objective swap after a warning timer. | Heat 46 | Epic | Objective glitch | Not implemented (proposal) |
 | `Token Overload` | Every drop splits into a helpful and harmful capsule with different fall speeds. | Heat 47 | Epic | Pickup glitch | Not implemented (proposal) |
