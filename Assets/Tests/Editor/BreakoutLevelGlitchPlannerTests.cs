@@ -1,11 +1,14 @@
 using GetBricked.Gameplay;
 using GetBricked.Gameplay.Data;
 using System.Collections.Generic;
+using System.Reflection;
 using NUnit.Framework;
 using UnityEngine;
 
 public sealed class BreakoutLevelGlitchPlannerTests
 {
+    private const BindingFlags InstanceFlags = BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public;
+
     [Test]
     public void CustomRunsOnlyRollGlitchesWhenEnabled()
     {
@@ -1944,6 +1947,77 @@ public sealed class BreakoutLevelGlitchPlannerTests
     }
 
     [Test]
+    public void BrickMovementBoundsStartAtPaddleTop()
+    {
+        var controllerObject = new GameObject("Brick Bounds Controller");
+        controllerObject.SetActive(false);
+        var paddleObject = new GameObject("Brick Bounds Paddle");
+
+        try
+        {
+            var controller = controllerObject.AddComponent<BreakoutGameController>();
+            var paddleCollider = paddleObject.AddComponent<BoxCollider2D>();
+            paddleObject.transform.position = new Vector2(0f, -3.8f);
+            paddleObject.transform.localScale = new Vector3(2.1f, 0.74f, 1f);
+
+            SetPrivateField(controller, "arenaLeft", -8f);
+            SetPrivateField(controller, "arenaRight", 8f);
+            SetPrivateField(controller, "arenaBottom", -4.6f);
+            SetPrivateField(controller, "arenaTop", 4.6f);
+            SetPrivateField(controller, "paddleCollider", paddleCollider);
+
+            var method = typeof(BreakoutGameController).GetMethod("ResolveBrickMovementBounds", InstanceFlags);
+            Assert.That(method, Is.Not.Null);
+
+            var bounds = (Rect)method.Invoke(controller, null);
+
+            Assert.That(bounds.yMin, Is.EqualTo(paddleCollider.bounds.max.y).Within(0.0001f));
+            Assert.That(bounds.yMax, Is.EqualTo(4.6f).Within(0.0001f));
+        }
+        finally
+        {
+            Object.DestroyImmediate(paddleObject);
+            Object.DestroyImmediate(controllerObject);
+        }
+    }
+
+    [Test]
+    public void BrickServiceClampsCreatedBricksAboveMovementFloor()
+    {
+        var definition = ScriptableObject.CreateInstance<BrickDefinition>();
+        var root = new GameObject("Brick Bounds Test Root");
+        var bricks = new List<Brick>();
+
+        try
+        {
+            var service = new BreakoutBrickService(
+                null,
+                bricks,
+                root.transform,
+                new Vector2(1f, 0.5f),
+                Vector2.zero,
+                null,
+                null,
+                null,
+                () => null,
+                () => Rect.MinMaxRect(-2f, -1f, 2f, 2f),
+                _ => new ThemeVisualStyle(Color.white, Color.gray, null),
+                go => Object.DestroyImmediate(go));
+
+            var brick = service.CreateBrick(new Vector2(0f, -4f), definition, 0, 0, default);
+
+            Assert.That(brick, Is.Not.Null);
+            Assert.That(brick.transform.position.y, Is.EqualTo(-0.75f).Within(0.0001f));
+            Assert.That(brick.GetComponent<Collider2D>().bounds.min.y, Is.GreaterThanOrEqualTo(-1.0001f));
+        }
+        finally
+        {
+            Object.DestroyImmediate(root);
+            Object.DestroyImmediate(definition);
+        }
+    }
+
+    [Test]
     public void BrickquakeNudgePushesClusterBricksWithinConfiguredOffset()
     {
         var spec = new BreakoutBrickquakeSpec(
@@ -2613,6 +2687,13 @@ public sealed class BreakoutLevelGlitchPlannerTests
             row,
             column);
         return brick;
+    }
+
+    private static void SetPrivateField(object instance, string fieldName, object value)
+    {
+        var field = instance.GetType().GetField(fieldName, InstanceFlags);
+        Assert.That(field, Is.Not.Null, $"Missing field '{fieldName}' on {instance.GetType().Name}.");
+        field.SetValue(instance, value);
     }
 
     private static RunSettings CreateRogueSettings(

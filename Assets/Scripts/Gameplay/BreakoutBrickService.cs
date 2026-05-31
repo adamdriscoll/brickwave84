@@ -192,6 +192,8 @@ namespace GetBricked.Gameplay
                 return null;
             }
 
+            position = ClampBrickPositionToMovementBounds(position, definition);
+
             var brickObject = new GameObject($"{definition.DisplayName} {row + 1}-{column + 1}");
             brickObject.transform.SetParent(bricksRoot, false);
             brickObject.transform.position = position;

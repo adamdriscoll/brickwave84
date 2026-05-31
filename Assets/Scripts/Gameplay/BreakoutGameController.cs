@@ -3814,7 +3814,18 @@ namespace GetBricked.Gameplay
 
         private Rect ResolveBrickMovementBounds()
         {
-            return Rect.MinMaxRect(arenaLeft, arenaBottom, arenaRight, arenaTop);
+            var brickFloorY = Mathf.Min(ResolveBrickMovementFloorY(), arenaTop);
+            return Rect.MinMaxRect(arenaLeft, brickFloorY, arenaRight, arenaTop);
+        }
+
+        private float ResolveBrickMovementFloorY()
+        {
+            if (paddleCollider != null)
+            {
+                return paddleCollider.bounds.max.y;
+            }
+
+            return arenaBottom + paddleFloorOffset + (paddleSize.y * 0.5f);
         }
 
         private void CreateActorSpawnServices()
