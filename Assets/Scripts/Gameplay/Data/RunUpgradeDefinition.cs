@@ -30,6 +30,7 @@ namespace GetBricked.Gameplay.Data
         [SerializeField, Min(0)] private int spareFuseSavesPerRun;
         [SerializeField, Min(0)] private int freeMissileShotsPerLevel;
         [SerializeField, Min(0f)] private float riskRebateHelpfulEffectExtensionSeconds;
+        [SerializeField, Min(0)] private int maxActiveHazardTimedEffectStacks;
 
         public string UpgradeId => string.IsNullOrWhiteSpace(upgradeId) ? name : upgradeId.Trim();
 
@@ -76,6 +77,8 @@ namespace GetBricked.Gameplay.Data
         public int FreeMissileShotsPerLevel => Mathf.Max(0, freeMissileShotsPerLevel);
 
         public float RiskRebateHelpfulEffectExtensionSeconds => Mathf.Max(0f, riskRebateHelpfulEffectExtensionSeconds);
+
+        public int MaxActiveHazardTimedEffectStacks => Mathf.Max(0, maxActiveHazardTimedEffectStacks);
 
         public string ResolveIconSpriteResourcePath()
         {

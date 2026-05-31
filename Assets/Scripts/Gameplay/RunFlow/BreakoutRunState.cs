@@ -19,7 +19,8 @@ namespace GetBricked.Gameplay
             int tiltWarningSavesPerLevel,
             int spareFuseSavesPerRun,
             int freeMissileShotsPerLevel,
-            float riskRebateHelpfulEffectExtensionSeconds)
+            float riskRebateHelpfulEffectExtensionSeconds,
+            int maxActiveHazardTimedEffectStacks)
         {
             PaddleWidthMultiplier = paddleWidthMultiplier;
             BallSpeedMultiplier = ballSpeedMultiplier;
@@ -33,6 +34,7 @@ namespace GetBricked.Gameplay
             SpareFuseSavesPerRun = spareFuseSavesPerRun;
             FreeMissileShotsPerLevel = freeMissileShotsPerLevel;
             RiskRebateHelpfulEffectExtensionSeconds = riskRebateHelpfulEffectExtensionSeconds;
+            MaxActiveHazardTimedEffectStacks = maxActiveHazardTimedEffectStacks;
         }
 
         public float PaddleWidthMultiplier { get; }
@@ -58,6 +60,8 @@ namespace GetBricked.Gameplay
         public int FreeMissileShotsPerLevel { get; }
 
         public float RiskRebateHelpfulEffectExtensionSeconds { get; }
+
+        public int MaxActiveHazardTimedEffectStacks { get; }
     }
 
     internal sealed class BreakoutRunState
@@ -253,6 +257,7 @@ namespace GetBricked.Gameplay
             var spareFuseSavesPerRun = 0;
             var freeMissileShotsPerLevel = 0;
             var riskRebateHelpfulEffectExtensionSeconds = 0f;
+            var maxActiveHazardTimedEffectStacks = 0;
 
             for (var index = 0; index < chosenUpgrades.Count; index++)
             {
@@ -275,6 +280,13 @@ namespace GetBricked.Gameplay
                 spareFuseSavesPerRun += upgrade.SpareFuseSavesPerRun;
                 freeMissileShotsPerLevel += upgrade.FreeMissileShotsPerLevel;
                 riskRebateHelpfulEffectExtensionSeconds += upgrade.RiskRebateHelpfulEffectExtensionSeconds;
+
+                if (upgrade.MaxActiveHazardTimedEffectStacks > 0)
+                {
+                    maxActiveHazardTimedEffectStacks = maxActiveHazardTimedEffectStacks <= 0
+                        ? upgrade.MaxActiveHazardTimedEffectStacks
+                        : Mathf.Min(maxActiveHazardTimedEffectStacks, upgrade.MaxActiveHazardTimedEffectStacks);
+                }
             }
 
             return new BreakoutRunUpgradeModifiers(
@@ -289,7 +301,8 @@ namespace GetBricked.Gameplay
                 tiltWarningSavesPerLevel,
                 spareFuseSavesPerRun,
                 freeMissileShotsPerLevel,
-                riskRebateHelpfulEffectExtensionSeconds);
+                riskRebateHelpfulEffectExtensionSeconds,
+                maxActiveHazardTimedEffectStacks);
         }
 
         private void ApplyUpgrade(RunUpgradeDefinition definition)

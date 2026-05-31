@@ -567,6 +567,44 @@ public sealed class BreakoutPowerUpServiceTests
     }
 
     [Test]
+    public void CrowdControlTrimsOldestHazardTimedEffectWhenCapIsExceeded()
+    {
+        var service = CreateService();
+        var wide = CreatePowerUp("Wide Paddle", PowerUpEffectType.PaddleWidthMultiplier, true, 12f, 1.45f);
+        var staticShoes = CreatePowerUp("Static Shoes", PowerUpEffectType.PaddleSpeedMultiplier, false, 8f, 0.6f);
+        var fog = CreatePowerUp("Fog", PowerUpEffectType.FogOfWar, false, 10f, 0.45f);
+        var lagSpike = CreatePowerUp("Lag Spike", PowerUpEffectType.LagSpike, false, 8f, 1f);
+
+        service.ApplyPowerUp(staticShoes, null, maxActiveHazardTimedEffectStacks: 2);
+        service.ApplyPowerUp(wide, null, maxActiveHazardTimedEffectStacks: 2);
+        service.ApplyPowerUp(fog, null, maxActiveHazardTimedEffectStacks: 2);
+        service.ApplyPowerUp(lagSpike, null, maxActiveHazardTimedEffectStacks: 2);
+
+        Assert.That(service.ActiveTimedEffects, Has.Count.EqualTo(3));
+        Assert.That(service.ActiveTimedEffects[0].Definition, Is.SameAs(wide));
+        Assert.That(service.ActiveTimedEffects[1].Definition, Is.SameAs(fog));
+        Assert.That(service.ActiveTimedEffects[2].Definition, Is.SameAs(lagSpike));
+    }
+
+    [Test]
+    public void CrowdControlTrimsOneStackFromOldestStackedHazard()
+    {
+        var service = CreateService();
+        var staticShoes = CreatePowerUp("Static Shoes", PowerUpEffectType.PaddleSpeedMultiplier, false, 8f, 0.6f);
+        var fog = CreatePowerUp("Fog", PowerUpEffectType.FogOfWar, false, 10f, 0.45f);
+
+        service.ApplyPowerUp(staticShoes, null, maxActiveHazardTimedEffectStacks: 2);
+        service.ApplyPowerUp(staticShoes, null, maxActiveHazardTimedEffectStacks: 2);
+        service.ApplyPowerUp(fog, null, maxActiveHazardTimedEffectStacks: 2);
+
+        Assert.That(service.ActiveTimedEffects, Has.Count.EqualTo(2));
+        Assert.That(service.ActiveTimedEffects[0].Definition, Is.SameAs(staticShoes));
+        Assert.That(service.ActiveTimedEffects[0].StackCount, Is.EqualTo(1));
+        Assert.That(service.ActiveTimedEffects[1].Definition, Is.SameAs(fog));
+        Assert.That(service.ActiveTimedEffects[1].StackCount, Is.EqualTo(1));
+    }
+
+    [Test]
     public void BrickBloomStacksAndConsumesOneChargeAtATime()
     {
         var service = CreateService();

@@ -1,0 +1,38 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: aa7a315cf1c5489f8503b6d3309305e1, type: 3}
+  m_Name: CrowdControl
+  m_EditorClassIdentifier: 
+  upgradeId: crowd-control
+  displayName: Crowd Control
+  hudLabel: CROWD
+  iconResourcePath: Sprites/signal-drift
+  description: New timed hazards trim the oldest active hazard stack while 2 hazard stacks are already running.
+  draftWeight: 0.75
+  maxStacks: 1
+  excludedUpgradeIds: []
+  themeSlot: 9
+  accentColor: {r: 0.45, g: 0.95, b: 0.72, a: 1}
+  paddleWidthMultiplier: 1
+  ballSpeedMultiplier: 1
+  dropChanceMultiplier: 1
+  pickupFallSpeedMultiplier: 1
+  wavyPaddleStrength: 0
+  brickMagnetStrength: 0
+  specialBrickEffectMultiplier: 1
+  extraBallsPerServe: 0
+  bonusLives: 0
+  tiltWarningSavesPerLevel: 0
+  spareFuseSavesPerRun: 0
+  freeMissileShotsPerLevel: 0
+  riskRebateHelpfulEffectExtensionSeconds: 0
+  maxActiveHazardTimedEffectStacks: 2

@@ -6,6 +6,7 @@ public sealed class RunUpgradeSpriteHookupTests
 {
     [TestCase("Upgrades/Afterburn", "Sprites/afterburn")]
     [TestCase("Upgrades/BrickMagnet", "Sprites/brick-magnet")]
+    [TestCase("Upgrades/CrowdControl", "Sprites/signal-drift")]
     [TestCase("Upgrades/FluxLine", "Sprites/flux-line")]
     [TestCase("Upgrades/FreeToken", "Sprites/brick-missile-drop")]
     [TestCase("Upgrades/HotShrapnel", "Sprites/hot-shrapnel")]

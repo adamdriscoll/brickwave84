@@ -8504,7 +8504,10 @@ namespace GetBricked.Gameplay
                 return;
             }
 
-            var applicationResult = powerUpService.ApplyPowerUp(powerUpDefinition, themeService);
+            var applicationResult = powerUpService.ApplyPowerUp(
+                powerUpDefinition,
+                themeService,
+                GetPersistentRunUpgradeModifiers().MaxActiveHazardTimedEffectStacks);
 
             if (applicationResult.ShieldWallChargesGranted > 0)
             {
@@ -9867,7 +9870,7 @@ namespace GetBricked.Gameplay
         {
             return activeRunState != null
                 ? activeRunState.CalculateModifiers()
-                : new BreakoutRunUpgradeModifiers(1f, 1f, 1f, 1f, 0f, 0f, 1f, 0, 0, 0, 0, 0f);
+                : new BreakoutRunUpgradeModifiers(1f, 1f, 1f, 1f, 0f, 0f, 1f, 0, 0, 0, 0, 0f, 0);
         }
 
         private int GetEffectiveBallsPerServe()
@@ -10230,6 +10233,11 @@ namespace GetBricked.Gameplay
             if (upgrade.RiskRebateHelpfulEffectExtensionSeconds > 0f)
             {
                 parts.Add($"+{upgrade.RiskRebateHelpfulEffectExtensionSeconds:0.#}s risk rebate");
+            }
+
+            if (upgrade.MaxActiveHazardTimedEffectStacks > 0)
+            {
+                parts.Add($"Hazard stacks max {upgrade.MaxActiveHazardTimedEffectStacks}");
             }
 
             if (upgrade.WavyPaddleStrength > 0.001f)

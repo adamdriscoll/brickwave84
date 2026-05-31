@@ -1028,7 +1028,10 @@ namespace GetBricked.Gameplay
             return null;
         }
 
-        public BreakoutPowerUpApplicationResult ApplyPowerUp(PowerUpDefinition powerUpDefinition, BreakoutThemeService themeService)
+        public BreakoutPowerUpApplicationResult ApplyPowerUp(
+            PowerUpDefinition powerUpDefinition,
+            BreakoutThemeService themeService,
+            int maxActiveHazardTimedEffectStacks = 0)
         {
             if (powerUpDefinition == null)
             {
@@ -1037,14 +1040,14 @@ namespace GetBricked.Gameplay
 
             if (powerUpDefinition.EffectType == PowerUpEffectType.FuseBurst)
             {
-                var stackCount = AddTimedEffect(powerUpDefinition);
+                var stackCount = AddTimedEffect(powerUpDefinition, maxActiveHazardTimedEffectStacks);
                 ShowPickupBanner(powerUpDefinition, themeService, stackCount);
                 return new BreakoutPowerUpApplicationResult(false, 0, shouldTriggerFuseBurst: true);
             }
 
             if (powerUpDefinition.IsTimed)
             {
-                var stackCount = AddTimedEffect(powerUpDefinition);
+                var stackCount = AddTimedEffect(powerUpDefinition, maxActiveHazardTimedEffectStacks);
                 ShowPickupBanner(powerUpDefinition, themeService, stackCount);
                 return default;
             }
@@ -2131,7 +2134,7 @@ namespace GetBricked.Gameplay
             }
         }
 
-        private int AddTimedEffect(PowerUpDefinition powerUpDefinition)
+        private int AddTimedEffect(PowerUpDefinition powerUpDefinition, int maxActiveHazardTimedEffectStacks = 0)
         {
             var durationSeconds = ResolveTimedEffectDuration(powerUpDefinition);
 
@@ -2145,11 +2148,102 @@ namespace GetBricked.Gameplay
                 }
 
                 activeEffect.AddStack(durationSeconds);
-                return activeEffect.StackCount;
+                EnforceActiveHazardTimedEffectStackLimit(maxActiveHazardTimedEffectStacks);
+                return CountActiveTimedEffectStacks(powerUpDefinition);
             }
 
             ActiveTimedEffects.Add(new BreakoutActiveTimedEffect(powerUpDefinition, durationSeconds));
-            return 1;
+            EnforceActiveHazardTimedEffectStackLimit(maxActiveHazardTimedEffectStacks);
+            return CountActiveTimedEffectStacks(powerUpDefinition);
+        }
+
+        private void EnforceActiveHazardTimedEffectStackLimit(int maxActiveHazardTimedEffectStacks)
+        {
+            if (maxActiveHazardTimedEffectStacks <= 0)
+            {
+                return;
+            }
+
+            var activeHazardStacks = CountActiveHazardTimedEffectStacks();
+
+            while (activeHazardStacks > maxActiveHazardTimedEffectStacks)
+            {
+                if (!TrimOldestActiveHazardTimedEffectStack())
+                {
+                    return;
+                }
+
+                activeHazardStacks = CountActiveHazardTimedEffectStacks();
+            }
+        }
+
+        private int CountActiveHazardTimedEffectStacks()
+        {
+            var count = 0;
+
+            for (var index = 0; index < ActiveTimedEffects.Count; index++)
+            {
+                var activeEffect = ActiveTimedEffects[index];
+                var definition = activeEffect?.Definition;
+
+                if (definition == null || definition.IsBeneficial)
+                {
+                    continue;
+                }
+
+                count += Mathf.Max(1, activeEffect.StackCount);
+            }
+
+            return count;
+        }
+
+        private int CountActiveTimedEffectStacks(PowerUpDefinition definition)
+        {
+            if (definition == null)
+            {
+                return 0;
+            }
+
+            for (var index = 0; index < ActiveTimedEffects.Count; index++)
+            {
+                var activeEffect = ActiveTimedEffects[index];
+
+                if (activeEffect?.Definition == definition)
+                {
+                    return activeEffect.StackCount;
+                }
+            }
+
+            return 0;
+        }
+
+        private bool TrimOldestActiveHazardTimedEffectStack()
+        {
+            for (var index = 0; index < ActiveTimedEffects.Count; index++)
+            {
+                var activeEffect = ActiveTimedEffects[index];
+                var definition = activeEffect?.Definition;
+
+                if (definition == null)
+                {
+                    ActiveTimedEffects.RemoveAt(index);
+                    return true;
+                }
+
+                if (definition.IsBeneficial)
+                {
+                    continue;
+                }
+
+                if (!activeEffect.ConsumeStack())
+                {
+                    ActiveTimedEffects.RemoveAt(index);
+                }
+
+                return true;
+            }
+
+            return false;
         }
 
         private float ResolveTimedEffectDuration(PowerUpDefinition powerUpDefinition)

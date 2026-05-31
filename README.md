@@ -12,7 +12,7 @@
   - `4` authored level profiles
   - `9` brick definitions
   - `36` pickup definitions
-  - `8` permanent run upgrades
+  - `13` permanent run upgrades
   - `3` themes
   - `3` authored Rogue paddle definitions (alternate types are currently disabled)
 - Current UI state: runtime OnGUI menus, HUD, pause, upgrade draft, and end-state flow
@@ -140,6 +140,7 @@ Difficulty presets already change more than labels:
   - extra balls on every serve
   - a persistent mild wavy-paddle modifier
   - stronger explosive and split-brick effects
+  - relief valves that cap stacked active timed hazards
 
 ## Content Catalog
 
@@ -315,7 +316,7 @@ Late drop proposals should keep using mechanics the game already teaches: paddle
 | `Warp Handle` | The first portal or wall-glitch exit each level trims ball speed back toward baseline. | Run upgrade | Proposed |
 | `Missile Rack` | Between-stage missile purchases add +2 stock instead of +1 once per draft. | Run upgrade | Proposed |
 | `Prism Warranty` | First sharp-angle brick hit after a glitch grants a short aim preview. | Run upgrade | Proposed |
-| `Crowd Control` | New hazards trim the oldest active hazard when too many hazard stacks are running. | Run upgrade | Proposed |
+| `Crowd Control` | New timed hazards trim the oldest active hazard stack while 2 hazard stacks are already running. | Run upgrade | Implemented |
 | `Heat Sink` | Breaking bricks while the ball is over baseline speed cools active hazards slightly faster. | Run upgrade | Proposed |
 | `Score Buffer` | The first life-loss penalty each level is reduced by the score earned since the last serve. | Run upgrade | Proposed |
 | `Safety Glass` | Shield saves also crack the nearest damaged brick when they trigger. | Run upgrade | Proposed |
