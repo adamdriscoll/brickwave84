@@ -976,6 +976,28 @@ public sealed class BreakoutLevelGlitchPlannerTests
     }
 
     [Test]
+    public void RogueGlitchHeatControlsWhenStaticServeCanUnlock()
+    {
+        var lockedSettings = CreateRogueSettings(
+            rogueIntensity: BreakoutLevelGlitchPlanner.StaticServeLadderUnlockIntensity,
+            levelGlitchSelection: LevelGlitchSelection.StaticServe);
+        var unlockedSettings = CreateRogueSettings(
+            rogueIntensity: BreakoutLevelGlitchPlanner.StaticServeLadderUnlockIntensity + 1,
+            levelGlitchSelection: LevelGlitchSelection.StaticServe);
+
+        var lockedPlan = BreakoutLevelGlitchPlanner.BuildPlan(new DeterministicRandomService(7), lockedSettings, levelIndex: 9);
+        var unlockedPlan = BreakoutLevelGlitchPlanner.BuildPlan(new DeterministicRandomService(7), unlockedSettings, levelIndex: 9);
+
+        Assert.That(lockedPlan.IsActive, Is.False);
+        Assert.That(unlockedPlan.IsActive, Is.True);
+        Assert.That(unlockedPlan.GlitchType, Is.EqualTo(BreakoutLevelGlitchType.StaticServe));
+        Assert.That(unlockedPlan.DisplayName, Is.EqualTo("Static Serve"));
+        Assert.That(unlockedPlan.Rarity, Is.EqualTo(BreakoutContentRarity.Epic));
+        Assert.That(unlockedPlan.ScoreMultiplier, Is.EqualTo(1.5f).Within(0.0001f));
+        Assert.That(unlockedPlan.StaticServe.RuleCount, Is.EqualTo(3));
+    }
+
+    [Test]
     public void NeonFloodCalculatorRequiresComboSpikeAndCooldown()
     {
         var spec = new BreakoutNeonFloodSpec(4, 1.65f, 0.42f, 0.88f, 1.16f);
@@ -1615,6 +1637,21 @@ public sealed class BreakoutLevelGlitchPlannerTests
         Assert.That(plan.IsActive, Is.True);
         Assert.That(plan.GlitchType, Is.EqualTo(BreakoutLevelGlitchType.TurboTax));
         Assert.That(plan.HudLabel, Does.Contain("Turbo Tax"));
+    }
+
+    [Test]
+    public void SelectedStaticServeAlwaysBuildsStaticServeEvenWhenChanceIsDisabled()
+    {
+        var settings = CreateSettings(
+            levelGlitchesEnabled: true,
+            chanceMultiplier: 0f,
+            levelGlitchSelection: LevelGlitchSelection.StaticServe);
+
+        var plan = BreakoutLevelGlitchPlanner.BuildPlan(new DeterministicRandomService(3), settings, levelIndex: 9);
+
+        Assert.That(plan.IsActive, Is.True);
+        Assert.That(plan.GlitchType, Is.EqualTo(BreakoutLevelGlitchType.StaticServe));
+        Assert.That(plan.HudLabel, Does.Contain("Static Serve"));
     }
 
     [Test]

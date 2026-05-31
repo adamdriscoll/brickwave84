@@ -65,6 +65,7 @@ namespace GetBricked.Gameplay
         private const float TurboRailSpeedBurstMaximumMultiplier = 1.85f;
         private const float TurboRailSpeedBurstStackDuration = 1.25f;
         private const float TurboRailSpeedBurstMaximumDuration = 7.5f;
+        private const int StaticServeRuleCount = 3;
         private const float StaticWallThickness = 0.22f;
         private const float StaticWallBottomInset = 1.15f;
         private const float StaticWallTopInset = 0.55f;
@@ -150,6 +151,13 @@ namespace GetBricked.Gameplay
             ReturnToRunSetup,
             ReturnToMainMenu,
             QuitGame,
+        }
+
+        private enum StaticServeRailRule
+        {
+            TurboRail = 0,
+            StaticWall = 1,
+            SwitchbackRails = 2,
         }
 
         private sealed class TemporaryBallLifetime
@@ -381,6 +389,7 @@ namespace GetBricked.Gameplay
         private GameObject activeSplitHorizonField;
         private GameObject activeVhsTearField;
         private GameObject activeStaticJackpotField;
+        private GameObject activeStaticServeRailField;
         private BreakoutMirrorGridVisual activeMirrorGridVisual;
         private bool isMirrorGridArmed;
         private bool hasMirrorGridTriggered;
@@ -394,6 +403,7 @@ namespace GetBricked.Gameplay
         private float scoreLeakAccumulator;
         private float lastNeonFloodTriggerTime = float.NegativeInfinity;
         private int cassetteSkipPaddleHits;
+        private int lastStaticServeRuleIndex = -1;
         private int currentLevelRowCount;
         private int currentLevelColumnCount;
         private bool isDeveloperRunActive;
@@ -718,6 +728,7 @@ namespace GetBricked.Gameplay
             TrySpawnPickup(brick);
             TrySpawnTurboTaxHazardPickup(brick, scoringBall, destructionCause);
             TryTriggerNeonFlood(brick, scoreAward.SlamChainCount);
+            ClearStaticServeRailField(showBanner: true);
 
             if (brick.CountsTowardLevelCompletion)
             {
@@ -3399,6 +3410,7 @@ namespace GetBricked.Gameplay
             RefreshServeBallVisualStyle();
             serveBall.ResetToPaddle();
             activeBalls.Add(serveBall);
+            ArmStaticServeRailForServe();
             BeginServeBallRevealDelayIfNeeded(nextState);
             scoreService?.ResetComboTracking(clearPopups: false);
             powerUpService?.ClearBankBonusCharge();
@@ -4050,6 +4062,11 @@ namespace GetBricked.Gameplay
                 powerUpService?.ShowStatusBanner("LOCKSTEP ROWS!", new Color(0.72f, 0.62f, 1f, 1f), 2.2f);
             }
 
+            if (activeLevelGlitchPlan.HasGlitch(BreakoutLevelGlitchType.StaticServe))
+            {
+                powerUpService?.ShowStatusBanner("STATIC SERVE!", new Color(1f, 0.87f, 0.36f, 1f), 2.2f);
+            }
+
             if (activeLevelGlitchPlan.HasGlitch(BreakoutLevelGlitchType.StaticWall))
             {
                 CreateStaticWall(activeLevelGlitchPlan);
@@ -4172,6 +4189,7 @@ namespace GetBricked.Gameplay
             laserRainStrikeTimer = 0f;
             nextBrickquakeTriggerTime = 0f;
             cassetteSkipPaddleHits = 0;
+            lastStaticServeRuleIndex = -1;
             gravitySwapPullSign = 1f;
             ghostRowService?.Clear();
             rewindWallService?.Clear();
@@ -4249,6 +4267,8 @@ namespace GetBricked.Gameplay
                 DestroyRuntimeObject(activeStaticJackpotField);
                 activeStaticJackpotField = null;
             }
+
+            ClearStaticServeRailField(showBanner: false);
 
             if (activeMirrorGridVisual != null)
             {
@@ -4947,6 +4967,169 @@ namespace GetBricked.Gameplay
                 TurboRailSpeedBurstStackDuration,
                 TurboRailSpeedBurstMaximumDuration,
                 visual);
+        }
+
+        private void ArmStaticServeRailForServe()
+        {
+            ClearStaticServeRailField(showBanner: false);
+
+            if (activeLevelGlitchPlan == null
+                || !activeLevelGlitchPlan.HasGlitch(BreakoutLevelGlitchType.StaticServe)
+                || squareSprite == null)
+            {
+                return;
+            }
+
+            var rule = ResolveNextStaticServeRailRule();
+            activeStaticServeRailField = new GameObject("Static Serve Rails");
+            activeStaticServeRailField.transform.SetParent(glitchesRoot != null ? glitchesRoot : runtimeRoot, false);
+
+            switch (rule)
+            {
+                case StaticServeRailRule.StaticWall:
+                    CreateStaticServeStaticWall(activeStaticServeRailField.transform);
+                    powerUpService?.ShowStatusBanner("STATIC SERVE: WALL!", new Color(0.99f, 0.27f, 0.31f, 1f), 1.45f);
+                    break;
+                case StaticServeRailRule.SwitchbackRails:
+                    CreateStaticServeSwitchbackRails(activeStaticServeRailField.transform);
+                    powerUpService?.ShowStatusBanner("STATIC SERVE: SWITCH!", new Color(0.03f, 0.93f, 0.98f, 1f), 1.45f);
+                    break;
+                default:
+                    CreateStaticServeTurboRail(activeStaticServeRailField.transform);
+                    powerUpService?.ShowStatusBanner("STATIC SERVE: TURBO!", new Color(1f, 0.22f, 0.84f, 1f), 1.45f);
+                    break;
+            }
+        }
+
+        private StaticServeRailRule ResolveNextStaticServeRailRule()
+        {
+            var ruleCount = activeLevelGlitchPlan != null && activeLevelGlitchPlan.StaticServe.RuleCount > 0
+                ? activeLevelGlitchPlan.StaticServe.RuleCount
+                : StaticServeRuleCount;
+            ruleCount = Mathf.Clamp(ruleCount, 1, StaticServeRuleCount);
+
+            if (ruleCount <= 1)
+            {
+                lastStaticServeRuleIndex = 0;
+                return StaticServeRailRule.TurboRail;
+            }
+
+            if (lastStaticServeRuleIndex < 0)
+            {
+                lastStaticServeRuleIndex = Mathf.Clamp(Mathf.FloorToInt(NextGameplayRandomFloat(0f, ruleCount)), 0, ruleCount - 1);
+                return (StaticServeRailRule)lastStaticServeRuleIndex;
+            }
+
+            var step = 1 + Mathf.Clamp(Mathf.FloorToInt(NextGameplayRandomFloat(0f, ruleCount - 1)), 0, ruleCount - 2);
+            lastStaticServeRuleIndex = (lastStaticServeRuleIndex + step) % ruleCount;
+            return (StaticServeRailRule)lastStaticServeRuleIndex;
+        }
+
+        private void CreateStaticServeTurboRail(Transform root)
+        {
+            var spec = new BreakoutTurboRailSpec(
+                ResolveStaticServeRailWall(allowTopRail: true),
+                NextGameplayRandomFloat(0.24f, 0.76f),
+                NextGameplayRandomFloat(0.24f, 0.36f));
+            var railObject = new GameObject("Static Serve Turbo Rail");
+            railObject.transform.SetParent(root, false);
+            railObject.transform.position = ResolveTurboRailPosition(spec);
+
+            var collider = railObject.AddComponent<BoxCollider2D>();
+            collider.size = ResolveTurboRailSize(spec);
+            collider.sharedMaterial = bounceMaterial;
+
+            var visual = railObject.AddComponent<BreakoutTurboRailVisual>();
+            visual.Configure(
+                squareSprite,
+                spriteUnlitMaterial,
+                additiveSpriteMaterial,
+                spec.Wall,
+                collider.size,
+                0);
+
+            var rail = railObject.AddComponent<BreakoutTurboRailSection>();
+            rail.Configure(
+                this,
+                spec.Wall,
+                TurboRailSpeedBurstMultiplier,
+                TurboRailSpeedBurstDuration,
+                TurboRailSpeedBurstStackMultiplier,
+                TurboRailSpeedBurstMaximumMultiplier,
+                TurboRailSpeedBurstStackDuration,
+                TurboRailSpeedBurstMaximumDuration,
+                visual);
+        }
+
+        private void CreateStaticServeStaticWall(Transform root)
+        {
+            var spec = new BreakoutStaticWallSpec(
+                ResolveStaticServeRailWall(allowTopRail: false),
+                NextGameplayRandomFloat(1.7f, 2.25f),
+                NextGameplayRandomFloat(0.58f, 0.82f),
+                NextGameplayRandomFloat(0f, 2.25f));
+            var staticWallObject = new GameObject("Static Serve Wall");
+            staticWallObject.transform.SetParent(root, false);
+            staticWallObject.transform.position = ResolveStaticWallPosition(spec);
+
+            var size = ResolveStaticWallSize();
+            staticWallObject.transform.localScale = new Vector3(size.x, size.y, 1f);
+            var renderer = staticWallObject.AddComponent<SpriteRenderer>();
+            renderer.sprite = squareSprite;
+            renderer.sharedMaterial = additiveSpriteMaterial != null ? additiveSpriteMaterial : spriteUnlitMaterial;
+            renderer.sortingOrder = 12;
+
+            var collider = staticWallObject.AddComponent<BoxCollider2D>();
+            collider.sharedMaterial = bounceMaterial;
+
+            var staticWall = staticWallObject.AddComponent<BreakoutStaticWallSection>();
+            staticWall.Configure(
+                this,
+                spec.Wall,
+                renderer,
+                size,
+                spec.WeakCycleSeconds,
+                spec.WeakDurationSeconds,
+                spec.PhaseOffsetSeconds);
+        }
+
+        private void CreateStaticServeSwitchbackRails(Transform root)
+        {
+            var spec = new BreakoutSwitchbackRailSpec(
+                NextGameplayRandomFloat(0.38f, 0.7f),
+                NextGameplayRandomFloat(0.28f, 0.42f),
+                NextGameplayRandomFloat(2f, 2.75f),
+                NextGameplayRandomFloat(0f, 2.75f));
+            CreateSwitchbackRail(root, 0, BreakoutWarpGateWall.Left, spec);
+            CreateSwitchbackRail(root, 1, BreakoutWarpGateWall.Right, spec);
+        }
+
+        private BreakoutWarpGateWall ResolveStaticServeRailWall(bool allowTopRail)
+        {
+            var wallCount = allowTopRail ? 3 : 2;
+            var wallIndex = Mathf.Clamp(Mathf.FloorToInt(NextGameplayRandomFloat(0f, wallCount)), 0, wallCount - 1);
+            return wallIndex switch
+            {
+                1 => BreakoutWarpGateWall.Right,
+                2 => BreakoutWarpGateWall.Top,
+                _ => BreakoutWarpGateWall.Left,
+            };
+        }
+
+        private void ClearStaticServeRailField(bool showBanner)
+        {
+            if (activeStaticServeRailField == null)
+            {
+                return;
+            }
+
+            DestroyRuntimeObject(activeStaticServeRailField);
+            activeStaticServeRailField = null;
+
+            if (showBanner)
+            {
+                powerUpService?.ShowStatusBanner("STATIC CLEARED!", new Color(0.72f, 0.62f, 1f, 1f), 0.9f);
+            }
         }
 
         private Vector2 ResolveTurboRailPosition(BreakoutTurboRailSpec spec)
@@ -7507,6 +7690,7 @@ namespace GetBricked.Gameplay
                 LevelGlitchSelection.WarpJam => "Warp Jam",
                 LevelGlitchSelection.NeonFlood => "Neon Flood",
                 LevelGlitchSelection.LockstepRows => "Lockstep Rows",
+                LevelGlitchSelection.StaticServe => "Static Serve",
                 _ => "Off",
             };
         }

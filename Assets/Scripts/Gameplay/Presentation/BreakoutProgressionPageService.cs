@@ -400,6 +400,13 @@ namespace GetBricked.Gameplay
                 BreakoutLevelGlitchPlanner.LockstepRowsLadderUnlockIntensity,
                 highestCompletedIntensity,
                 LayoutAccent));
+            cards.Add(BuildUnlockableGlitchCard(
+                "Static Serve",
+                "Serve Epic Glitch",
+                "Each serve opens with a shifting rail rule until the first brick break.",
+                BreakoutLevelGlitchPlanner.StaticServeLadderUnlockIntensity,
+                highestCompletedIntensity,
+                HazardAccent));
             AppendPlaceholderCards(cards, PlaceholderDrops, highestCompletedIntensity);
             AppendPlaceholderCards(cards, PlaceholderGlitches, highestCompletedIntensity);
             cards.Add(BuildHiddenSlotCard("Future Drop Slot", "Drop", "Hidden", "Future drop signal pending."));
@@ -913,6 +920,11 @@ namespace GetBricked.Gameplay
             }
 
             if (completedIntensity >= BreakoutLevelGlitchPlanner.LockstepRowsLadderUnlockIntensity)
+            {
+                count++;
+            }
+
+            if (completedIntensity >= BreakoutLevelGlitchPlanner.StaticServeLadderUnlockIntensity)
             {
                 count++;
             }

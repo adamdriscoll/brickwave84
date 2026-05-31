@@ -76,6 +76,7 @@ namespace GetBricked.Gameplay.Data
         WarpJam = 40,
         NeonFlood = 41,
         LockstepRows = 42,
+        StaticServe = 43,
     }
 
     public sealed class RunSettings
@@ -274,6 +275,7 @@ namespace GetBricked.Gameplay.Data
             LevelGlitchSelection.WarpJam => "Warp Jam Armed",
             LevelGlitchSelection.NeonFlood => "Neon Flood Armed",
             LevelGlitchSelection.LockstepRows => "Lockstep Rows Armed",
+            LevelGlitchSelection.StaticServe => "Static Serve Armed",
             _ => "Clean Walls",
         };
 
@@ -284,7 +286,7 @@ namespace GetBricked.Gameplay.Data
             var normalized = (LevelGlitchSelection)Mathf.Clamp(
                     (int)levelGlitchSelection,
                     (int)LevelGlitchSelection.Off,
-                    (int)LevelGlitchSelection.LockstepRows);
+                    (int)LevelGlitchSelection.StaticServe);
 
             if (!levelGlitchesEnabled && normalized == LevelGlitchSelection.Random)
             {
