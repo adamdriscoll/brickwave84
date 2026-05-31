@@ -16,7 +16,8 @@ namespace GetBricked.Gameplay
             float brickMagnetStrength,
             float specialBrickEffectMultiplier,
             int extraBallsPerServe,
-            int tiltWarningSavesPerLevel)
+            int tiltWarningSavesPerLevel,
+            int spareFuseSavesPerRun)
         {
             PaddleWidthMultiplier = paddleWidthMultiplier;
             BallSpeedMultiplier = ballSpeedMultiplier;
@@ -27,6 +28,7 @@ namespace GetBricked.Gameplay
             SpecialBrickEffectMultiplier = specialBrickEffectMultiplier;
             ExtraBallsPerServe = extraBallsPerServe;
             TiltWarningSavesPerLevel = tiltWarningSavesPerLevel;
+            SpareFuseSavesPerRun = spareFuseSavesPerRun;
         }
 
         public float PaddleWidthMultiplier { get; }
@@ -46,6 +48,8 @@ namespace GetBricked.Gameplay
         public int ExtraBallsPerServe { get; }
 
         public int TiltWarningSavesPerLevel { get; }
+
+        public int SpareFuseSavesPerRun { get; }
     }
 
     internal sealed class BreakoutRunState
@@ -238,6 +242,7 @@ namespace GetBricked.Gameplay
             var specialBrickEffectMultiplier = 1f;
             var extraBallsPerServe = 0;
             var tiltWarningSavesPerLevel = 0;
+            var spareFuseSavesPerRun = 0;
 
             for (var index = 0; index < chosenUpgrades.Count; index++)
             {
@@ -257,6 +262,7 @@ namespace GetBricked.Gameplay
                 specialBrickEffectMultiplier *= upgrade.SpecialBrickEffectMultiplier;
                 extraBallsPerServe += upgrade.ExtraBallsPerServe;
                 tiltWarningSavesPerLevel += upgrade.TiltWarningSavesPerLevel;
+                spareFuseSavesPerRun += upgrade.SpareFuseSavesPerRun;
             }
 
             return new BreakoutRunUpgradeModifiers(
@@ -268,7 +274,8 @@ namespace GetBricked.Gameplay
                 brickMagnetStrength,
                 specialBrickEffectMultiplier,
                 extraBallsPerServe,
-                tiltWarningSavesPerLevel);
+                tiltWarningSavesPerLevel,
+                spareFuseSavesPerRun);
         }
 
         private void ApplyUpgrade(RunUpgradeDefinition definition)

@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
+  <title id="title">Spare Fuse</title>
+  <desc id="desc">A monochrome neon icon showing a spare arcade fuse sparking back to life.</desc>
+  <defs>
+    <filter id="softGlow" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="2.25" result="blur"/>
+      <feColorMatrix in="blur" type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 .8 0" result="glow"/>
+      <feMerge><feMergeNode in="glow"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <style><![CDATA[
+      .icon{fill:none;stroke:#fff;stroke-linecap:round;stroke-linejoin:round;filter:url(#softGlow)}
+      .main{stroke-width:12;opacity:.96}
+      .mid{stroke-width:8;opacity:.78}
+      .thin{stroke-width:4;opacity:.38}
+      .core{fill:#fff;stroke:none;opacity:.92;filter:url(#softGlow)}
+      .spark{fill:#fff;stroke:none;opacity:.72;filter:url(#softGlow)}
+    ]]></style>
+  </defs>
+  <g class="icon">
+    <path class="main" d="M61 97 C61 80 75 66 92 66 H164 C181 66 195 80 195 97 V159 C195 176 181 190 164 190 H92 C75 190 61 176 61 159 Z"/>
+    <path class="mid" d="M81 97 V78 M175 97 V78 M81 159 V178 M175 159 V178"/>
+    <path class="mid" d="M93 128 H116 L104 160 L153 111 H130 L142 82 Z"/>
+    <path class="thin" d="M45 128 H24 M232 128 H211"/>
+    <path class="thin" d="M128 45 V24 M128 232 V211"/>
+    <path class="mid" d="M195 82 L217 60 M195 174 L217 196 M61 82 L39 60 M61 174 L39 196"/>
+    <circle class="core" cx="128" cy="128" r="9"/>
+    <circle class="spark" cx="217" cy="60" r="6"/>
+    <circle class="spark" cx="39" cy="196" r="5"/>
+    <path class="thin" d="M98 46 C113 35 142 35 158 46"/>
+    <path class="thin" d="M98 210 C113 221 142 221 158 210"/>
+  </g>
+</svg>

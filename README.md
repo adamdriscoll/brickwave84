@@ -301,7 +301,7 @@ Late drop proposals should keep using mechanics the game already teaches: paddle
 | `Split Serve` | Every new serve launches an extra ball, letting the run snowball faster between resets. | Run upgrade | Implemented |
 | `Wide Loader` | Your paddle chassis expands for the rest of the run, opening more forgiving save angles. | Run upgrade | Implemented |
 | `Brick Magnet` | Balls tug slightly toward uncleared brick clusters, helping dead runs find action faster. | Run upgrade | Implemented |
-| `Spare Fuse` | The first time you would lose your last life, the cabinet pops a fuse and saves the run once. | Run upgrade | Proposed |
+| `Spare Fuse` | The first time you would lose your last life, the cabinet pops a fuse and saves the run once. | Run upgrade | Implemented |
 | `Combo Cassette` | Consecutive brick breaks build a louder score streak before cooling off between slow moments. | Run upgrade | Proposed |
 | `Punch Card` | Every few bricks broken stamps the card and triggers a small bonus payout. | Run upgrade | Proposed |
 | `Hot Shrapnel` | Explosive and split brick effects hit a little harder for the rest of the run. | Run upgrade | Implemented |

@@ -91,6 +91,7 @@ namespace GetBricked.Gameplay
         private const int AutoSaveScoreCostIncreasePerHeat = 1000;
         private const int AutoSaveMaximumRogueHeat = 40;
         private const float AutoSaveBurstDurationSeconds = 2.6f;
+        private const float SpareFuseBurstDurationSeconds = 2.4f;
         private const float TiltWarningNearMissPaddleWidthMultiplier = 1.55f;
         private const float TiltWarningRescueHeightPadding = 0.16f;
         private const float TiltNudgeHorizontalStrength = 0.24f;
@@ -316,9 +317,12 @@ namespace GetBricked.Gameplay
         private int lifeLossCount;
         private int score;
         private float autoSaveBurstTimer;
+        private float spareFuseBurstTimer;
         private bool lastLifeLossUsedAutoSave;
+        private bool lastLifeLossUsedSpareFuse;
         private int lastAutoSaveScoreCost = AutoSaveBaseScoreCost;
         private int tiltWarningSavesRemaining;
+        private int spareFuseSavesUsed;
         private int requiredBricksRemaining;
         private float arenaLeft;
         private float arenaRight;
@@ -548,6 +552,7 @@ namespace GetBricked.Gameplay
             UpdateLaserRain();
             UpdatePickupBanner();
             UpdateAutoSaveBurst();
+            UpdateSpareFuseBurst();
             UpdateTiltAlarmState();
             TrackRunStatsFrame();
             audioService?.Update(Time.unscaledDeltaTime);
@@ -1008,11 +1013,23 @@ namespace GetBricked.Gameplay
             audioService?.PlayBallLost(hasOtherActiveBalls: false);
 
             lastLifeLossUsedAutoSave = false;
+            lastLifeLossUsedSpareFuse = false;
             livesRemaining = Mathf.Max(0, livesRemaining - 1);
             runStatsService?.RegisterLifeLost();
 
             if (livesRemaining <= 0)
             {
+                if (TryApplySpareFuse())
+                {
+                    if (!isServeBall)
+                    {
+                        DestroyRuntimeObject(lostBall.gameObject);
+                    }
+
+                    PrepareServe(RoundState.LifeLost);
+                    return;
+                }
+
                 if (TryApplyAutoSave())
                 {
                     if (!isServeBall)
@@ -1553,8 +1570,11 @@ namespace GetBricked.Gameplay
             score = 0;
             availableMissiles = StartingMissileCount;
             autoSaveBurstTimer = 0f;
+            spareFuseBurstTimer = 0f;
             lastLifeLossUsedAutoSave = false;
+            lastLifeLossUsedSpareFuse = false;
             tiltWarningSavesRemaining = 0;
+            spareFuseSavesUsed = 0;
             tiltAlarmState.Reset();
             activeRunResultRecorded = false;
             activeSoloMarathonResultRecorded = false;
@@ -6633,6 +6653,7 @@ namespace GetBricked.Gameplay
             uiRenderer.DrawRunUpgradePanel(BuildRunUpgradePanelView());
             uiRenderer.DrawCapsuleMadness(BuildCapsuleMadnessView(gameplayChromeView.PlayfieldRect));
             uiRenderer.DrawAutoSaveBurst(BuildAutoSaveBurstView(gameplayChromeView.PlayfieldRect));
+            uiRenderer.DrawAutoSaveBurst(BuildSpareFuseBurstView(gameplayChromeView.PlayfieldRect));
             uiRenderer.DrawFloatingScorePopups(scoreService?.BuildFloatingScoreViews(activeCamera, Screen.height) ?? Array.Empty<BreakoutUiFloatingScoreView>());
 
             if (isDiagnosticsOverlayVisible)
@@ -7468,6 +7489,18 @@ namespace GetBricked.Gameplay
             };
         }
 
+        private BreakoutUiCapsuleMadnessView BuildSpareFuseBurstView(Rect playfieldRect)
+        {
+            return new BreakoutUiCapsuleMadnessView
+            {
+                Text = "Spare Fuse!!",
+                PlayfieldRect = playfieldRect,
+                Timer = spareFuseBurstTimer,
+                Duration = SpareFuseBurstDurationSeconds,
+                Color = ResolveSpareFuseColor(),
+            };
+        }
+
         private string[] BuildOverlayActionLabels(OverlayAction[] actions)
         {
             var labels = new string[actions.Length];
@@ -7667,6 +7700,11 @@ namespace GetBricked.Gameplay
                     return BuildAutoSaveLifeLossSummary();
                 }
 
+                if (lastLifeLossUsedSpareFuse)
+                {
+                    return BuildSpareFuseLifeLossSummary();
+                }
+
                 return UsesHighScoreMode() && !UsesFiniteHighScoreLives()
                     ? $"Ball lost. -{GetLifeLossScorePenalty():0000} score. Losses {lifeLossCount:00}. Press Space to serve again. Up/Down tunes speed."
                     : $"Life lost. -{GetLifeLossScorePenalty():0000} score. {livesRemaining} remaining. Press Space to serve again. Up/Down tunes speed.";
@@ -7675,6 +7713,11 @@ namespace GetBricked.Gameplay
             if (lastLifeLossUsedAutoSave)
             {
                 return BuildAutoSaveLifeLossSummary();
+            }
+
+            if (lastLifeLossUsedSpareFuse)
+            {
+                return BuildSpareFuseLifeLossSummary();
             }
 
             return UsesHighScoreMode() && !UsesFiniteHighScoreLives()
@@ -7699,6 +7742,11 @@ namespace GetBricked.Gameplay
         private string BuildAutoSaveLifeLossSummary()
         {
             return $"AUTO SAVE! -{lastAutoSaveScoreCost:0000} points. Extra ball loaded. Press Space to serve again. Up/Down tunes speed.";
+        }
+
+        private static string BuildSpareFuseLifeLossSummary()
+        {
+            return "SPARE FUSE! The cabinet saved your last ball. Press Space to serve again. Up/Down tunes speed.";
         }
 
         private string BuildPauseSummaryLabel()
@@ -8082,6 +8130,16 @@ namespace GetBricked.Gameplay
             }
 
             autoSaveBurstTimer = Mathf.Max(0f, autoSaveBurstTimer - Time.unscaledDeltaTime);
+        }
+
+        private void UpdateSpareFuseBurst()
+        {
+            if (spareFuseBurstTimer <= 0f)
+            {
+                return;
+            }
+
+            spareFuseBurstTimer = Mathf.Max(0f, spareFuseBurstTimer - Time.unscaledDeltaTime);
         }
 
         private void TrySpawnPickup(Brick brick)
@@ -8580,6 +8638,21 @@ namespace GetBricked.Gameplay
             lastAutoSaveScoreCost = autoSaveCost;
             autoSaveBurstTimer = AutoSaveBurstDurationSeconds;
             powerUpService?.ShowStatusBanner($"AUTO SAVE -{autoSaveCost:0000}", ResolveAutoSaveColor(), AutoSaveBurstDurationSeconds);
+            return true;
+        }
+
+        private bool TryApplySpareFuse()
+        {
+            if (GetRemainingSpareFuseSaves() <= 0)
+            {
+                return false;
+            }
+
+            spareFuseSavesUsed += 1;
+            livesRemaining += 1;
+            lastLifeLossUsedSpareFuse = true;
+            spareFuseBurstTimer = SpareFuseBurstDurationSeconds;
+            powerUpService?.ShowStatusBanner("SPARE FUSE!", ResolveSpareFuseColor(), SpareFuseBurstDurationSeconds);
             return true;
         }
 
@@ -9341,6 +9414,7 @@ namespace GetBricked.Gameplay
         {
             return nextState == RoundState.LifeLost
                 && !lastLifeLossUsedAutoSave
+                && !lastLifeLossUsedSpareFuse
                 && !(UsesHighScoreMode() && !UsesFiniteHighScoreLives())
                 && (activeRunSettings == null || !activeRunSettings.IsTurnBasedMode);
         }
@@ -9613,6 +9687,17 @@ namespace GetBricked.Gameplay
                 : new Color(0.45f, 0.95f, 0.72f, 1f);
         }
 
+        private Color ResolveSpareFuseColor()
+        {
+            return themeService != null
+                ? themeService.ResolveThemeStyle(
+                    ThemeVisualSlot.PickupBurst,
+                    new Color(1f, 0.87f, 0.36f, 1f),
+                    new Color(1f, 0.87f, 0.36f, 1f),
+                    squareSprite).PrimaryColor
+                : new Color(1f, 0.87f, 0.36f, 1f);
+        }
+
         private Color ResolveTiltWarningColor()
         {
             return themeService != null
@@ -9754,7 +9839,7 @@ namespace GetBricked.Gameplay
         {
             return activeRunState != null
                 ? activeRunState.CalculateModifiers()
-                : new BreakoutRunUpgradeModifiers(1f, 1f, 1f, 1f, 0f, 0f, 1f, 0, 0);
+                : new BreakoutRunUpgradeModifiers(1f, 1f, 1f, 1f, 0f, 0f, 1f, 0, 0, 0);
         }
 
         private int GetEffectiveBallsPerServe()
@@ -9767,6 +9852,11 @@ namespace GetBricked.Gameplay
         private int GetEffectiveTiltWarningSavesPerLevel()
         {
             return Mathf.Clamp(GetPersistentRunUpgradeModifiers().TiltWarningSavesPerLevel, 0, 3);
+        }
+
+        private int GetRemainingSpareFuseSaves()
+        {
+            return Mathf.Clamp(GetPersistentRunUpgradeModifiers().SpareFuseSavesPerRun - spareFuseSavesUsed, 0, 3);
         }
 
         private float GetEffectiveDropChanceMultiplier()
@@ -10087,6 +10177,11 @@ namespace GetBricked.Gameplay
             if (upgrade.BonusLives > 0)
             {
                 parts.Add($"+{upgrade.BonusLives} life");
+            }
+
+            if (upgrade.SpareFuseSavesPerRun > 0)
+            {
+                parts.Add($"Last-life save x{upgrade.SpareFuseSavesPerRun}");
             }
 
             if (upgrade.WavyPaddleStrength > 0.001f)

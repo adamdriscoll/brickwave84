@@ -1312,6 +1312,78 @@ public sealed class BreakoutGameControllerPowerUpTests
     }
 
     [Test]
+    public void SpareFuseSavesLastLifeBeforePaidAutoSave()
+    {
+        var controller = CreateControllerHarness(out var paddle);
+        var serveBall = CreateBallHarness(controller, paddle);
+        var activeRunState = new BreakoutRunState();
+        var spareFuse = CreateRunUpgrade("spare-fuse", 1f, spareFuseSavesPerRun: 1);
+        activeRunState.SetPendingDraftOffers(new[] { BreakoutRunDraftOffer.FromRunUpgrade(spareFuse) });
+        Assert.That(activeRunState.TryApplyPendingDraftOffer(0, out _), Is.True);
+
+        SetPrivateField(
+            controller,
+            "activeRunSettings",
+            new RunSettings(
+                1234,
+                RunDifficultyPreset.Standard,
+                RunScoringMode.Classic,
+                3,
+                500,
+                1,
+                1f,
+                1f,
+                1f,
+                1f,
+                DropPoolMode.Mixed,
+                false,
+                null,
+                RunGameMode.Rogue,
+                rogueIntensity: 10));
+        SetPrivateField(controller, "activeRunState", activeRunState);
+        SetPrivateField(controller, "serveBall", serveBall);
+        SetPrivateField(controller, "livesRemaining", 1);
+        SetPrivateField(controller, "score", 10000);
+        GetPrivateField<List<BallController>>(controller, "activeBalls").Add(serveBall);
+        SetPrivateEnumField(controller, "roundState", "Playing");
+
+        controller.HandleBallLost(serveBall);
+
+        Assert.That(GetPrivateField<int>(controller, "livesRemaining"), Is.EqualTo(1));
+        Assert.That(GetPrivateField<int>(controller, "score"), Is.EqualTo(10000));
+        Assert.That(GetPrivateField<bool>(controller, "lastLifeLossUsedSpareFuse"), Is.True);
+        Assert.That(GetPrivateField<bool>(controller, "lastLifeLossUsedAutoSave"), Is.False);
+        Assert.That(GetPrivateField<int>(controller, "spareFuseSavesUsed"), Is.EqualTo(1));
+        Assert.That(GetPrivateField<float>(controller, "spareFuseBurstTimer"), Is.GreaterThan(0f));
+        Assert.That(GetPrivateField<object>(controller, "roundState").ToString(), Is.EqualTo("LifeLost"));
+    }
+
+    [Test]
+    public void SpareFuseDoesNotSaveLastLifeAfterChargeIsSpent()
+    {
+        var controller = CreateControllerHarness(out var paddle);
+        var serveBall = CreateBallHarness(controller, paddle);
+        var activeRunState = new BreakoutRunState();
+        var spareFuse = CreateRunUpgrade("spare-fuse", 1f, spareFuseSavesPerRun: 1);
+        activeRunState.SetPendingDraftOffers(new[] { BreakoutRunDraftOffer.FromRunUpgrade(spareFuse) });
+        Assert.That(activeRunState.TryApplyPendingDraftOffer(0, out _), Is.True);
+
+        SetPrivateField(controller, "activeRunState", activeRunState);
+        SetPrivateField(controller, "spareFuseSavesUsed", 1);
+        SetPrivateField(controller, "serveBall", serveBall);
+        SetPrivateField(controller, "livesRemaining", 1);
+        SetPrivateField(controller, "score", 0);
+        GetPrivateField<List<BallController>>(controller, "activeBalls").Add(serveBall);
+        SetPrivateEnumField(controller, "roundState", "Playing");
+
+        controller.HandleBallLost(serveBall);
+
+        Assert.That(GetPrivateField<int>(controller, "livesRemaining"), Is.Zero);
+        Assert.That(GetPrivateField<bool>(controller, "lastLifeLossUsedSpareFuse"), Is.False);
+        Assert.That(GetPrivateField<object>(controller, "roundState").ToString(), Is.EqualTo("GameOver"));
+    }
+
+    [Test]
     public void AutoSaveEligibilityExtendsThroughHeatFortyAndScalesCost()
     {
         var earlyHeat = new RunSettings(1234, RunDifficultyPreset.Standard, RunScoringMode.Classic, 3, 500, 1, 1f, 1f, 1f, 1f, DropPoolMode.Mixed, false, null, RunGameMode.Rogue, rogueIntensity: 10);
@@ -1681,7 +1753,8 @@ public sealed class BreakoutGameControllerPowerUpTests
     private RunUpgradeDefinition CreateRunUpgrade(
         string upgradeId,
         float specialBrickEffectMultiplier,
-        int tiltWarningSavesPerLevel = 0)
+        int tiltWarningSavesPerLevel = 0,
+        int spareFuseSavesPerRun = 0)
     {
         var upgrade = ScriptableObject.CreateInstance<RunUpgradeDefinition>();
         runtimeObjects.Add(upgrade);
@@ -1691,6 +1764,7 @@ public sealed class BreakoutGameControllerPowerUpTests
         SetPrivateField(upgrade, "maxStacks", 1);
         SetPrivateField(upgrade, "specialBrickEffectMultiplier", specialBrickEffectMultiplier);
         SetPrivateField(upgrade, "tiltWarningSavesPerLevel", tiltWarningSavesPerLevel);
+        SetPrivateField(upgrade, "spareFuseSavesPerRun", spareFuseSavesPerRun);
         return upgrade;
     }
 
