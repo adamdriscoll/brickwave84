@@ -240,54 +240,54 @@ Late drop proposals should keep using mechanics the game already teaches: paddle
 | Name | Description | Default / unlock Heat | Rarity | Type | Implementation |
 | --- | --- | --- | --- | --- | --- |
 | `Warp Gates` | Linked portals reroute ball paths. | Default | Common | Level glitch | Implemented |
-| `Turbo Rail` | A hot wall rail accelerates rebounds. | Heat 01 | Rare | Level glitch | Implemented |
+| `Turbo Rail` | A hot wall rail accelerates rebounds. | Heat 01 | Uncommon | Level glitch | Implemented |
 | `Mirror Grid` | Brick layout mirrors horizontally halfway through the stage. | Heat 02 | Rare | Layout glitch | Implemented |
-| `Token Storm` | More capsules spawn, but fall at mixed speeds. | Heat 03 | Epic | Pickup glitch | Implemented |
-| `Gravity Pocket` | A slow drifting pocket bends nearby ball paths. | Heat 04 | Epic | Speed glitch | Implemented |
-| `Static Wall` | One side wall flickers between normal and weak bounce. | Heat 05 | Epic | Paddle glitch | Implemented |
-| `Row Rewrite` | One row rerolls into a new brick pattern after a timer. | Heat 06 | Rare | Layout glitch | Implemented |
-| `Prism Lanes` | Marked lanes refract the ball into sharper angles. | Heat 07 | Rare | Precision glitch | Implemented |
+| `Token Storm` | More capsules spawn, but fall at mixed speeds. | Heat 03 | Uncommon | Pickup glitch | Implemented |
+| `Gravity Pocket` | A slow drifting pocket bends nearby ball paths. | Heat 04 | Rare | Speed glitch | Implemented |
+| `Static Wall` | One side wall flickers between normal and weak bounce. | Heat 05 | Rare | Paddle glitch | Implemented |
+| `Row Rewrite` | One row rerolls into a new brick pattern after a timer. | Heat 06 | Uncommon | Layout glitch | Implemented |
+| `Prism Lanes` | Marked lanes refract the ball into sharper angles. | Heat 07 | Uncommon | Precision glitch | Implemented |
 | `Switchback Rails` | Side rails swap rebound angles every few seconds. | Heat 08 | Rare | Wall glitch | Implemented |
-| `Capsule Roulette` | Falling capsules rotate polarity until caught or missed. | Heat 09 | Rare | Pickup glitch | Implemented |
-| `Drift Rows` | Brick rows slide slowly in opposite directions. | Heat 10 | Rare | Layout glitch | Implemented |
-| `Hot Corners` | Corner bumpers kick balls back toward center at higher speed. | Heat 11 | Rare | Wall glitch | Implemented |
+| `Capsule Roulette` | Falling capsules rotate polarity until caught or missed. | Heat 09 | Uncommon | Pickup glitch | Implemented |
+| `Drift Rows` | Brick rows slide slowly in opposite directions. | Heat 10 | Uncommon | Layout glitch | Implemented |
+| `Hot Corners` | Corner bumpers kick balls back toward center at higher speed. | Heat 11 | Uncommon | Wall glitch | Implemented |
 | `Flicker Bricks` | Some bricks only collide while visible. | Heat 12 | Rare | Visibility glitch | Implemented |
 | `Cassette Skip` | Every few paddle hits, the ball skips forward along its current path. | Heat 13 | Rare | Ball glitch | Implemented |
 | `Ghost Row` | One row phases out after hits, then snaps back later. | Heat 14 | Rare | Layout glitch | Implemented |
-| `Split Horizon` | Crossing the arena midpoint bends the ball angle slightly. | Heat 15 | Rare | Trajectory glitch | Implemented |
-| `Tilt Alarm` | Paddle hits tilt the whole rebound field until the next brick break. | Heat 16 | Epic | Paddle glitch | Not implemented (proposal) |
-| `Brick Conveyor` | Brick bands crawl sideways while gaps stay dangerous. | Heat 17 | Epic | Layout glitch | Implemented |
-| `Rogue Gate` | A single moving portal relocates after each use. | Heat 18 | Epic | Warp glitch | Implemented |
-| `Pickup Pinball` | Capsules bounce off walls and bricks before falling again. | Heat 19 | Epic | Pickup glitch | Implemented |
+| `Split Horizon` | Crossing the arena midpoint bends the ball angle slightly. | Heat 15 | Uncommon | Trajectory glitch | Implemented |
+| `Tilt Alarm` | Paddle hits tilt the whole rebound field until the next brick break. | Heat 16 | Rare | Paddle glitch | Not implemented (proposal) |
+| `Brick Conveyor` | Brick bands crawl sideways while gaps stay dangerous. | Heat 17 | Rare | Layout glitch | Implemented |
+| `Rogue Gate` | A single moving portal relocates after each use. | Heat 18 | Rare | Warp glitch | Implemented |
+| `Pickup Pinball` | Capsules bounce off walls and bricks before falling again. | Heat 19 | Uncommon | Pickup glitch | Implemented |
 | `Magnet Storm` | Pull pockets drift across the board and tug balls plus capsules. | Heat 20 | Epic | Gravity glitch | Implemented |
-| `Blacklight Bricks` | Brick health and special types hide until first contact. | Heat 21 | Epic | Visibility glitch | Implemented |
+| `Blacklight Bricks` | Brick health and special types hide until first contact. | Heat 21 | Rare | Visibility glitch | Implemented |
 | `Rewind Wall` | A broken non-objective row can rebuild once mid-stage. | Heat 22 | Epic | Layout glitch | Implemented |
-| `Score Leak` | Score trickles down between brick breaks. | Heat 23 | Epic | Score glitch | Implemented |
+| `Score Leak` | Score trickles down between brick breaks. | Heat 23 | Rare | Score glitch | Implemented |
 | `Laser Rain` | Warning lanes fire brief vertical beams that can crack bricks or bounce balls. | Heat 24 | Epic | Hazard glitch | Implemented |
 | `Thin Air` | One side wall opens and closes on a timer. | Heat 25 | Epic | Wall glitch | Implemented |
-| `Prism Shuffle` | Rebounds from marked bricks rotate into sharper angles. | Heat 26 | Epic | Precision glitch | Implemented |
+| `Prism Shuffle` | Rebounds from marked bricks rotate into sharper angles. | Heat 26 | Rare | Precision glitch | Implemented |
 | `Clone Static` | A ghost paddle copies your last movement with a delay. | Heat 27 | Epic | Paddle glitch | Implemented |
-| `Drop Tide` | Capsules hold briefly, then fall together in waves. | Heat 28 | Epic | Pickup glitch | Implemented |
+| `Drop Tide` | Capsules hold briefly, then fall together in waves. | Heat 28 | Uncommon | Pickup glitch | Implemented |
 | `Brick Lock` | A random brick cluster shields itself until another cluster breaks. | Heat 29 | Epic | Objective glitch | Implemented |
 | `Speed Steps` | Ball speed climbs with each brick hit and resets on paddle contact. | Heat 30 | Epic | Speed glitch | Implemented |
-| `Mirror Serve` | Fresh serves launch a mirror ball that vanishes after one brick hit. | Heat 31 | Epic | Serve glitch | Implemented |
-| `Static Jackpot` | Bonus score zones appear, but missing them speeds the ball. | Heat 32 | Epic | Score glitch | Implemented |
+| `Mirror Serve` | Fresh serves launch a mirror ball that vanishes after one brick hit. | Heat 31 | Rare | Serve glitch | Implemented |
+| `Static Jackpot` | Bonus score zones appear, but missing them speeds the ball. | Heat 32 | Rare | Score glitch | Implemented |
 | `Jammed Rails` | Paddle width pulses between wide and narrow during the stage. | Heat 33 | Epic | Paddle glitch | Implemented |
 | `Gravity Swap` | The gravity pocket flips pull direction after each wall bounce. | Heat 34 | Epic | Gravity glitch | Implemented |
 | `VHS Tear` | A horizontal tear line deflects balls crossing it. | Heat 35 | Epic | Trajectory glitch | Implemented |
-| `Capsule Blackout` | Catching any capsule briefly hides the next wave of drops. | Heat 36 | Epic | Pickup glitch | Implemented |
+| `Capsule Blackout` | Catching any capsule briefly hides the next wave of drops. | Heat 36 | Uncommon | Pickup glitch | Implemented |
 | `Brickquake` | Brick clusters nudge out of alignment after heavy hits. | Heat 37 | Epic | Layout glitch | Implemented |
-| `Turbo Tax` | High-speed brick breaks pay more, but slow hits add hazard drops. | Heat 38 | Epic | Score glitch | Implemented |
+| `Turbo Tax` | High-speed brick breaks pay more, but slow hits add hazard drops. | Heat 38 | Rare | Score glitch | Implemented |
 | `Warp Jam` | Gates sometimes spit the ball out of the wrong linked exit. | Heat 39 | Epic | Warp glitch | Implemented |
-| `Neon Flood` | Helpful and harmful capsules spawn together after combo spikes. | Heat 40 | Epic | Pickup glitch | Implemented |
+| `Neon Flood` | Helpful and harmful capsules spawn together after combo spikes. | Heat 40 | Rare | Pickup glitch | Implemented |
 | `Lockstep Rows` | Rows move only when the paddle moves, punishing over-correction. | Heat 41 | Epic | Layout glitch | Implemented |
-| `Static Serve` | Each serve starts with a different rail rule until first brick break. | Heat 42 | Epic | Serve glitch | Implemented |
-| `Blind Bank` | Wall-bounce aim previews vanish, but bank shots score extra. | Heat 43 | Epic | Precision glitch | Not implemented (proposal) |
+| `Static Serve` | Each serve starts with a different rail rule until first brick break. | Heat 42 | Rare | Serve glitch | Implemented |
+| `Blind Bank` | Wall-bounce aim previews vanish, but bank shots score extra. | Heat 43 | Uncommon | Precision glitch | Not implemented (proposal) |
 | `Meltdown Core` | One glowing core brick overclocks every remaining brick until destroyed. | Heat 44 | Epic | Objective glitch | Implemented |
 | `Phase Storm` | Balls and select bricks phase on alternating beats. | Heat 45 | Epic | Phase glitch | Not implemented (proposal) |
 | `Score Switch` | Score target and clear-all objective swap after a warning timer. | Heat 46 | Epic | Objective glitch | Not implemented (proposal) |
-| `Token Overload` | Every drop splits into a helpful and harmful capsule with different fall speeds. | Heat 47 | Epic | Pickup glitch | Not implemented (proposal) |
-| `Rail Riot` | Paddle hits can spawn short temporary side bumpers. | Heat 48 | Epic | Paddle glitch | Not implemented (proposal) |
+| `Token Overload` | Every drop splits into a helpful and harmful capsule with different fall speeds. | Heat 47 | Rare | Pickup glitch | Not implemented (proposal) |
+| `Rail Riot` | Paddle hits can spawn short temporary side bumpers. | Heat 48 | Rare | Paddle glitch | Not implemented (proposal) |
 | `Cabinet Tilt` | The whole arena rebound bias drifts left and right. | Heat 49 | Epic | Trajectory glitch | Implemented |
 | `Final Static` | Multiple unlocked glitches stack with boosted score payout. | Heat 50 | Epic | Glitch stack | Not implemented (proposal) |
 

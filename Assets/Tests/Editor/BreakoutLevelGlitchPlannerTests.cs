@@ -53,7 +53,7 @@ public sealed class BreakoutLevelGlitchPlannerTests
         Assert.That(lockedPlan.IsActive, Is.False);
         Assert.That(unlockedPlan.IsActive, Is.True);
         Assert.That(unlockedPlan.GlitchType, Is.EqualTo(BreakoutLevelGlitchType.TurboRail));
-        Assert.That(unlockedPlan.Rarity, Is.EqualTo(BreakoutContentRarity.Rare));
+        Assert.That(unlockedPlan.Rarity, Is.EqualTo(BreakoutContentRarity.Uncommon));
     }
 
     [Test]
@@ -94,7 +94,7 @@ public sealed class BreakoutLevelGlitchPlannerTests
         Assert.That(unlockedPlan.IsActive, Is.True);
         Assert.That(unlockedPlan.GlitchType, Is.EqualTo(BreakoutLevelGlitchType.GravityPocket));
         Assert.That(unlockedPlan.DisplayName, Is.EqualTo("Gravity Pocket"));
-        Assert.That(unlockedPlan.Rarity, Is.EqualTo(BreakoutContentRarity.Epic));
+        Assert.That(unlockedPlan.Rarity, Is.EqualTo(BreakoutContentRarity.Rare));
         Assert.That(unlockedPlan.ScoreMultiplier, Is.EqualTo(1.38f).Within(0.0001f));
         Assert.That(unlockedPlan.GravityPocket.Radius, Is.InRange(1.9f, 2.45f));
         Assert.That(unlockedPlan.GravityPocket.Strength, Is.InRange(0.58f, 0.78f));
@@ -118,7 +118,7 @@ public sealed class BreakoutLevelGlitchPlannerTests
         Assert.That(unlockedPlan.IsActive, Is.True);
         Assert.That(unlockedPlan.GlitchType, Is.EqualTo(BreakoutLevelGlitchType.TokenStorm));
         Assert.That(unlockedPlan.DisplayName, Is.EqualTo("Token Storm"));
-        Assert.That(unlockedPlan.Rarity, Is.EqualTo(BreakoutContentRarity.Epic));
+        Assert.That(unlockedPlan.Rarity, Is.EqualTo(BreakoutContentRarity.Uncommon));
         Assert.That(unlockedPlan.ScoreMultiplier, Is.EqualTo(1.32f).Within(0.0001f));
         Assert.That(unlockedPlan.TokenStorm.DropChanceMultiplier, Is.EqualTo(1.65f).Within(0.0001f));
         Assert.That(unlockedPlan.TokenStorm.MinimumFallSpeedMultiplier, Is.EqualTo(0.55f).Within(0.0001f));
@@ -142,7 +142,7 @@ public sealed class BreakoutLevelGlitchPlannerTests
         Assert.That(unlockedPlan.IsActive, Is.True);
         Assert.That(unlockedPlan.GlitchType, Is.EqualTo(BreakoutLevelGlitchType.StaticWall));
         Assert.That(unlockedPlan.DisplayName, Is.EqualTo("Static Wall"));
-        Assert.That(unlockedPlan.Rarity, Is.EqualTo(BreakoutContentRarity.Epic));
+        Assert.That(unlockedPlan.Rarity, Is.EqualTo(BreakoutContentRarity.Rare));
         Assert.That(unlockedPlan.ScoreMultiplier, Is.EqualTo(1.34f).Within(0.0001f));
         Assert.That(unlockedPlan.StaticWall.Wall, Is.EqualTo(BreakoutWarpGateWall.Left).Or.EqualTo(BreakoutWarpGateWall.Right));
         Assert.That(unlockedPlan.StaticWall.WeakCycleSeconds, Is.InRange(2.1f, 2.85f));
@@ -166,7 +166,7 @@ public sealed class BreakoutLevelGlitchPlannerTests
         Assert.That(unlockedPlan.IsActive, Is.True);
         Assert.That(unlockedPlan.GlitchType, Is.EqualTo(BreakoutLevelGlitchType.RowRewrite));
         Assert.That(unlockedPlan.DisplayName, Is.EqualTo("Row Rewrite"));
-        Assert.That(unlockedPlan.Rarity, Is.EqualTo(BreakoutContentRarity.Rare));
+        Assert.That(unlockedPlan.Rarity, Is.EqualTo(BreakoutContentRarity.Uncommon));
         Assert.That(unlockedPlan.ScoreMultiplier, Is.EqualTo(1.28f).Within(0.0001f));
         Assert.That(unlockedPlan.RowRewrite.NormalizedRow, Is.InRange(0.12f, 0.78f));
         Assert.That(unlockedPlan.RowRewrite.TriggerSeconds, Is.InRange(8.5f, 13.5f));
@@ -190,7 +190,7 @@ public sealed class BreakoutLevelGlitchPlannerTests
         Assert.That(unlockedPlan.IsActive, Is.True);
         Assert.That(unlockedPlan.GlitchType, Is.EqualTo(BreakoutLevelGlitchType.PrismLanes));
         Assert.That(unlockedPlan.DisplayName, Is.EqualTo("Prism Lanes"));
-        Assert.That(unlockedPlan.Rarity, Is.EqualTo(BreakoutContentRarity.Rare));
+        Assert.That(unlockedPlan.Rarity, Is.EqualTo(BreakoutContentRarity.Uncommon));
         Assert.That(unlockedPlan.ScoreMultiplier, Is.EqualTo(1.31f).Within(0.0001f));
         Assert.That(unlockedPlan.PrismLanes.Length, Is.InRange(2, 3));
         Assert.That(unlockedPlan.PrismLanes[0].NormalizedX, Is.InRange(0.1f, 0.9f));
@@ -237,7 +237,7 @@ public sealed class BreakoutLevelGlitchPlannerTests
         Assert.That(unlockedPlan.IsActive, Is.True);
         Assert.That(unlockedPlan.GlitchType, Is.EqualTo(BreakoutLevelGlitchType.CapsuleRoulette));
         Assert.That(unlockedPlan.DisplayName, Is.EqualTo("Capsule Roulette"));
-        Assert.That(unlockedPlan.Rarity, Is.EqualTo(BreakoutContentRarity.Rare));
+        Assert.That(unlockedPlan.Rarity, Is.EqualTo(BreakoutContentRarity.Uncommon));
         Assert.That(unlockedPlan.ScoreMultiplier, Is.EqualTo(1.27f).Within(0.0001f));
     }
 
@@ -258,7 +258,7 @@ public sealed class BreakoutLevelGlitchPlannerTests
         Assert.That(unlockedPlan.IsActive, Is.True);
         Assert.That(unlockedPlan.GlitchType, Is.EqualTo(BreakoutLevelGlitchType.DriftRows));
         Assert.That(unlockedPlan.DisplayName, Is.EqualTo("Drift Rows"));
-        Assert.That(unlockedPlan.Rarity, Is.EqualTo(BreakoutContentRarity.Rare));
+        Assert.That(unlockedPlan.Rarity, Is.EqualTo(BreakoutContentRarity.Uncommon));
         Assert.That(unlockedPlan.ScoreMultiplier, Is.EqualTo(1.26f).Within(0.0001f));
         Assert.That(unlockedPlan.DriftRows.Speed, Is.InRange(0.26f, 0.38f));
         Assert.That(Mathf.Abs(unlockedPlan.DriftRows.StartingDirectionSign), Is.EqualTo(1f).Within(0.0001f));
@@ -281,7 +281,7 @@ public sealed class BreakoutLevelGlitchPlannerTests
         Assert.That(unlockedPlan.IsActive, Is.True);
         Assert.That(unlockedPlan.GlitchType, Is.EqualTo(BreakoutLevelGlitchType.HotCorners));
         Assert.That(unlockedPlan.DisplayName, Is.EqualTo("Hot Corners"));
-        Assert.That(unlockedPlan.Rarity, Is.EqualTo(BreakoutContentRarity.Rare));
+        Assert.That(unlockedPlan.Rarity, Is.EqualTo(BreakoutContentRarity.Uncommon));
         Assert.That(unlockedPlan.ScoreMultiplier, Is.EqualTo(1.28f).Within(0.0001f));
         Assert.That(unlockedPlan.HotCorners.BumperSize, Is.InRange(0.72f, 0.94f));
         Assert.That(unlockedPlan.HotCorners.SpeedBurstMultiplier, Is.InRange(1.16f, 1.28f));
@@ -378,7 +378,7 @@ public sealed class BreakoutLevelGlitchPlannerTests
         Assert.That(unlockedPlan.IsActive, Is.True);
         Assert.That(unlockedPlan.GlitchType, Is.EqualTo(BreakoutLevelGlitchType.SplitHorizon));
         Assert.That(unlockedPlan.DisplayName, Is.EqualTo("Split Horizon"));
-        Assert.That(unlockedPlan.Rarity, Is.EqualTo(BreakoutContentRarity.Rare));
+        Assert.That(unlockedPlan.Rarity, Is.EqualTo(BreakoutContentRarity.Uncommon));
         Assert.That(unlockedPlan.ScoreMultiplier, Is.EqualTo(1.3f).Within(0.0001f));
         Assert.That(unlockedPlan.SplitHorizon.NormalizedY, Is.InRange(0.44f, 0.56f));
         Assert.That(unlockedPlan.SplitHorizon.BendDegrees, Is.InRange(7.5f, 10.5f));
@@ -402,7 +402,7 @@ public sealed class BreakoutLevelGlitchPlannerTests
         Assert.That(unlockedPlan.IsActive, Is.True);
         Assert.That(unlockedPlan.GlitchType, Is.EqualTo(BreakoutLevelGlitchType.RogueGate));
         Assert.That(unlockedPlan.DisplayName, Is.EqualTo("Rogue Gate"));
-        Assert.That(unlockedPlan.Rarity, Is.EqualTo(BreakoutContentRarity.Epic));
+        Assert.That(unlockedPlan.Rarity, Is.EqualTo(BreakoutContentRarity.Rare));
         Assert.That(unlockedPlan.ScoreMultiplier, Is.EqualTo(1.36f).Within(0.0001f));
         Assert.That(unlockedPlan.WarpGates, Has.Length.EqualTo(1));
         Assert.That(unlockedPlan.WarpGates[0].NormalizedPosition, Is.InRange(0.18f, 0.82f));
@@ -425,7 +425,7 @@ public sealed class BreakoutLevelGlitchPlannerTests
         Assert.That(unlockedPlan.IsActive, Is.True);
         Assert.That(unlockedPlan.GlitchType, Is.EqualTo(BreakoutLevelGlitchType.BrickConveyor));
         Assert.That(unlockedPlan.DisplayName, Is.EqualTo("Brick Conveyor"));
-        Assert.That(unlockedPlan.Rarity, Is.EqualTo(BreakoutContentRarity.Epic));
+        Assert.That(unlockedPlan.Rarity, Is.EqualTo(BreakoutContentRarity.Rare));
         Assert.That(unlockedPlan.ScoreMultiplier, Is.EqualTo(1.35f).Within(0.0001f));
         Assert.That(unlockedPlan.BrickConveyor.Speed, Is.InRange(0.34f, 0.48f));
         Assert.That(Mathf.Abs(unlockedPlan.BrickConveyor.StartingDirectionSign), Is.EqualTo(1f).Within(0.0001f));
@@ -449,7 +449,7 @@ public sealed class BreakoutLevelGlitchPlannerTests
         Assert.That(unlockedPlan.IsActive, Is.True);
         Assert.That(unlockedPlan.GlitchType, Is.EqualTo(BreakoutLevelGlitchType.PickupPinball));
         Assert.That(unlockedPlan.DisplayName, Is.EqualTo("Pickup Pinball"));
-        Assert.That(unlockedPlan.Rarity, Is.EqualTo(BreakoutContentRarity.Epic));
+        Assert.That(unlockedPlan.Rarity, Is.EqualTo(BreakoutContentRarity.Uncommon));
         Assert.That(unlockedPlan.ScoreMultiplier, Is.EqualTo(1.33f).Within(0.0001f));
         Assert.That(unlockedPlan.PickupPinball.LateralVelocityMultiplier, Is.EqualTo(0.82f).Within(0.0001f));
         Assert.That(unlockedPlan.PickupPinball.UpwardVelocityMultiplier, Is.EqualTo(0.62f).Within(0.0001f));
@@ -498,7 +498,7 @@ public sealed class BreakoutLevelGlitchPlannerTests
         Assert.That(unlockedPlan.IsActive, Is.True);
         Assert.That(unlockedPlan.GlitchType, Is.EqualTo(BreakoutLevelGlitchType.BlacklightBricks));
         Assert.That(unlockedPlan.DisplayName, Is.EqualTo("Blacklight Bricks"));
-        Assert.That(unlockedPlan.Rarity, Is.EqualTo(BreakoutContentRarity.Epic));
+        Assert.That(unlockedPlan.Rarity, Is.EqualTo(BreakoutContentRarity.Rare));
         Assert.That(unlockedPlan.ScoreMultiplier, Is.EqualTo(1.36f).Within(0.0001f));
     }
 
@@ -543,7 +543,7 @@ public sealed class BreakoutLevelGlitchPlannerTests
         Assert.That(unlockedPlan.IsActive, Is.True);
         Assert.That(unlockedPlan.GlitchType, Is.EqualTo(BreakoutLevelGlitchType.ScoreLeak));
         Assert.That(unlockedPlan.DisplayName, Is.EqualTo("Score Leak"));
-        Assert.That(unlockedPlan.Rarity, Is.EqualTo(BreakoutContentRarity.Epic));
+        Assert.That(unlockedPlan.Rarity, Is.EqualTo(BreakoutContentRarity.Rare));
         Assert.That(unlockedPlan.ScoreMultiplier, Is.EqualTo(1.42f).Within(0.0001f));
         Assert.That(unlockedPlan.ScoreLeak.PointsPerSecond, Is.InRange(10f, 16f));
         Assert.That(unlockedPlan.ScoreLeak.GraceSeconds, Is.InRange(1.15f, 1.75f));
@@ -612,7 +612,7 @@ public sealed class BreakoutLevelGlitchPlannerTests
         Assert.That(unlockedPlan.IsActive, Is.True);
         Assert.That(unlockedPlan.GlitchType, Is.EqualTo(BreakoutLevelGlitchType.PrismShuffle));
         Assert.That(unlockedPlan.DisplayName, Is.EqualTo("Prism Shuffle"));
-        Assert.That(unlockedPlan.Rarity, Is.EqualTo(BreakoutContentRarity.Epic));
+        Assert.That(unlockedPlan.Rarity, Is.EqualTo(BreakoutContentRarity.Rare));
         Assert.That(unlockedPlan.ScoreMultiplier, Is.EqualTo(1.43f).Within(0.0001f));
         Assert.That(unlockedPlan.PrismShuffle.AffectedBrickChance, Is.InRange(0.36f, 0.48f));
         Assert.That(unlockedPlan.PrismShuffle.RotationDegrees, Is.InRange(11f, 16f));
@@ -660,7 +660,7 @@ public sealed class BreakoutLevelGlitchPlannerTests
         Assert.That(unlockedPlan.IsActive, Is.True);
         Assert.That(unlockedPlan.GlitchType, Is.EqualTo(BreakoutLevelGlitchType.DropTide));
         Assert.That(unlockedPlan.DisplayName, Is.EqualTo("Drop Tide"));
-        Assert.That(unlockedPlan.Rarity, Is.EqualTo(BreakoutContentRarity.Epic));
+        Assert.That(unlockedPlan.Rarity, Is.EqualTo(BreakoutContentRarity.Uncommon));
         Assert.That(unlockedPlan.ScoreMultiplier, Is.EqualTo(1.34f).Within(0.0001f));
         Assert.That(unlockedPlan.DropTide.WaveIntervalSeconds, Is.InRange(1.15f, 1.55f));
         Assert.That(unlockedPlan.DropTide.MinimumHoldSeconds, Is.InRange(0.12f, 0.22f));
@@ -728,7 +728,7 @@ public sealed class BreakoutLevelGlitchPlannerTests
         Assert.That(unlockedPlan.IsActive, Is.True);
         Assert.That(unlockedPlan.GlitchType, Is.EqualTo(BreakoutLevelGlitchType.MirrorServe));
         Assert.That(unlockedPlan.DisplayName, Is.EqualTo("Mirror Serve"));
-        Assert.That(unlockedPlan.Rarity, Is.EqualTo(BreakoutContentRarity.Epic));
+        Assert.That(unlockedPlan.Rarity, Is.EqualTo(BreakoutContentRarity.Rare));
         Assert.That(unlockedPlan.ScoreMultiplier, Is.EqualTo(1.36f).Within(0.0001f));
     }
 
@@ -749,7 +749,7 @@ public sealed class BreakoutLevelGlitchPlannerTests
         Assert.That(unlockedPlan.IsActive, Is.True);
         Assert.That(unlockedPlan.GlitchType, Is.EqualTo(BreakoutLevelGlitchType.StaticJackpot));
         Assert.That(unlockedPlan.DisplayName, Is.EqualTo("Static Jackpot"));
-        Assert.That(unlockedPlan.Rarity, Is.EqualTo(BreakoutContentRarity.Epic));
+        Assert.That(unlockedPlan.Rarity, Is.EqualTo(BreakoutContentRarity.Rare));
         Assert.That(unlockedPlan.ScoreMultiplier, Is.EqualTo(1.5f).Within(0.0001f));
         Assert.That(unlockedPlan.StaticJackpot.Zones.Length, Is.EqualTo(3));
         Assert.That(unlockedPlan.StaticJackpot.BonusScoreMultiplier, Is.InRange(1.65f, 1.85f));
@@ -846,7 +846,7 @@ public sealed class BreakoutLevelGlitchPlannerTests
         Assert.That(unlockedPlan.IsActive, Is.True);
         Assert.That(unlockedPlan.GlitchType, Is.EqualTo(BreakoutLevelGlitchType.CapsuleBlackout));
         Assert.That(unlockedPlan.DisplayName, Is.EqualTo("Capsule Blackout"));
-        Assert.That(unlockedPlan.Rarity, Is.EqualTo(BreakoutContentRarity.Epic));
+        Assert.That(unlockedPlan.Rarity, Is.EqualTo(BreakoutContentRarity.Uncommon));
         Assert.That(unlockedPlan.ScoreMultiplier, Is.EqualTo(1.38f).Within(0.0001f));
         Assert.That(unlockedPlan.CapsuleBlackout.TriggerWindowSeconds, Is.EqualTo(2.4f).Within(0.0001f));
         Assert.That(unlockedPlan.CapsuleBlackout.HiddenDurationSeconds, Is.EqualTo(1.45f).Within(0.0001f));
@@ -895,7 +895,7 @@ public sealed class BreakoutLevelGlitchPlannerTests
         Assert.That(unlockedPlan.IsActive, Is.True);
         Assert.That(unlockedPlan.GlitchType, Is.EqualTo(BreakoutLevelGlitchType.TurboTax));
         Assert.That(unlockedPlan.DisplayName, Is.EqualTo("Turbo Tax"));
-        Assert.That(unlockedPlan.Rarity, Is.EqualTo(BreakoutContentRarity.Epic));
+        Assert.That(unlockedPlan.Rarity, Is.EqualTo(BreakoutContentRarity.Rare));
         Assert.That(unlockedPlan.ScoreMultiplier, Is.EqualTo(1f).Within(0.0001f));
         Assert.That(unlockedPlan.TurboTax.HighSpeedThresholdMultiplier, Is.EqualTo(1.18f).Within(0.0001f));
         Assert.That(unlockedPlan.TurboTax.HighSpeedScoreMultiplier, Is.EqualTo(1.42f).Within(0.0001f));
@@ -943,7 +943,7 @@ public sealed class BreakoutLevelGlitchPlannerTests
         Assert.That(unlockedPlan.IsActive, Is.True);
         Assert.That(unlockedPlan.GlitchType, Is.EqualTo(BreakoutLevelGlitchType.NeonFlood));
         Assert.That(unlockedPlan.DisplayName, Is.EqualTo("Neon Flood"));
-        Assert.That(unlockedPlan.Rarity, Is.EqualTo(BreakoutContentRarity.Epic));
+        Assert.That(unlockedPlan.Rarity, Is.EqualTo(BreakoutContentRarity.Rare));
         Assert.That(unlockedPlan.ScoreMultiplier, Is.EqualTo(1.41f).Within(0.0001f));
         Assert.That(unlockedPlan.NeonFlood.SlamChainThreshold, Is.EqualTo(4));
         Assert.That(unlockedPlan.NeonFlood.CooldownSeconds, Is.EqualTo(1.65f).Within(0.0001f));
@@ -992,7 +992,7 @@ public sealed class BreakoutLevelGlitchPlannerTests
         Assert.That(unlockedPlan.IsActive, Is.True);
         Assert.That(unlockedPlan.GlitchType, Is.EqualTo(BreakoutLevelGlitchType.StaticServe));
         Assert.That(unlockedPlan.DisplayName, Is.EqualTo("Static Serve"));
-        Assert.That(unlockedPlan.Rarity, Is.EqualTo(BreakoutContentRarity.Epic));
+        Assert.That(unlockedPlan.Rarity, Is.EqualTo(BreakoutContentRarity.Rare));
         Assert.That(unlockedPlan.ScoreMultiplier, Is.EqualTo(1.5f).Within(0.0001f));
         Assert.That(unlockedPlan.StaticServe.RuleCount, Is.EqualTo(3));
     }
@@ -2462,6 +2462,45 @@ public sealed class BreakoutLevelGlitchPlannerTests
         var plan = BreakoutLevelGlitchPlanner.BuildPlan(new DeterministicRandomService(3), settings, levelIndex: 9);
 
         Assert.That(plan.IsActive, Is.False);
+    }
+
+    [Test]
+    public void RandomGlitchSelectionWeightsLowerRaritiesMoreHeavily()
+    {
+        var settings = new RunSettings(
+            1234,
+            RunDifficultyPreset.Standard,
+            RunScoringMode.Classic,
+            3,
+            500,
+            1,
+            1f,
+            1f,
+            1f,
+            1f,
+            DropPoolMode.Mixed,
+            false,
+            null,
+            levelGlitchesEnabled: true,
+            levelGlitchSelection: LevelGlitchSelection.Random,
+            forceLevelGlitchRoll: true,
+            ignoreLevelGlitchUnlocks: true);
+        var picksByRarity = new int[4];
+
+        for (var seed = 1; seed <= 1024; seed++)
+        {
+            var plan = BreakoutLevelGlitchPlanner.BuildPlan(new DeterministicRandomService(seed), settings, levelIndex: 0);
+
+            Assert.That(plan.IsActive, Is.True);
+            picksByRarity[(int)plan.Rarity]++;
+        }
+
+        Assert.That(
+            picksByRarity[(int)BreakoutContentRarity.Uncommon],
+            Is.GreaterThan(picksByRarity[(int)BreakoutContentRarity.Epic]));
+        Assert.That(
+            picksByRarity[(int)BreakoutContentRarity.Epic],
+            Is.LessThan(picksByRarity[(int)BreakoutContentRarity.Rare]));
     }
 
     [Test]

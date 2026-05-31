@@ -1225,7 +1225,7 @@ namespace GetBricked.Gameplay
             new BreakoutLevelGlitchDefinition(
                 BreakoutLevelGlitchType.TurboRail,
                 LevelGlitchSelection.TurboRail,
-                BreakoutContentRarity.Rare,
+                BreakoutContentRarity.Uncommon,
                 TurboRailLadderUnlockIntensity),
             new BreakoutLevelGlitchDefinition(
                 BreakoutLevelGlitchType.MirrorGrid,
@@ -1235,27 +1235,27 @@ namespace GetBricked.Gameplay
             new BreakoutLevelGlitchDefinition(
                 BreakoutLevelGlitchType.TokenStorm,
                 LevelGlitchSelection.TokenStorm,
-                BreakoutContentRarity.Epic,
+                BreakoutContentRarity.Uncommon,
                 TokenStormLadderUnlockIntensity),
             new BreakoutLevelGlitchDefinition(
                 BreakoutLevelGlitchType.GravityPocket,
                 LevelGlitchSelection.GravityPocket,
-                BreakoutContentRarity.Epic,
+                BreakoutContentRarity.Rare,
                 GravityPocketLadderUnlockIntensity),
             new BreakoutLevelGlitchDefinition(
                 BreakoutLevelGlitchType.StaticWall,
                 LevelGlitchSelection.StaticWall,
-                BreakoutContentRarity.Epic,
+                BreakoutContentRarity.Rare,
                 StaticWallLadderUnlockIntensity),
             new BreakoutLevelGlitchDefinition(
                 BreakoutLevelGlitchType.RowRewrite,
                 LevelGlitchSelection.RowRewrite,
-                BreakoutContentRarity.Rare,
+                BreakoutContentRarity.Uncommon,
                 RowRewriteLadderUnlockIntensity),
             new BreakoutLevelGlitchDefinition(
                 BreakoutLevelGlitchType.PrismLanes,
                 LevelGlitchSelection.PrismLanes,
-                BreakoutContentRarity.Rare,
+                BreakoutContentRarity.Uncommon,
                 PrismLanesLadderUnlockIntensity),
             new BreakoutLevelGlitchDefinition(
                 BreakoutLevelGlitchType.SwitchbackRails,
@@ -1265,17 +1265,17 @@ namespace GetBricked.Gameplay
             new BreakoutLevelGlitchDefinition(
                 BreakoutLevelGlitchType.CapsuleRoulette,
                 LevelGlitchSelection.CapsuleRoulette,
-                BreakoutContentRarity.Rare,
+                BreakoutContentRarity.Uncommon,
                 CapsuleRouletteLadderUnlockIntensity),
             new BreakoutLevelGlitchDefinition(
                 BreakoutLevelGlitchType.DriftRows,
                 LevelGlitchSelection.DriftRows,
-                BreakoutContentRarity.Rare,
+                BreakoutContentRarity.Uncommon,
                 DriftRowsLadderUnlockIntensity),
             new BreakoutLevelGlitchDefinition(
                 BreakoutLevelGlitchType.HotCorners,
                 LevelGlitchSelection.HotCorners,
-                BreakoutContentRarity.Rare,
+                BreakoutContentRarity.Uncommon,
                 HotCornersLadderUnlockIntensity),
             new BreakoutLevelGlitchDefinition(
                 BreakoutLevelGlitchType.FlickerBricks,
@@ -1295,22 +1295,22 @@ namespace GetBricked.Gameplay
             new BreakoutLevelGlitchDefinition(
                 BreakoutLevelGlitchType.SplitHorizon,
                 LevelGlitchSelection.SplitHorizon,
-                BreakoutContentRarity.Rare,
+                BreakoutContentRarity.Uncommon,
                 SplitHorizonLadderUnlockIntensity),
             new BreakoutLevelGlitchDefinition(
                 BreakoutLevelGlitchType.BrickConveyor,
                 LevelGlitchSelection.BrickConveyor,
-                BreakoutContentRarity.Epic,
+                BreakoutContentRarity.Rare,
                 BrickConveyorLadderUnlockIntensity),
             new BreakoutLevelGlitchDefinition(
                 BreakoutLevelGlitchType.RogueGate,
                 LevelGlitchSelection.RogueGate,
-                BreakoutContentRarity.Epic,
+                BreakoutContentRarity.Rare,
                 RogueGateLadderUnlockIntensity),
             new BreakoutLevelGlitchDefinition(
                 BreakoutLevelGlitchType.PickupPinball,
                 LevelGlitchSelection.PickupPinball,
-                BreakoutContentRarity.Epic,
+                BreakoutContentRarity.Uncommon,
                 PickupPinballLadderUnlockIntensity),
             new BreakoutLevelGlitchDefinition(
                 BreakoutLevelGlitchType.MagnetStorm,
@@ -1320,7 +1320,7 @@ namespace GetBricked.Gameplay
             new BreakoutLevelGlitchDefinition(
                 BreakoutLevelGlitchType.BlacklightBricks,
                 LevelGlitchSelection.BlacklightBricks,
-                BreakoutContentRarity.Epic,
+                BreakoutContentRarity.Rare,
                 BlacklightBricksLadderUnlockIntensity),
             new BreakoutLevelGlitchDefinition(
                 BreakoutLevelGlitchType.RewindWall,
@@ -1330,7 +1330,7 @@ namespace GetBricked.Gameplay
             new BreakoutLevelGlitchDefinition(
                 BreakoutLevelGlitchType.ScoreLeak,
                 LevelGlitchSelection.ScoreLeak,
-                BreakoutContentRarity.Epic,
+                BreakoutContentRarity.Rare,
                 ScoreLeakLadderUnlockIntensity),
             new BreakoutLevelGlitchDefinition(
                 BreakoutLevelGlitchType.LaserRain,
@@ -1345,7 +1345,7 @@ namespace GetBricked.Gameplay
             new BreakoutLevelGlitchDefinition(
                 BreakoutLevelGlitchType.PrismShuffle,
                 LevelGlitchSelection.PrismShuffle,
-                BreakoutContentRarity.Epic,
+                BreakoutContentRarity.Rare,
                 PrismShuffleLadderUnlockIntensity),
             new BreakoutLevelGlitchDefinition(
                 BreakoutLevelGlitchType.CloneStatic,
@@ -1355,7 +1355,7 @@ namespace GetBricked.Gameplay
             new BreakoutLevelGlitchDefinition(
                 BreakoutLevelGlitchType.DropTide,
                 LevelGlitchSelection.DropTide,
-                BreakoutContentRarity.Epic,
+                BreakoutContentRarity.Uncommon,
                 DropTideLadderUnlockIntensity),
             new BreakoutLevelGlitchDefinition(
                 BreakoutLevelGlitchType.BrickLock,
@@ -1370,12 +1370,12 @@ namespace GetBricked.Gameplay
             new BreakoutLevelGlitchDefinition(
                 BreakoutLevelGlitchType.MirrorServe,
                 LevelGlitchSelection.MirrorServe,
-                BreakoutContentRarity.Epic,
+                BreakoutContentRarity.Rare,
                 MirrorServeLadderUnlockIntensity),
             new BreakoutLevelGlitchDefinition(
                 BreakoutLevelGlitchType.StaticJackpot,
                 LevelGlitchSelection.StaticJackpot,
-                BreakoutContentRarity.Epic,
+                BreakoutContentRarity.Rare,
                 StaticJackpotLadderUnlockIntensity),
             new BreakoutLevelGlitchDefinition(
                 BreakoutLevelGlitchType.JammedRails,
@@ -1395,7 +1395,7 @@ namespace GetBricked.Gameplay
             new BreakoutLevelGlitchDefinition(
                 BreakoutLevelGlitchType.CapsuleBlackout,
                 LevelGlitchSelection.CapsuleBlackout,
-                BreakoutContentRarity.Epic,
+                BreakoutContentRarity.Uncommon,
                 CapsuleBlackoutLadderUnlockIntensity),
             new BreakoutLevelGlitchDefinition(
                 BreakoutLevelGlitchType.Brickquake,
@@ -1405,7 +1405,7 @@ namespace GetBricked.Gameplay
             new BreakoutLevelGlitchDefinition(
                 BreakoutLevelGlitchType.TurboTax,
                 LevelGlitchSelection.TurboTax,
-                BreakoutContentRarity.Epic,
+                BreakoutContentRarity.Rare,
                 TurboTaxLadderUnlockIntensity),
             new BreakoutLevelGlitchDefinition(
                 BreakoutLevelGlitchType.WarpJam,
@@ -1415,7 +1415,7 @@ namespace GetBricked.Gameplay
             new BreakoutLevelGlitchDefinition(
                 BreakoutLevelGlitchType.NeonFlood,
                 LevelGlitchSelection.NeonFlood,
-                BreakoutContentRarity.Epic,
+                BreakoutContentRarity.Rare,
                 NeonFloodLadderUnlockIntensity),
             new BreakoutLevelGlitchDefinition(
                 BreakoutLevelGlitchType.LockstepRows,
@@ -1425,7 +1425,7 @@ namespace GetBricked.Gameplay
             new BreakoutLevelGlitchDefinition(
                 BreakoutLevelGlitchType.StaticServe,
                 LevelGlitchSelection.StaticServe,
-                BreakoutContentRarity.Epic,
+                BreakoutContentRarity.Rare,
                 StaticServeLadderUnlockIntensity),
             new BreakoutLevelGlitchDefinition(
                 BreakoutLevelGlitchType.MeltdownCore,

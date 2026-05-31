@@ -135,10 +135,10 @@ namespace GetBricked.Gameplay
         {
             var cards = new List<BreakoutUiProgressionCardView>();
             AppendDropCards(cards, loadedPowerUps, highestCompletedIntensity, themeService);
-            cards.Add(BuildDefaultGlitchCard("Warp Gates", "Layout", "Linked portals reroute ball paths.", LayoutAccent));
+            cards.Add(BuildDefaultGlitchCard("Warp Gates", "Common Layout Glitch", "Linked portals reroute ball paths.", LayoutAccent));
             cards.Add(BuildUnlockableGlitchCard(
                 "Turbo Rail",
-                "Speed Rare Glitch",
+                "Speed Uncommon Glitch",
                 "A hot wall rail accelerates rebounds.",
                 BreakoutLevelGlitchPlanner.TurboRailLadderUnlockIntensity,
                 highestCompletedIntensity,
@@ -152,35 +152,35 @@ namespace GetBricked.Gameplay
                 LayoutAccent));
             cards.Add(BuildUnlockableGlitchCard(
                 "Token Storm",
-                "Pickup Epic Glitch",
+                "Pickup Uncommon Glitch",
                 "More capsules spawn, but fall at mixed speeds.",
                 BreakoutLevelGlitchPlanner.TokenStormLadderUnlockIntensity,
                 highestCompletedIntensity,
                 ControlAccent));
             cards.Add(BuildUnlockableGlitchCard(
                 "Gravity Pocket",
-                "Speed Epic Glitch",
+                "Speed Rare Glitch",
                 "A slow drifting pocket bends nearby ball paths.",
                 BreakoutLevelGlitchPlanner.GravityPocketLadderUnlockIntensity,
                 highestCompletedIntensity,
                 SplitAccent));
             cards.Add(BuildUnlockableGlitchCard(
                 "Static Wall",
-                "Paddle Epic Glitch",
+                "Paddle Rare Glitch",
                 "One side wall flickers between normal and weak bounce.",
                 BreakoutLevelGlitchPlanner.StaticWallLadderUnlockIntensity,
                 highestCompletedIntensity,
                 HazardAccent));
             cards.Add(BuildUnlockableGlitchCard(
                 "Row Rewrite",
-                "Layout Rare Glitch",
+                "Layout Uncommon Glitch",
                 "One row rerolls into a new brick pattern after a timer.",
                 BreakoutLevelGlitchPlanner.RowRewriteLadderUnlockIntensity,
                 highestCompletedIntensity,
                 LayoutAccent));
             cards.Add(BuildUnlockableGlitchCard(
                 "Prism Lanes",
-                "Precision Rare Glitch",
+                "Precision Uncommon Glitch",
                 "Marked lanes refract the ball into sharper angles.",
                 BreakoutLevelGlitchPlanner.PrismLanesLadderUnlockIntensity,
                 highestCompletedIntensity,
@@ -194,21 +194,21 @@ namespace GetBricked.Gameplay
                 SplitAccent));
             cards.Add(BuildUnlockableGlitchCard(
                 "Capsule Roulette",
-                "Pickup Rare Glitch",
+                "Pickup Uncommon Glitch",
                 "Falling capsules rotate polarity until caught or missed.",
                 BreakoutLevelGlitchPlanner.CapsuleRouletteLadderUnlockIntensity,
                 highestCompletedIntensity,
                 ControlAccent));
             cards.Add(BuildUnlockableGlitchCard(
                 "Drift Rows",
-                "Layout Rare Glitch",
+                "Layout Uncommon Glitch",
                 "Brick rows slide slowly in opposite directions.",
                 BreakoutLevelGlitchPlanner.DriftRowsLadderUnlockIntensity,
                 highestCompletedIntensity,
                 LayoutAccent));
             cards.Add(BuildUnlockableGlitchCard(
                 "Hot Corners",
-                "Wall Rare Glitch",
+                "Wall Uncommon Glitch",
                 "Corner bumpers kick balls back toward center at higher speed.",
                 BreakoutLevelGlitchPlanner.HotCornersLadderUnlockIntensity,
                 highestCompletedIntensity,
@@ -236,28 +236,28 @@ namespace GetBricked.Gameplay
                 LayoutAccent));
             cards.Add(BuildUnlockableGlitchCard(
                 "Split Horizon",
-                "Trajectory Rare Glitch",
+                "Trajectory Uncommon Glitch",
                 "Crossing the arena midpoint bends the ball angle slightly.",
                 BreakoutLevelGlitchPlanner.SplitHorizonLadderUnlockIntensity,
                 highestCompletedIntensity,
                 SplitAccent));
             cards.Add(BuildUnlockableGlitchCard(
                 "Brick Conveyor",
-                "Layout Epic Glitch",
+                "Layout Rare Glitch",
                 "Brick bands crawl sideways while gaps stay dangerous.",
                 BreakoutLevelGlitchPlanner.BrickConveyorLadderUnlockIntensity,
                 highestCompletedIntensity,
                 LayoutAccent));
             cards.Add(BuildUnlockableGlitchCard(
                 "Rogue Gate",
-                "Warp Epic Glitch",
+                "Warp Rare Glitch",
                 "A single moving portal relocates after each use.",
                 BreakoutLevelGlitchPlanner.RogueGateLadderUnlockIntensity,
                 highestCompletedIntensity,
                 SplitAccent));
             cards.Add(BuildUnlockableGlitchCard(
                 "Pickup Pinball",
-                "Pickup Epic Glitch",
+                "Pickup Uncommon Glitch",
                 "Capsules bounce off walls and bricks before falling again.",
                 BreakoutLevelGlitchPlanner.PickupPinballLadderUnlockIntensity,
                 highestCompletedIntensity,
@@ -271,7 +271,7 @@ namespace GetBricked.Gameplay
                 SplitAccent));
             cards.Add(BuildUnlockableGlitchCard(
                 "Blacklight Bricks",
-                "Visibility Epic Glitch",
+                "Visibility Rare Glitch",
                 "Brick health and special types hide until first contact.",
                 BreakoutLevelGlitchPlanner.BlacklightBricksLadderUnlockIntensity,
                 highestCompletedIntensity,
@@ -285,7 +285,7 @@ namespace GetBricked.Gameplay
                 LayoutAccent));
             cards.Add(BuildUnlockableGlitchCard(
                 "Score Leak",
-                "Score Epic Glitch",
+                "Score Rare Glitch",
                 "Score drains between brick breaks until you crack the next brick.",
                 BreakoutLevelGlitchPlanner.ScoreLeakLadderUnlockIntensity,
                 highestCompletedIntensity,
@@ -306,7 +306,7 @@ namespace GetBricked.Gameplay
                 SplitAccent));
             cards.Add(BuildUnlockableGlitchCard(
                 "Prism Shuffle",
-                "Precision Epic Glitch",
+                "Precision Rare Glitch",
                 "Marked bricks rotate rebounds into sharper angles.",
                 BreakoutLevelGlitchPlanner.PrismShuffleLadderUnlockIntensity,
                 highestCompletedIntensity,
@@ -320,7 +320,7 @@ namespace GetBricked.Gameplay
                 HazardAccent));
             cards.Add(BuildUnlockableGlitchCard(
                 "Drop Tide",
-                "Pickup Epic Glitch",
+                "Pickup Uncommon Glitch",
                 "Capsules hold briefly, then fall together in waves.",
                 BreakoutLevelGlitchPlanner.DropTideLadderUnlockIntensity,
                 highestCompletedIntensity,
@@ -341,14 +341,14 @@ namespace GetBricked.Gameplay
                 SplitAccent));
             cards.Add(BuildUnlockableGlitchCard(
                 "Mirror Serve",
-                "Serve Epic Glitch",
+                "Serve Rare Glitch",
                 "Fresh serves launch a mirror ball that vanishes after one brick hit.",
                 BreakoutLevelGlitchPlanner.MirrorServeLadderUnlockIntensity,
                 highestCompletedIntensity,
                 SplitAccent));
             cards.Add(BuildUnlockableGlitchCard(
                 "Static Jackpot",
-                "Score Epic Glitch",
+                "Score Rare Glitch",
                 "Bonus score zones appear, but missed zones speed up the ball.",
                 BreakoutLevelGlitchPlanner.StaticJackpotLadderUnlockIntensity,
                 highestCompletedIntensity,
@@ -376,7 +376,7 @@ namespace GetBricked.Gameplay
                 DamageAccent));
             cards.Add(BuildUnlockableGlitchCard(
                 "Capsule Blackout",
-                "Pickup Epic Glitch",
+                "Pickup Uncommon Glitch",
                 "Catching any capsule briefly hides the next wave of drops.",
                 BreakoutLevelGlitchPlanner.CapsuleBlackoutLadderUnlockIntensity,
                 highestCompletedIntensity,
@@ -390,7 +390,7 @@ namespace GetBricked.Gameplay
                 LayoutAccent));
             cards.Add(BuildUnlockableGlitchCard(
                 "Turbo Tax",
-                "Score Epic Glitch",
+                "Score Rare Glitch",
                 "Fast brick breaks pay bonus score; slow hits mint hazards.",
                 BreakoutLevelGlitchPlanner.TurboTaxLadderUnlockIntensity,
                 highestCompletedIntensity,
@@ -404,7 +404,7 @@ namespace GetBricked.Gameplay
                 HazardAccent));
             cards.Add(BuildUnlockableGlitchCard(
                 "Neon Flood",
-                "Pickup Epic Glitch",
+                "Pickup Rare Glitch",
                 "Helpful and harmful capsules spawn together after combo spikes.",
                 BreakoutLevelGlitchPlanner.NeonFloodLadderUnlockIntensity,
                 highestCompletedIntensity,
@@ -418,7 +418,7 @@ namespace GetBricked.Gameplay
                 LayoutAccent));
             cards.Add(BuildUnlockableGlitchCard(
                 "Static Serve",
-                "Serve Epic Glitch",
+                "Serve Rare Glitch",
                 "Each serve opens with a shifting rail rule until the first brick break.",
                 BreakoutLevelGlitchPlanner.StaticServeLadderUnlockIntensity,
                 highestCompletedIntensity,
