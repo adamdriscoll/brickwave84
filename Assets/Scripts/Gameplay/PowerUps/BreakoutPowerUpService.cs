@@ -509,6 +509,7 @@ namespace GetBricked.Gameplay
         private float bogusBounceWildAngleDegrees;
         private float capsuleBlackoutHiddenDurationSeconds;
         private float capsuleBlackoutVisibilityMultiplier = 1f;
+        private float pendingHelpfulTimedEffectExtensionSeconds;
 
         public BreakoutPowerUpService(Vector2 pickupSize, float pickupFallSpeed, float multiBallSpreadAngle, Material pickupMaterial)
         {
@@ -547,6 +548,8 @@ namespace GetBricked.Gameplay
         public int DoubleTapCharges { get; private set; }
 
         public int BogusBounceCharges { get; private set; }
+
+        public float PendingHelpfulTimedEffectExtensionSeconds => pendingHelpfulTimedEffectExtensionSeconds;
 
         public void UpdateTimedEffects(bool isPlaying, float deltaTime, System.Action modifiersChanged)
         {
@@ -1329,7 +1332,13 @@ namespace GetBricked.Gameplay
             brickBloomDefinition = null;
             doubleTapDefinition = null;
             bogusBounceWildAngleDegrees = 0f;
+            pendingHelpfulTimedEffectExtensionSeconds = 0f;
             ClearBankBonusCharge();
+        }
+
+        public void QueueHelpfulTimedEffectExtension(float extensionSeconds)
+        {
+            pendingHelpfulTimedEffectExtensionSeconds += Mathf.Max(0f, extensionSeconds);
         }
 
         public int ChargeBankBonusFromWallBounce()
@@ -2124,6 +2133,8 @@ namespace GetBricked.Gameplay
 
         private int AddTimedEffect(PowerUpDefinition powerUpDefinition)
         {
+            var durationSeconds = ResolveTimedEffectDuration(powerUpDefinition);
+
             for (var index = 0; index < ActiveTimedEffects.Count; index++)
             {
                 var activeEffect = ActiveTimedEffects[index];
@@ -2133,12 +2144,29 @@ namespace GetBricked.Gameplay
                     continue;
                 }
 
-                activeEffect.AddStack(powerUpDefinition.DurationSeconds);
+                activeEffect.AddStack(durationSeconds);
                 return activeEffect.StackCount;
             }
 
-            ActiveTimedEffects.Add(new BreakoutActiveTimedEffect(powerUpDefinition, powerUpDefinition.DurationSeconds));
+            ActiveTimedEffects.Add(new BreakoutActiveTimedEffect(powerUpDefinition, durationSeconds));
             return 1;
+        }
+
+        private float ResolveTimedEffectDuration(PowerUpDefinition powerUpDefinition)
+        {
+            var durationSeconds = powerUpDefinition != null ? powerUpDefinition.DurationSeconds : 0f;
+
+            if (powerUpDefinition == null
+                || !powerUpDefinition.IsBeneficial
+                || !powerUpDefinition.IsTimed
+                || pendingHelpfulTimedEffectExtensionSeconds <= 0f)
+            {
+                return durationSeconds;
+            }
+
+            durationSeconds += pendingHelpfulTimedEffectExtensionSeconds;
+            pendingHelpfulTimedEffectExtensionSeconds = 0f;
+            return durationSeconds;
         }
 
         private int MultiplyActiveTimedEffects(float effectMultiplier)

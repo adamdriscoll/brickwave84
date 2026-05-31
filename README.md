@@ -329,7 +329,7 @@ Late drop proposals should keep using mechanics the game already teaches: paddle
 | `Drop Sifter` | The first harmful capsule rolled each level has a chance to become a mixed capsule. | Run upgrade | Proposed |
 | `Sticky Servo` | Sticky and clean catches show a stronger aim preview before relaunch. | Run upgrade | Proposed |
 | `Brick Scanner` | Hitting a fortified, spinner, split, or explosive brick briefly marks nearby special bricks. | Run upgrade | Proposed |
-| `Risk Rebate` | Catching a mixed or hazard capsule extends the next helpful timed effect. | Run upgrade | Proposed |
+| `Risk Rebate` | Catching a mixed or hazard capsule extends the next helpful timed effect. | Run upgrade | Implemented |
 | `Last Call` | Final required bricks in a stage pay bonus score and have higher capsule odds. | Run upgrade | Proposed |
 
 ### Themes

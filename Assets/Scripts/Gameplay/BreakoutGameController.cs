@@ -1514,6 +1514,7 @@ namespace GetBricked.Gameplay
             }
 
             TriggerCapsuleBlackoutFromPickupCatch();
+            QueueRiskRebateForPickup(pickup.Definition);
 
             var primaryDefinition = pickup.PrimaryPayloadDefinition != null
                 ? pickup.PrimaryPayloadDefinition
@@ -8529,6 +8530,30 @@ namespace GetBricked.Gameplay
             }
         }
 
+        private void QueueRiskRebateForPickup(PowerUpDefinition caughtDefinition)
+        {
+            if (powerUpService == null || caughtDefinition == null)
+            {
+                return;
+            }
+
+            var extensionSeconds = GetPersistentRunUpgradeModifiers().RiskRebateHelpfulEffectExtensionSeconds;
+
+            if (extensionSeconds <= 0f || !CanTriggerRiskRebate(caughtDefinition))
+            {
+                return;
+            }
+
+            powerUpService.QueueHelpfulTimedEffectExtension(extensionSeconds);
+            powerUpService.ShowStatusBanner("RISK REBATE!", new Color(1f, 0.87f, 0.36f, 1f), 1.15f);
+        }
+
+        private static bool CanTriggerRiskRebate(PowerUpDefinition caughtDefinition)
+        {
+            return caughtDefinition != null
+                && (!caughtDefinition.IsBeneficial || caughtDefinition.EffectType == PowerUpEffectType.RandomMixedDrop);
+        }
+
         private void AwardCapsuleMadnessPickupBonus(Vector2 pickupPosition)
         {
             var bonusPoints = BreakoutPowerUpService.CapsuleMadnessPickupBonusPoints;
@@ -9842,7 +9867,7 @@ namespace GetBricked.Gameplay
         {
             return activeRunState != null
                 ? activeRunState.CalculateModifiers()
-                : new BreakoutRunUpgradeModifiers(1f, 1f, 1f, 1f, 0f, 0f, 1f, 0, 0, 0, 0);
+                : new BreakoutRunUpgradeModifiers(1f, 1f, 1f, 1f, 0f, 0f, 1f, 0, 0, 0, 0, 0f);
         }
 
         private int GetEffectiveBallsPerServe()
@@ -10200,6 +10225,11 @@ namespace GetBricked.Gameplay
             if (upgrade.FreeMissileShotsPerLevel > 0)
             {
                 parts.Add($"Free missile x{upgrade.FreeMissileShotsPerLevel}/level");
+            }
+
+            if (upgrade.RiskRebateHelpfulEffectExtensionSeconds > 0f)
+            {
+                parts.Add($"+{upgrade.RiskRebateHelpfulEffectExtensionSeconds:0.#}s risk rebate");
             }
 
             if (upgrade.WavyPaddleStrength > 0.001f)

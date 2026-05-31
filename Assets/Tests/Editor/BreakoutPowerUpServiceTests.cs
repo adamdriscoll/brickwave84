@@ -533,6 +533,40 @@ public sealed class BreakoutPowerUpServiceTests
     }
 
     [Test]
+    public void QueuedHelpfulExtensionExtendsNextHelpfulTimedEffect()
+    {
+        var service = CreateService();
+        var staticShoes = CreatePowerUp("Static Shoes", PowerUpEffectType.PaddleSpeedMultiplier, false, 8f, 0.6f);
+        var wide = CreatePowerUp("Wide Paddle", PowerUpEffectType.PaddleWidthMultiplier, true, 12f, 1.45f);
+
+        service.QueueHelpfulTimedEffectExtension(4f);
+        service.ApplyPowerUp(staticShoes, null);
+        service.ApplyPowerUp(wide, null);
+
+        Assert.That(service.ActiveTimedEffects, Has.Count.EqualTo(2));
+        Assert.That(service.ActiveTimedEffects[0].RemainingDuration, Is.EqualTo(8f).Within(0.0001f));
+        Assert.That(service.ActiveTimedEffects[1].RemainingDuration, Is.EqualTo(16f).Within(0.0001f));
+        Assert.That(service.PendingHelpfulTimedEffectExtensionSeconds, Is.Zero);
+    }
+
+    [Test]
+    public void QueuedHelpfulExtensionStacksUntilHelpfulTimedEffect()
+    {
+        var service = CreateService();
+        var multiBall = CreatePowerUp("Multi-Ball", PowerUpEffectType.MultiBallBurst, true, 0f, 1f, extraBallCount: 2);
+        var wide = CreatePowerUp("Wide Paddle", PowerUpEffectType.PaddleWidthMultiplier, true, 12f, 1.45f);
+
+        service.QueueHelpfulTimedEffectExtension(3f);
+        service.QueueHelpfulTimedEffectExtension(2f);
+        service.ApplyPowerUp(multiBall, null);
+        service.ApplyPowerUp(wide, null);
+
+        Assert.That(service.ActiveTimedEffects, Has.Count.EqualTo(1));
+        Assert.That(service.ActiveTimedEffects[0].RemainingDuration, Is.EqualTo(17f).Within(0.0001f));
+        Assert.That(service.PendingHelpfulTimedEffectExtensionSeconds, Is.Zero);
+    }
+
+    [Test]
     public void BrickBloomStacksAndConsumesOneChargeAtATime()
     {
         var service = CreateService();

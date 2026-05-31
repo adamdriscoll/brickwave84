@@ -18,7 +18,8 @@ namespace GetBricked.Gameplay
             int extraBallsPerServe,
             int tiltWarningSavesPerLevel,
             int spareFuseSavesPerRun,
-            int freeMissileShotsPerLevel)
+            int freeMissileShotsPerLevel,
+            float riskRebateHelpfulEffectExtensionSeconds)
         {
             PaddleWidthMultiplier = paddleWidthMultiplier;
             BallSpeedMultiplier = ballSpeedMultiplier;
@@ -31,6 +32,7 @@ namespace GetBricked.Gameplay
             TiltWarningSavesPerLevel = tiltWarningSavesPerLevel;
             SpareFuseSavesPerRun = spareFuseSavesPerRun;
             FreeMissileShotsPerLevel = freeMissileShotsPerLevel;
+            RiskRebateHelpfulEffectExtensionSeconds = riskRebateHelpfulEffectExtensionSeconds;
         }
 
         public float PaddleWidthMultiplier { get; }
@@ -54,6 +56,8 @@ namespace GetBricked.Gameplay
         public int SpareFuseSavesPerRun { get; }
 
         public int FreeMissileShotsPerLevel { get; }
+
+        public float RiskRebateHelpfulEffectExtensionSeconds { get; }
     }
 
     internal sealed class BreakoutRunState
@@ -248,6 +252,7 @@ namespace GetBricked.Gameplay
             var tiltWarningSavesPerLevel = 0;
             var spareFuseSavesPerRun = 0;
             var freeMissileShotsPerLevel = 0;
+            var riskRebateHelpfulEffectExtensionSeconds = 0f;
 
             for (var index = 0; index < chosenUpgrades.Count; index++)
             {
@@ -269,6 +274,7 @@ namespace GetBricked.Gameplay
                 tiltWarningSavesPerLevel += upgrade.TiltWarningSavesPerLevel;
                 spareFuseSavesPerRun += upgrade.SpareFuseSavesPerRun;
                 freeMissileShotsPerLevel += upgrade.FreeMissileShotsPerLevel;
+                riskRebateHelpfulEffectExtensionSeconds += upgrade.RiskRebateHelpfulEffectExtensionSeconds;
             }
 
             return new BreakoutRunUpgradeModifiers(
@@ -282,7 +288,8 @@ namespace GetBricked.Gameplay
                 extraBallsPerServe,
                 tiltWarningSavesPerLevel,
                 spareFuseSavesPerRun,
-                freeMissileShotsPerLevel);
+                freeMissileShotsPerLevel,
+                riskRebateHelpfulEffectExtensionSeconds);
         }
 
         private void ApplyUpgrade(RunUpgradeDefinition definition)
