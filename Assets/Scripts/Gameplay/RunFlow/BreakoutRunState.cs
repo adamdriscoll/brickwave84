@@ -17,7 +17,8 @@ namespace GetBricked.Gameplay
             float specialBrickEffectMultiplier,
             int extraBallsPerServe,
             int tiltWarningSavesPerLevel,
-            int spareFuseSavesPerRun)
+            int spareFuseSavesPerRun,
+            int freeMissileShotsPerLevel)
         {
             PaddleWidthMultiplier = paddleWidthMultiplier;
             BallSpeedMultiplier = ballSpeedMultiplier;
@@ -29,6 +30,7 @@ namespace GetBricked.Gameplay
             ExtraBallsPerServe = extraBallsPerServe;
             TiltWarningSavesPerLevel = tiltWarningSavesPerLevel;
             SpareFuseSavesPerRun = spareFuseSavesPerRun;
+            FreeMissileShotsPerLevel = freeMissileShotsPerLevel;
         }
 
         public float PaddleWidthMultiplier { get; }
@@ -50,6 +52,8 @@ namespace GetBricked.Gameplay
         public int TiltWarningSavesPerLevel { get; }
 
         public int SpareFuseSavesPerRun { get; }
+
+        public int FreeMissileShotsPerLevel { get; }
     }
 
     internal sealed class BreakoutRunState
@@ -243,6 +247,7 @@ namespace GetBricked.Gameplay
             var extraBallsPerServe = 0;
             var tiltWarningSavesPerLevel = 0;
             var spareFuseSavesPerRun = 0;
+            var freeMissileShotsPerLevel = 0;
 
             for (var index = 0; index < chosenUpgrades.Count; index++)
             {
@@ -263,6 +268,7 @@ namespace GetBricked.Gameplay
                 extraBallsPerServe += upgrade.ExtraBallsPerServe;
                 tiltWarningSavesPerLevel += upgrade.TiltWarningSavesPerLevel;
                 spareFuseSavesPerRun += upgrade.SpareFuseSavesPerRun;
+                freeMissileShotsPerLevel += upgrade.FreeMissileShotsPerLevel;
             }
 
             return new BreakoutRunUpgradeModifiers(
@@ -275,7 +281,8 @@ namespace GetBricked.Gameplay
                 specialBrickEffectMultiplier,
                 extraBallsPerServe,
                 tiltWarningSavesPerLevel,
-                spareFuseSavesPerRun);
+                spareFuseSavesPerRun,
+                freeMissileShotsPerLevel);
         }
 
         private void ApplyUpgrade(RunUpgradeDefinition definition)

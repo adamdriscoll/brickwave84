@@ -28,6 +28,7 @@ namespace GetBricked.Gameplay.Data
         [SerializeField, Min(0)] private int bonusLives;
         [SerializeField, Min(0)] private int tiltWarningSavesPerLevel;
         [SerializeField, Min(0)] private int spareFuseSavesPerRun;
+        [SerializeField, Min(0)] private int freeMissileShotsPerLevel;
 
         public string UpgradeId => string.IsNullOrWhiteSpace(upgradeId) ? name : upgradeId.Trim();
 
@@ -70,6 +71,8 @@ namespace GetBricked.Gameplay.Data
         public int TiltWarningSavesPerLevel => Mathf.Max(0, tiltWarningSavesPerLevel);
 
         public int SpareFuseSavesPerRun => Mathf.Max(0, spareFuseSavesPerRun);
+
+        public int FreeMissileShotsPerLevel => Mathf.Max(0, freeMissileShotsPerLevel);
 
         public string ResolveIconSpriteResourcePath()
         {

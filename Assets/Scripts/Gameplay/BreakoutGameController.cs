@@ -374,6 +374,7 @@ namespace GetBricked.Gameplay
         private float laserShotCooldownTimer;
         private float laserRainStrikeTimer;
         private int availableMissiles;
+        private int freeMissilesFiredThisLevel;
         private float missileShotCooldownTimer;
         private float activeLevelElapsedSeconds;
         private BreakoutLevelGlitchPlan activeLevelGlitchPlan = BreakoutLevelGlitchPlan.None;
@@ -1569,6 +1570,7 @@ namespace GetBricked.Gameplay
             lifeLossCount = 0;
             score = 0;
             availableMissiles = StartingMissileCount;
+            freeMissilesFiredThisLevel = 0;
             autoSaveBurstTimer = 0f;
             spareFuseBurstTimer = 0f;
             lastLifeLossUsedAutoSave = false;
@@ -3533,6 +3535,7 @@ namespace GetBricked.Gameplay
             ClearLevelGlitches();
             scoreService?.ResetComboTracking(clearPopups: true);
             tiltWarningSavesRemaining = GetEffectiveTiltWarningSavesPerLevel();
+            freeMissilesFiredThisLevel = 0;
             tiltAlarmState.Reset();
 
             if (loadedLevels.Count == 0 || levelIndex < 0)
@@ -9839,7 +9842,7 @@ namespace GetBricked.Gameplay
         {
             return activeRunState != null
                 ? activeRunState.CalculateModifiers()
-                : new BreakoutRunUpgradeModifiers(1f, 1f, 1f, 1f, 0f, 0f, 1f, 0, 0, 0);
+                : new BreakoutRunUpgradeModifiers(1f, 1f, 1f, 1f, 0f, 0f, 1f, 0, 0, 0, 0);
         }
 
         private int GetEffectiveBallsPerServe()
@@ -9847,6 +9850,16 @@ namespace GetBricked.Gameplay
             var baseBallsPerServe = activeRunSettings == null ? 1 : activeRunSettings.BallsPerServe;
             var persistentModifiers = GetPersistentRunUpgradeModifiers();
             return Mathf.Clamp(baseBallsPerServe + persistentModifiers.ExtraBallsPerServe, 1, 6);
+        }
+
+        private int GetEffectiveFreeMissileShotsPerLevel()
+        {
+            return Mathf.Max(0, GetPersistentRunUpgradeModifiers().FreeMissileShotsPerLevel);
+        }
+
+        private bool HasFreeMissileShotAvailable()
+        {
+            return freeMissilesFiredThisLevel < GetEffectiveFreeMissileShotsPerLevel();
         }
 
         private int GetEffectiveTiltWarningSavesPerLevel()
@@ -10182,6 +10195,11 @@ namespace GetBricked.Gameplay
             if (upgrade.SpareFuseSavesPerRun > 0)
             {
                 parts.Add($"Last-life save x{upgrade.SpareFuseSavesPerRun}");
+            }
+
+            if (upgrade.FreeMissileShotsPerLevel > 0)
+            {
+                parts.Add($"Free missile x{upgrade.FreeMissileShotsPerLevel}/level");
             }
 
             if (upgrade.WavyPaddleStrength > 0.001f)
@@ -10707,7 +10725,7 @@ namespace GetBricked.Gameplay
         {
             if (!IsGameplaySimulationActive()
                 || paddle == null
-                || availableMissiles <= 0
+                || (availableMissiles <= 0 && !HasFreeMissileShotAvailable())
                 || missileShotCooldownTimer > 0f)
             {
                 return false;
@@ -10734,7 +10752,16 @@ namespace GetBricked.Gameplay
                 MissileRadius,
                 arenaTop + 0.75f);
             activeMissiles.Add(projectile);
-            availableMissiles = Mathf.Max(0, availableMissiles - 1);
+            if (HasFreeMissileShotAvailable())
+            {
+                freeMissilesFiredThisLevel++;
+                powerUpService?.ShowStatusBanner("FREE TOKEN!", ResolveMissileColor(), 1.15f);
+            }
+            else
+            {
+                availableMissiles = Mathf.Max(0, availableMissiles - 1);
+            }
+
             missileShotCooldownTimer = MissileShotCooldownSeconds;
             return true;
         }

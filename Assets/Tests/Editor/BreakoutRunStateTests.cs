@@ -41,7 +41,8 @@ public sealed class BreakoutRunStateTests
             specialBrickEffectMultiplier: 1.25f,
             extraBallsPerServe: 1,
             tiltWarningSavesPerLevel: 1,
-            spareFuseSavesPerRun: 1);
+            spareFuseSavesPerRun: 1,
+            freeMissileShotsPerLevel: 1);
 
         runState.SetPendingDraftOffers(new[] { BreakoutRunDraftOffer.FromRunUpgrade(upgrade) });
 
@@ -63,6 +64,7 @@ public sealed class BreakoutRunStateTests
         Assert.That(modifiers.ExtraBallsPerServe, Is.EqualTo(1));
         Assert.That(modifiers.TiltWarningSavesPerLevel, Is.EqualTo(1));
         Assert.That(modifiers.SpareFuseSavesPerRun, Is.EqualTo(1));
+        Assert.That(modifiers.FreeMissileShotsPerLevel, Is.EqualTo(1));
     }
 
     [Test]
@@ -150,7 +152,8 @@ public sealed class BreakoutRunStateTests
         int extraBallsPerServe = 0,
         int bonusLives = 0,
         int tiltWarningSavesPerLevel = 0,
-        int spareFuseSavesPerRun = 0)
+        int spareFuseSavesPerRun = 0,
+        int freeMissileShotsPerLevel = 0)
     {
         var upgrade = ScriptableObject.CreateInstance<RunUpgradeDefinition>();
         runtimeObjects.Add(upgrade);
@@ -171,6 +174,7 @@ public sealed class BreakoutRunStateTests
         SetPrivateField(upgrade, "bonusLives", bonusLives);
         SetPrivateField(upgrade, "tiltWarningSavesPerLevel", tiltWarningSavesPerLevel);
         SetPrivateField(upgrade, "spareFuseSavesPerRun", spareFuseSavesPerRun);
+        SetPrivateField(upgrade, "freeMissileShotsPerLevel", freeMissileShotsPerLevel);
         return upgrade;
     }
 

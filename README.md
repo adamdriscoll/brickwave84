@@ -322,7 +322,7 @@ Late drop proposals should keep using mechanics the game already teaches: paddle
 | `Capsule Reader` | Helpful capsules fall slightly slower, while harmful capsules keep their normal speed. | Run upgrade | Proposed |
 | `Static Refund` | Catching a hazard grants a small score kick and brief resistance to the same hazard. | Run upgrade | Proposed |
 | `Rail Wrap Kit` | Once per level, a near-miss lets the paddle wrap across one side wall for a short burst. | Run upgrade | Proposed |
-| `Free Token` | The first missile fired each level does not spend missile stock. | Run upgrade | Proposed |
+| `Free Token` | The first missile fired each level does not spend missile stock. | Run upgrade | Implemented |
 | `Prism Ledger` | Phase, split, explosive, and sharp-angle breaks earn a small bonus payout. | Run upgrade | Proposed |
 | `Blackout Map` | Visibility hazards leave faint outlines on required bricks. | Run upgrade | Proposed |
 | `Overclock Brake` | High ball speed pays extra score while nudging paddle width slightly wider. | Run upgrade | Proposed |
