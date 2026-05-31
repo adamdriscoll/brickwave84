@@ -342,6 +342,10 @@ namespace GetBricked.Gameplay
         private RoundState pausedFromState;
         private int selectedMainMenuActionIndex;
         private int selectedRoguePaddleIndex;
+        private BreakoutUiProgressionSortMode selectedProgressionSortMode = BreakoutUiProgressionSortMode.UnlockLevel;
+        private BreakoutUiProgressionRarityFilter selectedProgressionRarityFilter = BreakoutUiProgressionRarityFilter.All;
+        private BreakoutUiProgressionTypeFilter selectedProgressionTypeFilter = BreakoutUiProgressionTypeFilter.All;
+        private BreakoutUiProgressionLockFilter selectedProgressionLockFilter = BreakoutUiProgressionLockFilter.All;
         private BreakoutHotSeatDifficulty selectedSoloMarathonDifficulty = BreakoutHotSeatDifficulty.Gnarly;
         private int selectedSoloMarathonSetupActionIndex = (int)BreakoutHotSeatDifficulty.Gnarly;
         private int selectedOverlayActionIndex;
@@ -2390,17 +2394,30 @@ namespace GetBricked.Gameplay
                 uiRenderer?.ScrollProgressionContent(-360f);
             }
 
+            if (keyboard.tabKey.wasPressedThisFrame)
+            {
+                AdjustProgressionSelector(BreakoutUiProgressionSelectorKind.Sort, 1);
+            }
+
+            if (keyboard.rKey.wasPressedThisFrame)
+            {
+                AdjustProgressionSelector(BreakoutUiProgressionSelectorKind.Rarity, 1);
+            }
+
+            if (keyboard.tKey.wasPressedThisFrame)
+            {
+                AdjustProgressionSelector(BreakoutUiProgressionSelectorKind.Type, 1);
+            }
+
+            if (keyboard.lKey.wasPressedThisFrame)
+            {
+                AdjustProgressionSelector(BreakoutUiProgressionSelectorKind.LockState, 1);
+            }
+
             if (keyboard.escapeKey.wasPressedThisFrame)
             {
                 EnterMainMenu();
                 return;
-            }
-
-            if (keyboard.spaceKey.wasPressedThisFrame
-                || keyboard.enterKey.wasPressedThisFrame
-                || keyboard.numpadEnterKey.wasPressedThisFrame)
-            {
-                StartRogueRun();
             }
         }
 
@@ -2666,7 +2683,7 @@ namespace GetBricked.Gameplay
         {
             if (action == BreakoutMainMenuAction.Rogue)
             {
-                EnterProgressionPage();
+                StartRogueRun();
                 return;
             }
 
@@ -3029,6 +3046,40 @@ namespace GetBricked.Gameplay
             }
 
             selectedRoguePaddleIndex = WrapIndex(selectedRoguePaddleIndex + direction, unlockedPaddles.Length);
+        }
+
+        private void AdjustProgressionSelector(BreakoutUiProgressionSelectorKind selectorKind, int direction)
+        {
+            if (direction == 0)
+            {
+                return;
+            }
+
+            switch (selectorKind)
+            {
+                case BreakoutUiProgressionSelectorKind.Sort:
+                    selectedProgressionSortMode = (BreakoutUiProgressionSortMode)WrapIndex(
+                        (int)selectedProgressionSortMode + direction,
+                        Enum.GetValues(typeof(BreakoutUiProgressionSortMode)).Length);
+                    break;
+                case BreakoutUiProgressionSelectorKind.Rarity:
+                    selectedProgressionRarityFilter = (BreakoutUiProgressionRarityFilter)WrapIndex(
+                        (int)selectedProgressionRarityFilter + direction,
+                        Enum.GetValues(typeof(BreakoutUiProgressionRarityFilter)).Length);
+                    break;
+                case BreakoutUiProgressionSelectorKind.Type:
+                    selectedProgressionTypeFilter = (BreakoutUiProgressionTypeFilter)WrapIndex(
+                        (int)selectedProgressionTypeFilter + direction,
+                        Enum.GetValues(typeof(BreakoutUiProgressionTypeFilter)).Length);
+                    break;
+                case BreakoutUiProgressionSelectorKind.LockState:
+                    selectedProgressionLockFilter = (BreakoutUiProgressionLockFilter)WrapIndex(
+                        (int)selectedProgressionLockFilter + direction,
+                        Enum.GetValues(typeof(BreakoutUiProgressionLockFilter)).Length);
+                    break;
+            }
+
+            uiRenderer?.ScrollProgressionContent(-100000f);
         }
 
         private BreakoutRoguePaddleDefinition ResolveSelectedRoguePaddle()
@@ -6609,8 +6660,8 @@ namespace GetBricked.Gameplay
 
             if (roundState == RoundState.Progression)
             {
-                uiRenderer.DrawCabinetBackdrop(BuildChromeView("Progression", "Neon Ladder Service", true));
-                uiRenderer.DrawProgressionPage(BuildProgressionPageView(), StartRogueRun, EnterMainMenu);
+                uiRenderer.DrawCabinetBackdrop(BuildChromeView("Unlock Ladder", "Cabinet Service", true));
+                uiRenderer.DrawProgressionPage(BuildProgressionPageView(), AdjustProgressionSelector, EnterMainMenu);
                 return;
             }
 
@@ -6784,7 +6835,13 @@ namespace GetBricked.Gameplay
         private BreakoutUiProgressionView BuildProgressionPageView()
         {
             progressionPageService ??= new BreakoutProgressionPageService();
-            return progressionPageService.BuildView(loadedPowerUpDefinitions, themeService);
+            return progressionPageService.BuildView(
+                loadedPowerUpDefinitions,
+                themeService,
+                selectedProgressionSortMode,
+                selectedProgressionRarityFilter,
+                selectedProgressionTypeFilter,
+                selectedProgressionLockFilter);
         }
 
         private BreakoutUiRunSetupView BuildRunSetupView()

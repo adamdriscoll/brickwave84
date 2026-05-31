@@ -39,13 +39,16 @@ public sealed class BreakoutProgressionPageTests
     }
 
     [Test]
-    public void ProgressionPageLaunchesFromNeonLadderInsteadOfTopLevelAction()
+    public void UnlockLadderIsSeparateTopLevelActionAfterNeonLadder()
     {
         var actions = new BreakoutMainMenuService().BuildActions();
+        var view = new BreakoutMainMenuService().BuildView(new BreakoutMainMenuContext());
 
         Assert.That(actions[0], Is.EqualTo(BreakoutMainMenuAction.Rogue));
-        Assert.That(Array.IndexOf(actions, BreakoutMainMenuAction.Progression), Is.EqualTo(-1));
-        Assert.That(actions[1], Is.EqualTo(BreakoutMainMenuAction.SoloMarathon));
+        Assert.That(actions[1], Is.EqualTo(BreakoutMainMenuAction.Progression));
+        Assert.That(actions[2], Is.EqualTo(BreakoutMainMenuAction.SoloMarathon));
+        Assert.That(view.ActionLabels[0], Is.EqualTo("Neon Ladder"));
+        Assert.That(view.ActionLabels[1], Is.EqualTo("Unlock Ladder"));
         Assert.That(actions[actions.Length - 1], Is.EqualTo(BreakoutMainMenuAction.QuitGame));
     }
 
@@ -141,6 +144,86 @@ public sealed class BreakoutProgressionPageTests
         Assert.That(neonFlood.UnlockHint, Does.Contain("Heat 40"));
         Assert.That(lockstepRows.UnlockHint, Does.Contain("Heat 41"));
         Assert.That(meltdownCore.UnlockHint, Does.Contain("Heat 44"));
+    }
+
+    [Test]
+    public void UnlockLadderDefaultsToUnlockLevelSortWithDefaultsFirst()
+    {
+        var drops = Resources.LoadAll<PowerUpDefinition>("PowerUps");
+        var view = new BreakoutProgressionPageService().BuildView(drops);
+
+        Assert.That(view.Title, Is.EqualTo("Unlock Ladder"));
+        Assert.That(view.SortMode, Is.EqualTo(BreakoutUiProgressionSortMode.UnlockLevel));
+        Assert.That(view.RarityFilter, Is.EqualTo(BreakoutUiProgressionRarityFilter.All));
+        Assert.That(view.TypeFilter, Is.EqualTo(BreakoutUiProgressionTypeFilter.All));
+        Assert.That(view.LockFilter, Is.EqualTo(BreakoutUiProgressionLockFilter.All));
+        Assert.That(view.VisibleCardCount, Is.EqualTo(view.Cards.Length));
+        Assert.That(view.TotalCardCount, Is.EqualTo(view.Cards.Length));
+        Assert.That(view.Cards.TakeWhile(card => card.UnlockState == BreakoutUiProgressionUnlockState.Default), Is.Not.Empty);
+
+        var lastUnlock = -1;
+        foreach (var card in view.Cards)
+        {
+            Assert.That(card.UnlockIntensity, Is.GreaterThanOrEqualTo(lastUnlock));
+            lastUnlock = card.UnlockIntensity;
+        }
+    }
+
+    [Test]
+    public void UnlockLadderCanSortAndFilterCards()
+    {
+        var drops = Resources.LoadAll<PowerUpDefinition>("PowerUps");
+        var epicLockedDrops = new BreakoutProgressionPageService().BuildView(
+            drops,
+            null,
+            BreakoutUiProgressionSortMode.Rarity,
+            BreakoutUiProgressionRarityFilter.Epic,
+            BreakoutUiProgressionTypeFilter.Drop,
+            BreakoutUiProgressionLockFilter.Locked);
+        var typeSorted = new BreakoutProgressionPageService().BuildView(
+            drops,
+            null,
+            BreakoutUiProgressionSortMode.Type);
+
+        Assert.That(epicLockedDrops.Cards, Is.Not.Empty);
+        Assert.That(epicLockedDrops.Cards.All(card => card.Kind == "Drop"), Is.True);
+        Assert.That(epicLockedDrops.Cards.All(card => card.RarityLabel == "Epic"), Is.True);
+        Assert.That(epicLockedDrops.Cards.All(card => card.UnlockState == BreakoutUiProgressionUnlockState.SeenLocked), Is.True);
+        Assert.That(epicLockedDrops.VisibleCardCount, Is.LessThan(epicLockedDrops.TotalCardCount));
+
+        var firstGlitchIndex = Array.FindIndex(typeSorted.Cards, card => card.Kind == "Glitch");
+        Assert.That(firstGlitchIndex, Is.GreaterThan(0));
+        Assert.That(typeSorted.Cards.Skip(firstGlitchIndex).Any(card => card.Kind == "Drop"), Is.False);
+    }
+
+    [Test]
+    public void UnlockLadderTypeFilterShowsGlitches()
+    {
+        var drops = Resources.LoadAll<PowerUpDefinition>("PowerUps");
+        var glitchView = new BreakoutProgressionPageService().BuildView(
+            drops,
+            null,
+            BreakoutUiProgressionSortMode.UnlockLevel,
+            BreakoutUiProgressionRarityFilter.All,
+            BreakoutUiProgressionTypeFilter.Glitch,
+            BreakoutUiProgressionLockFilter.All);
+        var epicGlitchView = new BreakoutProgressionPageService().BuildView(
+            drops,
+            null,
+            BreakoutUiProgressionSortMode.UnlockLevel,
+            BreakoutUiProgressionRarityFilter.Epic,
+            BreakoutUiProgressionTypeFilter.Glitch,
+            BreakoutUiProgressionLockFilter.All);
+
+        Assert.That(glitchView.Cards, Is.Not.Empty);
+        Assert.That(glitchView.Cards.All(card => card.Kind == "Glitch"), Is.True);
+        Assert.That(glitchView.Cards.Any(card => card.Title == "Turbo Rail"), Is.True);
+        Assert.That(glitchView.VisibleCardCount, Is.LessThan(glitchView.TotalCardCount));
+
+        Assert.That(epicGlitchView.Cards, Is.Not.Empty);
+        Assert.That(epicGlitchView.Cards.All(card => card.Kind == "Glitch"), Is.True);
+        Assert.That(epicGlitchView.Cards.All(card => card.RarityLabel == "Epic"), Is.True);
+        Assert.That(epicGlitchView.Cards.Any(card => card.Title == "Token Storm"), Is.True);
     }
 
     [Test]

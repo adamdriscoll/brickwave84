@@ -66,7 +66,13 @@ namespace GetBricked.Gameplay
         {
         };
 
-        public BreakoutUiProgressionView BuildView(IReadOnlyList<PowerUpDefinition> loadedPowerUps, BreakoutThemeService themeService = null)
+        public BreakoutUiProgressionView BuildView(
+            IReadOnlyList<PowerUpDefinition> loadedPowerUps,
+            BreakoutThemeService themeService = null,
+            BreakoutUiProgressionSortMode sortMode = BreakoutUiProgressionSortMode.UnlockLevel,
+            BreakoutUiProgressionRarityFilter rarityFilter = BreakoutUiProgressionRarityFilter.All,
+            BreakoutUiProgressionTypeFilter typeFilter = BreakoutUiProgressionTypeFilter.All,
+            BreakoutUiProgressionLockFilter lockFilter = BreakoutUiProgressionLockFilter.All)
         {
             var progressPaddleLabel = BreakoutRogueRunResultStore.DefaultPaddleLabel;
             var selectedHighest = BreakoutRogueIntensityProgressStore.GetHighestCompletedIntensity(progressPaddleLabel);
@@ -79,12 +85,14 @@ namespace GetBricked.Gameplay
             var unlockedPlaceholderGlitches = CountEarnedPlaceholders(PlaceholderGlitches, selectedHighest);
             var lockedDropCount = Mathf.Max(0, PlannedDropUnlockCount - unlockedLiveDrops - unlockedPlaceholderDrops);
             var lockedGlitchCount = Mathf.Max(0, PlannedGlitchUnlockCount - unlockedLiveGlitches - unlockedPlaceholderGlitches);
+            var allCards = BuildCards(loadedPowerUps, selectedHighest, themeService);
+            var visibleCards = FilterAndSortCards(allCards, sortMode, rarityFilter, typeFilter, lockFilter);
 
             return new BreakoutUiProgressionView
             {
-                Title = "Progression",
-                Subtitle = "Neon Ladder history, Heat unlocks, and where earned content appears next.",
-                LadderTitle = "Ladder Progress",
+                Title = "Unlock Ladder",
+                Subtitle = "Heat signals, drop capsules, and stage glitches in one cabinet service page.",
+                LadderTitle = "Signal Progress",
                 LadderLines = new[]
                 {
                     $"Highest Clear: Heat {selectedHighest:00}/{BreakoutRunProgression.MaxRogueIntensity:00}",
@@ -107,8 +115,14 @@ namespace GetBricked.Gameplay
                     PulseRate = 1.35f,
                     Color = BreakoutRunProgression.GetRogueIntensityGaugeColor(selectedAvailable),
                 },
-                Cards = BuildCards(loadedPowerUps, selectedHighest, themeService),
-                FooterText = "Space starts. Esc backs out. Mouse wheel scrolls.",
+                Cards = visibleCards,
+                SortMode = sortMode,
+                RarityFilter = rarityFilter,
+                TypeFilter = typeFilter,
+                LockFilter = lockFilter,
+                VisibleCardCount = visibleCards.Length,
+                TotalCardCount = allCards.Length,
+                FooterText = "Up/Down scrolls. Tab/R/T/L tune selectors. Esc backs out.",
             };
         }
 
@@ -428,6 +442,232 @@ namespace GetBricked.Gameplay
             return cards.ToArray();
         }
 
+        private static BreakoutUiProgressionCardView[] FilterAndSortCards(
+            BreakoutUiProgressionCardView[] cards,
+            BreakoutUiProgressionSortMode sortMode,
+            BreakoutUiProgressionRarityFilter rarityFilter,
+            BreakoutUiProgressionTypeFilter typeFilter,
+            BreakoutUiProgressionLockFilter lockFilter)
+        {
+            if (cards == null || cards.Length == 0)
+            {
+                return System.Array.Empty<BreakoutUiProgressionCardView>();
+            }
+
+            var filtered = new List<BreakoutUiProgressionCardView>();
+
+            for (var index = 0; index < cards.Length; index++)
+            {
+                var card = cards[index];
+
+                if (MatchesRarityFilter(card, rarityFilter)
+                    && MatchesTypeFilter(card, typeFilter)
+                    && MatchesLockFilter(card, lockFilter))
+                {
+                    filtered.Add(card);
+                }
+            }
+
+            var result = filtered.ToArray();
+            System.Array.Sort(result, (left, right) => CompareProgressionCards(left, right, sortMode));
+            return result;
+        }
+
+        private static int CompareProgressionCards(
+            BreakoutUiProgressionCardView left,
+            BreakoutUiProgressionCardView right,
+            BreakoutUiProgressionSortMode sortMode)
+        {
+            var comparison = sortMode switch
+            {
+                BreakoutUiProgressionSortMode.Rarity => CompareRarity(left, right),
+                BreakoutUiProgressionSortMode.Type => CompareType(left, right),
+                _ => CompareUnlockLevel(left, right),
+            };
+
+            if (comparison != 0)
+            {
+                return comparison;
+            }
+
+            comparison = CompareUnlockLevel(left, right);
+            if (comparison != 0)
+            {
+                return comparison;
+            }
+
+            comparison = CompareType(left, right);
+            if (comparison != 0)
+            {
+                return comparison;
+            }
+
+            return string.Compare(left?.Title, right?.Title, System.StringComparison.Ordinal);
+        }
+
+        private static int CompareUnlockLevel(BreakoutUiProgressionCardView left, BreakoutUiProgressionCardView right)
+        {
+            var leftUnlock = left?.UnlockIntensity ?? int.MaxValue;
+            var rightUnlock = right?.UnlockIntensity ?? int.MaxValue;
+            return leftUnlock.CompareTo(rightUnlock);
+        }
+
+        private static int CompareRarity(BreakoutUiProgressionCardView left, BreakoutUiProgressionCardView right)
+        {
+            return GetComparableRarityRank(left).CompareTo(GetComparableRarityRank(right));
+        }
+
+        private static int CompareType(BreakoutUiProgressionCardView left, BreakoutUiProgressionCardView right)
+        {
+            var kindComparison = GetKindRank(left).CompareTo(GetKindRank(right));
+
+            if (kindComparison != 0)
+            {
+                return kindComparison;
+            }
+
+            return string.Compare(left?.TypeLabel, right?.TypeLabel, System.StringComparison.Ordinal);
+        }
+
+        private static int GetComparableRarityRank(BreakoutUiProgressionCardView card)
+        {
+            return card != null && card.RarityRank >= 0 ? card.RarityRank : 99;
+        }
+
+        private static int GetKindRank(BreakoutUiProgressionCardView card)
+        {
+            if (card == null)
+            {
+                return int.MaxValue;
+            }
+
+            if (string.Equals(card.Kind, "Drop", System.StringComparison.OrdinalIgnoreCase))
+            {
+                return 0;
+            }
+
+            if (string.Equals(card.Kind, "Glitch", System.StringComparison.OrdinalIgnoreCase))
+            {
+                return 1;
+            }
+
+            return 2;
+        }
+
+        private static bool MatchesRarityFilter(BreakoutUiProgressionCardView card, BreakoutUiProgressionRarityFilter filter)
+        {
+            if (filter == BreakoutUiProgressionRarityFilter.All)
+            {
+                return true;
+            }
+
+            if (card == null)
+            {
+                return false;
+            }
+
+            if (filter == BreakoutUiProgressionRarityFilter.NoRarity)
+            {
+                return card.RarityRank < 0;
+            }
+
+            var expectedRank = filter switch
+            {
+                BreakoutUiProgressionRarityFilter.Uncommon => (int)BreakoutContentRarity.Uncommon,
+                BreakoutUiProgressionRarityFilter.Rare => (int)BreakoutContentRarity.Rare,
+                BreakoutUiProgressionRarityFilter.Epic => (int)BreakoutContentRarity.Epic,
+                _ => (int)BreakoutContentRarity.Common,
+            };
+
+            return card.RarityRank == expectedRank;
+        }
+
+        private static bool MatchesTypeFilter(BreakoutUiProgressionCardView card, BreakoutUiProgressionTypeFilter filter)
+        {
+            if (filter == BreakoutUiProgressionTypeFilter.All)
+            {
+                return true;
+            }
+
+            if (card == null)
+            {
+                return false;
+            }
+
+            return filter == BreakoutUiProgressionTypeFilter.Drop
+                ? string.Equals(card.Kind, "Drop", System.StringComparison.OrdinalIgnoreCase)
+                : string.Equals(card.Kind, "Glitch", System.StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static bool MatchesLockFilter(BreakoutUiProgressionCardView card, BreakoutUiProgressionLockFilter filter)
+        {
+            if (filter == BreakoutUiProgressionLockFilter.All)
+            {
+                return true;
+            }
+
+            if (card == null)
+            {
+                return false;
+            }
+
+            var isUnlocked = card.UnlockState == BreakoutUiProgressionUnlockState.Default
+                || card.UnlockState == BreakoutUiProgressionUnlockState.Unlocked;
+
+            return filter == BreakoutUiProgressionLockFilter.Unlocked ? isUnlocked : !isUnlocked;
+        }
+
+        private static int ResolveRarityRank(string family)
+        {
+            var label = ResolveRarityLabel(family);
+
+            return label switch
+            {
+                "Common" => (int)BreakoutContentRarity.Common,
+                "Uncommon" => (int)BreakoutContentRarity.Uncommon,
+                "Rare" => (int)BreakoutContentRarity.Rare,
+                "Epic" => (int)BreakoutContentRarity.Epic,
+                _ => -1,
+            };
+        }
+
+        private static string ResolveRarityLabel(string family)
+        {
+            if (string.IsNullOrWhiteSpace(family))
+            {
+                return "No rarity";
+            }
+
+            var tokens = family.Trim().Split(new[] { ' ' }, System.StringSplitOptions.RemoveEmptyEntries);
+
+            for (var index = 0; index < tokens.Length; index++)
+            {
+                var token = tokens[index];
+
+                if (string.Equals(token, "Common", System.StringComparison.OrdinalIgnoreCase))
+                {
+                    return "Common";
+                }
+
+                if (string.Equals(token, "Uncommon", System.StringComparison.OrdinalIgnoreCase))
+                {
+                    return "Uncommon";
+                }
+
+                if (string.Equals(token, "Rare", System.StringComparison.OrdinalIgnoreCase))
+                {
+                    return "Rare";
+                }
+
+                if (string.Equals(token, "Epic", System.StringComparison.OrdinalIgnoreCase))
+                {
+                    return "Epic";
+                }
+            }
+
+            return "No rarity";
+        }
+
         private void AppendDropCards(
             List<BreakoutUiProgressionCardView> cards,
             IReadOnlyList<PowerUpDefinition> loadedPowerUps,
@@ -465,6 +705,10 @@ namespace GetBricked.Gameplay
                             : $"Clear Heat {unlockIntensity:00} in Neon Ladder",
                     StateLabel = isDefault ? "Default" : isUnlocked ? "Unlocked" : "Locked",
                     ModeAvailability = isUnlocked ? "Ladder | Marathon | Multiplayer" : "Ladder goal",
+                    UnlockIntensity = isDefault ? 0 : unlockIntensity,
+                    RarityRank = (int)definition.Rarity,
+                    RarityLabel = definition.RarityLabel,
+                    TypeLabel = "Drop",
                     UnlockState = isDefault
                         ? BreakoutUiProgressionUnlockState.Default
                         : isUnlocked
@@ -605,6 +849,10 @@ namespace GetBricked.Gameplay
                 UnlockHint = "Default glitch archetype",
                 StateLabel = "Default",
                 ModeAvailability = "Ladder | Marathon | Multiplayer",
+                UnlockIntensity = 0,
+                RarityRank = ResolveRarityRank(family),
+                RarityLabel = ResolveRarityLabel(family),
+                TypeLabel = "Glitch",
                 UnlockState = BreakoutUiProgressionUnlockState.Default,
                 Accent = accent,
             };
@@ -632,6 +880,10 @@ namespace GetBricked.Gameplay
                     : $"Clear Heat {unlockIntensity:00} in Neon Ladder",
                 StateLabel = isUnlocked ? "Unlocked" : "Locked",
                 ModeAvailability = isUnlocked ? "Ladder | Marathon | Multiplayer" : "Ladder goal",
+                UnlockIntensity = BreakoutRunProgression.ClampRogueIntensity(unlockIntensity),
+                RarityRank = ResolveRarityRank(family),
+                RarityLabel = ResolveRarityLabel(family),
+                TypeLabel = "Glitch",
                 UnlockState = isUnlocked
                     ? BreakoutUiProgressionUnlockState.Unlocked
                     : BreakoutUiProgressionUnlockState.SeenLocked,
@@ -661,6 +913,10 @@ namespace GetBricked.Gameplay
                     ModeAvailability = isEarnedForPreview
                         ? "Ladder | Marathon | Multiplayer"
                         : "Ladder goal",
+                    UnlockIntensity = placeholder.UnlockIntensity,
+                    RarityRank = ResolveRarityRank(placeholder.Family),
+                    RarityLabel = ResolveRarityLabel(placeholder.Family),
+                    TypeLabel = placeholder.Kind,
                     UnlockState = isEarnedForPreview
                         ? BreakoutUiProgressionUnlockState.Unlocked
                         : BreakoutUiProgressionUnlockState.SeenLocked,
@@ -684,6 +940,10 @@ namespace GetBricked.Gameplay
                 UnlockHint = "Hidden locked slot",
                 StateLabel = "Unknown",
                 ModeAvailability = "Future bundle",
+                UnlockIntensity = int.MaxValue,
+                RarityRank = -1,
+                RarityLabel = "No rarity",
+                TypeLabel = kind,
                 UnlockState = BreakoutUiProgressionUnlockState.HiddenLocked,
                 Accent = LayoutAccent,
             };

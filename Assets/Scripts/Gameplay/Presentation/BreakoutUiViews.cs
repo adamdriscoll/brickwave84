@@ -72,6 +72,45 @@ namespace GetBricked.Gameplay
         HiddenLocked,
     }
 
+    internal enum BreakoutUiProgressionSortMode
+    {
+        UnlockLevel,
+        Rarity,
+        Type,
+    }
+
+    internal enum BreakoutUiProgressionRarityFilter
+    {
+        All,
+        Common,
+        Uncommon,
+        Rare,
+        Epic,
+        NoRarity,
+    }
+
+    internal enum BreakoutUiProgressionTypeFilter
+    {
+        All,
+        Drop,
+        Glitch,
+    }
+
+    internal enum BreakoutUiProgressionLockFilter
+    {
+        All,
+        Unlocked,
+        Locked,
+    }
+
+    internal enum BreakoutUiProgressionSelectorKind
+    {
+        Sort,
+        Rarity,
+        Type,
+        LockState,
+    }
+
     internal sealed class BreakoutUiProgressionPaddleView
     {
         public string Label = string.Empty;
@@ -91,6 +130,10 @@ namespace GetBricked.Gameplay
         public string UnlockHint = string.Empty;
         public string StateLabel = string.Empty;
         public string ModeAvailability = string.Empty;
+        public int UnlockIntensity;
+        public int RarityRank = -1;
+        public string RarityLabel = string.Empty;
+        public string TypeLabel = string.Empty;
         public BreakoutUiProgressionUnlockState UnlockState;
         public Color Accent = Color.white;
         public Sprite Icon;
@@ -108,6 +151,12 @@ namespace GetBricked.Gameplay
         public BreakoutUiIntensityGaugeView IntensityGauge = new BreakoutUiIntensityGaugeView();
         public BreakoutUiProgressionPaddleView[] Paddles = Array.Empty<BreakoutUiProgressionPaddleView>();
         public BreakoutUiProgressionCardView[] Cards = Array.Empty<BreakoutUiProgressionCardView>();
+        public BreakoutUiProgressionSortMode SortMode = BreakoutUiProgressionSortMode.UnlockLevel;
+        public BreakoutUiProgressionRarityFilter RarityFilter = BreakoutUiProgressionRarityFilter.All;
+        public BreakoutUiProgressionTypeFilter TypeFilter = BreakoutUiProgressionTypeFilter.All;
+        public BreakoutUiProgressionLockFilter LockFilter = BreakoutUiProgressionLockFilter.All;
+        public int VisibleCardCount;
+        public int TotalCardCount;
         public string FooterText = string.Empty;
     }
 
