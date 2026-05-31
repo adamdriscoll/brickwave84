@@ -600,6 +600,32 @@ public sealed class BreakoutGameControllerPowerUpTests
     }
 
     [Test]
+    public void MissileRackBoostsFirstRewardMissilePurchaseEachDraft()
+    {
+        var controller = CreateControllerHarness(out _);
+        var activeRunState = new BreakoutRunState();
+        var missileRack = CreateRunUpgrade("missile-rack", 1f, rewardMissilePurchaseBonusStock: 1);
+        activeRunState.SetPendingDraftOffers(new[] { BreakoutRunDraftOffer.FromRunUpgrade(missileRack) });
+        Assert.That(activeRunState.TryApplyPendingDraftOffer(0, out _), Is.True);
+
+        SetPrivateField(controller, "activeRunState", activeRunState);
+        SetPrivateField(controller, "score", 15000);
+        SetPrivateField(controller, "availableMissiles", 3);
+
+        InvokePrivateMethod(controller, "TryPurchaseRewardMissile");
+
+        Assert.That(GetPrivateField<int>(controller, "score"), Is.EqualTo(10000));
+        Assert.That(GetPrivateField<int>(controller, "availableMissiles"), Is.EqualTo(5));
+        Assert.That(GetPrivateField<int>(controller, "rewardMissileBonusPurchasesUsedThisDraft"), Is.EqualTo(1));
+
+        InvokePrivateMethod(controller, "TryPurchaseRewardMissile");
+
+        Assert.That(GetPrivateField<int>(controller, "score"), Is.EqualTo(5000));
+        Assert.That(GetPrivateField<int>(controller, "availableMissiles"), Is.EqualTo(6));
+        Assert.That(GetPrivateField<int>(controller, "rewardMissileBonusPurchasesUsedThisDraft"), Is.EqualTo(1));
+    }
+
+    [Test]
     public void ApplyingSameTimedPowerUpTwiceShowsStackCountInUiLabels()
     {
         var controller = CreateControllerHarness(out _);
@@ -1781,7 +1807,8 @@ public sealed class BreakoutGameControllerPowerUpTests
         float specialBrickEffectMultiplier,
         int tiltWarningSavesPerLevel = 0,
         int spareFuseSavesPerRun = 0,
-        int freeMissileShotsPerLevel = 0)
+        int freeMissileShotsPerLevel = 0,
+        int rewardMissilePurchaseBonusStock = 0)
     {
         var upgrade = ScriptableObject.CreateInstance<RunUpgradeDefinition>();
         runtimeObjects.Add(upgrade);
@@ -1793,6 +1820,7 @@ public sealed class BreakoutGameControllerPowerUpTests
         SetPrivateField(upgrade, "tiltWarningSavesPerLevel", tiltWarningSavesPerLevel);
         SetPrivateField(upgrade, "spareFuseSavesPerRun", spareFuseSavesPerRun);
         SetPrivateField(upgrade, "freeMissileShotsPerLevel", freeMissileShotsPerLevel);
+        SetPrivateField(upgrade, "rewardMissilePurchaseBonusStock", rewardMissilePurchaseBonusStock);
         SetPrivateField(upgrade, "warpHandleSpeedTrimRatio", 0f);
         return upgrade;
     }

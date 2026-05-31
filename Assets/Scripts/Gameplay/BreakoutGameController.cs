@@ -379,6 +379,7 @@ namespace GetBricked.Gameplay
         private float laserRainStrikeTimer;
         private int availableMissiles;
         private int freeMissilesFiredThisLevel;
+        private int rewardMissileBonusPurchasesUsedThisDraft;
         private bool warpHandleUsedThisLevel;
         private float missileShotCooldownTimer;
         private float activeLevelElapsedSeconds;
@@ -1597,6 +1598,7 @@ namespace GetBricked.Gameplay
             score = 0;
             availableMissiles = StartingMissileCount;
             freeMissilesFiredThisLevel = 0;
+            rewardMissileBonusPurchasesUsedThisDraft = 0;
             warpHandleUsedThisLevel = false;
             autoSaveBurstTimer = 0f;
             spareFuseBurstTimer = 0f;
@@ -1791,6 +1793,7 @@ namespace GetBricked.Gameplay
             ClearMissiles();
             activeRunState?.ClearPendingDraftOffers();
             selectedUpgradeDraftIndex = 0;
+            rewardMissileBonusPurchasesUsedThisDraft = 0;
             stickyCaughtBall = null;
             shieldWallCharges = 0;
             tiltWarningSavesRemaining = 0;
@@ -7207,7 +7210,7 @@ namespace GetBricked.Gameplay
                 Options = optionViews,
                 SelectedOptionIndex = Mathf.Clamp(selectedUpgradeDraftIndex, 0, optionViews.Length - 1),
                 MissilePurchaseLabel = "BUY MISSILE",
-                MissilePurchaseDetail = $"{FormatScoreValue(MissileRewardPurchaseScoreCost)} pts | Stock {Mathf.Max(0, availableMissiles):00}",
+                MissilePurchaseDetail = $"{FormatScoreValue(MissileRewardPurchaseScoreCost)} pts | +{GetRewardMissilePurchaseStockGrant()} stock | Stock {Mathf.Max(0, availableMissiles):00}",
                 CanPurchaseMissile = CanPurchaseMissile(score),
                 MissilePurchaseIcon = missileSprite != null ? missileSprite : triangleSprite,
                 MissilePurchaseColor = ResolveMissileColor(),
@@ -9888,6 +9891,7 @@ namespace GetBricked.Gameplay
             activeRunState.SetPendingDraftOffers(offers);
             roundState = RoundState.UpgradeDraft;
             selectedUpgradeDraftIndex = 0;
+            rewardMissileBonusPurchasesUsedThisDraft = 0;
             return true;
         }
 
@@ -9936,8 +9940,14 @@ namespace GetBricked.Gameplay
             }
 
             score -= MissileRewardPurchaseScoreCost;
-            availableMissiles += 1;
-            powerUpService?.ShowStatusBanner("+ MISSILE", ResolveMissileColor(), 1.6f);
+            var stockGranted = GetRewardMissilePurchaseStockGrant();
+            availableMissiles += stockGranted;
+            if (stockGranted > 1)
+            {
+                rewardMissileBonusPurchasesUsedThisDraft++;
+            }
+
+            powerUpService?.ShowStatusBanner(stockGranted > 1 ? $"+{stockGranted} MISSILES" : "+ MISSILE", ResolveMissileColor(), 1.6f);
             audioService?.PlayPickupCollected(null);
         }
 
@@ -9950,7 +9960,7 @@ namespace GetBricked.Gameplay
         {
             return activeRunState != null
                 ? activeRunState.CalculateModifiers()
-                : new BreakoutRunUpgradeModifiers(1f, 1f, 1f, 1f, 0f, 0f, 1f, 0, 0, 0, 0, 0f, 0, 0f);
+                : new BreakoutRunUpgradeModifiers(1f, 1f, 1f, 1f, 0f, 0f, 1f, 0, 0, 0, 0, 0, 0f, 0, 0f);
         }
 
         private int GetEffectiveBallsPerServe()
@@ -9968,6 +9978,12 @@ namespace GetBricked.Gameplay
         private bool HasFreeMissileShotAvailable()
         {
             return freeMissilesFiredThisLevel < GetEffectiveFreeMissileShotsPerLevel();
+        }
+
+        private int GetRewardMissilePurchaseStockGrant()
+        {
+            var bonusStock = GetPersistentRunUpgradeModifiers().RewardMissilePurchaseBonusStock;
+            return 1 + (rewardMissileBonusPurchasesUsedThisDraft <= 0 ? Mathf.Max(0, bonusStock) : 0);
         }
 
         private int GetEffectiveTiltWarningSavesPerLevel()
@@ -10308,6 +10324,11 @@ namespace GetBricked.Gameplay
             if (upgrade.FreeMissileShotsPerLevel > 0)
             {
                 parts.Add($"Free missile x{upgrade.FreeMissileShotsPerLevel}/level");
+            }
+
+            if (upgrade.RewardMissilePurchaseBonusStock > 0)
+            {
+                parts.Add($"+{upgrade.RewardMissilePurchaseBonusStock} missile buy bonus");
             }
 
             if (upgrade.RiskRebateHelpfulEffectExtensionSeconds > 0f)

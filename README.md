@@ -12,7 +12,7 @@
   - `4` authored level profiles
   - `9` brick definitions
   - `36` pickup definitions
-  - `13` permanent run upgrades
+  - `16` permanent run upgrades
   - `3` themes
   - `3` authored Rogue paddle definitions (alternate types are currently disabled)
 - Current UI state: runtime OnGUI menus, HUD, pause, upgrade draft, and end-state flow
@@ -314,7 +314,7 @@ Late drop proposals should keep using mechanics the game already teaches: paddle
 | `Glitch Dividend` | Glitched stages pay a higher clear bonus and slightly favor relief drops in the next draft. | Run upgrade | Proposed |
 | `Drop Decoder` | Mystery and Bogus capsules reveal their polarity one beat before collection. | Run upgrade | Proposed |
 | `Warp Handle` | The first portal or wall-glitch exit each level trims ball speed back toward baseline. | Run upgrade | Implemented |
-| `Missile Rack` | Between-stage missile purchases add +2 stock instead of +1 once per draft. | Run upgrade | Proposed |
+| `Missile Rack` | Between-stage missile purchases add +2 stock instead of +1 once per draft. | Run upgrade | Implemented |
 | `Prism Warranty` | First sharp-angle brick hit after a glitch grants a short aim preview. | Run upgrade | Proposed |
 | `Crowd Control` | New timed hazards trim the oldest active hazard stack while 2 hazard stacks are already running. | Run upgrade | Implemented |
 | `Heat Sink` | Breaking bricks while the ball is over baseline speed cools active hazards slightly faster. | Run upgrade | Proposed |

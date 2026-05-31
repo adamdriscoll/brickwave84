@@ -43,6 +43,7 @@ public sealed class BreakoutRunStateTests
             tiltWarningSavesPerLevel: 1,
             spareFuseSavesPerRun: 1,
             freeMissileShotsPerLevel: 1,
+            rewardMissilePurchaseBonusStock: 1,
             riskRebateHelpfulEffectExtensionSeconds: 4f,
             warpHandleSpeedTrimRatio: 0.65f);
 
@@ -67,6 +68,7 @@ public sealed class BreakoutRunStateTests
         Assert.That(modifiers.TiltWarningSavesPerLevel, Is.EqualTo(1));
         Assert.That(modifiers.SpareFuseSavesPerRun, Is.EqualTo(1));
         Assert.That(modifiers.FreeMissileShotsPerLevel, Is.EqualTo(1));
+        Assert.That(modifiers.RewardMissilePurchaseBonusStock, Is.EqualTo(1));
         Assert.That(modifiers.RiskRebateHelpfulEffectExtensionSeconds, Is.EqualTo(4f).Within(0.0001f));
         Assert.That(modifiers.WarpHandleSpeedTrimRatio, Is.EqualTo(0.65f).Within(0.0001f));
     }
@@ -158,6 +160,7 @@ public sealed class BreakoutRunStateTests
         int tiltWarningSavesPerLevel = 0,
         int spareFuseSavesPerRun = 0,
         int freeMissileShotsPerLevel = 0,
+        int rewardMissilePurchaseBonusStock = 0,
         float riskRebateHelpfulEffectExtensionSeconds = 0f,
         float warpHandleSpeedTrimRatio = 0f)
     {
@@ -181,6 +184,7 @@ public sealed class BreakoutRunStateTests
         SetPrivateField(upgrade, "tiltWarningSavesPerLevel", tiltWarningSavesPerLevel);
         SetPrivateField(upgrade, "spareFuseSavesPerRun", spareFuseSavesPerRun);
         SetPrivateField(upgrade, "freeMissileShotsPerLevel", freeMissileShotsPerLevel);
+        SetPrivateField(upgrade, "rewardMissilePurchaseBonusStock", rewardMissilePurchaseBonusStock);
         SetPrivateField(upgrade, "riskRebateHelpfulEffectExtensionSeconds", riskRebateHelpfulEffectExtensionSeconds);
         SetPrivateField(upgrade, "warpHandleSpeedTrimRatio", warpHandleSpeedTrimRatio);
         return upgrade;

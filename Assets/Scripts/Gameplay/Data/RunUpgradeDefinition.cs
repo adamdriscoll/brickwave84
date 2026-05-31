@@ -29,6 +29,7 @@ namespace GetBricked.Gameplay.Data
         [SerializeField, Min(0)] private int tiltWarningSavesPerLevel;
         [SerializeField, Min(0)] private int spareFuseSavesPerRun;
         [SerializeField, Min(0)] private int freeMissileShotsPerLevel;
+        [SerializeField, Min(0)] private int rewardMissilePurchaseBonusStock;
         [SerializeField, Min(0f)] private float riskRebateHelpfulEffectExtensionSeconds;
         [SerializeField, Min(0)] private int maxActiveHazardTimedEffectStacks;
         [SerializeField, Range(0f, 1f)] private float warpHandleSpeedTrimRatio;
@@ -76,6 +77,8 @@ namespace GetBricked.Gameplay.Data
         public int SpareFuseSavesPerRun => Mathf.Max(0, spareFuseSavesPerRun);
 
         public int FreeMissileShotsPerLevel => Mathf.Max(0, freeMissileShotsPerLevel);
+
+        public int RewardMissilePurchaseBonusStock => Mathf.Max(0, rewardMissilePurchaseBonusStock);
 
         public float RiskRebateHelpfulEffectExtensionSeconds => Mathf.Max(0f, riskRebateHelpfulEffectExtensionSeconds);
 

@@ -11,6 +11,7 @@ public sealed class RunUpgradeSpriteHookupTests
     [TestCase("Upgrades/FreeToken", "Sprites/brick-missile-drop")]
     [TestCase("Upgrades/HotShrapnel", "Sprites/hot-shrapnel")]
     [TestCase("Upgrades/LuckyCircuit", "Sprites/lucky-circuit")]
+    [TestCase("Upgrades/MissileRack", "Sprites/brick-missile-drop")]
     [TestCase("Upgrades/NeonInsurance", "Sprites/neon-insurance")]
     [TestCase("Upgrades/RepairStock", "Sprites/repair-stock")]
     [TestCase("Upgrades/SplitServe", "Sprites/split-serve")]

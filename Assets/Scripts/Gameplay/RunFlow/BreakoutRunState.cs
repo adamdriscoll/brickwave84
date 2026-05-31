@@ -19,6 +19,7 @@ namespace GetBricked.Gameplay
             int tiltWarningSavesPerLevel,
             int spareFuseSavesPerRun,
             int freeMissileShotsPerLevel,
+            int rewardMissilePurchaseBonusStock,
             float riskRebateHelpfulEffectExtensionSeconds,
             int maxActiveHazardTimedEffectStacks,
             float warpHandleSpeedTrimRatio)
@@ -34,6 +35,7 @@ namespace GetBricked.Gameplay
             TiltWarningSavesPerLevel = tiltWarningSavesPerLevel;
             SpareFuseSavesPerRun = spareFuseSavesPerRun;
             FreeMissileShotsPerLevel = freeMissileShotsPerLevel;
+            RewardMissilePurchaseBonusStock = rewardMissilePurchaseBonusStock;
             RiskRebateHelpfulEffectExtensionSeconds = riskRebateHelpfulEffectExtensionSeconds;
             MaxActiveHazardTimedEffectStacks = maxActiveHazardTimedEffectStacks;
             WarpHandleSpeedTrimRatio = warpHandleSpeedTrimRatio;
@@ -60,6 +62,8 @@ namespace GetBricked.Gameplay
         public int SpareFuseSavesPerRun { get; }
 
         public int FreeMissileShotsPerLevel { get; }
+
+        public int RewardMissilePurchaseBonusStock { get; }
 
         public float RiskRebateHelpfulEffectExtensionSeconds { get; }
 
@@ -260,6 +264,7 @@ namespace GetBricked.Gameplay
             var tiltWarningSavesPerLevel = 0;
             var spareFuseSavesPerRun = 0;
             var freeMissileShotsPerLevel = 0;
+            var rewardMissilePurchaseBonusStock = 0;
             var riskRebateHelpfulEffectExtensionSeconds = 0f;
             var maxActiveHazardTimedEffectStacks = 0;
             var warpHandleSpeedTrimRatio = 0f;
@@ -284,6 +289,7 @@ namespace GetBricked.Gameplay
                 tiltWarningSavesPerLevel += upgrade.TiltWarningSavesPerLevel;
                 spareFuseSavesPerRun += upgrade.SpareFuseSavesPerRun;
                 freeMissileShotsPerLevel += upgrade.FreeMissileShotsPerLevel;
+                rewardMissilePurchaseBonusStock += upgrade.RewardMissilePurchaseBonusStock;
                 riskRebateHelpfulEffectExtensionSeconds += upgrade.RiskRebateHelpfulEffectExtensionSeconds;
                 warpHandleSpeedTrimRatio = Mathf.Max(warpHandleSpeedTrimRatio, upgrade.WarpHandleSpeedTrimRatio);
 
@@ -307,6 +313,7 @@ namespace GetBricked.Gameplay
                 tiltWarningSavesPerLevel,
                 spareFuseSavesPerRun,
                 freeMissileShotsPerLevel,
+                rewardMissilePurchaseBonusStock,
                 riskRebateHelpfulEffectExtensionSeconds,
                 maxActiveHazardTimedEffectStacks,
                 warpHandleSpeedTrimRatio);
