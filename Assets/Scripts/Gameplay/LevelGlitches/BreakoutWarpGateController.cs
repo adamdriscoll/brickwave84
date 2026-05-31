@@ -83,6 +83,7 @@ namespace GetBricked.Gameplay
             cooldownUntilByBallId[ballId] = now + TeleportCooldownSeconds;
             ball.SetWorldPosition(target.ExitPosition);
             ball.ApplyCollisionResponse(BuildExitDirection(target, ball.CurrentVelocity), 0.12f);
+            gameController?.TryApplyWarpHandle(ball);
             return true;
         }
 
@@ -105,6 +106,7 @@ namespace GetBricked.Gameplay
             cooldownUntilByBallId[ballId] = now + TeleportCooldownSeconds;
             ball.SetWorldPosition(resolveExitPosition(nextSpec));
             ball.ApplyCollisionResponse(BuildExitDirection(nextSpec.Wall, ball.CurrentVelocity), 0.12f);
+            gameController?.TryApplyWarpHandle(ball);
             RelocateRogueGate(source, nextSpec);
             return true;
         }

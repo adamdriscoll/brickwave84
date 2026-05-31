@@ -379,6 +379,7 @@ namespace GetBricked.Gameplay
         private float laserRainStrikeTimer;
         private int availableMissiles;
         private int freeMissilesFiredThisLevel;
+        private bool warpHandleUsedThisLevel;
         private float missileShotCooldownTimer;
         private float activeLevelElapsedSeconds;
         private BreakoutLevelGlitchPlan activeLevelGlitchPlan = BreakoutLevelGlitchPlan.None;
@@ -1406,6 +1407,26 @@ namespace GetBricked.Gameplay
             TryFlipGravitySwapPolarity();
         }
 
+        public bool TryApplyWarpHandle(BallController ball)
+        {
+            var trimRatio = GetPersistentRunUpgradeModifiers().WarpHandleSpeedTrimRatio;
+
+            if (ball == null || warpHandleUsedThisLevel || trimRatio <= 0.001f)
+            {
+                return false;
+            }
+
+            warpHandleUsedThisLevel = true;
+
+            if (!ball.TrimTemporarySpeedTowardBaseline(trimRatio))
+            {
+                return false;
+            }
+
+            powerUpService?.ShowStatusBanner("WARP HANDLE!", new Color(0.03f, 0.93f, 0.98f, 1f), 1.2f);
+            return true;
+        }
+
         public bool TryApplyBogusBounce(BallController ball)
         {
             if (ball == null || powerUpService == null)
@@ -1576,6 +1597,7 @@ namespace GetBricked.Gameplay
             score = 0;
             availableMissiles = StartingMissileCount;
             freeMissilesFiredThisLevel = 0;
+            warpHandleUsedThisLevel = false;
             autoSaveBurstTimer = 0f;
             spareFuseBurstTimer = 0f;
             lastLifeLossUsedAutoSave = false;
@@ -3588,6 +3610,7 @@ namespace GetBricked.Gameplay
             scoreService?.ResetComboTracking(clearPopups: true);
             tiltWarningSavesRemaining = GetEffectiveTiltWarningSavesPerLevel();
             freeMissilesFiredThisLevel = 0;
+            warpHandleUsedThisLevel = false;
             tiltAlarmState.Reset();
 
             if (loadedLevels.Count == 0 || levelIndex < 0)
@@ -9927,7 +9950,7 @@ namespace GetBricked.Gameplay
         {
             return activeRunState != null
                 ? activeRunState.CalculateModifiers()
-                : new BreakoutRunUpgradeModifiers(1f, 1f, 1f, 1f, 0f, 0f, 1f, 0, 0, 0, 0, 0f, 0);
+                : new BreakoutRunUpgradeModifiers(1f, 1f, 1f, 1f, 0f, 0f, 1f, 0, 0, 0, 0, 0f, 0, 0f);
         }
 
         private int GetEffectiveBallsPerServe()
@@ -10295,6 +10318,11 @@ namespace GetBricked.Gameplay
             if (upgrade.MaxActiveHazardTimedEffectStacks > 0)
             {
                 parts.Add($"Hazard stacks max {upgrade.MaxActiveHazardTimedEffectStacks}");
+            }
+
+            if (upgrade.WarpHandleSpeedTrimRatio > 0.001f)
+            {
+                parts.Add($"Warp trim {upgrade.WarpHandleSpeedTrimRatio * 100f:0}%/level");
             }
 
             if (upgrade.WavyPaddleStrength > 0.001f)

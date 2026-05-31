@@ -43,7 +43,8 @@ public sealed class BreakoutRunStateTests
             tiltWarningSavesPerLevel: 1,
             spareFuseSavesPerRun: 1,
             freeMissileShotsPerLevel: 1,
-            riskRebateHelpfulEffectExtensionSeconds: 4f);
+            riskRebateHelpfulEffectExtensionSeconds: 4f,
+            warpHandleSpeedTrimRatio: 0.65f);
 
         runState.SetPendingDraftOffers(new[] { BreakoutRunDraftOffer.FromRunUpgrade(upgrade) });
 
@@ -67,6 +68,7 @@ public sealed class BreakoutRunStateTests
         Assert.That(modifiers.SpareFuseSavesPerRun, Is.EqualTo(1));
         Assert.That(modifiers.FreeMissileShotsPerLevel, Is.EqualTo(1));
         Assert.That(modifiers.RiskRebateHelpfulEffectExtensionSeconds, Is.EqualTo(4f).Within(0.0001f));
+        Assert.That(modifiers.WarpHandleSpeedTrimRatio, Is.EqualTo(0.65f).Within(0.0001f));
     }
 
     [Test]
@@ -156,7 +158,8 @@ public sealed class BreakoutRunStateTests
         int tiltWarningSavesPerLevel = 0,
         int spareFuseSavesPerRun = 0,
         int freeMissileShotsPerLevel = 0,
-        float riskRebateHelpfulEffectExtensionSeconds = 0f)
+        float riskRebateHelpfulEffectExtensionSeconds = 0f,
+        float warpHandleSpeedTrimRatio = 0f)
     {
         var upgrade = ScriptableObject.CreateInstance<RunUpgradeDefinition>();
         runtimeObjects.Add(upgrade);
@@ -179,6 +182,7 @@ public sealed class BreakoutRunStateTests
         SetPrivateField(upgrade, "spareFuseSavesPerRun", spareFuseSavesPerRun);
         SetPrivateField(upgrade, "freeMissileShotsPerLevel", freeMissileShotsPerLevel);
         SetPrivateField(upgrade, "riskRebateHelpfulEffectExtensionSeconds", riskRebateHelpfulEffectExtensionSeconds);
+        SetPrivateField(upgrade, "warpHandleSpeedTrimRatio", warpHandleSpeedTrimRatio);
         return upgrade;
     }
 

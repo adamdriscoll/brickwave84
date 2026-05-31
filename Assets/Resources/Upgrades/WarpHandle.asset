@@ -1,0 +1,39 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: aa7a315cf1c5489f8503b6d3309305e1, type: 3}
+  m_Name: WarpHandle
+  m_EditorClassIdentifier: 
+  upgradeId: warp-handle
+  displayName: Warp Handle
+  hudLabel: WARP
+  iconResourcePath: Sprites/warp-handle
+  description: The first portal or wall-glitch exit each level trims temporary ball overclock back toward baseline.
+  draftWeight: 0.85
+  maxStacks: 1
+  excludedUpgradeIds: []
+  themeSlot: 9
+  accentColor: {r: 0.03, g: 0.93, b: 0.98, a: 1}
+  paddleWidthMultiplier: 1
+  ballSpeedMultiplier: 1
+  dropChanceMultiplier: 1
+  pickupFallSpeedMultiplier: 1
+  wavyPaddleStrength: 0
+  brickMagnetStrength: 0
+  specialBrickEffectMultiplier: 1
+  extraBallsPerServe: 0
+  bonusLives: 0
+  tiltWarningSavesPerLevel: 0
+  spareFuseSavesPerRun: 0
+  freeMissileShotsPerLevel: 0
+  riskRebateHelpfulEffectExtensionSeconds: 0
+  maxActiveHazardTimedEffectStacks: 0
+  warpHandleSpeedTrimRatio: 0.65

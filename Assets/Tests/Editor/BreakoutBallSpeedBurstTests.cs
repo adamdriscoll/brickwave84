@@ -77,6 +77,21 @@ public sealed class BreakoutBallSpeedBurstTests
         Assert.That(ball.CurrentSpeed, Is.EqualTo(10f).Within(0.001f));
     }
 
+    [Test]
+    public void TemporarySpeedTrimMovesOverclockedBallTowardBaseline()
+    {
+        var ball = CreateBall(10f);
+        ball.Launch(Vector2.up);
+
+        ball.ApplyStackingSpeedBurst(1.35f, 4f, 0.12f, 1.85f, 1.25f, 7.5f);
+        ball.ApplySpeedStep(0.1f, 1.2f);
+
+        var trimmed = ball.TrimTemporarySpeedTowardBaseline(0.5f);
+
+        Assert.That(trimmed, Is.True);
+        Assert.That(ball.CurrentSpeed, Is.EqualTo(12.3375f).Within(0.001f));
+    }
+
     private BallController CreateBall(float speed)
     {
         var ballObject = new GameObject("Speed Burst Test Ball");

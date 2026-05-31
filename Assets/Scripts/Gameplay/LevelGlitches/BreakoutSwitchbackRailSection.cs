@@ -57,6 +57,7 @@ namespace GetBricked.Gameplay
             ball.ApplyCollisionResponse(BuildSwitchbackDirection(ball.CurrentVelocity, wall, ActiveSwitchSign), MinimumVertical);
             visual?.PlayImpact();
             gameController?.HandleBallHitWall();
+            gameController?.TryApplyWarpHandle(ball);
             return true;
         }
 

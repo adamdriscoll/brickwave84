@@ -68,6 +68,7 @@ namespace GetBricked.Gameplay
             ball.ApplyCollisionResponse(bounceDirection, wall == BreakoutWarpGateWall.Top ? 0.08f : 0.04f);
             visual?.PlayImpact();
             gameController?.HandleBallHitWall();
+            gameController?.TryApplyWarpHandle(ball);
             return true;
         }
 

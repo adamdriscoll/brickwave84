@@ -72,6 +72,7 @@ namespace GetBricked.Gameplay
 
             ball.ApplyCollisionResponse(new Vector2(inwardX, downwardY), 0.05f);
             RefreshVisual();
+            gameController?.TryApplyWarpHandle(ball);
             return true;
         }
 

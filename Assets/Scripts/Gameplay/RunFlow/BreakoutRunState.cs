@@ -20,7 +20,8 @@ namespace GetBricked.Gameplay
             int spareFuseSavesPerRun,
             int freeMissileShotsPerLevel,
             float riskRebateHelpfulEffectExtensionSeconds,
-            int maxActiveHazardTimedEffectStacks)
+            int maxActiveHazardTimedEffectStacks,
+            float warpHandleSpeedTrimRatio)
         {
             PaddleWidthMultiplier = paddleWidthMultiplier;
             BallSpeedMultiplier = ballSpeedMultiplier;
@@ -35,6 +36,7 @@ namespace GetBricked.Gameplay
             FreeMissileShotsPerLevel = freeMissileShotsPerLevel;
             RiskRebateHelpfulEffectExtensionSeconds = riskRebateHelpfulEffectExtensionSeconds;
             MaxActiveHazardTimedEffectStacks = maxActiveHazardTimedEffectStacks;
+            WarpHandleSpeedTrimRatio = warpHandleSpeedTrimRatio;
         }
 
         public float PaddleWidthMultiplier { get; }
@@ -62,6 +64,8 @@ namespace GetBricked.Gameplay
         public float RiskRebateHelpfulEffectExtensionSeconds { get; }
 
         public int MaxActiveHazardTimedEffectStacks { get; }
+
+        public float WarpHandleSpeedTrimRatio { get; }
     }
 
     internal sealed class BreakoutRunState
@@ -258,6 +262,7 @@ namespace GetBricked.Gameplay
             var freeMissileShotsPerLevel = 0;
             var riskRebateHelpfulEffectExtensionSeconds = 0f;
             var maxActiveHazardTimedEffectStacks = 0;
+            var warpHandleSpeedTrimRatio = 0f;
 
             for (var index = 0; index < chosenUpgrades.Count; index++)
             {
@@ -280,6 +285,7 @@ namespace GetBricked.Gameplay
                 spareFuseSavesPerRun += upgrade.SpareFuseSavesPerRun;
                 freeMissileShotsPerLevel += upgrade.FreeMissileShotsPerLevel;
                 riskRebateHelpfulEffectExtensionSeconds += upgrade.RiskRebateHelpfulEffectExtensionSeconds;
+                warpHandleSpeedTrimRatio = Mathf.Max(warpHandleSpeedTrimRatio, upgrade.WarpHandleSpeedTrimRatio);
 
                 if (upgrade.MaxActiveHazardTimedEffectStacks > 0)
                 {
@@ -302,7 +308,8 @@ namespace GetBricked.Gameplay
                 spareFuseSavesPerRun,
                 freeMissileShotsPerLevel,
                 riskRebateHelpfulEffectExtensionSeconds,
-                maxActiveHazardTimedEffectStacks);
+                maxActiveHazardTimedEffectStacks,
+                warpHandleSpeedTrimRatio);
         }
 
         private void ApplyUpgrade(RunUpgradeDefinition definition)

@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+  <defs>
+    <filter id="softGlow" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="2.25" result="blur"/>
+      <feColorMatrix in="blur" type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 .8 0" result="glow"/>
+      <feMerge>
+        <feMergeNode in="glow"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <style><![CDATA[
+      .icon { fill: none; stroke: #fff; stroke-linecap: round; stroke-linejoin: round; filter: url(#softGlow); }
+      .ring { stroke-width: 11; opacity: .94; }
+      .echo { stroke-width: 5; opacity: .34; }
+      .handle { stroke-width: 13; opacity: .96; }
+      .dash { stroke-width: 8; opacity: .72; }
+    ]]></style>
+  </defs>
+  <g class="icon">
+    <path class="echo" d="M50 128c0-43 35-78 78-78s78 35 78 78-35 78-78 78-78-35-78-78z"/>
+    <path class="ring" d="M69 128c0-32 27-59 59-59s59 27 59 59-27 59-59 59-59-27-59-59z"/>
+    <path class="echo" d="M95 128c0-18 15-33 33-33s33 15 33 33-15 33-33 33-33-15-33-33z"/>
+    <path class="handle" d="M128 128 181 75"/>
+    <path class="handle" d="M172 62h36v36"/>
+    <path class="dash" d="M49 92h24"/>
+    <path class="dash" d="M183 164h24"/>
+    <path class="dash" d="M91 207v-24"/>
+  </g>
+</svg>

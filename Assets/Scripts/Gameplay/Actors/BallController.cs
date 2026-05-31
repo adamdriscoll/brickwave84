@@ -470,6 +470,34 @@ namespace GetBricked.Gameplay
             RescaleCurrentVelocityToTargetSpeed();
         }
 
+        public bool TrimTemporarySpeedTowardBaseline(float trimRatio)
+        {
+            if (ballBody == null || !hasLaunched)
+            {
+                return false;
+            }
+
+            var clampedTrimRatio = Mathf.Clamp01(trimRatio);
+
+            if (clampedTrimRatio <= 0.001f)
+            {
+                return false;
+            }
+
+            var previousSpeed = CurrentSpeed;
+            speedBurstMultiplier = TrimMultiplierTowardBaseline(speedBurstMultiplier, clampedTrimRatio);
+            speedStepsMultiplier = TrimMultiplierTowardBaseline(speedStepsMultiplier, clampedTrimRatio);
+            hotPotatoSpeedMultiplier = TrimMultiplierTowardBaseline(hotPotatoSpeedMultiplier, clampedTrimRatio);
+
+            if (speedBurstMultiplier <= 1.001f)
+            {
+                ClearSpeedBurst();
+            }
+
+            RescaleCurrentVelocityToTargetSpeed();
+            return previousSpeed > CurrentSpeed + 0.001f;
+        }
+
         public void SetWorldPosition(Vector2 worldPosition)
         {
             transform.position = worldPosition;
@@ -838,6 +866,17 @@ namespace GetBricked.Gameplay
                 * Mathf.Max(1f, speedStepsMultiplier)
                 * Mathf.Max(1f, hotPotatoSpeedMultiplier)
                 * Mathf.Clamp(jellySlowMultiplier, 0.2f, 1f);
+        }
+
+        private static float TrimMultiplierTowardBaseline(float multiplier, float trimRatio)
+        {
+            if (multiplier <= 1.001f)
+            {
+                return 1f;
+            }
+
+            var trimmed = Mathf.Lerp(multiplier, 1f, Mathf.Clamp01(trimRatio));
+            return trimmed <= 1.001f ? 1f : trimmed;
         }
 
         private void RescaleCurrentVelocityToTargetSpeed()

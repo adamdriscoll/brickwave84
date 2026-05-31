@@ -313,7 +313,7 @@ Late drop proposals should keep using mechanics the game already teaches: paddle
 | `Prize Hopper` | The first pickup collected each level has a chance to duplicate itself. | Run upgrade | Proposed |
 | `Glitch Dividend` | Glitched stages pay a higher clear bonus and slightly favor relief drops in the next draft. | Run upgrade | Proposed |
 | `Drop Decoder` | Mystery and Bogus capsules reveal their polarity one beat before collection. | Run upgrade | Proposed |
-| `Warp Handle` | The first portal or wall-glitch exit each level trims ball speed back toward baseline. | Run upgrade | Proposed |
+| `Warp Handle` | The first portal or wall-glitch exit each level trims ball speed back toward baseline. | Run upgrade | Implemented |
 | `Missile Rack` | Between-stage missile purchases add +2 stock instead of +1 once per draft. | Run upgrade | Proposed |
 | `Prism Warranty` | First sharp-angle brick hit after a glitch grants a short aim preview. | Run upgrade | Proposed |
 | `Crowd Control` | New timed hazards trim the oldest active hazard stack while 2 hazard stacks are already running. | Run upgrade | Implemented |

@@ -1793,6 +1793,7 @@ public sealed class BreakoutGameControllerPowerUpTests
         SetPrivateField(upgrade, "tiltWarningSavesPerLevel", tiltWarningSavesPerLevel);
         SetPrivateField(upgrade, "spareFuseSavesPerRun", spareFuseSavesPerRun);
         SetPrivateField(upgrade, "freeMissileShotsPerLevel", freeMissileShotsPerLevel);
+        SetPrivateField(upgrade, "warpHandleSpeedTrimRatio", 0f);
         return upgrade;
     }
 
