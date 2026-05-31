@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
+  <title id="title">Gravity Swap</title>
+  <desc id="desc">A gravity pocket reverses pull direction after wall bounces.</desc>
+  <defs>
+    <filter id="softGlow" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="2.25" result="blur"/>
+      <feColorMatrix in="blur" type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 .8 0" result="glow"/>
+      <feMerge><feMergeNode in="glow"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <style><![CDATA[
+      .icon{fill:none;stroke:#fff;stroke-linecap:round;stroke-linejoin:round;filter:url(#softGlow)}
+      .main{stroke-width:8;opacity:.95}.mid{stroke-width:5.5;opacity:.88}.thin{stroke-width:3.5;opacity:.62}.faint{stroke-width:3;opacity:.36}.dash{stroke-dasharray:10 9}.fill{fill:#fff;stroke:none;opacity:.92;filter:url(#softGlow)}.pixel{fill:#fff;stroke:none;opacity:.8;filter:url(#softGlow)}
+    ]]></style>
+  </defs>
+  <g class="icon">
+    <circle class="main" cx="128" cy="128" r="50"/><path class="thin" d="M92 128 C111 105 144 105 164 126"/><path class="thin" d="M164 130 C145 153 112 153 92 130"/><path class="main" d="M50 128 H88 L75 114 M88 128 L75 142"/><path class="main" d="M206 128 H168 L181 114 M168 128 L181 142"/><circle class="fill" cx="128" cy="128" r="7"/><path class="thin dash" d="M128 42 V76 M128 180 V214"/>
+  </g>
+</svg>

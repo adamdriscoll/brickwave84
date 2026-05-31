@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
+  <title id="title">Cabinet Tilt</title>
+  <desc id="desc">The whole cabinet rebound bias rocks left and right.</desc>
+  <defs>
+    <filter id="softGlow" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="2.25" result="blur"/>
+      <feColorMatrix in="blur" type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 .8 0" result="glow"/>
+      <feMerge><feMergeNode in="glow"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <style><![CDATA[
+      .icon{fill:none;stroke:#fff;stroke-linecap:round;stroke-linejoin:round;filter:url(#softGlow)}
+      .main{stroke-width:8;opacity:.95}.mid{stroke-width:5.5;opacity:.88}.thin{stroke-width:3.5;opacity:.62}.faint{stroke-width:3;opacity:.36}.dash{stroke-dasharray:10 9}.fill{fill:#fff;stroke:none;opacity:.92;filter:url(#softGlow)}.pixel{fill:#fff;stroke:none;opacity:.8;filter:url(#softGlow)}
+    ]]></style>
+  </defs>
+  <g class="icon">
+    <path class="main" d="M72 54 L195 76 L174 204 L51 182 Z"/><path class="thin" d="M91 78 L169 92 L154 178 L76 164 Z"/><path class="main" d="M63 214 H184"/><path class="mid" d="M128 88 V168"/><circle class="main" cx="128" cy="182" r="14"/><path class="thin dash" d="M96 38 C124 18 167 23 196 54"/><path class="thin dash" d="M160 218 C132 238 89 233 60 202"/>
+  </g>
+</svg>

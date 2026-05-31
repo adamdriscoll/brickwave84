@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
+  <title id="title">Token Storm</title>
+  <desc id="desc">Capsules fall in a staggered storm of mixed speeds.</desc>
+  <defs>
+    <filter id="softGlow" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="2.25" result="blur"/>
+      <feColorMatrix in="blur" type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 .8 0" result="glow"/>
+      <feMerge><feMergeNode in="glow"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <style><![CDATA[
+      .icon{fill:none;stroke:#fff;stroke-linecap:round;stroke-linejoin:round;filter:url(#softGlow)}
+      .main{stroke-width:8;opacity:.95}.mid{stroke-width:5.5;opacity:.88}.thin{stroke-width:3.5;opacity:.62}.faint{stroke-width:3;opacity:.36}.dash{stroke-dasharray:10 9}.fill{fill:#fff;stroke:none;opacity:.92;filter:url(#softGlow)}.pixel{fill:#fff;stroke:none;opacity:.8;filter:url(#softGlow)}
+    ]]></style>
+  </defs>
+  <g class="icon">
+    <path class="thin dash" d="M58 38 V180 M128 28 V196 M198 48 V172"/><rect class="main" x="40" y="78" width="36" height="54" rx="18"/><rect class="main" x="110" y="112" width="36" height="54" rx="18"/><rect class="main" x="180" y="84" width="36" height="54" rx="18"/><path class="mid" d="M48 105 H68 M118 139 H138 M188 111 H208"/><path class="thin" d="M84 51 L98 65 M151 66 L166 48 M168 195 L184 211"/>
+  </g>
+</svg>

@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
+  <title id="title">Jammed Rails</title>
+  <desc id="desc">The paddle rail pulses between wide and narrow widths.</desc>
+  <defs>
+    <filter id="softGlow" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="2.25" result="blur"/>
+      <feColorMatrix in="blur" type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 .8 0" result="glow"/>
+      <feMerge><feMergeNode in="glow"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <style><![CDATA[
+      .icon{fill:none;stroke:#fff;stroke-linecap:round;stroke-linejoin:round;filter:url(#softGlow)}
+      .main{stroke-width:8;opacity:.95}.mid{stroke-width:5.5;opacity:.88}.thin{stroke-width:3.5;opacity:.62}.faint{stroke-width:3;opacity:.36}.dash{stroke-dasharray:10 9}.fill{fill:#fff;stroke:none;opacity:.92;filter:url(#softGlow)}.pixel{fill:#fff;stroke:none;opacity:.8;filter:url(#softGlow)}
+    ]]></style>
+  </defs>
+  <g class="icon">
+    <rect class="main" x="42" y="174" width="172" height="22" rx="11"/><rect class="faint dash" x="82" y="124" width="92" height="22" rx="11"/><path class="main" d="M62 95 H111 L97 82 M111 95 L97 108"/><path class="main" d="M194 95 H145 L159 82 M145 95 L159 108"/><path class="thin dash" d="M82 150 V174 M174 150 V174"/><path class="mid" d="M128 44 V88"/>
+  </g>
+</svg>

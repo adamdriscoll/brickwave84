@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
+  <title id="title">Capsule Roulette</title>
+  <desc id="desc">A falling capsule rotates polarity before collection.</desc>
+  <defs>
+    <filter id="softGlow" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="2.25" result="blur"/>
+      <feColorMatrix in="blur" type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 .8 0" result="glow"/>
+      <feMerge><feMergeNode in="glow"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <style><![CDATA[
+      .icon{fill:none;stroke:#fff;stroke-linecap:round;stroke-linejoin:round;filter:url(#softGlow)}
+      .main{stroke-width:8;opacity:.95}.mid{stroke-width:5.5;opacity:.88}.thin{stroke-width:3.5;opacity:.62}.faint{stroke-width:3;opacity:.36}.dash{stroke-dasharray:10 9}.fill{fill:#fff;stroke:none;opacity:.92;filter:url(#softGlow)}.pixel{fill:#fff;stroke:none;opacity:.8;filter:url(#softGlow)}
+    ]]></style>
+  </defs>
+  <g class="icon">
+    <rect class="main" x="104" y="76" width="48" height="84" rx="24"/><path class="mid" d="M112 118 H144"/><path class="thin" d="M128 95 V110 M128 134 V149"/><path class="main" d="M83 96 C98 65 143 55 172 78"/><path class="main" d="M172 78 L149 78 M172 78 L162 58"/><path class="main" d="M173 160 C156 191 112 198 84 175"/><path class="main" d="M84 175 L107 175 M84 175 L94 195"/>
+  </g>
+</svg>

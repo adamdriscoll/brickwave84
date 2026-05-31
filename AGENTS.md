@@ -18,6 +18,7 @@
 - Bricks, levels, power-ups, run upgrades, and themes are data-driven ScriptableObjects under `Assets/Resources/`.
 - Gameplay art uses SVG sprites from `Assets/Resources/Sprites/`, theme palettes from `Assets/Resources/Themes/`, and level-rotated backgrounds from `Assets/Resources/Backgrounds/`.
 - Paddle-fired Brick Missiles use `Assets/Resources/Sprites/brick-missile.svg`; the matching missile stock drop uses `Assets/Resources/Sprites/brick-missile-drop.svg`.
+- Implemented level glitch unlock icons use `Assets/Resources/Sprites/glitch-<normalized-glitch-title>.svg` and are loaded into progression cards by title.
 - The runtime presentation path uses URP bloom plus additive sprites for the ball and pickups; paddle, bricks, walls, and backdrop stay on unlit sprite materials for readability.
 - Input currently reads directly from `UnityEngine.InputSystem.Keyboard`; `Assets/InputSystem_Actions.inputactions` exists but is not yet the runtime input layer.
 

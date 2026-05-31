@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Text;
 using GetBricked.Gameplay.Data;
 using UnityEngine;
 
@@ -57,6 +58,7 @@ namespace GetBricked.Gameplay
         private static readonly Color LayoutAccent = new Color(0.72f, 0.62f, 1f, 1f);
 
         private readonly Dictionary<string, Sprite> powerUpSpriteCache = new Dictionary<string, Sprite>();
+        private readonly Dictionary<string, Sprite> levelGlitchSpriteCache = new Dictionary<string, Sprite>();
 
         private static readonly BreakoutProgressionPlaceholderItem[] PlaceholderDrops =
         {
@@ -838,7 +840,59 @@ namespace GetBricked.Gameplay
             return cachedSprite;
         }
 
-        private static BreakoutUiProgressionCardView BuildDefaultGlitchCard(string title, string family, string description, Color accent)
+        private Sprite ResolveLevelGlitchSprite(string title)
+        {
+            var iconName = NormalizeLevelGlitchIconName(title);
+
+            if (string.IsNullOrWhiteSpace(iconName))
+            {
+                return null;
+            }
+
+            var resourcePath = $"Sprites/glitch-{iconName}";
+
+            if (!levelGlitchSpriteCache.TryGetValue(resourcePath, out var cachedSprite))
+            {
+                cachedSprite = BreakoutRuntimeVisualFactory.LoadSpriteResource(resourcePath);
+                levelGlitchSpriteCache[resourcePath] = cachedSprite;
+            }
+
+            return cachedSprite;
+        }
+
+        private static string NormalizeLevelGlitchIconName(string rawValue)
+        {
+            if (string.IsNullOrWhiteSpace(rawValue))
+            {
+                return string.Empty;
+            }
+
+            var builder = new StringBuilder(rawValue.Length);
+            var needsSeparator = false;
+
+            for (var index = 0; index < rawValue.Length; index++)
+            {
+                var current = rawValue[index];
+
+                if (char.IsLetterOrDigit(current))
+                {
+                    if (needsSeparator && builder.Length > 0 && builder[builder.Length - 1] != '-')
+                    {
+                        builder.Append('-');
+                    }
+
+                    builder.Append(char.ToLowerInvariant(current));
+                    needsSeparator = false;
+                    continue;
+                }
+
+                needsSeparator = builder.Length > 0;
+            }
+
+            return builder.ToString().Trim('-');
+        }
+
+        private BreakoutUiProgressionCardView BuildDefaultGlitchCard(string title, string family, string description, Color accent)
         {
             return new BreakoutUiProgressionCardView
             {
@@ -855,10 +909,12 @@ namespace GetBricked.Gameplay
                 TypeLabel = "Glitch",
                 UnlockState = BreakoutUiProgressionUnlockState.Default,
                 Accent = accent,
+                Icon = ResolveLevelGlitchSprite(title),
+                IconColor = accent,
             };
         }
 
-        private static BreakoutUiProgressionCardView BuildUnlockableGlitchCard(
+        private BreakoutUiProgressionCardView BuildUnlockableGlitchCard(
             string title,
             string family,
             string description,
@@ -888,6 +944,8 @@ namespace GetBricked.Gameplay
                     ? BreakoutUiProgressionUnlockState.Unlocked
                     : BreakoutUiProgressionUnlockState.SeenLocked,
                 Accent = accent,
+                Icon = ResolveLevelGlitchSprite(title),
+                IconColor = accent,
             };
         }
 

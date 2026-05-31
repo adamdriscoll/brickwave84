@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
+  <title id="title">Drop Tide</title>
+  <desc id="desc">Capsules pause, then fall together in waves.</desc>
+  <defs>
+    <filter id="softGlow" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="2.25" result="blur"/>
+      <feColorMatrix in="blur" type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 .8 0" result="glow"/>
+      <feMerge><feMergeNode in="glow"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <style><![CDATA[
+      .icon{fill:none;stroke:#fff;stroke-linecap:round;stroke-linejoin:round;filter:url(#softGlow)}
+      .main{stroke-width:8;opacity:.95}.mid{stroke-width:5.5;opacity:.88}.thin{stroke-width:3.5;opacity:.62}.faint{stroke-width:3;opacity:.36}.dash{stroke-dasharray:10 9}.fill{fill:#fff;stroke:none;opacity:.92;filter:url(#softGlow)}.pixel{fill:#fff;stroke:none;opacity:.8;filter:url(#softGlow)}
+    ]]></style>
+  </defs>
+  <g class="icon">
+    <path class="main" d="M38 150 C66 122 94 122 122 150 C150 178 178 178 218 142"/><path class="thin" d="M44 180 C76 152 104 152 132 180 C158 205 183 202 210 174"/><rect class="mid" x="54" y="70" width="34" height="50" rx="17"/><rect class="mid" x="111" y="88" width="34" height="50" rx="17"/><rect class="mid" x="168" y="64" width="34" height="50" rx="17"/><path class="thin dash" d="M71 121 V151 M128 139 V169 M185 115 V145"/>
+  </g>
+</svg>

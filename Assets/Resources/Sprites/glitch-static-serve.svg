@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
+  <title id="title">Static Serve</title>
+  <desc id="desc">Each serve begins with a shifting rail rule.</desc>
+  <defs>
+    <filter id="softGlow" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="2.25" result="blur"/>
+      <feColorMatrix in="blur" type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 .8 0" result="glow"/>
+      <feMerge><feMergeNode in="glow"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <style><![CDATA[
+      .icon{fill:none;stroke:#fff;stroke-linecap:round;stroke-linejoin:round;filter:url(#softGlow)}
+      .main{stroke-width:8;opacity:.95}.mid{stroke-width:5.5;opacity:.88}.thin{stroke-width:3.5;opacity:.62}.faint{stroke-width:3;opacity:.36}.dash{stroke-dasharray:10 9}.fill{fill:#fff;stroke:none;opacity:.92;filter:url(#softGlow)}.pixel{fill:#fff;stroke:none;opacity:.8;filter:url(#softGlow)}
+    ]]></style>
+  </defs>
+  <g class="icon">
+    <rect class="main" x="66" y="198" width="124" height="20" rx="10"/><circle class="main" cx="128" cy="164" r="17"/><path class="thin dash" d="M128 147 V88"/><path class="main" d="M70 66 V126 M186 66 V126"/><path class="mid" d="M88 94 H118 L108 82 M118 94 L108 106"/><path class="mid" d="M168 94 H138 L148 82 M138 94 L148 106"/><rect class="pixel" x="124" y="62" width="8" height="8" rx="1"/>
+  </g>
+</svg>

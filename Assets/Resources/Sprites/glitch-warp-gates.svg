@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
+  <title id="title">Warp Gates</title>
+  <desc id="desc">Linked portal rings route the ball through a bent path.</desc>
+  <defs>
+    <filter id="softGlow" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="2.25" result="blur"/>
+      <feColorMatrix in="blur" type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 .8 0" result="glow"/>
+      <feMerge><feMergeNode in="glow"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <style><![CDATA[
+      .icon{fill:none;stroke:#fff;stroke-linecap:round;stroke-linejoin:round;filter:url(#softGlow)}
+      .main{stroke-width:8;opacity:.95}.mid{stroke-width:5.5;opacity:.88}.thin{stroke-width:3.5;opacity:.62}.faint{stroke-width:3;opacity:.36}.dash{stroke-dasharray:10 9}.fill{fill:#fff;stroke:none;opacity:.92;filter:url(#softGlow)}.pixel{fill:#fff;stroke:none;opacity:.8;filter:url(#softGlow)}
+    ]]></style>
+  </defs>
+  <g class="icon">
+    <circle class="main" cx="64" cy="96" r="34"/><circle class="thin" cx="64" cy="96" r="22"/><circle class="main" cx="192" cy="160" r="34"/><circle class="thin" cx="192" cy="160" r="22"/><path class="mid dash" d="M86 101 C126 106 131 149 170 155"/><circle class="fill" cx="99" cy="106" r="7"/><path class="thin" d="M45 72 L35 62 M83 122 L94 132 M174 134 L162 124 M211 184 L222 195"/>
+  </g>
+</svg>

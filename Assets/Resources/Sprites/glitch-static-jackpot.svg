@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
+  <title id="title">Static Jackpot</title>
+  <desc id="desc">Bonus zones appear, but missed zones overclock speed.</desc>
+  <defs>
+    <filter id="softGlow" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="2.25" result="blur"/>
+      <feColorMatrix in="blur" type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 .8 0" result="glow"/>
+      <feMerge><feMergeNode in="glow"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <style><![CDATA[
+      .icon{fill:none;stroke:#fff;stroke-linecap:round;stroke-linejoin:round;filter:url(#softGlow)}
+      .main{stroke-width:8;opacity:.95}.mid{stroke-width:5.5;opacity:.88}.thin{stroke-width:3.5;opacity:.62}.faint{stroke-width:3;opacity:.36}.dash{stroke-dasharray:10 9}.fill{fill:#fff;stroke:none;opacity:.92;filter:url(#softGlow)}.pixel{fill:#fff;stroke:none;opacity:.8;filter:url(#softGlow)}
+    ]]></style>
+  </defs>
+  <g class="icon">
+    <circle class="main" cx="86" cy="94" r="30"/><circle class="thin" cx="86" cy="94" r="15"/><circle class="main" cx="170" cy="160" r="30"/><circle class="thin" cx="170" cy="160" r="15"/><path class="main dash" d="M62 185 H133 L118 170 M133 185 L118 200"/><path class="thin" d="M146 70 H204 M190 56 L204 70 L190 84"/><path class="fill" d="M128 94 L134 108 L149 114 L134 120 L128 134 L122 120 L107 114 L122 108 Z"/>
+  </g>
+</svg>

@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
+  <title id="title">Brickquake</title>
+  <desc id="desc">Heavy hits shove brick clusters out of alignment.</desc>
+  <defs>
+    <filter id="softGlow" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="2.25" result="blur"/>
+      <feColorMatrix in="blur" type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 .8 0" result="glow"/>
+      <feMerge><feMergeNode in="glow"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <style><![CDATA[
+      .icon{fill:none;stroke:#fff;stroke-linecap:round;stroke-linejoin:round;filter:url(#softGlow)}
+      .main{stroke-width:8;opacity:.95}.mid{stroke-width:5.5;opacity:.88}.thin{stroke-width:3.5;opacity:.62}.faint{stroke-width:3;opacity:.36}.dash{stroke-dasharray:10 9}.fill{fill:#fff;stroke:none;opacity:.92;filter:url(#softGlow)}.pixel{fill:#fff;stroke:none;opacity:.8;filter:url(#softGlow)}
+    ]]></style>
+  </defs>
+  <g class="icon">
+    <rect class="mid" x="46" y="72" width="48" height="28" rx="4" transform="rotate(-6 70 86)"/><rect class="mid" x="105" y="64" width="48" height="28" rx="4" transform="rotate(4 129 78)"/><rect class="mid" x="164" y="78" width="48" height="28" rx="4" transform="rotate(-5 188 92)"/><rect class="mid" x="58" y="130" width="48" height="28" rx="4" transform="rotate(5 82 144)"/><rect class="mid" x="122" y="126" width="48" height="28" rx="4" transform="rotate(-4 146 140)"/><path class="main" d="M128 174 L112 207 L134 196 L124 228 L154 184 L135 193 Z"/><path class="thin dash" d="M43 191 H92 M164 207 H213"/>
+  </g>
+</svg>

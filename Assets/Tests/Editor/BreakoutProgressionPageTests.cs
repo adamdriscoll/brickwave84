@@ -785,6 +785,67 @@ public sealed class BreakoutProgressionPageTests
         Assert.That(card.StateLabel, Is.EqualTo("Locked"));
     }
 
+    [Test]
+    public void ProgressionPageLoadsIconsForAllImplementedGlitches()
+    {
+        var implementedGlitches = new[]
+        {
+            "Warp Gates",
+            "Turbo Rail",
+            "Mirror Grid",
+            "Token Storm",
+            "Gravity Pocket",
+            "Static Wall",
+            "Row Rewrite",
+            "Prism Lanes",
+            "Switchback Rails",
+            "Capsule Roulette",
+            "Drift Rows",
+            "Hot Corners",
+            "Flicker Bricks",
+            "Cassette Skip",
+            "Ghost Row",
+            "Split Horizon",
+            "Brick Conveyor",
+            "Rogue Gate",
+            "Pickup Pinball",
+            "Magnet Storm",
+            "Blacklight Bricks",
+            "Rewind Wall",
+            "Score Leak",
+            "Laser Rain",
+            "Thin Air",
+            "Prism Shuffle",
+            "Clone Static",
+            "Drop Tide",
+            "Brick Lock",
+            "Speed Steps",
+            "Mirror Serve",
+            "Static Jackpot",
+            "Jammed Rails",
+            "Gravity Swap",
+            "VHS Tear",
+            "Capsule Blackout",
+            "Brickquake",
+            "Turbo Tax",
+            "Warp Jam",
+            "Neon Flood",
+            "Lockstep Rows",
+            "Static Serve",
+            "Meltdown Core",
+            "Cabinet Tilt",
+        };
+        var view = new BreakoutProgressionPageService().BuildView(Array.Empty<PowerUpDefinition>());
+
+        foreach (var title in implementedGlitches)
+        {
+            var card = view.Cards.FirstOrDefault(item => item.Title == title);
+
+            Assert.That(card, Is.Not.Null, $"Missing progression card for implemented glitch '{title}'.");
+            Assert.That(card.Icon, Is.Not.Null, $"Missing progression icon for implemented glitch '{title}'.");
+        }
+    }
+
     private static bool IsDefaultDrop(PowerUpDefinition definition)
     {
         var candidateId = BreakoutPowerUpIdentity.GetStableId(definition);
