@@ -59,6 +59,32 @@ public sealed class BreakoutBallBrickMagnetTests
         Assert.That(ball.CurrentVelocity.y, Is.LessThan(10f));
     }
 
+    [Test]
+    public void CabinetTiltDriftsDirectionWithOscillatingBias()
+    {
+        var rightDrift = BallController.BuildCabinetTiltDirection(
+            Vector2.up,
+            Vector2.up,
+            0.35f,
+            elapsedSeconds: 0.8f,
+            phaseOffsetSeconds: 0f,
+            cycleSeconds: 3.2f,
+            deltaTime: 0.02f);
+        var leftDrift = BallController.BuildCabinetTiltDirection(
+            Vector2.up,
+            Vector2.up,
+            0.35f,
+            elapsedSeconds: 2.4f,
+            phaseOffsetSeconds: 0f,
+            cycleSeconds: 3.2f,
+            deltaTime: 0.02f);
+
+        Assert.That(rightDrift.x, Is.GreaterThan(0f));
+        Assert.That(leftDrift.x, Is.LessThan(0f));
+        Assert.That(rightDrift.y, Is.GreaterThan(0.99f));
+        Assert.That(leftDrift.y, Is.GreaterThan(0.99f));
+    }
+
     private BallController CreateLaunchedBall()
     {
         var ballObject = new GameObject("Brick Magnet Test Ball");

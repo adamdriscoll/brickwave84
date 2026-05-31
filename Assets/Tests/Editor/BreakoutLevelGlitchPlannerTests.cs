@@ -1023,6 +1023,29 @@ public sealed class BreakoutLevelGlitchPlannerTests
     }
 
     [Test]
+    public void RogueGlitchHeatControlsWhenCabinetTiltCanUnlock()
+    {
+        var lockedSettings = CreateRogueSettings(
+            rogueIntensity: BreakoutLevelGlitchPlanner.CabinetTiltLadderUnlockIntensity,
+            levelGlitchSelection: LevelGlitchSelection.CabinetTilt);
+        var unlockedSettings = CreateRogueSettings(
+            rogueIntensity: BreakoutLevelGlitchPlanner.CabinetTiltLadderUnlockIntensity + 1,
+            levelGlitchSelection: LevelGlitchSelection.CabinetTilt);
+
+        var lockedPlan = BreakoutLevelGlitchPlanner.BuildPlan(new DeterministicRandomService(7), lockedSettings, levelIndex: 9);
+        var unlockedPlan = BreakoutLevelGlitchPlanner.BuildPlan(new DeterministicRandomService(7), unlockedSettings, levelIndex: 9);
+
+        Assert.That(lockedPlan.IsActive, Is.False);
+        Assert.That(unlockedPlan.IsActive, Is.True);
+        Assert.That(unlockedPlan.GlitchType, Is.EqualTo(BreakoutLevelGlitchType.CabinetTilt));
+        Assert.That(unlockedPlan.DisplayName, Is.EqualTo("Cabinet Tilt"));
+        Assert.That(unlockedPlan.Rarity, Is.EqualTo(BreakoutContentRarity.Epic));
+        Assert.That(unlockedPlan.ScoreMultiplier, Is.EqualTo(1.57f).Within(0.0001f));
+        Assert.That(unlockedPlan.CabinetTilt.Strength, Is.InRange(0.28f, 0.38f));
+        Assert.That(unlockedPlan.CabinetTilt.CycleSeconds, Is.InRange(2.8f, 3.8f));
+    }
+
+    [Test]
     public void NeonFloodCalculatorRequiresComboSpikeAndCooldown()
     {
         var spec = new BreakoutNeonFloodSpec(4, 1.65f, 0.42f, 0.88f, 1.16f);
@@ -1692,6 +1715,21 @@ public sealed class BreakoutLevelGlitchPlannerTests
         Assert.That(plan.IsActive, Is.True);
         Assert.That(plan.GlitchType, Is.EqualTo(BreakoutLevelGlitchType.MeltdownCore));
         Assert.That(plan.HudLabel, Does.Contain("Meltdown Core"));
+    }
+
+    [Test]
+    public void SelectedCabinetTiltAlwaysBuildsCabinetTiltEvenWhenChanceIsDisabled()
+    {
+        var settings = CreateSettings(
+            levelGlitchesEnabled: true,
+            chanceMultiplier: 0f,
+            levelGlitchSelection: LevelGlitchSelection.CabinetTilt);
+
+        var plan = BreakoutLevelGlitchPlanner.BuildPlan(new DeterministicRandomService(3), settings, levelIndex: 9);
+
+        Assert.That(plan.IsActive, Is.True);
+        Assert.That(plan.GlitchType, Is.EqualTo(BreakoutLevelGlitchType.CabinetTilt));
+        Assert.That(plan.HudLabel, Does.Contain("Cabinet Tilt"));
     }
 
     [Test]

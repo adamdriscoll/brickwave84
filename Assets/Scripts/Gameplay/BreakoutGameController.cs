@@ -3878,6 +3878,7 @@ namespace GetBricked.Gameplay
             var ball = ballSpawnService.CreateBall(followsPaddleWhenIdle, arenaBottom - 1f);
             ApplyGravityPocketToBall(ball);
             ApplySplitHorizonToBall(ball);
+            ApplyCabinetTiltToBall(ball);
             return ball;
         }
 
@@ -4030,6 +4031,11 @@ namespace GetBricked.Gameplay
             if (activeLevelGlitchPlan.HasGlitch(BreakoutLevelGlitchType.Brickquake))
             {
                 powerUpService?.ShowStatusBanner("BRICKQUAKE!", new Color(1f, 0.49f, 0.15f, 1f), 2.2f);
+            }
+
+            if (activeLevelGlitchPlan.HasGlitch(BreakoutLevelGlitchType.CabinetTilt))
+            {
+                powerUpService?.ShowStatusBanner("CABINET TILT!", new Color(1f, 0.49f, 0.86f, 1f), 2.2f);
             }
 
             if (activeLevelGlitchPlan.HasGlitch(BreakoutLevelGlitchType.PickupPinball))
@@ -4306,6 +4312,7 @@ namespace GetBricked.Gameplay
             ClearGravityPocketFromBalls();
             ClearMagnetStormFromPickups();
             ClearSplitHorizonFromBalls();
+            ClearCabinetTiltFromBalls();
             ClearSpeedStepsFromBalls();
 
             if (paddle != null && activeEffectModifiers.PaddleWidthMultiplier > 0f)
@@ -5639,6 +5646,34 @@ namespace GetBricked.Gameplay
             for (var index = activeBalls.Count - 1; index >= 0; index--)
             {
                 activeBalls[index]?.SetSplitHorizon(0f, 0f, SplitHorizonCooldownSeconds);
+            }
+        }
+
+        private void ApplyCabinetTiltToBall(BallController ball)
+        {
+            if (ball == null)
+            {
+                return;
+            }
+
+            if (activeLevelGlitchPlan != null
+                && activeLevelGlitchPlan.HasGlitch(BreakoutLevelGlitchType.CabinetTilt))
+            {
+                var spec = activeLevelGlitchPlan.CabinetTilt;
+                ball.SetCabinetTilt(spec.Strength, spec.PhaseOffsetSeconds, spec.CycleSeconds);
+                return;
+            }
+
+            ball.SetCabinetTilt(0f, 0f, 3.2f);
+        }
+
+        private void ClearCabinetTiltFromBalls()
+        {
+            serveBall?.SetCabinetTilt(0f, 0f, 3.2f);
+
+            for (var index = activeBalls.Count - 1; index >= 0; index--)
+            {
+                activeBalls[index]?.SetCabinetTilt(0f, 0f, 3.2f);
             }
         }
 
@@ -7857,6 +7892,7 @@ namespace GetBricked.Gameplay
                 LevelGlitchSelection.VhsTear => "VHS Tear",
                 LevelGlitchSelection.CapsuleBlackout => "Capsule Blackout",
                 LevelGlitchSelection.Brickquake => "Brickquake",
+                LevelGlitchSelection.CabinetTilt => "Cabinet Tilt",
                 LevelGlitchSelection.TurboTax => "Turbo Tax",
                 LevelGlitchSelection.WarpJam => "Warp Jam",
                 LevelGlitchSelection.NeonFlood => "Neon Flood",
@@ -8638,6 +8674,7 @@ namespace GetBricked.Gameplay
                 serveBall.SetGravityWell(gravityWellCenter, activeEffectModifiers.GravityWellStrength);
                 ApplyGravityPocketToBall(serveBall);
                 ApplySplitHorizonToBall(serveBall);
+                ApplyCabinetTiltToBall(serveBall);
                 serveBall.SetHotPotatoStrength(activeEffectModifiers.HotPotatoStrength);
                 serveBall.SetExplosiveBallStrength(activeEffectModifiers.ExplosiveBallStrength);
                 serveBall.SetSolarShotCharged(solarShotCharged);
@@ -8660,6 +8697,7 @@ namespace GetBricked.Gameplay
                 activeBall.SetGravityWell(gravityWellCenter, activeEffectModifiers.GravityWellStrength);
                 ApplyGravityPocketToBall(activeBall);
                 ApplySplitHorizonToBall(activeBall);
+                ApplyCabinetTiltToBall(activeBall);
                 activeBall.SetHotPotatoStrength(activeEffectModifiers.HotPotatoStrength);
                 activeBall.SetExplosiveBallStrength(activeEffectModifiers.ExplosiveBallStrength);
                 activeBall.SetSolarShotCharged(solarShotCharged);

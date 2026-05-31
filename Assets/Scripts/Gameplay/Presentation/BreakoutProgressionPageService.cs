@@ -414,6 +414,13 @@ namespace GetBricked.Gameplay
                 BreakoutLevelGlitchPlanner.MeltdownCoreLadderUnlockIntensity,
                 highestCompletedIntensity,
                 DamageAccent));
+            cards.Add(BuildUnlockableGlitchCard(
+                "Cabinet Tilt",
+                "Trajectory Epic Glitch",
+                "The whole arena rebound bias drifts left and right.",
+                BreakoutLevelGlitchPlanner.CabinetTiltLadderUnlockIntensity,
+                highestCompletedIntensity,
+                HazardAccent));
             AppendPlaceholderCards(cards, PlaceholderDrops, highestCompletedIntensity);
             AppendPlaceholderCards(cards, PlaceholderGlitches, highestCompletedIntensity);
             cards.Add(BuildHiddenSlotCard("Future Drop Slot", "Drop", "Hidden", "Future drop signal pending."));
@@ -937,6 +944,11 @@ namespace GetBricked.Gameplay
             }
 
             if (completedIntensity >= BreakoutLevelGlitchPlanner.MeltdownCoreLadderUnlockIntensity)
+            {
+                count++;
+            }
+
+            if (completedIntensity >= BreakoutLevelGlitchPlanner.CabinetTiltLadderUnlockIntensity)
             {
                 count++;
             }

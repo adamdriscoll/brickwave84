@@ -38,6 +38,7 @@ namespace GetBricked.Gameplay
             LevelGlitchSelection.BrickConveyor,
             LevelGlitchSelection.BrickLock,
             LevelGlitchSelection.Brickquake,
+            LevelGlitchSelection.CabinetTilt,
             LevelGlitchSelection.CapsuleBlackout,
             LevelGlitchSelection.CapsuleRoulette,
             LevelGlitchSelection.CassetteSkip,

@@ -51,6 +51,7 @@ namespace GetBricked.Gameplay
         LockstepRows = 41,
         StaticServe = 42,
         MeltdownCore = 44,
+        CabinetTilt = 49,
     }
 
     internal readonly struct BreakoutLevelGlitchDefinition
@@ -377,6 +378,22 @@ namespace GetBricked.Gameplay
         public float SpeedBurstDurationSeconds { get; }
 
         public float BannerCooldownSeconds { get; }
+    }
+
+    internal readonly struct BreakoutCabinetTiltSpec
+    {
+        public BreakoutCabinetTiltSpec(float strength, float cycleSeconds, float phaseOffsetSeconds)
+        {
+            Strength = Mathf.Clamp01(strength);
+            CycleSeconds = Mathf.Clamp(cycleSeconds, 1.4f, 6f);
+            PhaseOffsetSeconds = Mathf.Max(0f, phaseOffsetSeconds);
+        }
+
+        public float Strength { get; }
+
+        public float CycleSeconds { get; }
+
+        public float PhaseOffsetSeconds { get; }
     }
 
     internal readonly struct BreakoutHotCornersSpec
@@ -952,7 +969,8 @@ namespace GetBricked.Gameplay
             BreakoutNeonFloodSpec neonFlood = default,
             BreakoutLockstepRowsSpec lockstepRows = default,
             BreakoutStaticServeSpec staticServe = default,
-            BreakoutMeltdownCoreSpec meltdownCore = default)
+            BreakoutMeltdownCoreSpec meltdownCore = default,
+            BreakoutCabinetTiltSpec cabinetTilt = default)
         {
             GlitchType = glitchType;
             Rarity = BreakoutRarityRules.Clamp(rarity);
@@ -995,6 +1013,7 @@ namespace GetBricked.Gameplay
             LockstepRows = lockstepRows;
             StaticServe = staticServe;
             MeltdownCore = meltdownCore;
+            CabinetTilt = cabinetTilt;
             ActiveGlitchTypes = activeGlitchTypes != null && activeGlitchTypes.Length > 0
                 ? activeGlitchTypes
                 : glitchType != BreakoutLevelGlitchType.None
@@ -1084,6 +1103,8 @@ namespace GetBricked.Gameplay
 
         public BreakoutMeltdownCoreSpec MeltdownCore { get; }
 
+        public BreakoutCabinetTiltSpec CabinetTilt { get; }
+
         public BreakoutLevelGlitchType[] ActiveGlitchTypes { get; }
 
         public bool IsActive => ActiveGlitchTypes.Length > 0;
@@ -1146,6 +1167,7 @@ namespace GetBricked.Gameplay
         public const int LockstepRowsLadderUnlockIntensity = 41;
         public const int StaticServeLadderUnlockIntensity = 42;
         public const int MeltdownCoreLadderUnlockIntensity = 44;
+        public const int CabinetTiltLadderUnlockIntensity = 49;
 
         private const float WarpGateScoreMultiplier = 1.35f;
         private const float TurboRailScoreMultiplier = 1.25f;
@@ -1191,6 +1213,7 @@ namespace GetBricked.Gameplay
         private const float LockstepRowsScoreMultiplier = 1.43f;
         private const float StaticServeScoreMultiplier = 1.5f;
         private const float MeltdownCoreScoreMultiplier = 1.55f;
+        private const float CabinetTiltScoreMultiplier = 1.57f;
 
         private static readonly BreakoutLevelGlitchDefinition[] GlitchDefinitions =
         {
@@ -1409,6 +1432,11 @@ namespace GetBricked.Gameplay
                 LevelGlitchSelection.MeltdownCore,
                 BreakoutContentRarity.Epic,
                 MeltdownCoreLadderUnlockIntensity),
+            new BreakoutLevelGlitchDefinition(
+                BreakoutLevelGlitchType.CabinetTilt,
+                LevelGlitchSelection.CabinetTilt,
+                BreakoutContentRarity.Epic,
+                CabinetTiltLadderUnlockIntensity),
         };
 
         public static BreakoutLevelGlitchPlan BuildPlan(
@@ -1670,6 +1698,11 @@ namespace GetBricked.Gameplay
                 return BuildMeltdownCorePlan(random, definition.Rarity);
             }
 
+            if (definition.GlitchType == BreakoutLevelGlitchType.CabinetTilt)
+            {
+                return BuildCabinetTiltPlan(random, definition.Rarity);
+            }
+
             return BuildWarpGatePlan(random, definition.Rarity);
         }
 
@@ -1803,6 +1836,7 @@ namespace GetBricked.Gameplay
             var lockstepRows = default(BreakoutLockstepRowsSpec);
             var staticServe = default(BreakoutStaticServeSpec);
             var meltdownCore = default(BreakoutMeltdownCoreSpec);
+            var cabinetTilt = default(BreakoutCabinetTiltSpec);
 
             for (var index = 0; index < definitions.Count; index++)
             {
@@ -2004,6 +2038,11 @@ namespace GetBricked.Gameplay
                 {
                     meltdownCore = plan.MeltdownCore;
                 }
+
+                if (plan.HasGlitch(BreakoutLevelGlitchType.CabinetTilt))
+                {
+                    cabinetTilt = plan.CabinetTilt;
+                }
             }
 
             return new BreakoutLevelGlitchPlan(
@@ -2048,7 +2087,8 @@ namespace GetBricked.Gameplay
                 neonFlood,
                 lockstepRows,
                 staticServe,
-                meltdownCore);
+                meltdownCore,
+                cabinetTilt);
         }
 
         private static void MarkGlitchSelectionExclusions(
@@ -2623,6 +2663,19 @@ namespace GetBricked.Gameplay
                 meltdownCore: BuildMeltdownCore(random));
         }
 
+        private static BreakoutLevelGlitchPlan BuildCabinetTiltPlan(DeterministicRandomService random, BreakoutContentRarity rarity)
+        {
+            return new BreakoutLevelGlitchPlan(
+                BreakoutLevelGlitchType.CabinetTilt,
+                rarity,
+                "Cabinet Tilt",
+                $"Cabinet Tilt x{CabinetTiltScoreMultiplier:0.00}",
+                CabinetTiltScoreMultiplier,
+                Array.Empty<BreakoutWarpGateSpec>(),
+                default,
+                cabinetTilt: BuildCabinetTilt(random));
+        }
+
         private static BreakoutLevelGlitchPlan BuildBlacklightBricksPlan(BreakoutContentRarity rarity)
         {
             return new BreakoutLevelGlitchPlan(
@@ -3102,6 +3155,14 @@ namespace GetBricked.Gameplay
                 random.Range(0.7f, 1.05f));
         }
 
+        private static BreakoutCabinetTiltSpec BuildCabinetTilt(DeterministicRandomService random)
+        {
+            return new BreakoutCabinetTiltSpec(
+                random.Range(0.28f, 0.38f),
+                random.Range(2.8f, 3.8f),
+                random.Range(0f, 3.8f));
+        }
+
         private static BreakoutWarpGateSpec[] BuildRogueGate(DeterministicRandomService random)
         {
             return new[]
@@ -3278,7 +3339,8 @@ namespace GetBricked.Gameplay
                 || selection == LevelGlitchSelection.NeonFlood
                 || selection == LevelGlitchSelection.LockstepRows
                 || selection == LevelGlitchSelection.StaticServe
-                || selection == LevelGlitchSelection.MeltdownCore;
+                || selection == LevelGlitchSelection.MeltdownCore
+                || selection == LevelGlitchSelection.CabinetTilt;
         }
 
         private static BreakoutWarpGateWall ResolveGateWall(DeterministicRandomService random, int index)

@@ -45,6 +45,9 @@ namespace GetBricked.Gameplay
         private float splitHorizonPreviousOffset;
         private float brickMagnetStrength;
         private Vector2 brickMagnetPoint;
+        private float cabinetTiltStrength;
+        private float cabinetTiltPhaseOffset;
+        private float cabinetTiltCycleSeconds = 3.2f;
         private float hotPotatoStrength;
         private float hotPotatoSpeedMultiplier = 1f;
         private float explosiveBallStrength;
@@ -253,6 +256,13 @@ namespace GetBricked.Gameplay
         {
             brickMagnetPoint = targetPoint;
             brickMagnetStrength = Mathf.Clamp(strength, -1f, 1f);
+        }
+
+        public void SetCabinetTilt(float strength, float phaseOffsetSeconds, float cycleSeconds)
+        {
+            cabinetTiltStrength = Mathf.Clamp01(strength);
+            cabinetTiltPhaseOffset = Mathf.Max(0f, phaseOffsetSeconds);
+            cabinetTiltCycleSeconds = Mathf.Max(0.45f, cycleSeconds);
         }
 
         public void SetHotPotatoStrength(float strength)
@@ -612,6 +622,7 @@ namespace GetBricked.Gameplay
             ApplyGravityPocket();
             ApplySplitHorizon();
             ApplyBrickMagnet();
+            ApplyCabinetTilt();
             ClampBallVelocity();
         }
 
@@ -942,6 +953,58 @@ namespace GetBricked.Gameplay
             var bendFactor = Mathf.Abs(strength) * Mathf.Lerp(0.35f, 1f, falloff) * deltaTime * 4.9f;
             var pocketDirection = strength >= 0f ? pullVector.normalized : -pullVector.normalized;
             return (currentDirection.normalized + (pocketDirection * bendFactor)).normalized;
+        }
+
+        internal static Vector2 BuildCabinetTiltDirection(
+            Vector2 currentVelocity,
+            Vector2 fallbackDirection,
+            float strength,
+            float elapsedSeconds,
+            float phaseOffsetSeconds,
+            float cycleSeconds,
+            float deltaTime)
+        {
+            var currentDirection = currentVelocity.sqrMagnitude > 0.001f
+                ? currentVelocity.normalized
+                : fallbackDirection.sqrMagnitude > 0.001f
+                    ? fallbackDirection.normalized
+                    : Vector2.up;
+            var clampedStrength = Mathf.Clamp01(strength);
+            var resolvedCycleSeconds = Mathf.Max(0.45f, cycleSeconds);
+            var phase = ((Mathf.Max(0f, elapsedSeconds) + Mathf.Max(0f, phaseOffsetSeconds)) / resolvedCycleSeconds) * Mathf.PI * 2f;
+            var drift = Mathf.Sin(phase) * clampedStrength * Mathf.Max(0f, deltaTime) * 4.25f;
+
+            if (Mathf.Abs(drift) <= 0.0001f)
+            {
+                return currentDirection;
+            }
+
+            return (currentDirection + (Vector2.right * drift)).normalized;
+        }
+
+        private void ApplyCabinetTilt()
+        {
+            if (ballBody == null || cabinetTiltStrength <= 0.001f)
+            {
+                return;
+            }
+
+            var tiltedDirection = BuildCabinetTiltDirection(
+                ballBody.linearVelocity,
+                lastTravelDirection,
+                cabinetTiltStrength,
+                Time.time,
+                cabinetTiltPhaseOffset,
+                cabinetTiltCycleSeconds,
+                Time.fixedDeltaTime);
+
+            if (tiltedDirection.sqrMagnitude <= 0.0001f)
+            {
+                return;
+            }
+
+            lastTravelDirection = tiltedDirection;
+            ballBody.linearVelocity = tiltedDirection * GetTargetSpeed();
         }
 
         private void ApplySplitHorizon()

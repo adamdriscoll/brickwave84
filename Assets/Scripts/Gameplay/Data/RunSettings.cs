@@ -78,6 +78,7 @@ namespace GetBricked.Gameplay.Data
         LockstepRows = 42,
         StaticServe = 43,
         MeltdownCore = 44,
+        CabinetTilt = 45,
     }
 
     public sealed class RunSettings
@@ -278,6 +279,7 @@ namespace GetBricked.Gameplay.Data
             LevelGlitchSelection.LockstepRows => "Lockstep Rows Armed",
             LevelGlitchSelection.StaticServe => "Static Serve Armed",
             LevelGlitchSelection.MeltdownCore => "Meltdown Core Armed",
+            LevelGlitchSelection.CabinetTilt => "Cabinet Tilt Armed",
             _ => "Clean Walls",
         };
 
@@ -288,7 +290,7 @@ namespace GetBricked.Gameplay.Data
             var normalized = (LevelGlitchSelection)Mathf.Clamp(
                     (int)levelGlitchSelection,
                     (int)LevelGlitchSelection.Off,
-                    (int)LevelGlitchSelection.MeltdownCore);
+                    (int)LevelGlitchSelection.CabinetTilt);
 
             if (!levelGlitchesEnabled && normalized == LevelGlitchSelection.Random)
             {
