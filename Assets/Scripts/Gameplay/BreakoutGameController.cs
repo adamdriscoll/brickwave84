@@ -7132,7 +7132,7 @@ namespace GetBricked.Gameplay
                 LifeCount = Mathf.Max(0, GetLifeCounterValue()),
                 LifeIcon = ballStyle.Sprite != null ? ballStyle.Sprite : ballSprite,
                 LifeIconColor = ballStyle.PrimaryColor,
-                MissileCount = Mathf.Max(0, availableMissiles),
+                MissileCount = GetDisplayedMissileCount(),
                 MissileIcon = missileSprite != null ? missileSprite : triangleSprite,
                 MissileIconColor = ResolveMissileColor(),
                 HasPaddleScreenTarget = hasPaddleScreenTarget,
@@ -10028,9 +10028,19 @@ namespace GetBricked.Gameplay
             return Mathf.Max(0, GetPersistentRunUpgradeModifiers().FreeMissileShotsPerLevel);
         }
 
+        private int GetRemainingFreeMissileShotsThisLevel()
+        {
+            return Mathf.Max(0, GetEffectiveFreeMissileShotsPerLevel() - freeMissilesFiredThisLevel);
+        }
+
+        private int GetDisplayedMissileCount()
+        {
+            return Mathf.Max(0, availableMissiles) + GetRemainingFreeMissileShotsThisLevel();
+        }
+
         private bool HasFreeMissileShotAvailable()
         {
-            return freeMissilesFiredThisLevel < GetEffectiveFreeMissileShotsPerLevel();
+            return GetRemainingFreeMissileShotsThisLevel() > 0;
         }
 
         private int GetRewardMissilePurchaseStockGrant()

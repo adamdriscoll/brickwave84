@@ -600,6 +600,30 @@ public sealed class BreakoutGameControllerPowerUpTests
     }
 
     [Test]
+    public void FreeTokenShowsAsAvailableHudMissileUntilSpent()
+    {
+        var controller = CreateControllerHarness(out _);
+        var activeRunState = new BreakoutRunState();
+        var freeToken = CreateRunUpgrade("free-token", 1f, freeMissileShotsPerLevel: 1);
+        activeRunState.SetPendingDraftOffers(new[] { BreakoutRunDraftOffer.FromRunUpgrade(freeToken) });
+        Assert.That(activeRunState.TryApplyPendingDraftOffer(0, out _), Is.True);
+
+        SetPrivateField(controller, "activeRunState", activeRunState);
+        SetPrivateField(controller, "availableMissiles", 3);
+        SetPrivateField(controller, "freeMissilesFiredThisLevel", 0);
+
+        var hud = (BreakoutUiHudView)InvokePrivateMethodWithResult(controller, "BuildHudView", new Rect(0f, 0f, 100f, 100f));
+
+        Assert.That(hud.MissileCount, Is.EqualTo(4));
+
+        SetPrivateField(controller, "freeMissilesFiredThisLevel", 1);
+
+        hud = (BreakoutUiHudView)InvokePrivateMethodWithResult(controller, "BuildHudView", new Rect(0f, 0f, 100f, 100f));
+
+        Assert.That(hud.MissileCount, Is.EqualTo(3));
+    }
+
+    [Test]
     public void MissileRackBoostsFirstRewardMissilePurchaseEachDraft()
     {
         var controller = CreateControllerHarness(out _);
