@@ -1970,7 +1970,12 @@ namespace GetBricked.Gameplay
             DrawLifeIndicator(iconRect, view.MissileIcon, view.MissileIconColor, -22f);
 
             var countRect = new Rect(iconRect.xMax + 6f, rect.y, rect.width - iconSize - 6f, rect.height);
-            DrawTextWithShadow(countRect, $"x{Mathf.Clamp(view.MissileCount, 0, 99):00}", hudStyle, palette.TextPrimary, 0.28f);
+            DrawTextWithShadow(countRect, FormatMissileCount(view.MissileCount), hudStyle, palette.TextPrimary, 0.28f);
+        }
+
+        internal static string FormatMissileCount(int missileCount)
+        {
+            return $"x{Mathf.Max(0, missileCount):00}";
         }
 
         private void BeginLifeLossAnimation(Rect startRect, BreakoutUiHudView view, float iconSize)

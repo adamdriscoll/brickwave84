@@ -69,4 +69,12 @@ public sealed class BreakoutUiRendererTests
         Assert.That(panel.x, Is.GreaterThan(playfield.xMax));
         Assert.That(panel.xMax, Is.LessThanOrEqualTo(frame.xMax));
     }
+
+    [Test]
+    public void MissileReadoutShowsActualSupplyAboveStarterCount()
+    {
+        Assert.That(BreakoutUiRenderer.FormatMissileCount(3), Is.EqualTo("x03"));
+        Assert.That(BreakoutUiRenderer.FormatMissileCount(12), Is.EqualTo("x12"));
+        Assert.That(BreakoutUiRenderer.FormatMissileCount(123), Is.EqualTo("x123"));
+    }
 }

@@ -423,7 +423,7 @@ public sealed class BreakoutGameControllerPowerUpTests
     }
 
     [Test]
-    public void ApplyingMissileDropAddsOneMissile()
+    public void ApplyingMissileDropsKeepAddingStockAboveStartingSupply()
     {
         var controller = CreateControllerHarness(out _);
         SetPrivateField(controller, "availableMissiles", 3);
@@ -435,8 +435,10 @@ public sealed class BreakoutGameControllerPowerUpTests
             scalar: 1f);
 
         InvokePrivateMethod(controller, "ApplyPowerUp", missileDrop);
+        InvokePrivateMethod(controller, "ApplyPowerUp", missileDrop);
+        InvokePrivateMethod(controller, "ApplyPowerUp", missileDrop);
 
-        Assert.That(GetPrivateField<int>(controller, "availableMissiles"), Is.EqualTo(4));
+        Assert.That(GetPrivateField<int>(controller, "availableMissiles"), Is.EqualTo(6));
     }
 
     [Test]
