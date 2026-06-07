@@ -1,0 +1,18 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Brickwave '84: Build & Launch Player",
+      "type": "node-terminal",
+      "request": "launch",
+      "command": "powershell -NoProfile -ExecutionPolicy Bypass -File \"${workspaceFolder}\\.vscode\\unity-build-and-launch.ps1\"",
+      "cwd": "${workspaceFolder}"
+    },
+    {
+      "name": "Unity: Attach Debugger",
+      "type": "vstuc",
+      "request": "attach",
+      "logFile": "${workspaceFolder}\\Logs\\VsCodeUnityDebugger.log"
+    }
+  ]
+}

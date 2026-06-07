@@ -205,6 +205,7 @@ namespace GetBricked.Gameplay
 
     internal sealed class BreakoutUiHudView
     {
+        public Rect PlayfieldRect;
         public string TopLine = string.Empty;
         public string ScoreText = string.Empty;
         public int ScoreValue;
@@ -292,12 +293,14 @@ namespace GetBricked.Gameplay
     internal sealed class BreakoutUiRunUpgradePanelView
     {
         public BreakoutUiRunUpgradePanelItemView[] Items = Array.Empty<BreakoutUiRunUpgradePanelItemView>();
+        public Rect PlayfieldRect;
         public bool IsDiagnosticsVisible;
     }
 
     internal sealed class BreakoutUiDiagnosticsView
     {
         public string[] Lines = Array.Empty<string>();
+        public Rect PlayfieldRect;
     }
 
     internal sealed class BreakoutUiBannerView

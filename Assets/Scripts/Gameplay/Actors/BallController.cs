@@ -644,6 +644,11 @@ namespace GetBricked.Gameplay
                 return;
             }
 
+            if (gameController != null && gameController.TryHandleBallEscapedPlayableArena(this))
+            {
+                return;
+            }
+
             UpdateSpeedBurstTimer();
             UpdateJellySlowTimer();
             ApplyGravityWell();

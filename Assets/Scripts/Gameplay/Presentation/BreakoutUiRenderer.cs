@@ -20,6 +20,11 @@ namespace GetBricked.Gameplay
         private const float HudScorePopScaleReserve = 1.18f;
         private const float HudScoreExtraWidth = 8f;
         private const float HudScoreMinimumAvailableWidth = 64f;
+        private const float GameplayHudMargin = 18f;
+        private const float GameplayHudShelfWidthFraction = 0.14f;
+        private const float GameplayHudMinimumShelfWidth = 96f;
+        private const float GameplayHudMaximumShelfWidth = 240f;
+        private const float GameplayHudShelfGap = 12f;
         private const int SpeedGaugeTickCount = 48;
         private const float SpeedGaugeStartAngle = -142f;
         private const float SpeedGaugeSweepAngle = 284f;
@@ -369,14 +374,15 @@ namespace GetBricked.Gameplay
                 return;
             }
 
-            var buttonsX = Screen.width - 258f;
+            var hudFrame = CalculateGameplayHudFrame(view.PlayfieldRect, Screen.width, Screen.height);
+            var buttonsX = hudFrame.xMax - 240f;
             var buttonsY = 20f;
             var showIntensityGauge = view.IntensityGauge != null && view.IntensityGauge.IsVisible;
             var gaugeRect = new Rect(buttonsX - 100f, 12f, 84f, 84f);
             var statusMaxX = showIntensityGauge ? gaugeRect.x - 14f : buttonsX - 18f;
             var hasBottomLine = !string.IsNullOrWhiteSpace(view.BottomLine);
             var statusHeight = hasBottomLine ? 72f : 46f;
-            var statusRect = new Rect(18f, 18f, Mathf.Max(320f, statusMaxX - 18f), statusHeight);
+            var statusRect = new Rect(hudFrame.x, 18f, Mathf.Max(320f, statusMaxX - hudFrame.x), statusHeight);
             var diagnosticsLabel = view.IsDiagnosticsVisible ? "DBG ON" : "DBG";
             var menuLabel = view.IsPaused ? "RESUME" : "MENU";
             var topLineY = statusRect.y + (hasBottomLine ? 14f : 11f);
@@ -1021,8 +1027,9 @@ namespace GetBricked.Gameplay
                 return;
             }
 
+            var hudFrame = CalculateGameplayHudFrame(view.PlayfieldRect, Screen.width, Screen.height);
             var overlayHeight = Mathf.Max(124f, 52f + (view.Lines.Length * 30f));
-            var overlayRect = new Rect(18f, Screen.height - overlayHeight - 18f, Screen.width - 36f, overlayHeight);
+            var overlayRect = new Rect(hudFrame.x, Screen.height - overlayHeight - GameplayHudMargin, hudFrame.width, overlayHeight);
             DrawPanel(overlayRect, palette.AccentPrimary, palette.AccentWarm, false);
             DrawSectionLabel(new Rect(overlayRect.x + 16f, overlayRect.y + 10f, 180f, 18f), "DIAGNOSTICS", palette.AccentPrimary);
 
@@ -1037,7 +1044,7 @@ namespace GetBricked.Gameplay
             }
         }
 
-        public void DrawModifierIndicator(BreakoutUiModifierView[] modifiers, bool isDiagnosticsVisible)
+        public void DrawModifierIndicator(BreakoutUiModifierView[] modifiers, bool isDiagnosticsVisible, Rect playfieldRect)
         {
             EnsureStyles();
 
@@ -1046,12 +1053,13 @@ namespace GetBricked.Gameplay
                 return;
             }
 
+            var hudFrame = CalculateGameplayHudFrame(playfieldRect, Screen.width, Screen.height);
             var slotCount = modifiers.Length;
             var slotWidth = 128f;
             var slotSpacing = 10f;
-            var panelWidth = Mathf.Min(Screen.width - 36f, 98f + (slotCount * (slotWidth + slotSpacing)));
+            var panelWidth = Mathf.Min(hudFrame.width, 98f + (slotCount * (slotWidth + slotSpacing)));
             var panelHeight = 72f;
-            var panelX = Mathf.Clamp((Screen.width - panelWidth) * 0.5f, 18f, Mathf.Max(18f, Screen.width - panelWidth - 18f));
+            var panelX = Mathf.Clamp(hudFrame.center.x - (panelWidth * 0.5f), hudFrame.x, Mathf.Max(hudFrame.x, hudFrame.xMax - panelWidth));
             var bottomMargin = isDiagnosticsVisible ? 182f : 20f;
             var panelY = Mathf.Max(100f, Screen.height - panelHeight - bottomMargin);
             var panelRect = new Rect(panelX, panelY, panelWidth, panelHeight);
@@ -1208,13 +1216,14 @@ namespace GetBricked.Gameplay
                 return;
             }
 
+            var hudFrame = CalculateGameplayHudFrame(view.PlayfieldRect, Screen.width, Screen.height);
             var iconSize = 42f;
             var iconSpacing = 8f;
-            var visibleCount = Mathf.Min(view.Items.Length, Mathf.Max(1, Mathf.FloorToInt((Screen.width - 76f) / (iconSize + iconSpacing))));
-            var panelWidth = Mathf.Clamp(34f + visibleCount * iconSize + Mathf.Max(0, visibleCount - 1) * iconSpacing, 112f, Screen.width - 36f);
+            var visibleCount = Mathf.Min(view.Items.Length, Mathf.Max(1, Mathf.FloorToInt((hudFrame.width - 40f) / (iconSize + iconSpacing))));
+            var panelWidth = Mathf.Clamp(34f + visibleCount * iconSize + Mathf.Max(0, visibleCount - 1) * iconSpacing, 112f, hudFrame.width);
             var panelHeight = 76f;
             var bottomMargin = view.IsDiagnosticsVisible ? 198f : 22f;
-            var panelRect = new Rect(18f, Mathf.Max(104f, Screen.height - panelHeight - bottomMargin), panelWidth, panelHeight);
+            var panelRect = new Rect(hudFrame.x, Mathf.Max(104f, Screen.height - panelHeight - bottomMargin), panelWidth, panelHeight);
             BreakoutUiRunUpgradePanelItemView hoveredItem = null;
 
             DrawPanel(panelRect, palette.AccentSecondary, palette.AccentPrimary, false, 1.5f);
@@ -1274,15 +1283,19 @@ namespace GetBricked.Gameplay
             var pulseAge = Time.unscaledTime - brickCounterPulseStartTime;
             var pulse = Mathf.Clamp01(1f - (pulseAge / BrickCounterPulseDuration));
             var pulseWave = Mathf.Sin((1f - pulse) * Mathf.PI);
-            var panelWidth = Mathf.Clamp(Screen.width * 0.16f, 148f, 206f);
+            var hudFrame = CalculateGameplayHudFrame(view.PlayfieldRect, Screen.width, Screen.height);
+            var panelWidth = Mathf.Clamp(hudFrame.width * 0.16f, 148f, 206f);
             var panelHeight = 88f;
             var bottomMargin = view.IsDiagnosticsVisible ? 198f : 22f;
             var expansion = Mathf.Lerp(0f, 8f, pulseWave);
-            var panelRect = new Rect(
-                Screen.width - panelWidth - 18f,
-                Mathf.Max(104f, Screen.height - panelHeight - bottomMargin),
+            var panelRect = CalculateGameplaySidePanelRect(
+                view.PlayfieldRect,
+                Screen.width,
+                Screen.height,
                 panelWidth,
-                panelHeight);
+                panelHeight,
+                bottomMargin,
+                preferRight: true);
             var animatedRect = Inflate(panelRect, expansion);
             var accent = Color.Lerp(palette.AccentPrimary, palette.AccentWarm, pulseWave);
             var rightAccent = Color.Lerp(palette.AccentSecondary, palette.TextPrimary, pulseWave * 0.45f);
@@ -1867,6 +1880,72 @@ namespace GetBricked.Gameplay
         {
             var reservedTextWidth = Mathf.Ceil(Mathf.Max(0f, measuredTextWidth) * HudScorePopScaleReserve) + HudScoreExtraWidth;
             return Mathf.Min(reservedTextWidth, Mathf.Max(HudScoreMinimumAvailableWidth, availableWidth));
+        }
+
+        internal static Rect CalculateGameplayHudFrame(Rect playfieldRect, float screenWidth, float screenHeight)
+        {
+            var width = Mathf.Max(1f, screenWidth);
+            var height = Mathf.Max(1f, screenHeight);
+            var margin = Mathf.Min(GameplayHudMargin, Mathf.Max(0f, (width - 1f) * 0.5f));
+
+            if (playfieldRect.width <= 1f || playfieldRect.height <= 1f)
+            {
+                return Rect.MinMaxRect(
+                    margin,
+                    margin,
+                    Mathf.Max(margin + 1f, width - margin),
+                    Mathf.Max(margin + 1f, height - margin));
+            }
+
+            var shelfWidth = Mathf.Clamp(
+                playfieldRect.width * GameplayHudShelfWidthFraction,
+                GameplayHudMinimumShelfWidth,
+                GameplayHudMaximumShelfWidth);
+            var left = Mathf.Max(margin, playfieldRect.x - shelfWidth);
+            var right = Mathf.Min(width - margin, playfieldRect.xMax + shelfWidth);
+
+            if (right - left < Mathf.Min(playfieldRect.width, width - (margin * 2f)))
+            {
+                left = margin;
+                right = width - margin;
+            }
+
+            return Rect.MinMaxRect(
+                left,
+                margin,
+                Mathf.Max(left + 1f, right),
+                Mathf.Max(margin + 1f, height - margin));
+        }
+
+        internal static Rect CalculateGameplaySidePanelRect(
+            Rect playfieldRect,
+            float screenWidth,
+            float screenHeight,
+            float panelWidth,
+            float panelHeight,
+            float bottomMargin,
+            bool preferRight)
+        {
+            var hudFrame = CalculateGameplayHudFrame(playfieldRect, screenWidth, screenHeight);
+            var width = Mathf.Min(Mathf.Max(1f, panelWidth), hudFrame.width);
+            var height = Mathf.Max(1f, panelHeight);
+            var y = Mathf.Max(104f, Mathf.Max(1f, screenHeight) - height - Mathf.Max(0f, bottomMargin));
+            var shelfSpace = preferRight
+                ? hudFrame.xMax - playfieldRect.xMax
+                : playfieldRect.x - hudFrame.x;
+            var x = preferRight
+                ? hudFrame.xMax - width
+                : hudFrame.x;
+
+            if (playfieldRect.width > 1f && shelfSpace >= width + GameplayHudShelfGap)
+            {
+                x = preferRight
+                    ? playfieldRect.xMax + GameplayHudShelfGap
+                    : playfieldRect.x - GameplayHudShelfGap - width;
+            }
+
+            x = Mathf.Clamp(x, hudFrame.x, Mathf.Max(hudFrame.x, hudFrame.xMax - width));
+            return new Rect(x, y, width, height);
         }
 
         private void DrawLifeIndicators(Rect rect, BreakoutUiHudView view, float iconSize, float iconGap)

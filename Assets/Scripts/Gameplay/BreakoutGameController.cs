@@ -71,6 +71,7 @@ namespace GetBricked.Gameplay
         private const float StaticWallBottomInset = 1.15f;
         private const float StaticWallTopInset = 0.55f;
         private const int StaticJackpotZoneSortingOrder = 7;
+        private const float BallArenaEscapeMargin = 1.1f;
         private const float ThinAirEscapeMargin = 0.55f;
         private const float GravityPocketArenaHorizontalPadding = 1.35f;
         private const float GravityPocketArenaBottomPadding = 2.1f;
@@ -210,6 +211,7 @@ namespace GetBricked.Gameplay
 
         [Header("Playfield")]
         [SerializeField] private float playfieldPadding = 0.6f;
+        [SerializeField, Min(1f)] private float maximumGameplayAspectRatio = BreakoutPlayfieldGeometry.DefaultMaximumGameplayAspectRatio;
         [SerializeField] private float wallThickness = 0.45f;
         [SerializeField] private Color wallColor = new Color(0.14f, 0.11f, 0.19f, 1f);
 
@@ -1358,6 +1360,38 @@ namespace GetBricked.Gameplay
             ball.Stop();
             HandleBallLost(ball);
             return true;
+        }
+
+        public bool TryHandleBallEscapedPlayableArena(BallController ball)
+        {
+            if (!IsGameplaySimulationActive() || ball == null)
+            {
+                return false;
+            }
+
+            var arenaBounds = Rect.MinMaxRect(arenaLeft, arenaBottom, arenaRight, arenaTop);
+
+            if (!HasBallEscapedPlayableArena(ball.transform.position, arenaBounds, BallArenaEscapeMargin))
+            {
+                return false;
+            }
+
+            ball.Stop();
+            HandleBallLost(ball);
+            return true;
+        }
+
+        internal static bool HasBallEscapedPlayableArena(Vector2 ballPosition, Rect arenaBounds, float escapeMargin)
+        {
+            if (arenaBounds.width <= 0.001f || arenaBounds.height <= 0.001f)
+            {
+                return false;
+            }
+
+            var margin = Mathf.Max(0f, escapeMargin);
+            return ballPosition.x < arenaBounds.xMin - margin
+                || ballPosition.x > arenaBounds.xMax + margin
+                || ballPosition.y > arenaBounds.yMax + margin;
         }
 
         public void ApplyPaddleHitTilt(PaddleController hitPaddle, float contactWorldX)
@@ -3694,11 +3728,15 @@ namespace GetBricked.Gameplay
             activeCamera.orthographicSize = cameraHalfHeight;
             activeCamera.backgroundColor = backgroundColor;
 
-            var visibleHalfWidth = cameraHalfHeight * activeCamera.aspect;
-            arenaLeft = -visibleHalfWidth + playfieldPadding;
-            arenaRight = visibleHalfWidth - playfieldPadding;
-            arenaTop = cameraHalfHeight - playfieldPadding;
-            arenaBottom = -cameraHalfHeight + playfieldPadding;
+            var arenaBounds = BreakoutPlayfieldGeometry.CalculateArenaBounds(
+                cameraHalfHeight,
+                activeCamera.aspect,
+                playfieldPadding,
+                maximumGameplayAspectRatio);
+            arenaLeft = arenaBounds.Left;
+            arenaRight = arenaBounds.Right;
+            arenaTop = arenaBounds.Top;
+            arenaBottom = arenaBounds.Bottom;
         }
 
         private void CreateRuntimeAssets()
@@ -6740,9 +6778,9 @@ namespace GetBricked.Gameplay
 
             var gameplayChromeView = BuildChromeView(string.Empty, string.Empty, false);
             uiRenderer.DrawCabinetBackdrop(gameplayChromeView);
-            uiRenderer.DrawGameplayHud(BuildHudView(), ToggleDiagnosticsOverlay, ToggleHudMenuOverlay);
-            uiRenderer.DrawModifierIndicator(BuildModifierViews(), isDiagnosticsOverlayVisible);
-            uiRenderer.DrawRunUpgradePanel(BuildRunUpgradePanelView());
+            uiRenderer.DrawGameplayHud(BuildHudView(gameplayChromeView.PlayfieldRect), ToggleDiagnosticsOverlay, ToggleHudMenuOverlay);
+            uiRenderer.DrawModifierIndicator(BuildModifierViews(), isDiagnosticsOverlayVisible, gameplayChromeView.PlayfieldRect);
+            uiRenderer.DrawRunUpgradePanel(BuildRunUpgradePanelView(gameplayChromeView.PlayfieldRect));
             uiRenderer.DrawCapsuleMadness(BuildCapsuleMadnessView(gameplayChromeView.PlayfieldRect));
             uiRenderer.DrawAutoSaveBurst(BuildAutoSaveBurstView(gameplayChromeView.PlayfieldRect));
             uiRenderer.DrawAutoSaveBurst(BuildSpareFuseBurstView(gameplayChromeView.PlayfieldRect));
@@ -6750,7 +6788,7 @@ namespace GetBricked.Gameplay
 
             if (isDiagnosticsOverlayVisible)
             {
-                uiRenderer.DrawDiagnosticsOverlay(BuildDiagnosticsView());
+                uiRenderer.DrawDiagnosticsOverlay(BuildDiagnosticsView(gameplayChromeView.PlayfieldRect));
             }
 
             if (roundState == RoundState.Playing)
@@ -7057,7 +7095,7 @@ namespace GetBricked.Gameplay
             };
         }
 
-        private BreakoutUiHudView BuildHudView()
+        private BreakoutUiHudView BuildHudView(Rect playfieldRect)
         {
             var bounceZoneLeftScreen = activeCamera != null
                 ? activeCamera.WorldToScreenPoint(new Vector3(arenaLeft, 0f, 0f)).x
@@ -7085,6 +7123,7 @@ namespace GetBricked.Gameplay
 
             return new BreakoutUiHudView
             {
+                PlayfieldRect = playfieldRect,
                 TopLine = scoreText,
                 ScoreText = scoreText,
                 ScoreValue = score,
@@ -7465,7 +7504,7 @@ namespace GetBricked.Gameplay
             return views.ToArray();
         }
 
-        private BreakoutUiRunUpgradePanelView BuildRunUpgradePanelView()
+        private BreakoutUiRunUpgradePanelView BuildRunUpgradePanelView(Rect playfieldRect)
         {
             var chosenUpgrades = activeRunState?.ChosenUpgrades;
 
@@ -7473,6 +7512,7 @@ namespace GetBricked.Gameplay
             {
                 return new BreakoutUiRunUpgradePanelView
                 {
+                    PlayfieldRect = playfieldRect,
                     IsDiagnosticsVisible = isDiagnosticsOverlayVisible,
                 };
             }
@@ -7528,11 +7568,12 @@ namespace GetBricked.Gameplay
             return new BreakoutUiRunUpgradePanelView
             {
                 Items = items.ToArray(),
+                PlayfieldRect = playfieldRect,
                 IsDiagnosticsVisible = isDiagnosticsOverlayVisible,
             };
         }
 
-        private BreakoutUiDiagnosticsView BuildDiagnosticsView()
+        private BreakoutUiDiagnosticsView BuildDiagnosticsView(Rect playfieldRect)
         {
             var lines = new List<string>
             {
@@ -7550,6 +7591,7 @@ namespace GetBricked.Gameplay
             return new BreakoutUiDiagnosticsView
             {
                 Lines = lines.ToArray(),
+                PlayfieldRect = playfieldRect,
             };
         }
 
