@@ -61,6 +61,17 @@ namespace GetBricked.Gameplay
     internal enum BreakoutUiMenuActionIcon
     {
         None,
+        NeonLadder,
+        UnlockLadder,
+        NeonMarathon,
+        CustomGame,
+        DualSticks,
+        Coop,
+        HotSeat,
+        Stats,
+        Sound,
+        Graphics,
+        Developer,
         Power,
     }
 

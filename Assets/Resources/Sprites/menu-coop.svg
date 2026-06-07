@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
+  <title id="title">Co-op</title>
+  <desc id="desc">Two linked paddles protecting one shared neon ball.</desc>
+  <defs>
+    <filter id="softGlow" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="2.25" result="blur"/><feColorMatrix in="blur" type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 .8 0" result="glow"/><feMerge><feMergeNode in="glow"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+    <style><![CDATA[.icon{fill:none;stroke:#fff;stroke-linecap:round;stroke-linejoin:round;filter:url(#softGlow)}.main{stroke-width:9;opacity:.95}.mid{stroke-width:6;opacity:.78}.thin{stroke-width:3.5;opacity:.42}.fill{fill:#fff;stroke:none;opacity:.9;filter:url(#softGlow)}]]></style>
+  </defs>
+  <g class="icon">
+    <rect class="main" x="48" y="178" width="64" height="18" rx="9"/>
+    <rect class="main" x="144" y="178" width="64" height="18" rx="9"/>
+    <path class="mid" d="M112 187 H144"/>
+    <circle class="main" cx="128" cy="90" r="26"/>
+    <path class="thin" d="M74 160 C88 128 104 110 128 94 C152 110 168 128 182 160"/>
+    <path class="thin" d="M92 62 C113 42 143 42 164 62"/>
+    <circle class="fill" cx="119" cy="82" r="5"/>
+  </g>
+</svg>

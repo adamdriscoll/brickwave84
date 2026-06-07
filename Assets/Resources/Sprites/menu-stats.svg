@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
+  <title id="title">Stats</title>
+  <desc id="desc">A cabinet score chart with rising neon bars and a high-score spark.</desc>
+  <defs>
+    <filter id="softGlow" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="2.25" result="blur"/><feColorMatrix in="blur" type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 .8 0" result="glow"/><feMerge><feMergeNode in="glow"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+    <style><![CDATA[.icon{fill:none;stroke:#fff;stroke-linecap:round;stroke-linejoin:round;filter:url(#softGlow)}.main{stroke-width:9;opacity:.96}.mid{stroke-width:6;opacity:.82}.thin{stroke-width:3.5;opacity:.45}.fill{fill:#fff;stroke:none;opacity:.88;filter:url(#softGlow)}]]></style>
+  </defs>
+  <g class="icon">
+    <path class="main" d="M52 204 H206"/>
+    <rect class="mid" x="66" y="142" width="24" height="62" rx="5"/>
+    <rect class="mid" x="112" y="104" width="24" height="100" rx="5"/>
+    <rect class="mid" x="158" y="70" width="24" height="134" rx="5"/>
+    <path class="thin" d="M62 112 L106 84 L136 94 L180 48"/>
+    <path class="thin" d="M180 48 L177 70 L198 61"/>
+    <circle class="fill" cx="180" cy="48" r="6"/>
+  </g>
+</svg>

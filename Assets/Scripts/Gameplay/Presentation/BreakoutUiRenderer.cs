@@ -31,6 +31,7 @@ namespace GetBricked.Gameplay
         private static readonly string[] RetroUiFontNames = { "Consolas", "Courier New", "monospace" };
 
         private readonly Dictionary<Sprite, Texture2D> iconTextureCache = new Dictionary<Sprite, Texture2D>();
+        private readonly Dictionary<BreakoutUiMenuActionIcon, Sprite> menuActionSpriteCache = new Dictionary<BreakoutUiMenuActionIcon, Sprite>();
         private Vector2 progressionContentScroll;
         private Vector2 statsTableScroll;
         private int previousBrickCounterValue = -1;
@@ -77,7 +78,6 @@ namespace GetBricked.Gameplay
         private Material vectorIconMaterial;
         private Material spriteIconMaterial;
         private Texture2D fallbackLifeIconTexture;
-        private Texture2D powerIconTexture;
         private BreakoutUiThemePalette palette = new BreakoutUiThemePalette();
 
         private readonly struct ActionGroupRange
@@ -109,6 +109,7 @@ namespace GetBricked.Gameplay
             }
 
             iconTextureCache.Clear();
+            menuActionSpriteCache.Clear();
 
             if (vectorIconMaterial != null)
             {
@@ -126,12 +127,6 @@ namespace GetBricked.Gameplay
             {
                 DestroyRuntimeObject(fallbackLifeIconTexture);
                 fallbackLifeIconTexture = null;
-            }
-
-            if (powerIconTexture != null)
-            {
-                DestroyRuntimeObject(powerIconTexture);
-                powerIconTexture = null;
             }
         }
 
@@ -2804,6 +2799,66 @@ namespace GetBricked.Gameplay
                 : BreakoutUiMenuActionIcon.None;
         }
 
+        internal static string ResolveMenuActionSpriteResourcePath(BreakoutUiMenuActionIcon icon)
+        {
+            return icon switch
+            {
+                BreakoutUiMenuActionIcon.NeonLadder => "Sprites/menu-neon-ladder",
+                BreakoutUiMenuActionIcon.UnlockLadder => "Sprites/menu-unlock-ladder",
+                BreakoutUiMenuActionIcon.NeonMarathon => "Sprites/menu-neon-marathon",
+                BreakoutUiMenuActionIcon.CustomGame => "Sprites/menu-custom-game",
+                BreakoutUiMenuActionIcon.DualSticks => "Sprites/menu-dual-sticks",
+                BreakoutUiMenuActionIcon.Coop => "Sprites/menu-coop",
+                BreakoutUiMenuActionIcon.HotSeat => "Sprites/menu-hot-seat",
+                BreakoutUiMenuActionIcon.Stats => "Sprites/menu-stats",
+                BreakoutUiMenuActionIcon.Sound => "Sprites/menu-sound",
+                BreakoutUiMenuActionIcon.Graphics => "Sprites/menu-graphics",
+                BreakoutUiMenuActionIcon.Developer => "Sprites/menu-developer",
+                BreakoutUiMenuActionIcon.Power => "Sprites/menu-power-down",
+                _ => string.Empty,
+            };
+        }
+
+        private Sprite ResolveMenuActionSprite(BreakoutUiMenuActionIcon icon)
+        {
+            if (icon == BreakoutUiMenuActionIcon.None)
+            {
+                return null;
+            }
+
+            if (menuActionSpriteCache.TryGetValue(icon, out var cachedSprite))
+            {
+                return cachedSprite;
+            }
+
+            var resourcePath = ResolveMenuActionSpriteResourcePath(icon);
+            var sprite = string.IsNullOrWhiteSpace(resourcePath)
+                ? null
+                : BreakoutRuntimeVisualFactory.LoadSpriteResource(resourcePath);
+            menuActionSpriteCache[icon] = sprite;
+            return sprite;
+        }
+
+        private static string ResolveMenuActionFallbackLabel(BreakoutUiMenuActionIcon icon)
+        {
+            return icon switch
+            {
+                BreakoutUiMenuActionIcon.NeonLadder => "NL",
+                BreakoutUiMenuActionIcon.UnlockLadder => "UL",
+                BreakoutUiMenuActionIcon.NeonMarathon => "NM",
+                BreakoutUiMenuActionIcon.CustomGame => "CG",
+                BreakoutUiMenuActionIcon.DualSticks => "VS",
+                BreakoutUiMenuActionIcon.Coop => "CO",
+                BreakoutUiMenuActionIcon.HotSeat => "HS",
+                BreakoutUiMenuActionIcon.Stats => "ST",
+                BreakoutUiMenuActionIcon.Sound => "AU",
+                BreakoutUiMenuActionIcon.Graphics => "GX",
+                BreakoutUiMenuActionIcon.Developer => "DV",
+                BreakoutUiMenuActionIcon.Power => "IO",
+                _ => string.Empty,
+            };
+        }
+
         private void DrawMenuActionIcon(Rect rect, BreakoutUiMenuActionIcon icon, Color accent, bool emphasize)
         {
             if (icon == BreakoutUiMenuActionIcon.None)
@@ -2817,7 +2872,18 @@ namespace GetBricked.Gameplay
 
             var previousGuiColor = GUI.color;
             GUI.color = emphasize ? palette.TextPrimary : WithAlpha(palette.TextMuted, 0.9f);
-            GUI.DrawTexture(rect, GetPowerIconTexture(), ScaleMode.ScaleToFit, true);
+            var sprite = ResolveMenuActionSprite(icon);
+            var iconTexture = ResolveIconTexture(sprite, out var textureCoords);
+
+            if (iconTexture != null)
+            {
+                GUI.DrawTextureWithTexCoords(rect, iconTexture, textureCoords, true);
+            }
+            else
+            {
+                DrawFallbackIconGlyph(rect, accent, emphasize, ResolveMenuActionFallbackLabel(icon));
+            }
+
             GUI.color = previousGuiColor;
         }
 
@@ -3296,51 +3362,6 @@ namespace GetBricked.Gameplay
             fallbackLifeIconTexture.SetPixels32(pixels);
             fallbackLifeIconTexture.Apply(false, false);
             return fallbackLifeIconTexture;
-        }
-
-        private Texture2D GetPowerIconTexture()
-        {
-            if (powerIconTexture != null)
-            {
-                return powerIconTexture;
-            }
-
-            const int size = 64;
-            var pixels = new Color32[size * size];
-            var center = new Vector2((size - 1) * 0.5f, size * 0.55f);
-            var radius = size * 0.28f;
-            var thickness = size * 0.055f;
-
-            for (var y = 0; y < size; y++)
-            {
-                for (var x = 0; x < size; x++)
-                {
-                    var position = new Vector2(x, y);
-                    var dx = position.x - center.x;
-                    var dy = position.y - center.y;
-                    var distance = Mathf.Sqrt((dx * dx) + (dy * dy));
-                    var ring = 1f - Mathf.Clamp01(Mathf.Abs(distance - radius) / thickness);
-                    var topGap = Mathf.Abs(dx) < size * 0.12f && dy < -radius * 0.48f;
-                    var lineX = Mathf.Abs(dx) < size * 0.04f;
-                    var lineY = position.y >= size * 0.12f && position.y <= center.y - (radius * 0.08f);
-                    var line = lineX && lineY ? 1f : 0f;
-                    var capDistance = Vector2.Distance(position, new Vector2(center.x, size * 0.12f));
-                    var cap = capDistance <= size * 0.04f ? 1f : 0f;
-                    var alpha = Mathf.Clamp01((topGap ? 0f : ring) + line + cap);
-                    pixels[(y * size) + x] = new Color32(255, 255, 255, (byte)Mathf.RoundToInt(255f * alpha));
-                }
-            }
-
-            powerIconTexture = new Texture2D(size, size, TextureFormat.RGBA32, false)
-            {
-                name = "RuntimePowerIcon",
-                filterMode = FilterMode.Bilinear,
-                wrapMode = TextureWrapMode.Clamp,
-                hideFlags = HideFlags.DontSave,
-            };
-            powerIconTexture.SetPixels32(pixels);
-            powerIconTexture.Apply(false, false);
-            return powerIconTexture;
         }
 
         private static bool HasVisiblePixels(Texture2D texture)

@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
+  <title id="title">Custom Game</title>
+  <desc id="desc">Three neon tuning sliders above a cassette-style tape panel.</desc>
+  <defs>
+    <filter id="softGlow" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="2.25" result="blur"/><feColorMatrix in="blur" type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 .8 0" result="glow"/><feMerge><feMergeNode in="glow"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+    <style><![CDATA[.icon{fill:none;stroke:#fff;stroke-linecap:round;stroke-linejoin:round;filter:url(#softGlow)}.main{stroke-width:9;opacity:.95}.mid{stroke-width:6;opacity:.82}.thin{stroke-width:3.5;opacity:.45}.fill{fill:#fff;stroke:none;opacity:.88;filter:url(#softGlow)}]]></style>
+  </defs>
+  <g class="icon">
+    <rect class="main" x="46" y="136" width="164" height="58" rx="12"/>
+    <circle class="mid" cx="94" cy="165" r="13"/>
+    <circle class="mid" cx="162" cy="165" r="13"/>
+    <path class="thin" d="M110 182 H146"/>
+    <path class="mid" d="M58 70 H198 M58 100 H198 M58 130 H198"/>
+    <circle class="fill" cx="94" cy="70" r="8"/>
+    <circle class="fill" cx="154" cy="100" r="8"/>
+    <circle class="fill" cx="118" cy="130" r="8"/>
+  </g>
+</svg>

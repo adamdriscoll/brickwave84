@@ -156,9 +156,22 @@ namespace GetBricked.Gameplay
 
             for (var index = 0; index < actions.Length; index++)
             {
-                icons[index] = actions[index] == BreakoutMainMenuAction.QuitGame
-                    ? BreakoutUiMenuActionIcon.Power
-                    : BreakoutUiMenuActionIcon.None;
+                icons[index] = actions[index] switch
+                {
+                    BreakoutMainMenuAction.Rogue => BreakoutUiMenuActionIcon.NeonLadder,
+                    BreakoutMainMenuAction.Progression => BreakoutUiMenuActionIcon.UnlockLadder,
+                    BreakoutMainMenuAction.SoloMarathon => BreakoutUiMenuActionIcon.NeonMarathon,
+                    BreakoutMainMenuAction.CustomGame => BreakoutUiMenuActionIcon.CustomGame,
+                    BreakoutMainMenuAction.DualSticks => BreakoutUiMenuActionIcon.DualSticks,
+                    BreakoutMainMenuAction.Coop => BreakoutUiMenuActionIcon.Coop,
+                    BreakoutMainMenuAction.TurnBased => BreakoutUiMenuActionIcon.HotSeat,
+                    BreakoutMainMenuAction.LifetimeStats => BreakoutUiMenuActionIcon.Stats,
+                    BreakoutMainMenuAction.SoundSettings => BreakoutUiMenuActionIcon.Sound,
+                    BreakoutMainMenuAction.GraphicsSettings => BreakoutUiMenuActionIcon.Graphics,
+                    BreakoutMainMenuAction.DeveloperMode => BreakoutUiMenuActionIcon.Developer,
+                    BreakoutMainMenuAction.QuitGame => BreakoutUiMenuActionIcon.Power,
+                    _ => BreakoutUiMenuActionIcon.None,
+                };
             }
 
             return icons;

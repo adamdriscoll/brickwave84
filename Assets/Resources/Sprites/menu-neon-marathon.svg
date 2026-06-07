@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
+  <title id="title">Neon Marathon</title>
+  <desc id="desc">An endless neon track wrapped around a fast arcade ball.</desc>
+  <defs>
+    <filter id="softGlow" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="2.25" result="blur"/><feColorMatrix in="blur" type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 .8 0" result="glow"/><feMerge><feMergeNode in="glow"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+    <style><![CDATA[.icon{fill:none;stroke:#fff;stroke-linecap:round;stroke-linejoin:round;filter:url(#softGlow)}.main{stroke-width:10;opacity:.95}.mid{stroke-width:6;opacity:.78}.thin{stroke-width:3.5;opacity:.4}.fill{fill:#fff;stroke:none;opacity:.92;filter:url(#softGlow)}]]></style>
+  </defs>
+  <g class="icon">
+    <path class="main" d="M48 132 C67 82 108 82 128 128 C148 174 189 174 208 124"/>
+    <path class="main" d="M48 132 C67 182 108 182 128 136 C148 90 189 90 208 140"/>
+    <path class="thin" d="M58 208 H198 M70 48 H186"/>
+    <circle class="mid" cx="164" cy="132" r="20"/>
+    <path class="thin" d="M74 116 L54 108 M90 98 L74 84 M108 88 L101 68"/>
+    <circle class="fill" cx="157" cy="125" r="4"/>
+  </g>
+</svg>

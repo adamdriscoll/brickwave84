@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using GetBricked.Gameplay;
 using GetBricked.Gameplay.Data;
@@ -62,6 +63,54 @@ public sealed class BreakoutProgressionPageTests
         Assert.That(view.ActionGroupLabels[powerDownIndex], Is.EqualTo("Cabinet"));
         Assert.That(view.ActionTones[powerDownIndex], Is.EqualTo(BreakoutUiMenuActionTone.Danger));
         Assert.That(view.ActionIcons[powerDownIndex], Is.EqualTo(BreakoutUiMenuActionIcon.Power));
+    }
+
+    [Test]
+    public void MainMenuActionsHaveDistinctIcons()
+    {
+        var service = new BreakoutMainMenuService();
+        var actions = service.BuildActions();
+        var view = service.BuildView(new BreakoutMainMenuContext());
+        var expectedIcons = new Dictionary<BreakoutMainMenuAction, BreakoutUiMenuActionIcon>
+        {
+            [BreakoutMainMenuAction.Rogue] = BreakoutUiMenuActionIcon.NeonLadder,
+            [BreakoutMainMenuAction.Progression] = BreakoutUiMenuActionIcon.UnlockLadder,
+            [BreakoutMainMenuAction.SoloMarathon] = BreakoutUiMenuActionIcon.NeonMarathon,
+            [BreakoutMainMenuAction.CustomGame] = BreakoutUiMenuActionIcon.CustomGame,
+            [BreakoutMainMenuAction.DualSticks] = BreakoutUiMenuActionIcon.DualSticks,
+            [BreakoutMainMenuAction.Coop] = BreakoutUiMenuActionIcon.Coop,
+            [BreakoutMainMenuAction.TurnBased] = BreakoutUiMenuActionIcon.HotSeat,
+            [BreakoutMainMenuAction.LifetimeStats] = BreakoutUiMenuActionIcon.Stats,
+            [BreakoutMainMenuAction.SoundSettings] = BreakoutUiMenuActionIcon.Sound,
+            [BreakoutMainMenuAction.GraphicsSettings] = BreakoutUiMenuActionIcon.Graphics,
+            [BreakoutMainMenuAction.DeveloperMode] = BreakoutUiMenuActionIcon.Developer,
+            [BreakoutMainMenuAction.QuitGame] = BreakoutUiMenuActionIcon.Power,
+        };
+
+        Assert.That(view.ActionIcons, Has.Length.EqualTo(actions.Length));
+
+        for (var index = 0; index < actions.Length; index++)
+        {
+            Assert.That(view.ActionIcons[index], Is.EqualTo(expectedIcons[actions[index]]), $"Unexpected icon for {actions[index]}.");
+            Assert.That(view.ActionIcons[index], Is.Not.EqualTo(BreakoutUiMenuActionIcon.None), $"Missing icon for {actions[index]}.");
+        }
+    }
+
+    [Test]
+    public void MainMenuActionIconResourcesAreAvailable()
+    {
+        foreach (BreakoutUiMenuActionIcon icon in Enum.GetValues(typeof(BreakoutUiMenuActionIcon)))
+        {
+            if (icon == BreakoutUiMenuActionIcon.None)
+            {
+                continue;
+            }
+
+            var resourcePath = BreakoutUiRenderer.ResolveMenuActionSpriteResourcePath(icon);
+
+            Assert.That(resourcePath, Is.Not.Empty, $"Missing resource path for {icon}.");
+            Assert.That(Resources.Load<Sprite>(resourcePath), Is.Not.Null, $"Missing sprite resource '{resourcePath}'.");
+        }
     }
 
     [Test]

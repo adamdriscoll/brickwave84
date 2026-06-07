@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
+  <title id="title">Dual Sticks</title>
+  <desc id="desc">Two opposing arcade sticks split by a versus spark.</desc>
+  <defs>
+    <filter id="softGlow" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="2.25" result="blur"/><feColorMatrix in="blur" type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 .8 0" result="glow"/><feMerge><feMergeNode in="glow"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+    <style><![CDATA[.icon{fill:none;stroke:#fff;stroke-linecap:round;stroke-linejoin:round;filter:url(#softGlow)}.main{stroke-width:9;opacity:.95}.mid{stroke-width:6;opacity:.8}.thin{stroke-width:3.5;opacity:.45}.fill{fill:#fff;stroke:none;opacity:.9;filter:url(#softGlow)}]]></style>
+  </defs>
+  <g class="icon">
+    <path class="main" d="M74 180 V114 M182 180 V114"/>
+    <circle class="main" cx="74" cy="96" r="20"/>
+    <circle class="main" cx="182" cy="96" r="20"/>
+    <path class="mid" d="M42 188 H106 M150 188 H214"/>
+    <path class="thin" d="M116 92 L132 124 L146 92 M112 154 L128 124 L144 154"/>
+    <circle class="fill" cx="128" cy="124" r="5"/>
+  </g>
+</svg>

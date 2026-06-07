@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
+  <title id="title">Power Down</title>
+  <desc id="desc">A glowing cabinet power symbol for shutting down the game.</desc>
+  <defs>
+    <filter id="softGlow" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="2.25" result="blur"/><feColorMatrix in="blur" type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 .8 0" result="glow"/><feMerge><feMergeNode in="glow"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+    <style><![CDATA[.icon{fill:none;stroke:#fff;stroke-linecap:round;stroke-linejoin:round;filter:url(#softGlow)}.main{stroke-width:12;opacity:.96}.mid{stroke-width:8;opacity:.82}.thin{stroke-width:3.5;opacity:.38}.fill{fill:#fff;stroke:none;opacity:.9;filter:url(#softGlow)}]]></style>
+  </defs>
+  <g class="icon">
+    <path class="main" d="M128 50 V122"/>
+    <path class="main" d="M91 82 C69 96 56 120 58 146 C61 186 93 214 128 214 C163 214 195 186 198 146 C200 120 187 96 165 82"/>
+    <path class="thin" d="M86 220 H170"/>
+    <circle class="fill" cx="128" cy="50" r="5"/>
+  </g>
+</svg>

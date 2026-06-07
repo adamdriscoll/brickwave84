@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
+  <title id="title">Neon Ladder</title>
+  <desc id="desc">A glowing arcade ladder with an energy ball climbing toward the top stage.</desc>
+  <defs>
+    <filter id="softGlow" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="2.25" result="blur"/>
+      <feColorMatrix in="blur" type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 .8 0" result="glow"/>
+      <feMerge><feMergeNode in="glow"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <style><![CDATA[
+      .icon{fill:none;stroke:#fff;stroke-linecap:round;stroke-linejoin:round;filter:url(#softGlow)}
+      .main{stroke-width:9;opacity:.96}.mid{stroke-width:6;opacity:.82}.thin{stroke-width:3.5;opacity:.42}.fill{fill:#fff;stroke:none;opacity:.92;filter:url(#softGlow)}
+    ]]></style>
+  </defs>
+  <g class="icon">
+    <path class="mid" d="M66 202 V62 M190 202 V62"/>
+    <path class="main" d="M78 188 H178 M78 158 H178 M78 128 H178 M78 98 H178 M78 68 H178"/>
+    <path class="thin" d="M50 212 H206 M54 52 H202"/>
+    <path class="thin" d="M92 187 C112 160 138 141 166 127"/>
+    <circle class="main" cx="164" cy="126" r="20"/>
+    <circle class="fill" cx="157" cy="119" r="4"/>
+  </g>
+</svg>

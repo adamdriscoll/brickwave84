@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
+  <title id="title">Unlock Ladder</title>
+  <desc id="desc">An open neon lock over rising unlock bars.</desc>
+  <defs>
+    <filter id="softGlow" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="2.25" result="blur"/><feColorMatrix in="blur" type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 .8 0" result="glow"/><feMerge><feMergeNode in="glow"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+    <style><![CDATA[.icon{fill:none;stroke:#fff;stroke-linecap:round;stroke-linejoin:round;filter:url(#softGlow)}.main{stroke-width:9;opacity:.96}.mid{stroke-width:6;opacity:.82}.thin{stroke-width:3.5;opacity:.44}.fill{fill:#fff;stroke:none;opacity:.9;filter:url(#softGlow)}]]></style>
+  </defs>
+  <g class="icon">
+    <rect class="main" x="64" y="118" width="128" height="78" rx="14"/>
+    <path class="main" d="M94 118 V94 C94 66 117 48 143 54 C158 58 169 70 174 86"/>
+    <path class="mid" d="M128 142 V170"/>
+    <circle class="fill" cx="128" cy="141" r="6"/>
+    <path class="thin" d="M78 210 H178"/>
+    <path class="mid" d="M76 182 H92 V158 H108 V136 H124"/>
+    <path class="mid" d="M132 182 H148 V160 H164 V138 H180"/>
+  </g>
+</svg>

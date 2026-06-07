@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
+  <title id="title">Developer</title>
+  <desc id="desc">A glowing circuit wrench for the local tuning bench.</desc>
+  <defs>
+    <filter id="softGlow" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="2.25" result="blur"/><feColorMatrix in="blur" type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 .8 0" result="glow"/><feMerge><feMergeNode in="glow"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+    <style><![CDATA[.icon{fill:none;stroke:#fff;stroke-linecap:round;stroke-linejoin:round;filter:url(#softGlow)}.main{stroke-width:9;opacity:.95}.mid{stroke-width:6;opacity:.8}.thin{stroke-width:3.5;opacity:.44}.fill{fill:#fff;stroke:none;opacity:.88;filter:url(#softGlow)}]]></style>
+  </defs>
+  <g class="icon">
+    <path class="main" d="M88 188 L164 112 C153 81 176 56 206 64 L184 86 L202 104 L224 82 C232 112 207 135 176 124 L100 200 C94 206 82 206 76 200 C70 194 70 184 76 178 Z"/>
+    <path class="mid" d="M56 72 H96 L112 92 H152"/>
+    <path class="mid" d="M56 112 H92 M56 152 H116"/>
+    <circle class="fill" cx="56" cy="72" r="6"/>
+    <circle class="fill" cx="56" cy="112" r="6"/>
+    <circle class="fill" cx="56" cy="152" r="6"/>
+  </g>
+</svg>
