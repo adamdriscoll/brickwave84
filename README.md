@@ -373,6 +373,8 @@ If a clean player build already exists, pass it directly:
 
 The MSI installs to `Program Files\Brickwave Games\Brickwave 84`, adds a Start Menu shortcut, embeds its payload cabinet, and uses a stable upgrade code so later version bumps upgrade the previous install instead of installing side by side.
 
+The GitHub `Unity Build` workflow packages the Windows player into the same MSI and uploads `Brickwave84-<version>.msi` as the build artifact instead of uploading the raw player folder ZIP.
+
 ## Keeping This README Useful
 
 This file should stay aligned with the real playable state of the repo. If gameplay systems, controls, content pools, setup options, stage profiles, pickups, upgrades, themes, or presentation layers change, update this README in the same pass so someone can understand the current game without reading every script first.

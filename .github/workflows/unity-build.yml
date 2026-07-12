@@ -12,7 +12,7 @@ on:
 jobs:
   build-windows:
     name: Build Windows
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
 
     steps:
       - name: Checkout repository
@@ -20,21 +20,21 @@ jobs:
         with:
           lfs: true
 
-      - name: Free disk space
-        uses: jlumbroso/free-disk-space@v1.3.1
-        with:
-          tool-cache: false
-          android: true
-          dotnet: true
-          haskell: true
-          large-packages: true
-          docker-images: true
-          swap-storage: true
-
       - name: Install packaging dependencies
+        shell: powershell
         run: |
-          sudo apt-get update
-          sudo apt-get install -y imagemagick
+          choco install imagemagick.app -y --no-progress
+          $magick = Get-Command magick -ErrorAction SilentlyContinue
+          if (-not $magick) {
+            $imageMagickPath = Get-ChildItem -LiteralPath 'C:\Program Files' -Directory -Filter 'ImageMagick*' |
+              Select-Object -First 1
+
+            if (-not $imageMagickPath) {
+              throw 'ImageMagick was not found after Chocolatey install.'
+            }
+
+            $imageMagickPath.FullName | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          }
 
       - name: Setup .NET SDK
         uses: actions/setup-dotnet@v4
@@ -63,7 +63,7 @@ jobs:
           buildsPath: build
 
       - name: Prepare MSI payload
-        shell: pwsh
+        shell: powershell
         run: |
           $ErrorActionPreference = 'Stop'
           $sourceExe = Get-ChildItem -LiteralPath build -Recurse -File -Filter Brickwave84.exe |
@@ -82,7 +82,7 @@ jobs:
           Copy-Item -Path (Join-Path $sourceExe.DirectoryName '*') -Destination $payloadDir -Recurse -Force
 
       - name: Build MSI installer
-        shell: pwsh
+        shell: powershell
         run: ./Installer/Scripts/Build-Msi.ps1 -GameBuildDir ./Builds/Release/Brickwave84
 
       - name: Upload Windows MSI artifact
