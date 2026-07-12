@@ -16,7 +16,7 @@
   - `3` themes
   - `3` authored Rogue paddle definitions (alternate types are currently disabled)
 - Current UI state: runtime OnGUI menus, HUD, pause, upgrade draft, and end-state flow
-- Current automation: starter Unity Edit Mode tests plus repo-local compile/test helper scripts
+- Current automation: starter Unity Edit Mode tests, repo-local compile/test helper scripts, and a WiX-backed Windows MSI packaging script
 
 ## What Is Implemented Right Now
 
@@ -352,6 +352,26 @@ Theme selection already changes the runtime palette across background, walls, pa
   - `Assets/Scripts/Gameplay/BreakoutPowerUpService.cs`
   - `Assets/Scripts/Gameplay/BreakoutRunState.cs`
   - `Assets/Scripts/Gameplay/BreakoutUpgradeDraftService.cs`
+
+## Release Packaging
+
+Windows MSI packaging lives under [`Installer/`](Installer/). The installer version is controlled by [`Installer/ProductVersion.props`](Installer/ProductVersion.props), which starts at `1.0.0`; bump that value for each release so Windows Installer major upgrades replace earlier installs cleanly.
+
+To build a fresh Windows player and MSI from the current checkout:
+
+```powershell
+.\Installer\Scripts\Build-Msi.ps1 -BuildPlayer
+```
+
+The script builds the player into `Builds/Release/Brickwave84/`, generates installer dialog/banner/icon art from the game backgrounds in `Assets/Resources/Backgrounds/`, and writes the MSI to `Builds/Installer/Brickwave84-<version>.msi`.
+
+If a clean player build already exists, pass it directly:
+
+```powershell
+.\Installer\Scripts\Build-Msi.ps1 -GameBuildDir .\Builds\Release\Brickwave84
+```
+
+The MSI installs to `Program Files\Brickwave Games\Brickwave 84`, adds a Start Menu shortcut, embeds its payload cabinet, and uses a stable upgrade code so later version bumps upgrade the previous install instead of installing side by side.
 
 ## Keeping This README Useful
 

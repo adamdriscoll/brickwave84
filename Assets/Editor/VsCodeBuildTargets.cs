@@ -2,9 +2,11 @@
 using System;
 using System.IO;
 using System.Linq;
+using System.Xml.Linq;
 using UnityEditor;
 using UnityEditor.Build;
 using UnityEditor.Build.Reporting;
+using UnityEngine;
 
 namespace GetBricked.EditorTools
 {
@@ -24,6 +26,8 @@ namespace GetBricked.EditorTools
 
         private static void BuildWindowsPlayer(BuildOptions options)
         {
+            ApplyInstallerVersion();
+
             var outputPath = ResolveOutputPath();
             var outputDirectory = Path.GetDirectoryName(outputPath);
             if (string.IsNullOrWhiteSpace(outputDirectory))
@@ -58,6 +62,37 @@ namespace GetBricked.EditorTools
             }
 
             UnityEngine.Debug.Log($"VS Code Windows player build succeeded: {outputPath}");
+        }
+
+        private static void ApplyInstallerVersion()
+        {
+            var versionPath = Path.GetFullPath(Path.Combine(
+                Directory.GetCurrentDirectory(),
+                "Installer",
+                "ProductVersion.props"));
+
+            if (!File.Exists(versionPath))
+            {
+                return;
+            }
+
+            try
+            {
+                var document = XDocument.Load(versionPath);
+                var version = document.Descendants("ProductVersion").FirstOrDefault()?.Value?.Trim();
+                if (string.IsNullOrWhiteSpace(version) || !Version.TryParse(version, out _))
+                {
+                    Debug.LogWarning($"Installer version file does not contain a valid ProductVersion: {versionPath}");
+                    return;
+                }
+
+                PlayerSettings.bundleVersion = version;
+                Debug.Log($"Applied Brickwave installer version to player build: {version}");
+            }
+            catch (Exception exception)
+            {
+                Debug.LogWarning($"Could not read installer version from {versionPath}: {exception.Message}");
+            }
         }
 
         private static string ResolveOutputPath()

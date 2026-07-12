@@ -31,6 +31,16 @@ jobs:
           docker-images: true
           swap-storage: true
 
+      - name: Install packaging dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y imagemagick
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
       - name: Cache Unity Library
         uses: actions/cache@v4
         with:
@@ -49,12 +59,35 @@ jobs:
           UNITY_SERIAL: ${{ secrets.UNITY_SERIAL }}
         with:
           targetPlatform: StandaloneWindows64
-          buildName: Brickwave84-Windows
+          buildName: Brickwave84
           buildsPath: build
 
-      - name: Upload Windows build artifact
+      - name: Prepare MSI payload
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $sourceExe = Get-ChildItem -LiteralPath build -Recurse -File -Filter Brickwave84.exe |
+            Select-Object -First 1
+
+          if (-not $sourceExe) {
+            throw 'Brickwave84.exe was not found in the Unity build output.'
+          }
+
+          $payloadDir = Join-Path $PWD 'Builds/Release/Brickwave84'
+          if (Test-Path -LiteralPath $payloadDir) {
+            Remove-Item -LiteralPath $payloadDir -Recurse -Force
+          }
+
+          New-Item -ItemType Directory -Force -Path $payloadDir | Out-Null
+          Copy-Item -Path (Join-Path $sourceExe.DirectoryName '*') -Destination $payloadDir -Recurse -Force
+
+      - name: Build MSI installer
+        shell: pwsh
+        run: ./Installer/Scripts/Build-Msi.ps1 -GameBuildDir ./Builds/Release/Brickwave84
+
+      - name: Upload Windows MSI artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Brickwave84-Windows
-          path: build
+          name: Brickwave84-Windows-MSI
+          path: Builds/Installer/Brickwave84-*.msi
           if-no-files-found: error

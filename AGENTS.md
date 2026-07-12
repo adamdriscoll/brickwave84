@@ -67,6 +67,7 @@
   - `Assets/Resources/Backgrounds/`
 - If prefabs, art, or audio are introduced later, prefer `Assets/Prefabs/`, `Assets/Art/`, and `Assets/Audio/`.
 - When authored unlock content changes, update the README `Unlock Progression` table in the same pass. This includes adding, removing, renaming, or retuning drop unlocks, level glitches, placeholder progression cards, or run upgrades, plus changes to default status, unlock heat, rarity, polarity, description, effect type, or implementation status.
+- Windows MSI packaging lives under `Installer/`. Bump `Installer/ProductVersion.props` for release versions, and prefer `Installer/Scripts/Build-Msi.ps1 -BuildPlayer` so the Unity player version, generated installer art, and WiX package stay aligned.
 - Do not edit generated folders for durable changes: `Library/`, `Logs/`, `Temp/`, or `UserSettings/`.
 - Be cautious with large manual edits to `.unity`, `.prefab`, or other YAML assets because Unity references assets by GUID.
 
@@ -99,6 +100,7 @@ python .codex/skills/unity-tests/scripts/run_unity_tests.py --platform editmode
 - `.codex/skills/unity-tests/`: Unity Test Framework batchmode runs.
 - `.codex/skills/breakout-svg-art/`: SVG gameplay art workflow for this project.
 - `.codex/skills/repo-maintenance/`: refresh durable repo guidance and local skills after substantial work.
+- `Installer/`: WiX-backed Windows MSI packaging with generated synthwave installer art.
 
 ## Good First Reads
 

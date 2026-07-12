@@ -1,0 +1,59 @@
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
+     xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui">
+  <Package Name="Brickwave '84"
+           Manufacturer="Brickwave Games"
+           Version="$(var.ProductVersion)"
+           UpgradeCode="{08EDFEAB-0614-46ED-A3CB-4D97A2E79E72}"
+           Scope="perMachine">
+    <SummaryInformation Description="Brickwave '84 Windows Installer" />
+    <MajorUpgrade DowngradeErrorMessage="A newer version of Brickwave '84 is already installed." />
+    <MediaTemplate EmbedCab="yes" />
+
+    <Property Id="WIXUI_INSTALLDIR" Value="INSTALLFOLDER" />
+    <Property Id="ARPPRODUCTICON" Value="ProductIcon.ico" />
+    <Icon Id="ProductIcon.ico" SourceFile="$(var.InstallerAssetsDir)/Product.ico" />
+
+    <WixVariable Id="WixUILicenseRtf" Value="$(var.InstallerProjectDir)/License.rtf" />
+    <WixVariable Id="WixUIDialogBmp" Value="$(var.InstallerAssetsDir)/Dialog.bmp" />
+    <WixVariable Id="WixUIBannerBmp" Value="$(var.InstallerAssetsDir)/Banner.bmp" />
+    <ui:WixUI Id="WixUI_InstallDir" />
+
+    <Feature Id="MainFeature" Title="Brickwave '84" Level="1">
+      <Files Include="$(var.GameBuildDir)/**" Directory="INSTALLFOLDER">
+        <Exclude Files="$(var.GameBuildDir)/**/*.pdb" />
+      </Files>
+      <ComponentGroupRef Id="ApplicationShortcuts" />
+    </Feature>
+  </Package>
+
+  <Fragment>
+    <StandardDirectory Id="ProgramFiles64Folder">
+      <Directory Id="CompanyFolder" Name="Brickwave Games">
+        <Directory Id="INSTALLFOLDER" Name="Brickwave 84" />
+      </Directory>
+    </StandardDirectory>
+    <StandardDirectory Id="ProgramMenuFolder">
+      <Directory Id="ApplicationProgramsFolder" Name="Brickwave '84" />
+    </StandardDirectory>
+  </Fragment>
+
+  <Fragment>
+    <ComponentGroup Id="ApplicationShortcuts" Directory="ApplicationProgramsFolder">
+      <Component Id="ApplicationShortcutComponent" Guid="{B83C29DC-9D76-4E1B-9F35-620B7A5EA68B}">
+        <Shortcut Id="ApplicationStartMenuShortcut"
+                  Name="Brickwave '84"
+                  Description="Launch Brickwave '84"
+                  Target="[INSTALLFOLDER]Brickwave84.exe"
+                  WorkingDirectory="INSTALLFOLDER"
+                  Icon="ProductIcon.ico" />
+        <RemoveFolder Id="RemoveApplicationProgramsFolder" On="uninstall" />
+        <RegistryValue Root="HKCU"
+                       Key="Software\Brickwave Games\Brickwave84"
+                       Name="Installed"
+                       Type="integer"
+                       Value="1"
+                       KeyPath="yes" />
+      </Component>
+    </ComponentGroup>
+  </Fragment>
+</Wix>
