@@ -16,6 +16,7 @@ $installerRoot = Split-Path -Parent $scriptRoot
 $repositoryRoot = (Resolve-Path -LiteralPath (Join-Path $installerRoot '..')).Path
 $versionProps = [System.IO.Path]::Combine($installerRoot, 'ProductVersion.props')
 $wixProject = [System.IO.Path]::Combine($installerRoot, 'Brickwave84.wixproj')
+$installerAssetsDir = [System.IO.Path]::Combine($installerRoot, 'obj', 'installer-assets')
 $outputDir = [System.IO.Path]::Combine($repositoryRoot, 'Builds', 'Installer')
 
 if (-not $GameBuildDir) {
@@ -100,6 +101,23 @@ function Join-ProcessArguments {
     }) -join ' '
 }
 
+function New-InstallerAssets {
+    $assetScript = [System.IO.Path]::Combine($installerRoot, 'Scripts', 'New-InstallerAssets.ps1')
+    & $assetScript -RepositoryRoot $repositoryRoot -OutputDirectory $installerAssetsDir
+
+    if ($LASTEXITCODE -ne 0) {
+        throw "Installer asset generation failed with exit code $LASTEXITCODE."
+    }
+
+    $requiredAssets = @('Dialog.bmp', 'Banner.bmp', 'Product.ico')
+    foreach ($asset in $requiredAssets) {
+        $assetPath = [System.IO.Path]::Combine($installerAssetsDir, $asset)
+        if (-not (Test-Path -LiteralPath $assetPath -PathType Leaf)) {
+            throw "Installer asset generation did not create $assetPath."
+        }
+    }
+}
+
 if ($BuildPlayer) {
     $unityExe = Resolve-UnityPath -RequestedUnityPath $UnityPath
     Clear-PlayerBuildDirectory -TargetPath $gameBuildPath
@@ -148,6 +166,8 @@ if ($doNotShipFolders) {
 }
 
 New-Item -ItemType Directory -Force -Path $outputDir | Out-Null
+New-InstallerAssets
+
 $outputPathArgument = $outputDir
 if (-not $outputPathArgument.EndsWith([System.IO.Path]::DirectorySeparatorChar.ToString())) {
     $outputPathArgument += [System.IO.Path]::DirectorySeparatorChar
@@ -156,6 +176,7 @@ if (-not $outputPathArgument.EndsWith([System.IO.Path]::DirectorySeparatorChar.T
 dotnet build $wixProject `
     -c $Configuration `
     -p:GameBuildDir="$gameBuildPath" `
+    -p:InstallerAssetsDir="$installerAssetsDir" `
     -p:OutputPath="$outputPathArgument"
 
 if ($LASTEXITCODE -ne 0) {

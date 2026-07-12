@@ -9,8 +9,6 @@
     <OutputPath Condition="'$(OutputPath)' == ''">$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)/../Builds/Installer'))/</OutputPath>
     <OutputName>Brickwave84-$(ProductVersion)</OutputName>
     <DefineConstants>ProductVersion=$(ProductVersion);GameBuildDir=$(GameBuildDir);InstallerAssetsDir=$(InstallerAssetsDir);InstallerProjectDir=$(MSBuildProjectDirectory)</DefineConstants>
-    <PowerShellExe Condition="'$(OS)' == 'Windows_NT'">powershell</PowerShellExe>
-    <PowerShellExe Condition="'$(OS)' != 'Windows_NT'">pwsh</PowerShellExe>
   </PropertyGroup>
 
   <ItemGroup>
@@ -19,9 +17,5 @@
 
   <Target Name="ValidateGameBuild" BeforeTargets="Build">
     <Error Condition="!Exists('$(GameBuildDir)/Brickwave84.exe')" Text="Brickwave player build not found at '$(GameBuildDir)/Brickwave84.exe'. Run Installer/Scripts/Build-Msi.ps1 -BuildPlayer or pass -p:GameBuildDir=&lt;built-player-folder&gt;." />
-  </Target>
-
-  <Target Name="GenerateInstallerAssets" BeforeTargets="Build">
-    <Exec Command="$(PowerShellExe) -NoProfile -ExecutionPolicy Bypass -File &quot;$(MSBuildProjectDirectory)/Scripts/New-InstallerAssets.ps1&quot; -RepositoryRoot &quot;$(MSBuildProjectDirectory)/..&quot; -OutputDirectory &quot;$(InstallerAssetsDir)&quot;" />
   </Target>
 </Project>
